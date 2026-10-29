@@ -12,6 +12,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { request as httpsRequest } from "node:https";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 export const NSIS_SHA256 =
@@ -89,13 +90,54 @@ export function validateNsisPin(pin) {
   );
 }
 
+/**
+ * Use core HTTPS streams, avoiding Node 24.19's Undici parser assertion on
+ * Windows. Omitting agent/TLS overrides preserves https.globalAgent, inherited
+ * --use-env-proxy routing, and the configured CA trust. Redirects remain owned
+ * by the bounded, allowlisted downloader below.
+ */
+export function requestNsisOverHttps(
+  url,
+  { signal, headers },
+  requestImpl = httpsRequest,
+) {
+  return new Promise((resolveResponse, rejectResponse) => {
+    let response;
+    const request = requestImpl(
+      url,
+      { method: "GET", signal, headers },
+      (incoming) => {
+        response = incoming;
+        // Prevent an unhandled stream error before the consumer's async iterator
+        // attaches; the errored stream still rejects that iterator normally.
+        incoming.on("error", () => {});
+        resolveResponse({
+          status: incoming.statusCode ?? 0,
+          headers: {
+            get(name) {
+              const value = incoming.headers[String(name).toLowerCase()];
+              return Array.isArray(value) ? value.join(", ") : (value ?? null);
+            },
+          },
+          body: incoming,
+        });
+      },
+    );
+    request.on("error", (error) => {
+      response?.destroy(error);
+      rejectResponse(error);
+    });
+    request.end();
+  });
+}
+
 /** Download bytes only. Nothing is extracted or executed by this helper. */
 export async function fetchVerifiedArchive({
   output,
   expectedSha256,
   candidates = NSIS_DOWNLOADS,
   diagnosticsPath,
-  fetchImpl = fetch,
+  fetchImpl = requestNsisOverHttps,
   timeoutMs = 25_000,
   maxBytes = 8 * 1024 * 1024,
   onAttempt = () => {},

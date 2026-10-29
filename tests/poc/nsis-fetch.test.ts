@@ -5,10 +5,15 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { EventEmitter } from "node:events";
+import { Readable } from "node:stream";
 
-const { fetchVerifiedArchive, NSIS_DOWNLOADS, validateNsisUrl } = await import(
-  pathToFileURL(resolve("scripts/fetch-nsis.mjs")).href
-);
+const {
+  fetchVerifiedArchive,
+  NSIS_DOWNLOADS,
+  validateNsisUrl,
+  requestNsisOverHttps,
+} = await import(pathToFileURL(resolve("scripts/fetch-nsis.mjs")).href);
 const zip = Buffer.concat([
   Buffer.from([0x50, 0x4b, 0x03, 0x04]),
   Buffer.from("synthetic archive fixture"),
@@ -156,4 +161,66 @@ test("NSIS fetch revalidates a trusted local cache without touching the network"
   });
   assert.equal(result.cached, true);
   assert.equal(result.bytes, zip.length);
+});
+
+test("core HTTPS adapter preserves the default agent, signal and core response stream", async () => {
+  const signal = new AbortController().signal;
+  let receivedOptions: Record<string, unknown> | undefined;
+  const incoming = Object.assign(Readable.from([zip]), {
+    statusCode: 200,
+    headers: { "content-type": "application/zip" },
+  });
+  const response = await requestNsisOverHttps(
+    new URL(NSIS_DOWNLOADS[0]),
+    {
+      signal,
+      headers: { Accept: "application/zip" },
+    },
+    (
+      _url: URL,
+      options: Record<string, unknown>,
+      onResponse: (stream: typeof incoming) => void,
+    ) => {
+      receivedOptions = options;
+      const request = Object.assign(new EventEmitter(), {
+        end() {
+          queueMicrotask(() => onResponse(incoming));
+        },
+      });
+      return request;
+    },
+  );
+  assert.equal(receivedOptions?.signal, signal);
+  assert.equal(receivedOptions?.method, "GET");
+  assert.equal(Object.hasOwn(receivedOptions!, "agent"), false);
+  assert.equal(Object.hasOwn(receivedOptions!, "rejectUnauthorized"), false);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/zip");
+  assert.equal(response.body, incoming);
+  const chunks = [];
+  for await (const chunk of response.body) chunks.push(Buffer.from(chunk));
+  assert.deepEqual(Buffer.concat(chunks), zip);
+
+  await assert.rejects(
+    requestNsisOverHttps(
+      new URL(NSIS_DOWNLOADS[0]),
+      { signal, headers: {} },
+      () => {
+        const request = Object.assign(new EventEmitter(), {
+          end() {
+            queueMicrotask(() =>
+              request.emit(
+                "error",
+                Object.assign(new Error("Connection failed"), {
+                  code: "ECONNRESET",
+                }),
+              ),
+            );
+          },
+        });
+        return request;
+      },
+    ),
+    { code: "ECONNRESET" },
+  );
 });
