@@ -38,3 +38,9 @@
 | Prettier | 3.6.2 | 源码格式化 | MIT |
 
 版本、传递依赖和 integrity 以当前 package-lock.json 为准。RC 使用 Node 内置测试框架、Playwright 和系统 Chromium 进行云端测试。实际生产依赖审计、离线包和浏览器结果见 RC 验收记录；早期 S0 记录保留为历史证据，不覆盖本轮结果。
+
+## Windows 安装器构建工具链
+
+NSIS 3.11，官方归档 `https://prdownloads.sourceforge.net/nsis/nsis-3.11.zip`，SHA256 `c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1`。完整固定配置见 `installer/windows/toolchain.json`；构建器验证归档后在临时目录使用其编译器，不能替换为未经核验的系统工具。
+
+官方 `COPYING` 列明 zlib/libpng、bzip2、Common Public License 1.0（LZMA 模块）。安装器保留 `NSIS-COPYING.txt` 和 `NSIS-NOTICE.txt`；不把工具链整体改称 MIT。它是安装包构建工具，未新增应用 npm 运行时依赖。Windows 原生 CI 和安装冒烟结果以本次实际运行记录为准，Linux 辅助测试不算 Windows 通过。

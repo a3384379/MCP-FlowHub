@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 
@@ -31,7 +31,7 @@ export async function verifyPinnedToolchain(archive, pin) {
   assert.equal(hash(await readFile(archive)), pin.sha256, "NSIS archive SHA-256 mismatch. Use the reviewed toolchain ZIP; do not substitute an installed compiler.");
 }
 
-async function nativeModules(bundle) {
+export async function verifyLoadedNativeModules(bundle, loadedPaths) {
   const files = [];
   async function walk(path) {
     for (const entry of await readdir(path, { withFileTypes: true })) {
@@ -41,9 +41,29 @@ async function nativeModules(bundle) {
     }
   }
   await walk(join(bundle, "node_modules"));
-  assert.ok(files.some((path) => path.endsWith("better_sqlite3.node")), "Native better-sqlite3 must be included.");
-  for (const path of files) assert.equal(peMachine(await readFile(path)), 0x8664, `Expected Windows x64 native module: ${path}`);
-  return files;
+  assert.ok(Array.isArray(loadedPaths) && loadedPaths.length > 0 &&
+    loadedPaths.every((path) => typeof path === "string" && isAbsolute(path)),
+  "The real SQLite query must report its actually loaded native binding paths.");
+  const key = (path) => process.platform === "win32" ? resolve(path).toLowerCase() : resolve(path);
+  const inventory = new Map(files.map((path) => [key(path), path]));
+  const loaded = [...new Set(loadedPaths.map(key))];
+  for (const path of loaded) {
+    assert.ok(inventory.has(path), `Loaded native binding must belong to the verified bundle: ${path}`);
+    assert.equal(peMachine(await readFile(inventory.get(path))), 0x8664, `Actually loaded binding must be Windows x64 PE: ${path}`);
+  }
+  const sqliteRoot = join(bundle, "node_modules/better-sqlite3");
+  assert.ok(loaded.some((path) => {
+    const value = relative(key(sqliteRoot), path);
+    return value && value !== ".." && !value.startsWith(`..${sep}`) && !isAbsolute(value);
+  }), "The real SQLite query must actually load the bundled better-sqlite3 native binding.");
+  // better-sqlite3 13 ships all supported platform prebuilds in the same locked
+  // npm package. Verify the binding Node actually used, and enumerate unused
+  // prebuilds without claiming they are Windows executables or executing them.
+  const portable = (path) => relative(resolve(bundle), path).replaceAll("\\", "/");
+  return {
+    loaded: loaded.map((path) => portable(inventory.get(path))),
+    unused: files.filter((path) => !loaded.includes(key(path))).map(portable),
+  };
 }
 
 const nsisString = (value) => {
@@ -69,11 +89,15 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
   assert.equal(build.version, pkg.version);
   const runtime = join(bundle, "runtime/node.exe");
   assert.equal(peMachine(await readFile(runtime)), 0x8664, "Bundled Node must be Windows x64.");
-  const modules = await nativeModules(bundle);
   const { stdout: nativeSmoke } = await exec(runtime, ["--input-type=commonjs", "-e",
-    "const assert=require('node:assert/strict');assert.equal(process.platform,'win32');assert.equal(process.arch,'x64');const DB=require('better-sqlite3');const db=new DB(':memory:');assert.equal(db.prepare('select 42 as value').get().value,42);db.close();console.log(JSON.stringify({os:process.platform,arch:process.arch,node:process.versions.node,sqlite:true}));"],
+    "const assert=require('node:assert/strict');assert.equal(process.platform,'win32');assert.equal(process.arch,'x64');const DB=require('better-sqlite3');const db=new DB(':memory:');assert.equal(db.prepare('select 42 as value').get().value,42);db.close();console.log(JSON.stringify({os:process.platform,arch:process.arch,node:process.versions.node,sqlite:true,nativeModules:Object.keys(require.cache).filter(path=>path.endsWith('.node'))}));"],
   { cwd: bundle, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 });
-  assert.equal(JSON.parse(nativeSmoke).node, pkg.engines.node);
+  const nativeResult = JSON.parse(nativeSmoke);
+  assert.equal(nativeResult.os, "win32");
+  assert.equal(nativeResult.arch, "x64");
+  assert.equal(nativeResult.node, pkg.engines.node);
+  assert.equal(nativeResult.sqlite, true);
+  const modules = await verifyLoadedNativeModules(bundle, nativeResult.nativeModules);
 
   const temporary = await mkdtemp(join(tmpdir(), "flowhub-windows-installer-"));
   try {
@@ -123,7 +147,9 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
       builtAt: new Date().toISOString(), os: "win32", arch: "x64", node: pkg.engines.node,
       sourceTreeSha256: build.sourceTreeSha256, nativeWindowsBuild: true, windowsValidated: false, companyValidated: false,
       signed: false, nsis: { version: pin.version, archiveSha256: pin.sha256 },
-      nativeModules: modules.map((path) => path.slice(resolve(bundle).length + 1).replaceAll("\\", "/")),
+      nativeModules: modules.loaded,
+      unusedNativeModules: modules.unused,
+      nativeModulePolicy: "Only the bindings actually loaded by the successful Windows x64 SQLite query were executed and verified as Windows x64 PE. Unused platform prebuilds remain as shipped in the locked npm package and are not Windows validation evidence.",
       dataPolicy: "Per-user installation; independent %LOCALAPPDATA%\\MCP-FlowHub data is retained on uninstall.",
     };
     await writeFile(`${installer}.build-info.json`, JSON.stringify(metadata, null, 2));

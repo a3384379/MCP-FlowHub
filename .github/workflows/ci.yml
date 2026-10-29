@@ -57,6 +57,7 @@ jobs:
         if: runner.os == 'Windows'
         run: npm run test:installer:windows
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && !cancelled()
         with:
           name: flowhub-rc-${{ runner.os }}
           path: |
@@ -66,7 +67,10 @@ jobs:
             artifacts/*.exe
             artifacts/*installer*.json
             artifacts/*.build-info.json
+            artifacts/latest-package.json
+            artifacts/package-smoke-diagnostics.json
+            artifacts/*.log
             artifacts/ui-*.png
             artifacts/reports/*
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14

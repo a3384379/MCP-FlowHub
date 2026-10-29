@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 
 const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped } =
   await import(pathToFileURL(resolve("installer/windows/install-helper.mjs")).href);
-const { verifyPinnedToolchain, peMachine } =
+const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
 
@@ -130,6 +130,31 @@ test("compiler archive hash and native PE headers reject substitutes", async (t)
   malformed.write("MZ");
   malformed.writeUInt32LE(65535, 0x3c);
   assert.throws(() => peMachine(malformed), /Invalid Windows PE header/);
+});
+
+test("native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds", async (t) => {
+  const { root } = await fixture(t);
+  const windows = join(root, "node_modules/better-sqlite3/prebuilds/win32-x64.node");
+  const linux = join(root, "node_modules/better-sqlite3/prebuilds/linux-x64.node");
+  await mkdir(dirname(windows), { recursive: true });
+  const pe = Buffer.alloc(128);
+  pe.write("MZ");
+  pe.writeUInt32LE(64, 0x3c);
+  pe.write("PE\0\0", 64, "binary");
+  pe.writeUInt16LE(0x8664, 68);
+  await writeFile(windows, pe);
+  await writeFile(linux, "\x7fELF unused foreign prebuild");
+  assert.deepEqual(await verifyLoadedNativeModules(root, [windows]), {
+    loaded: ["node_modules/better-sqlite3/prebuilds/win32-x64.node"],
+    unused: ["node_modules/better-sqlite3/prebuilds/linux-x64.node"],
+  });
+  await assert.rejects(verifyLoadedNativeModules(root, [linux]), /native Windows PE/);
+  await assert.rejects(verifyLoadedNativeModules(root, [join(root, "external/win32-x64.node")]), /must belong to the verified bundle/);
+  const wrongArch = Buffer.from(pe);
+  wrongArch.writeUInt16LE(0xaa64, 68);
+  await writeFile(windows, wrongArch);
+  await assert.rejects(verifyLoadedNativeModules(root, [windows]), /Actually loaded binding must be Windows x64 PE/);
+  await assert.rejects(verifyLoadedNativeModules(root, []), /actually loaded native binding paths/);
 });
 
 test("Linux invocation cannot generate a Windows installer", { skip: process.platform === "win32" ? "Native Windows build is covered by the actual installer smoke job" : false }, async () => {

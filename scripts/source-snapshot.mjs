@@ -29,6 +29,7 @@ export const sourceRootFiles = [
   ".gitignore",
   "README.md",
   "AGENTS.md",
+  "Build-Windows.cmd",
 ];
 export const sourceSnapshot = Object.freeze({
   formatVersion: 1,

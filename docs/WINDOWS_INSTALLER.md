@@ -14,6 +14,8 @@
 
 原生构建：
 
+也可在配置好下述固定 Node/npm 的干净 Windows 构建账户中运行根目录 `Build-Windows.cmd`。它按顺序执行同一套检查和构建，打印失败阶段与产物路径；不会修改全局工具、TLS 或 PowerShell 执行策略。PowerShell 脚本能否执行需符合组织策略。该入口和源码包本身不代表已通过 Windows 安装验收。
+
 ```powershell
 npm ci
 npm run check
