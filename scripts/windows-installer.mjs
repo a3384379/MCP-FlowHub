@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 
@@ -116,7 +116,11 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
     manifest["manifest.sha256.json"] = hash(await readFile(join(bundle, "manifest.sha256.json")));
     const manifestPath = join(temporary, "payload-manifest.json");
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-    const stagedOutput = join(temporary, "setup.exe");
+    // Generic setup/install/update names trigger unsafe Windows compatibility
+    // shims and NSIS warning 9000. Keep /WX and use a product/version name.
+    const stagedOutput = join(temporary, `flowhub-${pkg.version}-candidate.exe`);
+    assert.ok(!["setup.exe", "install.exe", "update.exe"].includes(basename(stagedOutput).toLowerCase()),
+      "NSIS compiler output must use a product/version-specific filename.");
     const definitions = {
       FLOWHUB_VERSION: pkg.version,
       FLOWHUB_OUTPUT: stagedOutput,
