@@ -15,12 +15,27 @@ const zip = Buffer.concat([
 ]);
 const expectedSha256 = createHash("sha256").update(zip).digest("hex");
 
-test("NSIS fetch rejects a successful HTTP HTML page and only publishes a checksum-verified ZIP", async (t) => {
+test("NSIS fetch rejects HTML, drains redirects without cancellation and only publishes a checksum-verified ZIP", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "flowhub-nsis-fetch-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const output = join(dir, "nsis.zip");
   const diagnosticsPath = join(dir, "diagnostics.json");
   let calls = 0;
+  let redirectCancelled = false;
+  let redirectResponse: Response | undefined;
+  const redirectText = Buffer.from("temporary official mirror redirect");
+  const redirectBody = new ReadableStream({
+    start(controller) {
+      controller.enqueue(redirectText);
+      controller.close();
+    },
+    cancel() {
+      redirectCancelled = true;
+      throw new Error(
+        "A normal redirect response must be drained, never cancelled.",
+      );
+    },
+  });
   const result = await fetchVerifiedArchive({
     output,
     expectedSha256,
@@ -33,13 +48,13 @@ test("NSIS fetch rejects a successful HTTP HTML page and only publishes a checks
             headers: { "content-type": "text/html" },
           })
         : calls === 2
-          ? new Response(null, {
+          ? (redirectResponse = new Response(redirectBody, {
               status: 302,
               headers: {
                 location:
                   "https://netactuate.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip?timestamp=DO_NOT_LOG",
               },
-            })
+            }))
           : new Response(zip, {
               headers: { "content-type": "application/zip" },
             });
@@ -53,6 +68,9 @@ test("NSIS fetch rejects a successful HTTP HTML page and only publishes a checks
   assert.equal(diagnostics.attempts[0].contentType, "text/html");
   assert.ok(diagnostics.attempts[0].sha256);
   assert.equal(calls, 3);
+  assert.equal(redirectCancelled, false);
+  assert.equal(redirectResponse?.bodyUsed, true);
+  assert.equal(diagnostics.attempts[1].redirectBytes, redirectText.length);
   assert.equal(
     diagnostics.attempts[1].redirects[0],
     "https://netactuate.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip",

@@ -165,6 +165,7 @@ export async function fetchVerifiedArchive({
       const record = {
         source: safeUrl(candidate),
         redirects: [],
+        redirectBytes: 0,
         bytes: 0,
         complete: false,
       };
@@ -192,7 +193,19 @@ export async function fetchVerifiedArchive({
             .slice(0, 100);
           if (![301, 302, 303, 307, 308].includes(response.status)) break;
           const location = response.headers.get("location");
-          await response.body?.cancel();
+          // Drain normal redirect bodies rather than cancelling them: Node
+          // 24.19's Undici parser can assert on a TLS end/cancel race. The same
+          // attempt signal and total byte budget cover redirect and ZIP bodies.
+          if (response.body) {
+            for await (const chunk of response.body) {
+              record.redirectBytes += chunk.byteLength;
+              if (record.redirectBytes > maxBytes)
+                fail(
+                  "NSIS_TOO_LARGE",
+                  "Redirect responses exceeded the bounded download size.",
+                );
+            }
+          }
           if (!location || redirects >= 5)
             fail(
               "NSIS_REDIRECT_LIMIT",
@@ -215,7 +228,7 @@ export async function fetchVerifiedArchive({
         for await (const chunk of response.body) {
           const bytes = Buffer.from(chunk);
           record.bytes += bytes.length;
-          if (record.bytes > maxBytes)
+          if (record.bytes + record.redirectBytes > maxBytes)
             fail(
               "NSIS_TOO_LARGE",
               "The download exceeded the bounded archive size.",
