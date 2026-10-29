@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowhub.example.invalid/contracts/runtime-results.schema.json",
+  "title": "FlowHub non-synthetic normalized result contracts",
+  "description": "Built-in normalized result shapes for verified non-simulation bindings. The connector validates the discovered tool schema first, then the engine validates this contract when a standard outputSchemaRef is declared. The source must return this shape or use an explicitly reviewed adapter; FlowHub never changes provenance fields to make validation pass. No enterprise integration is implied by this schema.",
+  "$defs": {
+    "environment": { "enum": ["production", "staging", "test"] },
+    "logSearchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "environment",
+        "logs",
+        "truncated",
+        "nextCursor"
+      ],
+      "properties": {
+        "synthetic": { "const": false },
+        "environment": { "$ref": "#/$defs/environment" },
+        "logs": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "level", "message", "traceId", "orderNo"],
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "level": { "enum": ["DEBUG", "INFO", "WARN", "ERROR"] },
+              "message": { "type": "string", "maxLength": 4000 },
+              "traceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "orderNo": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          }
+        },
+        "truncated": { "type": "boolean" },
+        "nextCursor": { "type": ["string", "null"], "maxLength": 1024 }
+      }
+    },
+    "queryTemplateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "environment",
+        "templateId",
+        "rows",
+        "rowCount",
+        "truncated"
+      ],
+      "properties": {
+        "synthetic": { "const": false },
+        "environment": { "$ref": "#/$defs/environment" },
+        "templateId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "rows": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "type": "object", "maxProperties": 100 }
+        },
+        "rowCount": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  }
+}

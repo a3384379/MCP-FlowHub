@@ -1,0 +1,72 @@
+name: RC checks and native offline candidates
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: flowhub-rc-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  poc:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm install --global npm@11.9.0
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - if: runner.os == 'Linux'
+        run: npm run test:ui
+      - run: npm audit --omit=dev --audit-level=moderate
+      - if: runner.os == 'Windows'
+        run: npm run package:windows
+      - if: runner.os != 'Windows'
+        run: npm run package:local
+      - run: npm run test:package
+      - run: npm run verify:release
+      - name: Fetch pinned NSIS toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pin = Get-Content -LiteralPath installer/windows/toolchain.json -Raw | ConvertFrom-Json
+          $archive = Join-Path $env:RUNNER_TEMP 'flowhub-nsis.zip'
+          Invoke-WebRequest -Uri $pin.url -OutFile $archive -MaximumRetryCount 3 -RetryIntervalSec 3
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pin.sha256) {
+            throw 'NSIS archive checksum mismatch'
+          }
+          "FLOWHUB_NSIS_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: npm run installer:windows -- --nsis-archive "$env:FLOWHUB_NSIS_ARCHIVE"
+      - name: Verify Windows installation, upgrade and uninstall
+        if: runner.os == 'Windows'
+        run: npm run test:installer:windows
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flowhub-rc-${{ runner.os }}
+          path: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+            artifacts/*.sha256
+            artifacts/*.exe
+            artifacts/*installer*.json
+            artifacts/*.build-info.json
+            artifacts/ui-*.png
+            artifacts/reports/*
+          if-no-files-found: error
+          retention-days: 14

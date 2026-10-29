@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "environment": "production",
+  "templateId": "order-by-number-v1",
+  "rows": [
+    {
+      "orderNo": "DEMO-1001",
+      "orderStatus": "PAID",
+      "billStatus": "UNPAID",
+      "sentinel": "PROD_ONLY_SENTINEL_017"
+    }
+  ],
+  "rowCount": 1,
+  "truncated": false
+}

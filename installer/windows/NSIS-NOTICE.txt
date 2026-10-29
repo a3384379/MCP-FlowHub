@@ -1,0 +1,11 @@
+This installer contains unmodified NSIS 3.11 installer/uninstaller stubs,
+System and nsExec plug-ins, and the NSIS LZMA compression module.
+Copyright (C) 1999-2025 Contributors. See NSIS-COPYING.txt for their licenses.
+The NSIS LZMA linking exception does not place the FlowHub application under CPL.
+
+NSIS project and corresponding source:
+https://nsis.sourceforge.io/
+https://prdownloads.sourceforge.net/nsis/nsis-3.11-src.tar.bz2
+
+The original compiler ZIP and its fixed SHA-256 are recorded in the recoverable
+source at installer/windows/toolchain.json. FlowHub does not modify NSIS sources.

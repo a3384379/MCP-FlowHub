@@ -1,0 +1,40 @@
+# S0 依赖基线
+
+实际安装验证：2026-10-29，Linux x64。直接依赖精确版本和传递依赖见 package-lock.json；npm ci 保持 integrity/TLS 校验。
+
+| 依赖 | 版本 | 用途 | 包许可摘要 |
+|---|---|---|---|
+| Node.js | 24.19.0 | daemon、子进程、包内运行时 | MIT 及附带组件许可 |
+| npm | 11.9.0 | 安装/SBOM，目标机不需要 | Artistic-2.0 |
+| @modelcontextprotocol/server | 2.4.0 | 七工具、现代/legacy serving | Apache-2.0；LICENSE 含 MIT 过渡说明 |
+| @modelcontextprotocol/client | 2.4.0 | 下游和薄桥客户端 | 同上 |
+| @modelcontextprotocol/node | 2.1.2 | 官方 Node HTTP adapter | 保留实际 LICENSE |
+| Fastify | 5.12.7 | 路由/请求限制 | MIT |
+| AJV | 8.20.0 | Draft 2020-12 验证 | MIT |
+| ajv-formats | 3.0.1 | 设计 Schema 格式 | MIT |
+| better-sqlite3 | 13.0.3 | 原生 SQLite/WAL | MIT |
+| TypeScript | 7.0.2 | strict 编译 | Apache-2.0 |
+| @types/node | 24.10.1 | Node 类型 | MIT |
+| @types/better-sqlite3 | 7.6.13 | SQLite 类型 | MIT |
+
+**许可**：表为元数据摘要，不替代文件级审查。SDK LICENSE 含 Apache-2.0/MIT 迁移说明，不统一改标。离线包保留依赖原始 LICENSE/NOTICE，生成完整 THIRD_PARTY_NOTICES.json、SBOM.cdx.json。Node 24.19.0 LICENSE 从 nodejs/node 官方对应标签获取，保存在 docs/third-party，包含其他运行时组件许可。用户源码许可证待维护者决定。
+
+**协议实测**：Linux modern 2026-07-28 与 legacy 2025-11-25，均覆盖 HTTP/STDIO。SDK 默认 legacy；测试显式 pin modern，分别记录 era/版本。不声明其他旧协议、stateful legacy HTTP+SSE、真实 Codex 或企业兼容。
+
+**审计**：初始 Fastify 5.7.1/AJV 8.17.1 命中已知漏洞，已升级到上表修复版本，未使用 audit fix --force。最终审计结果见 S0 证据。没有关闭证书/签名/哈希校验。
+
+**Windows**：CI 固定 Node/npm，原生安装、同套测试、含 Node 的 ZIP、解压冒烟。尚无本次 Windows CI 运行证据，不能据 Linux 成功推断 Windows 兼容。
+
+## RC 新增实际锁定依赖
+
+| 依赖 | 版本 | 用途 | 许可摘要 |
+|---|---|---|---|
+| React / React DOM | 19.3.1 | 正式管理 UI | MIT |
+| @xyflow/react | 12.12.0 | 图编辑、拖拽、连线、缩放/小地图 | MIT |
+| Vite | 8.3.5 | 浏览器构建，开发依赖 | MIT |
+| @playwright/test | 1.64.1 | 实际浏览器 E2E | Apache-2.0 |
+| @types/react | 19.2.14 | React 类型 | MIT |
+| @types/react-dom | 19.2.3 | React DOM 类型 | MIT |
+| Prettier | 3.6.2 | 源码格式化 | MIT |
+
+版本、传递依赖和 integrity 以当前 package-lock.json 为准。RC 使用 Node 内置测试框架、Playwright 和系统 Chromium 进行云端测试。实际生产依赖审计、离线包和浏览器结果见 RC 验收记录；早期 S0 记录保留为历史证据，不覆盖本轮结果。

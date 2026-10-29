@@ -1,0 +1,262 @@
+import {
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+  createCipheriv,
+  createDecipheriv,
+} from "node:crypto";
+import {
+  ensure,
+  hash,
+  now,
+  type Json,
+  HubError,
+  redact as redactValue,
+} from "../../contracts/src/domain.js";
+import type { Repository } from "../../persistence/src/repository.js";
+const derive = (password: string, salt: string) =>
+  scryptSync(password, salt, 32, {
+    N: 32768,
+    r: 8,
+    p: 1,
+    maxmem: 64 * 1024 * 1024,
+  });
+export function passwordHash(password: string) {
+  ensure(
+    typeof password === "string" &&
+      password.length >= 12 &&
+      password.length <= 256,
+    "PASSWORD_WEAK",
+    "Password must contain 12–256 characters.",
+  );
+  const salt = randomBytes(16).toString("hex");
+  return { salt, digest: derive(password, salt).toString("hex") };
+}
+export function passwordMatches(password: string, stored: Json): boolean {
+  if (typeof password !== "string" || password.length > 256) return false;
+  return timingSafeEqual(
+    derive(password, stored.salt),
+    Buffer.from(stored.digest, "hex"),
+  );
+}
+export class Vault {
+  private key: Buffer | undefined;
+  constructor(private repo: Repository) {}
+  get initialized() {
+    return !!this.repo.get("settings", "vault");
+  }
+  get locked() {
+    return !this.key;
+  }
+  initialize(password: string) {
+    ensure(
+      !this.initialized,
+      "VAULT_EXISTS",
+      "Vault already initialized.",
+      409,
+    );
+    passwordHash(password);
+    const salt = randomBytes(16).toString("hex");
+    this.key = derive(password, salt);
+    this.repo.put("settings", "vault", {
+      salt,
+      verifier: this.encrypt("flowhub-vault-v1", "verifier"),
+      version: 1,
+    });
+  }
+  unlock(password: string) {
+    const meta = this.repo.get("settings", "vault");
+    ensure(meta, "VAULT_UNINITIALIZED", "Initialize vault first.", 409);
+    ensure(
+      typeof password === "string" && password.length <= 256,
+      "AUTH_REQUIRED",
+      "Invalid password.",
+      401,
+    );
+    this.lock();
+    this.key = derive(password, meta.salt);
+    try {
+      ensure(
+        this.decrypt(meta.verifier, "verifier") === "flowhub-vault-v1",
+        "AUTH_REQUIRED",
+        "Invalid vault password.",
+        401,
+      );
+    } catch {
+      this.lock();
+      throw new HubError("AUTH_REQUIRED", "Invalid vault password.", 401);
+    }
+  }
+  lock() {
+    this.key?.fill(0);
+    this.key = undefined;
+  }
+  encrypt(value: string, aad: string) {
+    ensure(this.key, "CREDENTIAL_LOCKED", "Unlock the vault first.", 423);
+    const iv = randomBytes(12),
+      cipher = createCipheriv("aes-256-gcm", this.key, iv);
+    cipher.setAAD(Buffer.from(aad));
+    const bytes = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+    return {
+      iv: iv.toString("hex"),
+      tag: cipher.getAuthTag().toString("hex"),
+      ciphertext: bytes.toString("base64"),
+    };
+  }
+  decrypt(record: Json, aad: string): string {
+    ensure(this.key, "CREDENTIAL_LOCKED", "Unlock the vault first.", 423);
+    const cipher = createDecipheriv(
+      "aes-256-gcm",
+      this.key,
+      Buffer.from(record.iv, "hex"),
+    );
+    cipher.setAAD(Buffer.from(aad));
+    cipher.setAuthTag(Buffer.from(record.tag, "hex"));
+    return Buffer.concat([
+      cipher.update(Buffer.from(record.ciphertext, "base64")),
+      cipher.final(),
+    ]).toString("utf8");
+  }
+  addSecret(label: string, value: string) {
+    ensure(
+      typeof value === "string" && value.length > 0 && value.length < 16384,
+      "INPUT_INVALID",
+      "Invalid secret.",
+    );
+    const ref = "secret_" + randomBytes(16).toString("hex");
+    this.repo.insert("secrets", ref, {
+      id: ref,
+      label,
+      encrypted: this.encrypt(value, ref),
+      createdAt: now(),
+    });
+    return { id: ref, label };
+  }
+  secret(ref: string): string {
+    const s = this.repo.get("secrets", ref);
+    ensure(s, "AUTH_REQUIRED", "Secret unavailable.", 401);
+    return this.decrypt(s.encrypted, ref);
+  }
+  redact(value: Json): Json {
+    // Decrypt only inside this call. No plaintext matcher survives vault lock,
+    // password rotation, or the operation that stores the sanitized result.
+    const secrets = this.locked
+      ? []
+      : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
+    return redactValue(value, secrets);
+  }
+  changePassword(oldPassword: string, newPassword: string) {
+    this.unlock(oldPassword);
+    passwordHash(newPassword);
+    const secrets = this.repo
+      .all("secrets")
+      .map((s) => ({ record: s, text: this.decrypt(s.encrypted, s.id) }));
+    const checkpoints = this.repo
+      .all("runs")
+      .filter((r) => r.checkpoint)
+      .map((r) => ({
+        record: r,
+        text: this.decrypt(r.checkpoint.delivery, r.id + ":" + r.checkpoint.id),
+      }));
+    const oldKey = Buffer.from(this.key!),
+      salt = randomBytes(16).toString("hex");
+    this.key = derive(newPassword, salt);
+    try {
+      this.repo.tx(() => {
+        for (const s of secrets)
+          this.repo.put("secrets", s.record.id, {
+            ...s.record,
+            encrypted: this.encrypt(s.text, s.record.id),
+          });
+        for (const c of checkpoints) {
+          c.record.checkpoint.delivery = this.encrypt(
+            c.text,
+            c.record.id + ":" + c.record.checkpoint.id,
+          );
+          this.repo.put("runs", c.record.id, c.record);
+        }
+        this.repo.put("settings", "vault", {
+          salt,
+          verifier: this.encrypt("flowhub-vault-v1", "verifier"),
+          version: 1,
+        });
+      });
+      oldKey.fill(0);
+    } catch (e) {
+      this.key.fill(0);
+      this.key = oldKey;
+      throw e;
+    }
+  }
+}
+export class AdminAuth {
+  private sessions = new Map<string, { csrf: string; expires: number }>();
+  private attempts = new Map<string, { count: number; until: number }>();
+  constructor(private repo: Repository) {}
+  get initialized() {
+    return !!this.repo.get("settings", "admin");
+  }
+  setup(password: string) {
+    ensure(!this.initialized, "ADMIN_EXISTS", "Admin already configured.", 409);
+    this.repo.insert("settings", "admin", passwordHash(password));
+  }
+  throttle(key: string) {
+    const old = this.attempts.get(key);
+    ensure(
+      !old || old.until < Date.now() || old.count < 5,
+      "RATE_LIMITED",
+      "Too many attempts; wait one minute.",
+      429,
+    );
+    this.attempts.set(key, {
+      count: old && old.until > Date.now() ? old.count + 1 : 1,
+      until: Date.now() + 60000,
+    });
+  }
+  login(password: string) {
+    this.throttle("login");
+    const admin = this.repo.get("settings", "admin");
+    ensure(
+      admin && passwordMatches(password, admin),
+      "AUTH_REQUIRED",
+      "Invalid administrator password.",
+      401,
+    );
+    this.attempts.delete("login");
+    return this.session();
+  }
+  session() {
+    for (const [key, value] of this.sessions)
+      if (value.expires < Date.now()) this.sessions.delete(key);
+    ensure(
+      this.sessions.size < 64,
+      "RATE_LIMITED",
+      "Session limit reached.",
+      429,
+    );
+    const token = randomBytes(32).toString("hex"),
+      csrf = randomBytes(24).toString("hex");
+    this.sessions.set(hash(token), { csrf, expires: Date.now() + 8 * 3600000 });
+    return { token, csrf };
+  }
+  check(cookie: string | undefined, csrf?: string, write = false) {
+    const token = cookie?.match(/(?:^|;\s*)flowhub_session=([^;]+)/)?.[1] ?? "",
+      session = this.sessions.get(hash(token));
+    ensure(
+      session && session.expires > Date.now(),
+      "AUTH_REQUIRED",
+      "Administrator login required.",
+      401,
+    );
+    if (write)
+      ensure(csrf === session.csrf, "CSRF_DENIED", "CSRF token required.", 403);
+    return session;
+  }
+  logout(cookie: string | undefined) {
+    const token = cookie?.match(/flowhub_session=([^;]+)/)?.[1];
+    if (token) this.sessions.delete(hash(token));
+  }
+  close() {
+    this.sessions.clear();
+  }
+}
