@@ -71,6 +71,9 @@ test("cleanup preview shows every result-copy scope and submits only the reviewe
   ])
     await expect(dialog.locator("pre")).toContainText(id);
   await dialog.getByRole("button", { name: "确认清理", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "预览清理范围", exact: true }),
+  ).toBeEnabled();
   await expect(page.getByRole("status")).toContainText(
     "清理完成：2 个运行的原始结果，3 份产物，1 个运行的元数据",
   );

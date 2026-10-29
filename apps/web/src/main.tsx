@@ -425,6 +425,7 @@ function App() {
   };
   const submitModal = async () => {
     const m = modal;
+    const successMessage = m.type === "retention" ? undefined : "操作已完成";
     await act(async () => {
       if (m.type === "start") {
         const workflow = m.published.snapshot.workflow;
@@ -527,7 +528,7 @@ function App() {
       setModal(null);
       await load();
       return true;
-    }, "操作已完成");
+    }, successMessage);
   };
   const approve = async (decision: string) => {
     await act(

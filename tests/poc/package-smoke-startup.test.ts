@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,12 +16,26 @@ const stdio = pathToFileURL(
   require.resolve("@modelcontextprotocol/server/stdio"),
 ).href;
 
+function registerFixtureCleanup(t: TestContext, directory: string) {
+  const resources: { client?: Client } = {};
+  // Windows cannot remove a directory while it is a live child's cwd. Keep
+  // teardown in one hook: a failed earlier hook would skip later hooks.
+  t.after(async () => {
+    try {
+      await resources.client?.close();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+  return resources;
+}
+
 test(
   "synthetic package smoke separates real child cold-start readiness from the strict modern probe timeout",
   { timeout: 15_000 },
   async (t) => {
     const directory = await mkdtemp(join(tmpdir(), "FlowHub cold startup "));
-    t.after(() => rm(directory, { recursive: true, force: true }));
+    const resources = registerFixtureCleanup(t, directory);
     const entry = join(directory, "fixture.mjs");
     await writeFile(
       entry,
@@ -35,7 +49,7 @@ test(
       { name: "package-startup-regression", version: "1" },
       { versionNegotiation: { mode: { pin: "2026-07-28" } } },
     );
-    t.after(() => client.close());
+    resources.client = client;
     try {
       await client.connect(wire, { timeout: 1000 });
     } catch (error) {
@@ -69,7 +83,7 @@ test(
   { timeout: 10_000 },
   async (t) => {
     const directory = await mkdtemp(join(tmpdir(), "FlowHub early exit "));
-    t.after(() => rm(directory, { recursive: true, force: true }));
+    const resources = registerFixtureCleanup(t, directory);
     const entry = join(directory, "fixture.mjs");
     const fakeToken = "a".repeat(64);
     await writeFile(
@@ -84,7 +98,7 @@ test(
       { name: "package-startup-negative", version: "1" },
       { versionNegotiation: { mode: { pin: "2026-07-28" } } },
     );
-    t.after(() => client.close());
+    resources.client = client;
     await assert.rejects(
       client.connect(wire, { timeout: 1000 }),
       /SMOKE_STARTUP_EXITED/,
@@ -116,7 +130,7 @@ test(
   { timeout: 15_000 },
   async (t) => {
     const directory = await mkdtemp(join(tmpdir(), "FlowHub never ready "));
-    t.after(() => rm(directory, { recursive: true, force: true }));
+    const resources = registerFixtureCleanup(t, directory);
     const entry = join(directory, "fixture.mjs");
     await writeFile(
       entry,
@@ -130,7 +144,7 @@ test(
       { name: "package-never-ready-negative", version: "1" },
       { versionNegotiation: { mode: { pin: "2026-07-28" } } },
     );
-    t.after(() => client.close());
+    resources.client = client;
     await assert.rejects(
       client.connect(wire, { timeout: 1000 }),
       /SMOKE_STARTUP_TIMEOUT/,
