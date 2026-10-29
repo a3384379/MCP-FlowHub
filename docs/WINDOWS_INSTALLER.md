@@ -23,11 +23,14 @@ npm test
 npm run package:windows
 npm run test:package
 npm run verify:release
-npm run installer:windows -- --nsis-archive C:\tools\nsis-3.11.zip
+node --use-env-proxy scripts/fetch-nsis.mjs --output .\artifacts\toolchain\nsis-3.11.zip --diagnostics .\artifacts\nsis-download-diagnostics.json --pin .\installer\windows\toolchain.json
+npm run installer:windows -- --nsis-archive .\artifacts\toolchain\nsis-3.11.zip
 npm run test:installer:windows
 ```
 
 使用锁定的 Node 24.19.0、npm 11.9.0。NSIS 3.11 的官方 URL 和 SHA256 固定在 `installer/windows/toolchain.json`；构建器校验归档后在临时目录解压，不使用系统中未经核验的编译器。Linux 不运行 Windows 安装器构建，也不复用 Linux 原生依赖。
+
+下载器依次尝试固定的 SourceForge 规范地址与官方镜像，每次验证 HTTPS 地址、下载限额、ZIP 文件头和同一个固定 SHA256；HTTP 200 返回的 HTML 页面也会被拒绝。缓存同样必须重验。实际下载的状态、内容类型、字节数和哈希写入 `artifacts/nsis-download-diagnostics.json`；所有来源失败便停止，不执行未知文件。`--use-env-proxy` 让 Node 保留当前环境的代理配置，不关闭 TLS 校验。
 
 仓库 CI 的 Windows job 执行上述原生门禁，并在 Actions artifact 中保留 `.exe`、Windows ZIP、SHA256 和安装测试结果。安装测试包含中文/空格路径、包内运行时和 SQLite、命令入口、运行中拒绝重装/卸载、同版本重装保留数据、卸载保留数据和额外文件。同版本重装不代表未来数据库版本迁移或回滚已通过。测试使用隔离生成的数据；若当前机器已有默认用户数据，安装冒烟会拒绝运行以保护已有数据。
 

@@ -62,7 +62,8 @@ try {
     Invoke-NpmStep 'Release integrity' @('run', 'verify:release') 25
 
     $script:PhaseExitCode = 30
-    $pin = Get-Content -LiteralPath (Join-Path $repoRoot 'installer\windows\toolchain.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pinPath = Join-Path $repoRoot 'installer\windows\toolchain.json'
+    $pin = Get-Content -LiteralPath $pinPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($pin.name -ne 'NSIS' -or $pin.version -ne '3.11' -or $pin.archiveName -ne 'nsis-3.11.zip' -or
         $pin.url -ne 'https://prdownloads.sourceforge.net/nsis/nsis-3.11.zip' -or
         $pin.sha256 -ne 'c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1') {
@@ -71,9 +72,11 @@ try {
     $toolchainDir = Join-Path $repoRoot 'artifacts\toolchain'
     New-Item -ItemType Directory -Path $toolchainDir -Force | Out-Null
     $nsisArchive = Join-Path $toolchainDir $pin.archiveName
-    if (-not (Test-Path -LiteralPath $nsisArchive -PathType Leaf)) {
-        Write-Host "`n[NSIS toolchain] Downloading $($pin.url)"
-        Invoke-WebRequest -UseBasicParsing -Uri $pin.url -OutFile $nsisArchive -ErrorAction Stop
+    $downloadDiagnostics = Join-Path $repoRoot 'artifacts\nsis-download-diagnostics.json'
+    Write-Host "`n[NSIS toolchain] Fetching or revalidating the pinned official archive"
+    & $script:NodeExe --use-env-proxy (Join-Path $repoRoot 'scripts\fetch-nsis.mjs') --output $nsisArchive --diagnostics $downloadDiagnostics --pin $pinPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "NSIS_FETCH_FAILED: The pinned archive was not verified. See '$downloadDiagnostics'. No installer compilation was started."
     }
     $actualHash = (Get-FileHash -LiteralPath $nsisArchive -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actualHash -ne $pin.sha256) {
