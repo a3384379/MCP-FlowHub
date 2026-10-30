@@ -1,3 +1,5 @@
+import { adapterFor, applyRowBudget, payloadSchema } from "../../contracts/src/tool-adapter.js";
+import { assertConnectionCredentials } from "../../mcp-connectors/src/connection-config.js";
 import {
   validate,
   workflowSchema,
@@ -5,6 +7,7 @@ import {
   parts,
   hash,
   get,
+  set,
   HubError,
   redact,
   type Workflow,
@@ -164,9 +167,10 @@ export function validateWorkflow(
       };
     if (n.type === "mcp_tool") {
       const b = bindings.find((b) => b.id === w.bindings[n.config.bindingKey]);
-      return connections
+      const tool = connections
         .find((c) => c.id === b?.connectionId)
-        ?.tools?.find((t: Json) => t.name === n.config.toolName)?.outputSchema;
+        ?.tools?.find((t: Json) => t.name === n.config.toolName);
+      return tool && payloadSchema(b, tool);
     }
     return n.config.outputSchema;
   };
@@ -251,6 +255,10 @@ export function validateWorkflow(
         "TEMPLATE_INVALID",
         "Unknown report contract/fallback.",
       );
+    if (n.type === "agent_task" && n.config.kind === "host_skill" && n.config.fallbackTemplateRef)
+      ensure((n.config.outputSchema.required ?? []).every((key: string) =>
+        ["reportMarkdown", "evidenceRefs"].includes(key)),
+        "TEMPLATE_INVALID", "The declared fallback cannot produce custom required output fields; remove fallback or use a compatible output contract.");
     if (n.type === "mcp_tool") {
       issuePath = nodePath + "/outputSchemaRef";
       ensure(
@@ -270,6 +278,7 @@ export function validateWorkflow(
         "ENVIRONMENT_OVERRIDE_DENIED",
         "Missing or cross-environment binding at " + n.id,
       );
+      assertConnectionCredentials(c);
       ensure(
         !c.disabled && b.validationStatus !== "REVOKED",
         "BINDING_UNVERIFIED",
@@ -303,6 +312,17 @@ export function validateWorkflow(
       );
       assertSafeSchemaPatterns(tool.inputSchema);
       if (tool.outputSchema) assertSafeSchemaPatterns(tool.outputSchema);
+      const adapter = adapterFor(b, n.config.toolName);
+      if (adapter) {
+        ensure(payloadSchema(b, tool), "SCHEMA_INVALID", "Declare a business payload Schema before using an adapter.");
+        ensure(adapter.format !== "text_json" || !tool.outputSchema,
+          "SCHEMA_INVALID", "Tools declaring structured output must use the structured adapter.");
+      }
+      const literalArguments = {};
+      for (const [pointer, expr] of Object.entries(n.config.argumentsMappings) as [string, Json][])
+        if (Object.hasOwn(expr, "value")) set(literalArguments, pointer, expr.value);
+      for (const [pointer, value] of Object.entries(b.lockedArguments)) set(literalArguments, pointer, value);
+      applyRowBudget(b, n.config.toolName, literalArguments, w.budgets.maxRows);
       if (
         n.config.outputSchemaRef &&
         tool.outputSchema?.properties?.synthetic
@@ -328,7 +348,13 @@ export function validateWorkflow(
         );
       }
       // Check source/target types and mandatory downstream parameters.
-      const supplied = [...Object.keys(n.config.argumentsMappings), ...Object.keys(b.lockedArguments)];
+      const supplied = [...Object.keys(n.config.argumentsMappings), ...Object.keys(b.lockedArguments),
+        ...(adapter?.rowLimit?.argumentPointer ? [adapter.rowLimit.argumentPointer] : [])];
+      if (adapter?.rowLimit?.argumentPointer) {
+        const target = schemaAt(tool.inputSchema, adapter.rowLimit.argumentPointer);
+        ensure(target.type === "integer", "SCHEMA_INVALID", "The adapter's row-limit parameter must be a declared integer.");
+        validateMappedLiteral(tool.inputSchema, adapter.rowLimit.argumentPointer, Math.min(b.maxRows, w.budgets.maxRows));
+      }
       for (const [key, expr] of Object.entries(n.config.argumentsMappings) as [
         string,
         Json,

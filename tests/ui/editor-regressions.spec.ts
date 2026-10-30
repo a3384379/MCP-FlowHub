@@ -445,7 +445,10 @@ test("a delayed save preserves newer edits and undo keeps the latest server revi
     const current = await api("/workflows/" + id + "/draft");
     expect(current.draft.nodes[0].title).toBe("等待回包期间的新名称");
     await page.getByRole("button", { name: "撤销", exact: true }).click();
+    const undoSaved = page.waitForResponse((response) => response.request().method() === "PUT" &&
+      response.url().endsWith("/workflows/" + id + "/draft"));
     await page.getByRole("button", { name: "保存草稿", exact: true }).click();
+    expect((await undoSaved).ok()).toBe(true);
     await expect(page.getByRole("status")).toContainText("草稿已保存");
     expect((await api("/workflows/" + id + "/draft")).revision).toBe(
       current.revision + 1,
@@ -809,4 +812,66 @@ test("an earlier node preview cannot consume raw text from a remounted editor", 
   } finally {
     release.resolve();
   }
+});
+
+async function mappingFixture(page: Page) {
+  const api = await admin(page);
+  const source = (await api('/workflows/incident-staging/versions'))[0].snapshot.workflow;
+  const workflow = structuredClone(source);
+  workflow.workflowId = 'ui-f07-' + randomUUID();
+  workflow.name = 'F07 映射回归 ' + workflow.workflowId;
+  workflow.nodes.find((n: { id: string }) => n.id === 'db').title = 'F07 DB';
+  const log = workflow.nodes.find((n: { id: string }) => n.id === 'log');
+  log.title = 'F07 Log'; log.config.argumentsMappings['/question'] = { value: 'synthetic question' };
+  await api('/workflows', 'POST', { workflow });
+  await page.goto('/workflows/' + workflow.workflowId + '/editor');
+  await page.getByText('节点列表（键盘可选择）', { exact: true }).click();
+  const select = (name: string) => page.locator('.node-list').getByRole('button', { name: new RegExp(name) }).click();
+  return { api, id: workflow.workflowId, select };
+}
+
+test('F07 deleting an invalid constant removes only that mapping cache and permits saving', async ({ page }) => {
+  const f = await mappingFixture(page); await f.select('F07 DB');
+  await page.getByLabel('/templateId 常量', { exact: true }).fill('"unfinished');
+  await page.getByRole('button', { name: '移除映射 /templateId', exact: true }).click();
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('草稿已保存');
+  const saved = await f.api('/workflows/' + f.id + '/draft');
+  expect(saved.draft.nodes.find((n: { id: string }) => n.id === 'db').config.argumentsMappings).not.toHaveProperty('/templateId');
+});
+
+test('F07 changing an invalid literal into a valid input reference permits saving', async ({ page }) => {
+  const f = await mappingFixture(page); await f.select('F07 Log');
+  await page.getByLabel('/question 常量', { exact: true }).fill('{unfinished');
+  await page.getByLabel('/question 来源', { exact: true }).selectOption('input');
+  await page.getByLabel('/question 可用字段', { exact: true }).selectOption('/question');
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('草稿已保存');
+  const saved = await f.api('/workflows/' + f.id + '/draft');
+  expect(saved.draft.nodes.find((n: { id: string }) => n.id === 'log').config.argumentsMappings['/question']).toEqual({ ref: { source: 'input', pointer: '/question' } });
+});
+
+test('F07 deleting one invalid mapping retains the other nodes pending literal and blocks save', async ({ page }) => {
+  const f = await mappingFixture(page); await f.select('F07 Log');
+  await page.getByLabel('/question 常量', { exact: true }).fill('"pending-log');
+  await f.select('F07 DB'); await page.getByLabel('/templateId 常量', { exact: true }).fill('"pending-db');
+  await page.getByRole('button', { name: '移除映射 /templateId', exact: true }).click();
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('尚有未应用的 JSON');
+  await f.select('F07 Log');
+  await expect(page.getByLabel('/question 常量', { exact: true })).toHaveValue('"pending-log');
+});
+
+test('F07 selecting another node preserves unfinished literal text until explicitly corrected', async ({ page }) => {
+  const f = await mappingFixture(page); await f.select('F07 DB');
+  await page.getByLabel('/templateId 常量', { exact: true }).fill('"pending-db');
+  await f.select('F07 Log'); await f.select('F07 DB');
+  await expect(page.getByLabel('/templateId 常量', { exact: true })).toHaveValue('"pending-db');
+  const before = await f.api('/workflows/' + f.id + '/draft');
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText(/JSON 格式错误|未应用的 JSON/);
+  expect((await f.api('/workflows/' + f.id + '/draft')).revision).toBe(before.revision);
+  await page.getByLabel('/templateId 常量', { exact: true }).fill('"order-by-number-v1"');
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('草稿已保存');
 });

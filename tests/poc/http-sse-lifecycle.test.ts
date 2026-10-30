@@ -59,7 +59,7 @@ async function fixture(t: TestContext) {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-  const started = await api("/runs", {
+  const started = daemon.engine.start({
     workflowId: "incident-staging",
     version: "1.0.0",
     mode: "guided",
@@ -71,8 +71,7 @@ async function fixture(t: TestContext) {
     },
     idempotencyKey: "sse-lifecycle",
   });
-  assert.equal(started.status, 200);
-  const runId = ((await started.json()) as Json).data.runId;
+  const runId = started.runId;
   const open = (sessionCookie = cookie) =>
     new Promise<{ response: IncomingMessage; closed: Promise<void> }>(
       (resolve, reject) => {

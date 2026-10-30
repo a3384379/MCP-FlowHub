@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
-import { lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -50,6 +50,19 @@ async function noLinks(path) {
     if (info.isSymbolicLink()) fail("INSTALL_PATH_UNSAFE", "Junctions and symbolic links are not supported in managed program paths.");
   }
 }
+// Resolve existing ancestors before comparing ownership or containment. Windows
+// 8.3 aliases are ordinary directory names; lexical case folding cannot prove
+// that an installation is separate from the data directory. Check links first.
+async function canonicalPath(path) {
+  await noLinks(path);
+  let current = resolve(path); const missing = [];
+  while (!(await stat(current))) {
+    const parent = dirname(current);
+    if (parent === current) fail("INSTALL_PATH_UNSAFE", "Path has no accessible existing ancestor.");
+    missing.unshift(relative(parent, current)); current = parent;
+  }
+  return resolve(await realpath(current), ...missing);
+}
 async function stateAt(installDir) {
   const path = join(installDir, markerName);
   const info = await stat(path);
@@ -59,7 +72,8 @@ async function stateAt(installDir) {
   try { state = JSON.parse(await readFile(path, "utf8")); }
   catch { fail("INSTALL_OWNER_INVALID", "The installation ownership marker cannot be read; repair with a reviewed installer."); }
   if (state.product !== product || state.formatVersion !== 1 ||
-    normalize(state.installDir ?? "") !== normalize(installDir) ||
+    typeof state.installDir !== "string" || !isAbsolute(state.installDir) ||
+    normalize(await canonicalPath(state.installDir)) !== normalize(await canonicalPath(installDir)) ||
     !Array.isArray(state.payloadFiles) || state.payloadFiles.some((name) => !safeRelative(name)) ||
     new Set(state.payloadFiles).size !== state.payloadFiles.length)
     fail("INSTALL_OWNER_INVALID", "This directory is not a valid managed FlowHub installation.");
@@ -102,15 +116,19 @@ export async function preflight({ installDir, dataDir, processInspector = inspec
     fail("INSTALL_PATH_UNSAFE", "Program and data directories must be separate absolute directories.");
   await noLinks(installDir);
   await noLinks(dataDir);
+  const programPath = await canonicalPath(installDir), dataPath = await canonicalPath(dataDir);
+  if (contains(programPath, dataPath) || contains(dataPath, programPath))
+    fail("INSTALL_PATH_UNSAFE", "Program and data aliases resolve to overlapping directories.");
   const state = await stateAt(installDir);
   if (requireInstalled && !state) fail("INSTALL_OWNER_INVALID", "The managed installation marker is missing; no files were removed.");
   if (!state && await stat(installDir) && (await readdir(installDir)).length > 0)
     fail("INSTALL_DIRECTORY_NOT_EMPTY", "Choose an empty directory or the existing managed FlowHub installation. Unrelated files will not be overwritten.");
-  if (state && normalize(state.dataDir ?? "") !== normalize(dataDir))
+  if (state && (typeof state.dataDir !== "string" || !isAbsolute(state.dataDir) ||
+    normalize(await canonicalPath(state.dataDir)) !== normalize(dataPath)))
     fail("INSTALL_OWNER_INVALID", "The recorded data directory differs from the expected independent data directory.");
   if (await stat(join(dataDir, "daemon.lock")))
     fail("INSTALL_DAEMON_LOCKED", "Stop the daemon before installing, upgrading or uninstalling. A stale daemon.lock must be checked manually; it is never removed by the installer.");
-  assertProcessesStopped(await processInspector(), installDir);
+  assertProcessesStopped(await processInspector(), programPath);
   return state;
 }
 

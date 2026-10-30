@@ -62,9 +62,13 @@ Windows 构建机运行 npm run package:windows。Linux 拒绝伪 Windows 包。
 ## 文档与边界
 
 - [宿主接入及 Skill](docs/HOST_INTEGRATION.md)、[设备核验与升级](docs/LOCAL_VALIDATION.md)
-- [最新修复与审计](docs/evidence/REMEDIATION-2026-10-30.md)、[候选版验收](docs/evidence/RC-2026-10-29.md)、[实施进度](docs/PLAN.md)、[依赖基线](docs/DEPENDENCY_BASELINE.md)
+- [外部审计 F01–F08 整改](docs/evidence/EXTERNAL-AUDIT-2026-10-30.md)、[结果适配与限额](docs/MCP_RESULT_ADAPTERS.md)、[上一轮修复](docs/evidence/REMEDIATION-2026-10-30.md)、[实施进度](docs/PLAN.md)、[依赖基线](docs/DEPENDENCY_BASELINE.md)
 - 用户原始 [方案](docs/01_产品与架构设计.md)、[接口](docs/02_协议接口与数据设计.md)、[100 项验收设计](docs/04_测试验收与云端交付.md)、[交互原型](docs/reference/interaction-prototype.html)
 
 不宣称 100 项验收全过。公司加密兼容、Windows ACL、实际生产/试运行和真实 Codex 需外部记录，未满足前不作生产发布。当前不含旧 HTTP+SSE 自动 OAuth、任意代码节点、并行/循环、多租户和自动更新。没有可信安全重试依据时保守停止，不重复执行结果不明的调用。
 
 用户源码许可证由维护者决定；第三方保留原许可及 SDK Apache-2.0/MIT 过渡说明。
+
+升级前停止 daemon 并保留本机备份。首次解锁会把历史敏感输入转为安全展示副本和独立密文，把含明文认证参数的旧连接加密隔离并停用；原始业务记录不会被静默删除。需要更正连接、显式配置工具适配器与限额、重新验证绑定并发布新版本。旧备份、WAL 和系统历史副本仍按敏感资料管理；这不是磁盘安全擦除。回退旧程序须恢复升级前备份，不支持让旧二进制继续处理新格式记录。
+
+guided 流程从 Web 生成交接指令，由当前受限 Codex 实际启动和继续，Web 负责查看与独立审批。复杂 Schema 仍需 JSON；草稿采用手动保存，工具分组搜索和报告全文一键下载尚未完成。真实 MCP 的服务端权限、限额和企业准入必须独立验收。

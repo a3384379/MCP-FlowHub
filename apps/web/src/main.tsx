@@ -743,6 +743,24 @@ function App() {
   }, [dirty]);
   const buildCanvas = (record: J) => {
     assertWorkflowShape(record.draft);
+    if (record.id === draftRef.current?.id) {
+      const retained = new Set<string>();
+      for (const node of record.draft.nodes)
+        for (const name of ["argumentsMappings", "inputMappings"])
+          for (const [pointer, expression] of Object.entries(node.config[name] ?? {}) as [string, J][])
+            if (expression && Object.hasOwn(expression, "value") &&
+              JSON.stringify(expression) === JSON.stringify(draftRef.current.draft.nodes.find((old: J) => old.id === node.id)?.config[name]?.[pointer]))
+              retained.add(record.id + "/nodes/" + node.id + "/literal/" + pointer + " 常量");
+      for (const key of jsonTextCache.current.keys()) {
+        if (!key.startsWith(record.id + "/nodes/") || !key.includes("/literal//") || retained.has(key)) continue;
+        jsonTextCache.current.delete(key);
+        const versions = textVersions(jsonTextCache.current);
+        versions.set(key, (versions.get(key) ?? 0) + 1);
+        reportJsonValidity(key, true);
+      }
+      for (const old of draftRef.current.draft.nodes)
+        if (!record.draft.nodes.some((node: J) => node.id === old.id)) discardNodeText(old.id);
+    }
     setDraft(record);
     setSelected(null);
     setNodes(
@@ -1018,6 +1036,21 @@ function App() {
     return result;
   };
   const changeNode = (patch: J, targetId = selected) => {
+    if (patch.config) {
+      const old = draftRef.current?.draft.nodes.find((n: J) => n.id === targetId)?.config;
+      for (const mapName of ["argumentsMappings", "inputMappings"]) {
+        for (const [pointer, expression] of Object.entries(old?.[mapName] ?? {}) as [string, J][]) {
+          if (!Object.hasOwn(expression, "value")) continue;
+          const next = patch.config[mapName]?.[pointer];
+          if (next && Object.hasOwn(next, "value") && JSON.stringify(next.value) === JSON.stringify(expression.value)) continue;
+          const key = draftRef.current.id + "/nodes/" + targetId + "/literal/" + pointer + " 常量";
+          jsonTextCache.current.delete(key);
+          const versions = textVersions(jsonTextCache.current);
+          versions.set(key, (versions.get(key) ?? 0) + 1);
+          reportJsonValidity(key, true);
+        }
+      }
+    }
     rememberEdit();
     setDraft((old: J) => ({
       ...old,
@@ -1304,6 +1337,15 @@ function App() {
       }
       if (m.type === "start") {
         const workflow = m.published.snapshot.workflow;
+        if (workflow.mode === "guided") {
+          showJson("交给当前受限 Codex 启动", {
+            instruction: "使用接入设置中已配置的受限 FlowHub 身份调用 workflow_start；运行由实际调用宿主所有，之后仍由同一身份推进。不要改用默认全权限令牌。",
+            tool: "workflow_start",
+            arguments: { workflowId: workflow.workflowId, version: workflow.version, mode: "guided",
+              inputs: m.payload, idempotencyKey: uid() },
+          });
+          return;
+        }
         const r = await api("/runs", "POST", {
           workflowId: workflow.workflowId,
           version: workflow.version,
@@ -2721,11 +2763,12 @@ function App() {
                         {c.disabled
                           ? "已禁用"
                           : c.verifiedAt
-                            ? "已验证协议"
+                            ? "历史协议验证"
                             : "待验证"}
                       </Badge>
                     </div>
                     <h2>{c.name}</h2>
+                    {c.configurationWarning && <p className="error">{c.configurationWarning}</p>}
                     <p>
                       {c.synthetic
                         ? "内置合成 MCP · 不访问企业系统"
@@ -2808,6 +2851,7 @@ function App() {
                 ))}
               </div>
               <section className="panel">
+                <p>目录按连接列示，尚未提供工具分组搜索。发现成功不代表执行契约已适配；需在绑定中声明结果适配器与派发前限额，并独立验证。历史协议验证不表示实时在线。</p>
                 <h2>
                   已发现工具 <small>{tools.length}</small>
                 </h2>
@@ -2933,6 +2977,7 @@ function App() {
                                   "allowedQueryTemplates",
                                   "maxRows",
                                   "timeoutSeconds",
+                                  "toolAdapters",
                                 ].map((k) => [k, b[k]]),
                               ),
                             }),
@@ -3947,6 +3992,9 @@ function App() {
                   输入严格按已发布 Schema 校验。不得覆盖环境、连接或模板；包含
                   Agent 的流程需要先解锁凭据库。
                 </p>
+                {startWorkflow.mode === "guided" && <p className="banner">
+                  确认后生成交给当前受限 Codex 的启动指令，不提前创建运行。请使用接入设置中的同一受限身份启动和继续；Web 负责查看状态和独立人工审批。
+                </p>}
                 <details>
                   <summary>已发布输入契约</summary>
                   <pre>{pretty(startWorkflow.inputSchema)}</pre>
@@ -4144,6 +4192,7 @@ function summarizeBindings(bindings: J[]) {
             "maxRows",
             "timeoutSeconds",
             "verification",
+            "toolAdapters",
           ].map((key) => [key, binding[key]]),
         ),
       ]),

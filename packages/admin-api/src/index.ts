@@ -27,6 +27,8 @@ import {
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth } from "../../security/src/index.js";
+import { assertConnectionCredentials } from "../../mcp-connectors/src/connection-config.js";
+import { toolAdaptersSchema, decodeToolResult, applyRowBudget, adapterFor, payloadSchema } from "../../contracts/src/tool-adapter.js";
 import {
   previewRetention,
   commitRetention,
@@ -351,39 +353,7 @@ export async function registerAdmin(
         "envRefs",
       ],
     );
-    validate(
-      {
-        type: "object",
-        properties: {
-          name: { type: "string", minLength: 1, maxLength: 128 },
-          transport: { enum: ["stdio", "streamable_http"] },
-          protocolEra: { enum: ["modern", "legacy", "auto"] },
-          endpoint: { type: "string", maxLength: 2048 },
-          allowedHosts: {
-            type: "array",
-            items: { type: "string" },
-            minItems: 1,
-            maxItems: 20,
-          },
-          secretRef: { type: "string" },
-          command: { type: "string", maxLength: 2048 },
-          args: {
-            type: "array",
-            maxItems: 64,
-            items: { type: "string", maxLength: 4096 },
-          },
-          commandApproved: { const: true },
-          envRefs: {
-            type: "object",
-            maxProperties: 20,
-            additionalProperties: { type: "string" },
-          },
-        },
-        required: ["name", "transport", "protocolEra"],
-        additionalProperties: false,
-      },
-      b,
-    );
+    validate(connectionSchema, b);
     if (b.transport === "stdio")
       ensure(
         typeof b.command === "string" &&
@@ -407,6 +377,9 @@ export async function registerAdmin(
       tools: [],
       createdAt: now(),
     };
+    assertConnectionCredentials(c);
+    for (const ref of [c.secretRef, ...Object.values(c.envRefs ?? {})].filter(Boolean))
+      ensure(typeof ref === "string" && repo.get("secrets", ref), "INPUT_INVALID", "Select an existing Vault credential reference.");
     repo.insert("connections", c.id, c);
     repo.audit("admin", "connection:create", c.id);
     return data(c);
@@ -452,7 +425,13 @@ export async function registerAdmin(
       verifiedAt: null,
       verifiedSdk: null,
       tools: [],
+      configurationWarning: undefined,
     };
+    validate(connectionSchema, Object.fromEntries(Object.keys(connectionSchema.properties)
+      .filter((key) => next[key] !== undefined).map((key) => [key, next[key]])));
+    assertConnectionCredentials(next);
+    for (const ref of [next.secretRef, ...Object.values(next.envRefs ?? {})].filter(Boolean))
+      ensure(typeof ref === "string" && repo.get("secrets", ref), "INPUT_INVALID", "Select an existing Vault credential reference.");
     repo.put("connections", c.id, next, expected);
     for (const binding of repo
       .all("bindings")
@@ -463,7 +442,7 @@ export async function registerAdmin(
         revision: binding.revision + 1,
       });
     repo.audit("admin", "connection:update", c.id);
-    return data(next);
+    return data(connectors.catalogView(next));
   });
   app.post("/api/v1/connections/:id/test", async (req) =>
     data(await connectors.sync(param(req))),
@@ -502,7 +481,7 @@ export async function registerAdmin(
       "allowedQueryTemplates",
       "maxRows",
       "timeoutSeconds",
-    ]);
+    ], ["toolAdapters"]);
     validate(bindingSchema, b);
     const c = repo.get("connections", b.connectionId);
     ensure(c, "NOT_FOUND", "Connection missing.", 404);
@@ -532,6 +511,7 @@ export async function registerAdmin(
         "maxRows",
         "timeoutSeconds",
         "revoked",
+        "toolAdapters",
       ],
     );
     const expected = revision(req),
@@ -594,10 +574,11 @@ export async function registerAdmin(
         "probe",
         "serverEnforcedReadOnly",
         "scope",
-        "expectedEnvironmentPointer",
       ],
-      ["expectedEnvironmentValue"],
+      ["expectedEnvironmentPointer", "expectedEnvironmentValue", "sourceAttestation", "serverMaxRows"],
     );
+    if (request.expectedEnvironmentPointer !== undefined)
+      validate({ type: "string", maxLength: 512, pattern: "^(?:/(?:[^~/]|~[01])*)+$" }, request.expectedEnvironmentPointer);
     ensure(
       request.serverEnforcedReadOnly === true &&
         typeof request.scope === "string" &&
@@ -624,21 +605,40 @@ export async function registerAdmin(
     checkCurrentBinding();
     const tool = c.tools.find((t: Json) => t.name === request.probe.toolName);
     ensure(tool, "TOOL_NOT_ALLOWED", "Tool missing.");
+    const selectedAdapter = adapterFor(b, tool.name);
+    ensure(!selectedAdapter || payloadSchema(b, tool), "SCHEMA_INVALID", "An adapter requires a business payload Schema before probing.");
+    ensure(selectedAdapter?.format !== "text_json" || !tool.outputSchema,
+      "SCHEMA_INVALID", "Tools declaring structured output must use a structured adapter.");
     const args = clone(request.probe.arguments);
+    if (request.serverMaxRows !== undefined)
+      validate({ type: "integer", minimum: 1, maximum: 1000 }, request.serverMaxRows);
+    if (b.toolAdapters?.[tool.name])
+      applyRowBudget({ ...b, verification: { serverMaxRows: request.serverMaxRows } }, tool.name, args, b.maxRows);
     for (const key of Object.keys(b.lockedArguments))
       ensure(
         get(args, key) === b.lockedArguments[key],
         "ENVIRONMENT_OVERRIDE_DENIED",
         "Probe arguments must include exact locked resources.",
       );
-    const client = await connectors.connect(
-      c,
-      false,
-      Math.min(5000, remaining()),
-      checkCurrentBinding,
-      signal,
-    );
-    let response;
+    let response, decoded: Json;
+    const source = request.sourceAttestation;
+    const sourceAttestation = source ? {
+      environment: b.environment, connectionRevision: c.revision, bindingRevision: b.revision + 1,
+      adapterHash: hash(b.toolAdapters ?? {}), endpointHash: hash({ endpoint: c.endpoint ?? null,
+        command: c.command ?? null, args: c.args ?? [], credentialRef: c.secretRef ?? c.envRefs ?? null }),
+      serviceIdentity: source.serviceIdentity, accountScope: source.accountScope, resourceScope: source.resourceScope,
+    } : undefined;
+    if (source) {
+      validate({ type: "object", properties: { serviceIdentity: { type: "string", minLength: 1, maxLength: 1000 },
+        accountScope: { type: "string", minLength: 1, maxLength: 1000 }, resourceScope: { type: "string", minLength: 1, maxLength: 1000 } },
+        required: ["serviceIdentity", "accountScope", "resourceScope"], additionalProperties: false }, source);
+      ensure(hash(vault.redact(source)) === hash(source), "INPUT_INVALID", "Attestation must not contain credentials or private data.");
+      ensure(b.environment !== "production" || c.synthetic || c.secretRef || Object.keys(c.envRefs ?? {}).length,
+        "BINDING_UNVERIFIED", "Production source attestation requires an independently scoped service credential reference.");
+      ensure(b.environment !== "production" || Object.keys(b.lockedArguments).some((pointer) => pointer !== "/environment"),
+        "BINDING_UNVERIFIED", "Production source attestation requires fixed resource parameters in addition to an environment label.");
+    }
+    const client = await connectors.connect(c, false, Math.min(5000, remaining()), checkCurrentBinding, signal);
     try {
       validate(tool.inputSchema, args);
       // No await between the live revision/revocation check and dispatch.
@@ -647,21 +647,13 @@ export async function registerAdmin(
         { name: tool.name, arguments: args },
         { timeout: remaining(), toolDefinition: tool, signal },
       );
-      ensure(
-        !response.isError && response.structuredContent,
-        "BINDING_UNVERIFIED",
-        "Probe failed.",
-      );
-      ensure(
-        get(response.structuredContent, request.expectedEnvironmentPointer) ===
+      decoded = decodeToolResult({ ...b, connectionRevision: c.revision, revision: b.revision + 1,
+        verification: { sourceAttestation }, simulationOnly: !!c.synthetic }, tool, response);
+      if (b.toolAdapters?.[tool.name]?.environment.source !== "binding") ensure(
+        get(decoded, request.expectedEnvironmentPointer ?? selectedAdapter?.environment.pointer ?? "/environment") ===
           (request.expectedEnvironmentValue ?? b.environment),
         "ENVIRONMENT_MISMATCH",
         "Probe environment evidence differs.",
-      );
-      ensure(
-        (response.structuredContent as Json).environment === b.environment,
-        "ENVIRONMENT_MISMATCH",
-        "Normalized probe environment must match the fixed binding.",
       );
     } finally {
       await client.close();
@@ -670,7 +662,9 @@ export async function registerAdmin(
     const synthetic =
       !!c.synthetic ||
       c.syntheticEvidence === true ||
-      (response!.structuredContent as Json).synthetic === true;
+      decoded!.synthetic === true;
+    applyRowBudget({ ...b, simulationOnly: synthetic,
+      verification: { serverMaxRows: request.serverMaxRows } }, tool.name, args, b.maxRows);
     if (synthetic)
       repo.put(
         "connections",
@@ -691,6 +685,8 @@ export async function registerAdmin(
         serverEnforcedReadOnly: true,
         probeHash: hash({ tool: tool.name, args }),
         synthetic,
+        sourceAttestation,
+        ...(request.serverMaxRows === undefined ? {} : { serverMaxRows: request.serverMaxRows }),
       },
     };
     repo.put("bindings", b.id, next, b.revision);
@@ -837,6 +833,8 @@ export async function registerAdmin(
       "inputs",
       "idempotencyKey",
     ]);
+    ensure(b.mode !== "guided", "HOST_START_REQUIRED",
+      "Guided runs must be started by the authenticated MCP host using workflow_start; copy the exact version and inputs from the Web handoff.", 403);
     return data(engine.start(b));
   });
   const owner = (runId: string) => {
@@ -1054,6 +1052,7 @@ const bindingSchema: Json = {
       items: { type: "string" },
     },
     maxRows: { type: "integer", minimum: 1, maximum: 1000 },
+    toolAdapters: toolAdaptersSchema,
     timeoutSeconds: { type: "integer", minimum: 1, maximum: 120 },
   },
   required: [
@@ -1068,3 +1067,34 @@ const bindingSchema: Json = {
   ],
   additionalProperties: false,
 };
+
+const connectionSchema: Json = {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 128 },
+          transport: { enum: ["stdio", "streamable_http"] },
+          protocolEra: { enum: ["modern", "legacy", "auto"] },
+          endpoint: { type: "string", maxLength: 2048 },
+          allowedHosts: {
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
+            maxItems: 20,
+          },
+          secretRef: { type: "string" },
+          command: { type: "string", maxLength: 2048 },
+          args: {
+            type: "array",
+            maxItems: 64,
+            items: { type: "string", maxLength: 4096 },
+          },
+          commandApproved: { const: true },
+          envRefs: {
+            type: "object",
+            maxProperties: 20,
+            additionalProperties: { type: "string" },
+          },
+        },
+        required: ["name", "transport", "protocolEra"],
+        additionalProperties: false,
+      };

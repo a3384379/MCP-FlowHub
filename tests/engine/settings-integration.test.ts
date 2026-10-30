@@ -7,6 +7,7 @@ import {
   mkdir,
   readFile,
   readdir,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -109,8 +110,9 @@ test("offline restore commands quote spaces, quotes and shell metacharacters wit
 });
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
-  const dataDir = await mkdtemp(join(tmpdir(), "flowhub settings 受限 "));
-  const daemon = await startDaemon({ dataDir, port: 0 });
+  const requestedDataDir = await mkdtemp(join(tmpdir(), "flowhub settings 受限 "));
+  const dataDir = await realpath(requestedDataDir);
+  const daemon = await startDaemon({ dataDir: requestedDataDir, port: 0 });
   t.after(async () => {
     await daemon.close();
     await rm(dataDir, { recursive: true, force: true });

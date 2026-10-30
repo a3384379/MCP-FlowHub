@@ -250,6 +250,9 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     allowedQueryTemplates: [],
     maxRows: 10,
     timeoutSeconds: 5,
+    toolAdapters: { read_synthetic: { version: 1, format: "structured",
+      environment: { source: "payload", pointer: "/environment" },
+      rowLimit: { serverMaxRows: 1, attestation: "Controlled synthetic server constructs one log only" } } },
   });
   binding = await api("/bindings/" + binding.id + "/verify", {
     probe: {
@@ -258,6 +261,7 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     },
     serverEnforcedReadOnly: true,
     scope: "synthetic localhost fixture",
+    serverMaxRows: 1,
     expectedEnvironmentPointer: "/environment",
   });
   const tool = daemon.engine.repo
@@ -316,7 +320,7 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     expectedRevision: saved.revision,
     expectedBindingRevisions: { [binding.id]: binding.revision },
   });
-  const started = await api("/runs", {
+  const started = daemon.engine.start({
     workflowId: flow.workflowId,
     version: flow.version,
     mode: flow.mode,

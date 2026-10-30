@@ -18,6 +18,7 @@ export function registerIncidentTools(server: McpServer) {
         to: { type: "string", format: "date-time" },
         environment: { const: environment, type: "string" },
         project: { const: project, type: "string" },
+        maxRows: { type: "integer", minimum: 1, maximum: 1000 },
       },
       required: ["question", "orderNo", "from", "to", "environment", "project"],
       additionalProperties: false,
@@ -41,6 +42,7 @@ export function registerIncidentTools(server: McpServer) {
           ),
         );
         value.environment = environment;
+        value.logs = value.logs.slice(0, args.maxRows ?? 100);
         for (const log of value.logs) log.orderNo = args.orderNo;
         return result(value);
       },
@@ -61,6 +63,7 @@ export function registerIncidentTools(server: McpServer) {
         type: "string",
         enum: ["DEMO-DB-PROD", "DEMO-DB-STAGING"],
       },
+      maxRows: { type: "integer", minimum: 1, maximum: 1000 },
     },
     required: ["templateId", "parameters", "environment", "connectionId"],
     additionalProperties: false,
@@ -89,6 +92,8 @@ export function registerIncidentTools(server: McpServer) {
         ),
       );
       value.environment = args.environment;
+      value.rows = value.rows.slice(0, args.maxRows ?? 100);
+      value.rowCount = value.rows.length;
       for (const row of value.rows) {
         row.orderNo = args.parameters.orderNo;
         row.sentinel =

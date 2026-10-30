@@ -123,7 +123,7 @@ async function fixture(t: TestContext) {
 
 test("SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets", async (t) => {
   const { daemon, call, api, cookie, adminHeaders, token } = await fixture(t);
-  const run = await api("/runs", {
+  const run = daemon.engine.start({
     workflowId: "incident-staging",
     version: "1.0.0",
     mode: "guided",

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { once } from "node:events";
 import { promisify } from "node:util";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -23,7 +23,7 @@ try {
   throw new Error("INSTALLER_SMOKE_REQUIRES_CLEAN_ACCOUNT: The default data directory already exists. Use a clean disposable Windows account; existing user data will not be changed.");
 } catch (error) { if (error.code !== "ENOENT") throw error; }
 
-const temporary = await mkdtemp(join(tmpdir(), "FlowHub 安装 smoke "));
+const temporary = await realpath(await mkdtemp(join(tmpdir(), "FlowHub 安装 smoke ")));
 const installDir = join(temporary, "程序 files");
 const extraRoot = join(installDir, "personal.txt");
 const extraApp = join(installDir, "app/user-note.txt");

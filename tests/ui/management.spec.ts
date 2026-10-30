@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 const password = "Synthetic-browser-password-041";
 test("bootstrap, six pages, real flow canvas, save/validate, start and independent approval boundaries", async ({
   page,
@@ -63,6 +64,26 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and independe
     .getByRole("dialog")
     .getByRole("button", { name: "确认", exact: true })
     .click();
+  const handoff = page.getByRole("dialog", { name: "交给当前受限 Codex 启动" });
+  const prepared = JSON.parse(await handoff.locator("pre").innerText());
+  expect(prepared.arguments.workflowId).toBe("incident-staging");
+  await handoff.getByRole("button", { name: "关闭", exact: true }).last().click();
+  const session = (await (await page.request.get("/api/v1/auth/session")).json()).data;
+  const created = await page.request.post("/api/v1/clients", { headers: { "X-CSRF-Token": session.csrf },
+    data: { label: "Synthetic browser host", workflowAllowlist: ["incident-staging"] } });
+  expect(created.ok(), await created.text()).toBe(true);
+  const host = (await created.json()).data;
+  const client = new Client({ name: "synthetic-browser-host", version: "1" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } });
+  let runId: string;
+  try {
+    await client.connect(new StreamableHTTPClientTransport(new URL("http://127.0.0.1:18479/mcp"),
+      { requestInit: { headers: { Authorization: "Bearer " + await readFile(host.absoluteTokenFile, "utf8") }, redirect: "error" } }));
+    const started = await client.callTool({ name: prepared.tool, arguments: prepared.arguments });
+    expect(started.isError).not.toBe(true);
+    runId = (started.structuredContent as { runId: string }).runId;
+  } finally { await client.close(); }
+  await page.goto("/runs/" + runId);
   await expect(
     page.getByRole("heading", { name: "incident-staging", exact: true }),
   ).toBeVisible();

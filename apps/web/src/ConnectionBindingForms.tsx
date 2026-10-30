@@ -626,10 +626,11 @@ export function BindingForm({
   const [resourceValue, setResourceValue] = useState("");
   const [resourceError, setResourceError] = useState("");
   const [jsonValid, setJsonValid] = useState(true);
+  const [adapterValid, setAdapterValid] = useState(true);
   const errors = bindingFormErrors(value, connection, available, environment);
   useValidity(
     !errors.length &&
-      jsonValid &&
+      jsonValid && adapterValid &&
       !resourcePath &&
       !resourceValue &&
       !resourceError,
@@ -907,6 +908,12 @@ export function BindingForm({
           UNVERIFIED；真实只读依据必须来自服务端权限和独立核验。保存不会证明真实只读，不会自动调用下游。
         </p>
       </section>
+      <details>
+        <summary>高级：版本化结果适配与派发前限额</summary>
+        <p>按工具名称配置 toolAdapters v1：structured 或单块 text_json；声明实际结果 Schema、环境证据来源及真实限额参数路径。无参数限额需独立核验服务端固定上限，生产未配置限额会拒绝。普通业务结果不会被补写环境字段。</p>
+        <JsonObjectField label="工具适配器 JSON" value={value.toolAdapters ?? {}}
+          onChange={(next) => change("toolAdapters", next)} onValidityChange={setAdapterValid} />
+      </details>
       {binding && <BindingVerificationStatus binding={binding} />}
       <Errors errors={errors} />
     </div>
@@ -1026,11 +1033,14 @@ export function BindingVerificationForm({
     errors.push("请记录获准的核验范围、服务端只读依据和独立核验记录。");
   if (value.serverEnforcedReadOnly !== true)
     errors.push("独立确认服务端只读权限后才能开始验证。");
-  if (
+  if (binding?.toolAdapters?.[tool?.name]?.environment?.source !== "binding" && (
     typeof value.expectedEnvironmentPointer !== "string" ||
     !pointer.test(value.expectedEnvironmentPointer)
-  )
+  ))
     errors.push("请填写响应环境哨兵的 JSON Pointer。");
+  if (binding?.toolAdapters?.[tool?.name]?.environment?.source === "binding" &&
+    ["serviceIdentity", "accountScope", "resourceScope"].some((key) => !value.sourceAttestation?.[key]?.trim()))
+    errors.push("请独立核验并填写服务身份、账号权限和固定资源范围。");
   if (!object(value.probe?.arguments)) errors.push("探测参数须为 JSON 对象。");
   if (required.some((key) => args[key] === undefined || args[key] === ""))
     errors.push("请补齐工具输入契约中的必填探测参数。");
@@ -1191,6 +1201,16 @@ export function BindingVerificationForm({
         value={value.expectedEnvironmentPointer}
         onChange={(next) => change("expectedEnvironmentPointer", next)}
       />
+      {binding?.toolAdapters?.[tool?.name]?.environment?.source === "binding" && <section className="info">
+        <strong>连接来源环境核验（管理员独立声明，非工具自证）</strong>
+        <p>独立核对端点、服务身份、账号和固定资源权限；生产还需凭据引用与服务端权限验收。业务结果不会被补写环境字段。</p>
+        {[['serviceIdentity', '核验服务身份'], ['accountScope', '核验账号权限范围'], ['resourceScope', '核验固定资源范围']].map(([key, label]) =>
+          <Field key={key} label={label!} value={value.sourceAttestation?.[key!] ?? ''}
+            onChange={(next) => change('sourceAttestation', { ...value.sourceAttestation, [key!]: next })} />)}
+      </section>}
+      {binding?.toolAdapters?.[tool?.name]?.rowLimit?.serverMaxRows && <Field
+        label="独立核验的服务端固定最大行数" type="number" value={value.serverMaxRows ?? ''}
+        onChange={(next) => change('serverMaxRows', next === '' ? '' : Number(next))} />}
       <Field
         label="预期环境哨兵值"
         value={value.expectedEnvironmentValue ?? binding?.environment}

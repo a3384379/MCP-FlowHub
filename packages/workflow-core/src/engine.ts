@@ -31,6 +31,7 @@ import { validateWorkflow } from "./validate.js";
 import { queryScopes } from "./query-scope.js";
 import { schemaAt } from "./mapping-schema.js";
 import { validateReportEvidence } from "./report-verification.js";
+import { applyRowBudget } from "../../contracts/src/tool-adapter.js";
 const terminal = new Set([
   "SUCCEEDED",
   "FAILED",
@@ -97,6 +98,10 @@ export class Engine {
           revision: 1,
           maxRows: 100,
           timeoutSeconds: 30,
+          toolAdapters: Object.fromEntries(original.allowedTools.map((name: string) => [name, {
+            version: 1, format: "structured", environment: { source: "payload", pointer: "/environment" },
+            rowLimit: { argumentPointer: "/maxRows" },
+          }])),
           verification: {
             synthetic: true,
             at: now(),
@@ -514,6 +519,8 @@ export class Engine {
         );
         validate(w.inputSchema, args.inputs);
         const inputs = args.inputs as Json;
+        ensure(!this.vault.locked || this.repo.all("secrets").length === 0,
+          "CREDENTIAL_LOCKED", "Unlock Vault before accepting inputs that may contain registered credentials.", 423);
         const dateTimeRange = w.inputSchema.properties?.from?.type === "string" &&
           w.inputSchema.properties.from.format === "date-time" &&
           w.inputSchema.properties?.to?.type === "string" &&
@@ -548,6 +555,7 @@ export class Engine {
           snapshot: clone(v.snapshot),
           snapshotHash: v.contentHash,
           inputs: clone(inputs),
+          inputSafetyVersion: 1,
           outputs: {},
           steps: Object.fromEntries(w.nodes.map((n) => [n.id, "PENDING"])),
           state: "QUEUED",
@@ -562,6 +570,7 @@ export class Engine {
           totalBytes: 0,
           retryOfRunId: retryOfRunId ?? null,
         };
+        this.vault.protectInputs(run);
         this.repo.insert("runs", run.id, run);
         this.repo.event(run.id, "RUN_CREATED", {
           workflowId: w.workflowId,
@@ -705,7 +714,7 @@ export class Engine {
       waitingReason: r.errorCode ?? null,
       vaultLocked: this.vault.locked,
       createdAt: r.createdAt,
-      inputs: this.vault.redact(r.inputs),
+      inputs: this.vault.inputView(r),
       retryOfRunId: r.retryOfRunId,
     };
   }
@@ -763,8 +772,8 @@ export class Engine {
           };
         } else {
           payload = this.restoreQueryScope(r, n, submission.payload);
-          validate(n.config.outputSchema, payload);
         }
+        validate(n.config.outputSchema, payload);
         this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
         if (n.config.kind === "host_skill")
@@ -935,7 +944,7 @@ export class Engine {
         workflowId: r.workflowId,
         version: r.version,
         mode: r.snapshot.workflow.mode,
-        inputs: r.inputs,
+        inputs: this.vault.inputs(r),
         idempotencyKey: request.idempotencyKey,
       },
       r.owner,
@@ -1086,7 +1095,7 @@ export class Engine {
   private restoreQueryScope(r: Json, n: Node, submitted: Json) {
     let payload = clone(submitted);
     for (const scope of queryScopes(r.snapshot.workflow, r.snapshot.bindings).filter((scope) => scope.nodeId === n.id)) {
-      const expected = resolveValue(scope.source, r.inputs, {});
+      const expected = resolveValue(scope.source, this.vault.inputs(r), {});
       let actual: Json;
       try { actual = get(payload, scope.pointer); }
       catch { continue; } // The output schema reports missing required fields.
@@ -1151,7 +1160,7 @@ export class Engine {
     });
   }
   private renderReport(r: Json, n: Node) {
-    const input = mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
+    const input = mappings(n.config.inputMappings, this.vault.inputs(r), this.operationalOutputs(r)),
       analysis = input.analysis ?? {},
       evidence = this.repo
         .all("artifacts")
@@ -1195,7 +1204,7 @@ export class Engine {
         r.environment +
         "；订单：" +
         (input.orderNo ??
-          "未映射；运行范围：" + (r.inputs.orderNo ?? "未提供")) +
+          "未映射；运行范围：" + (this.vault.inputs(r).orderNo ?? "未提供")) +
         "；范围：" +
         (input.from ?? "未映射") +
         " → " +
@@ -1276,7 +1285,7 @@ export class Engine {
       const type = schemaAt(schema, pointer).type;
       return Array.isArray(type) ? type.includes("array") : type === "array";
     };
-    const args = mappings(n.config.argumentsMappings, r.inputs, this.operationalOutputs(r), arrayAt);
+    const args = mappings(n.config.argumentsMappings, this.vault.inputs(r), this.operationalOutputs(r), arrayAt);
     for (const [key, v] of Object.entries(b.lockedArguments)) set(args, key, v, arrayAt);
     if (b.allowedQueryTemplates.length)
       ensure(
@@ -1284,7 +1293,7 @@ export class Engine {
         "TEMPLATE_LOCKED",
         "Template changed.",
       );
-    return args;
+    return applyRowBudget(b, n.config.toolName, args, r.snapshot.workflow.budgets.maxRows);
   }
   private next(r: Json, nodeId: string, port = "next") {
     return r.snapshot.workflow.edges.find(
@@ -1411,7 +1420,7 @@ export class Engine {
             reportContract:
               n.config.kind === "host_skill" ? REPORT_HEADINGS : undefined,
             requiredOutputSchema: n.config.outputSchema,
-            inputs: this.vault.redact(mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r))),
+            inputs: this.vault.redact(mappings(n.config.inputMappings, this.vault.inputs(r), this.operationalOutputs(r))),
             expiresAt: Date.now() + 86400000,
             expectedRevision: r.revision,
             tokenHash: hash(token),
@@ -1452,7 +1461,7 @@ export class Engine {
           return;
         }
         if (n.type === "condition") {
-          const selected = condition(n.config.expression, r.inputs, this.operationalOutputs(r));
+          const selected = condition(n.config.expression, this.vault.inputs(r), this.operationalOutputs(r));
           const reachable = (start: string) => {
             const seen = new Set<string>();
             const visit = (nodeId: string) => {
@@ -1485,7 +1494,9 @@ export class Engine {
               (b: Json) => b.id === w.bindings[n.config.bindingKey],
             ),
             args = this.resolveArguments(r, n);
-          if (binding.allowedQueryTemplates.length)
+          const requiresApproval = binding.allowedQueryTemplates.length ||
+            w.nodes.some((node: Node) => node.type === "approval" && node.config.actionNodeId === n.id);
+          if (requiresApproval)
             ensure(
               r.approvedAction?.target === n.id &&
                 r.approvedAction.expiresAt > Date.now() &&
@@ -1547,7 +1558,7 @@ export class Engine {
                   "APPROVAL_STALE",
                   "Resolved arguments changed before tool dispatch.",
                 );
-                if (binding.allowedQueryTemplates.length) {
+                if (requiresApproval) {
                   const approval =
                     current.approvedAction &&
                     this.repo.get("approvals", current.approvedAction.id);
@@ -1641,6 +1652,10 @@ export class Engine {
                 contentStored: true,
                 synthetic: binding.simulationOnly,
                 truncated: value.truncated ?? false,
+                source: { connectionId: binding.connectionId, connectionRevision: binding.connectionRevision,
+                  bindingId: binding.id, bindingRevision: binding.revision, environment: binding.environment,
+                  adapterVersion: binding.toolAdapters?.[n.config.toolName]?.version ?? 0,
+                  environmentEvidence: binding.toolAdapters?.[n.config.toolName]?.environment?.source ?? "payload" },
               },
             );
             this.repo.put("attempts", attempt.id, {
@@ -1658,7 +1673,7 @@ export class Engine {
           this.releaseDatabase(r.id);
           continue;
         }
-        if (n.type === "input") this.storeOutput(r, n.id, r.inputs);
+        if (n.type === "input") this.storeOutput(r, n.id, this.vault.inputs(r));
         if (n.type === "report_template") {
           const payload = {
             reportMarkdown: this.renderReport(r, n),
@@ -1672,7 +1687,7 @@ export class Engine {
         }
         r.steps[n.id] = "SUCCEEDED";
         if (n.type === "end") {
-          resolveValue(n.config.resultRef, r.inputs, this.operationalOutputs(r));
+          resolveValue(n.config.resultRef, this.vault.inputs(r), this.operationalOutputs(r));
           for (const node of w.nodes)
             if (r.steps[node.id] === "PENDING") r.steps[node.id] = "SKIPPED";
           r.state = "SUCCEEDED";
