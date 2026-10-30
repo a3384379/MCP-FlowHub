@@ -1194,7 +1194,8 @@
                   "lockedArguments": {},
                   "allowedQueryTemplates": {},
                   "maxRows": {},
-                  "timeoutSeconds": {}
+                  "timeoutSeconds": {},
+                  "toolAdapters": {}
                 },
                 "additionalProperties": false
               }
@@ -1326,7 +1327,8 @@
                   "allowedQueryTemplates": {},
                   "maxRows": {},
                   "timeoutSeconds": {},
-                  "revoked": {}
+                  "revoked": {},
+                  "toolAdapters": {}
                 },
                 "additionalProperties": false
               }
@@ -1397,15 +1399,16 @@
                 "required": [
                   "probe",
                   "serverEnforcedReadOnly",
-                  "scope",
-                  "expectedEnvironmentPointer"
+                  "scope"
                 ],
                 "properties": {
                   "probe": {},
                   "serverEnforcedReadOnly": {},
                   "scope": {},
                   "expectedEnvironmentPointer": {},
-                  "expectedEnvironmentValue": {}
+                  "expectedEnvironmentValue": {},
+                  "sourceAttestation": {},
+                  "serverMaxRows": {}
                 },
                 "additionalProperties": false
               }

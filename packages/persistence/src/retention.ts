@@ -28,7 +28,8 @@ export function previewRetention(repo: Repository, at = Date.now()) {
       (run) =>
         !deleted.has(run.id) &&
         (expiredArtifacts.has(run.id) ||
-          (Date.parse(run.updatedAt) < at - 7 * day && !run.resultsExpiredAt)),
+          (Date.parse(run.updatedAt) < at - 7 * day &&
+            (!run.resultsExpiredAt || !!run.operationalInputs))),
     )
     .map((run) => run.id as string);
   const expired = new Set(resultRuns);
@@ -86,6 +87,8 @@ export function commitRetention(
       const run = repo.get("runs", runId);
       run.outputs = {};
       delete run.operationalOutputs;
+      delete run.operationalInputs;
+      run.inputsExpiredAt = timestamp;
       delete run.checkpoint;
       run.resultsExpiredAt = timestamp;
       run.revision++;

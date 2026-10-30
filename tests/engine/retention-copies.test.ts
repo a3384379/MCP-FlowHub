@@ -40,17 +40,17 @@ test("retention removes expired result copies before new backups and preserves a
     return { status: response.status, ...((await response.json()) as Json) };
   };
   const flow = daemon.engine.repo.get("workflows", "incident-staging").draft;
-  const started = await api("/runs", {
+  const started = daemon.engine.start({
     workflowId: flow.workflowId,
     version: flow.version,
     mode: flow.mode,
     inputs: flow.inputSchema.examples[0],
     idempotencyKey: randomUUID(),
   });
-  assert.equal(started.status, 200);
+  assert.ok(started.runId);
   let status: Json;
   for (let i = 0; i < 200; i++) {
-    status = daemon.engine.status(started.data.runId);
+    status = daemon.engine.status(started.runId);
     if (status.state === "WAITING_AGENT") break;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
@@ -62,7 +62,7 @@ test("retention removes expired result copies before new backups and preserves a
     idempotencyKey: randomUUID(),
   });
   const repo = daemon.engine.repo;
-  const expired = repo.get("runs", started.data.runId);
+  const expired = repo.get("runs", started.runId);
   const marker = "synthetic-business-result-" + randomUUID();
   const ago = (days: number) =>
     new Date(Date.now() - days * 86400000).toISOString();

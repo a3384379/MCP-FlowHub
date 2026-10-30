@@ -14,6 +14,7 @@ import {
   redact as redactValue,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
+import { hasPlaintextCredentials } from "../../mcp-connectors/src/connection-config.js";
 const derive = (password: string, salt: string) =>
   scryptSync(password, salt, 32, {
     N: 32768,
@@ -88,6 +89,11 @@ export class Vault {
       this.lock();
       throw new HubError("AUTH_REQUIRED", "Invalid vault password.", 401);
     }
+    try { this.migrateProtectedData(); }
+    catch {
+      this.lock();
+      throw new HubError("MIGRATION_BLOCKED", "Vault authenticated, but legacy data migration failed. Keep a local backup and repair the affected records before retrying.", 409);
+    }
   }
   lock() {
     this.generation++;
@@ -127,14 +133,65 @@ export class Vault {
       "Invalid secret.",
     );
     const ref = "secret_" + randomBytes(16).toString("hex");
-    this.repo.insert("secrets", ref, {
+    this.repo.tx(() => {
+      this.repo.insert("secrets", ref, {
       id: ref,
       label,
       encrypted: this.encrypt(value, ref),
       createdAt: now(),
+      });
+      this.migrateProtectedData();
     });
     this.generation++;
     return { id: ref, label };
+  }
+  protectInputs(run: Json) {
+    const original = this.inputs(run), clean = this.redact(original);
+    const unchanged = run.inputSafetyVersion === 1 && hash(clean) === hash(run.inputs);
+    run.inputs = clean;
+    run.inputSafetyVersion = 1;
+    if (hash(clean) !== hash(original)) {
+      if (!unchanged || !run.operationalInputs)
+        run.operationalInputs = this.encrypt(JSON.stringify(original), run.id + ":inputs");
+    }
+    else delete run.operationalInputs;
+  }
+  inputs(run: Json): Json {
+    ensure(!run.inputsExpiredAt, "ARTIFACT_EXPIRED", "Exact run inputs expired; start a new run with freshly confirmed inputs.", 410);
+    if (run.operationalInputs)
+      return JSON.parse(this.decrypt(run.operationalInputs, run.id + ":inputs"));
+    ensure(run.inputSafetyVersion === 1 || !this.locked,
+      "CREDENTIAL_LOCKED", "Unlock Vault to migrate legacy run inputs; plaintext fallback is disabled.", 423);
+    return structuredClone(run.inputs);
+  }
+  inputView(run: Json): Json {
+    if (run.inputSafetyVersion !== 1 && this.locked)
+      return { notice: "Legacy inputs withheld until Vault is unlocked and migration completes." };
+    return this.redact(run.inputs);
+  }
+  private migrateProtectedData() {
+    // Preserve exact values as authenticated ciphertext. No records, historical
+    // backups or immutable publication snapshots are deleted by this migration.
+    this.repo.tx(() => {
+      for (const run of this.repo.all("runs")) {
+        if (!Object.hasOwn(run, "inputs")) continue;
+        const previous = hash(run);
+        if (run.inputsExpiredAt) run.inputs = this.redact(run.inputs);
+        else this.protectInputs(run);
+        if (hash(run) !== previous) this.repo.put("runs", run.id, run);
+      }
+      for (const c of this.repo.all("connections")) {
+        if (!hasPlaintextCredentials(c)) continue;
+        const next = { ...c, endpoint: "", args: [], secretRef: undefined, envRefs: {}, disabled: true, tools: [], history: [], discovery: undefined,
+          verifiedAt: null, verifiedSdk: null, revision: c.revision + 1,
+          quarantinedConfiguration: this.encrypt(JSON.stringify(c), "connection:" + c.id),
+          configurationWarning: "PLAINTEXT_CREDENTIAL_DENIED: replace configuration with Vault references and reverify." };
+        this.repo.put("connections", c.id, next, c.revision);
+        for (const b of this.repo.all("bindings").filter((b) => b.connectionId === c.id))
+          this.repo.put("bindings", b.id, { ...b, revision: b.revision + 1,
+            validationStatus: b.revoked || b.validationStatus === "REVOKED" ? "REVOKED" : "UNVERIFIED", verification: null }, b.revision);
+      }
+    });
   }
   secret(ref: string): string {
     const s = this.repo.get("secrets", ref);
@@ -205,10 +262,11 @@ export class Vault {
     const protectedRuns = this.repo
       .all("runs")
       .filter(
-        (r) => r.checkpoint || Object.keys(r.operationalOutputs ?? {}).length,
+        (r) => r.checkpoint || r.operationalInputs || Object.keys(r.operationalOutputs ?? {}).length,
       )
       .map((r) => ({
         record: r,
+        inputs: r.operationalInputs ? this.decrypt(r.operationalInputs, r.id + ":inputs") : undefined,
         checkpoint: r.checkpoint
           ? this.decrypt(r.checkpoint.delivery, r.id + ":" + r.checkpoint.id)
           : undefined,
@@ -219,6 +277,8 @@ export class Vault {
           }),
         ),
       }));
+    const configurations = this.repo.all("connections").filter((c) => c.quarantinedConfiguration)
+      .map((c) => ({ record: c, text: this.decrypt(c.quarantinedConfiguration, "connection:" + c.id) }));
     const oldKey = Buffer.from(this.key!),
       salt = randomBytes(16).toString("hex");
     this.key = derive(newPassword, salt);
@@ -230,6 +290,8 @@ export class Vault {
             encrypted: this.encrypt(s.text, s.record.id),
           });
         for (const c of protectedRuns) {
+          if (c.inputs !== undefined)
+            c.record.operationalInputs = this.encrypt(c.inputs, c.record.id + ":inputs");
           if (c.checkpoint !== undefined)
             c.record.checkpoint.delivery = this.encrypt(
               c.checkpoint,
@@ -242,6 +304,9 @@ export class Vault {
             );
           this.repo.put("runs", c.record.id, c.record);
         }
+        for (const c of configurations)
+          this.repo.put("connections", c.record.id, { ...c.record,
+            quarantinedConfiguration: this.encrypt(c.text, "connection:" + c.record.id) });
         this.repo.put("settings", "vault", {
           salt,
           verifier: this.encrypt("flowhub-vault-v1", "verifier"),

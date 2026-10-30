@@ -11,6 +11,10 @@
 7. artifact_read 按同 run artifactId 分块读取，offset 是 UTF-8 字节边界。
 8. OUTCOME_UNKNOWN 不重复外部动作；由管理员复核并建立带 retryOfRunId 的新运行。
 
+Web 对 guided 流程生成确切版本、输入和幂等键的 `workflow_start` 交接指令，不提前创建默认 owner 的运行。把指令交给接入设置中已配置的受限 Codex，由该身份实际启动并继续。Web 保持状态查看和独立审批职责，管理 API 不接受 guided 启动，也不能冒充宿主提交 Agent 输出。auto 流程仍可从 Web 启动。
+
+不将 runId 当作接管凭证；其他宿主、未授权工作流或已撤销身份均不能读取或推进该运行。STDIO 配置保留 `--token-file`，不得通过换用默认全权限令牌解决归属问题。
+
 默认薄桥：
 
     node dist/apps/daemon/src/cli.js mcp --stdio --data-dir <批准数据目录>

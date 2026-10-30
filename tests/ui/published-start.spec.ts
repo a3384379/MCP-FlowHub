@@ -112,25 +112,15 @@ test("unpublished environment, mode and input changes cannot alter a published s
   await expect(dialog.locator("details pre")).toHaveText(
     JSON.stringify(workflow.inputSchema, null, 2),
   );
-  const request = page.waitForRequest(
-    (r) =>
-      r.method() === "POST" && new URL(r.url()).pathname === "/api/v1/runs",
-  );
+  const before = await api("/runs");
   await dialog.getByRole("button", { name: "确认", exact: true }).click();
-  const submitted = (await request).postDataJSON();
-  expect(submitted).toMatchObject({
-    workflowId: workflow.workflowId,
-    version: "1.0.0",
-    mode: "guided",
-    inputs: workflow.inputSchema.examples[0],
-  });
-  await expect(page).toHaveURL(/\/runs\/run_/);
-  const runId = new URL(page.url()).pathname.split("/").at(-1)!;
-  await expect
-    .poll(async () => (await api("/runs/" + runId)).state)
-    .toBe("WAITING_AGENT");
-  const run = await api("/runs/" + runId);
-  expect(run).toMatchObject({ environment: "production", version: "1.0.0" });
+  const handoff = page.getByRole("dialog", { name: "交给当前受限 Codex 启动" });
+  const prepared = JSON.parse(await handoff.locator("pre").innerText());
+  expect(prepared.tool).toBe("workflow_start");
+  expect(prepared.arguments).toMatchObject({ workflowId: workflow.workflowId, version: "1.0.0", mode: "guided", inputs: workflow.inputSchema.examples[0] });
+  expect(prepared.instruction).toContain("同一身份");
+  expect(await api("/runs")).toEqual(before);
+  await expect(page).toHaveURL(/\/workflows$/);
 });
 
 test("rollback preview and submission stay bound to the selected immutable version", async ({
@@ -204,20 +194,12 @@ test("rollback preview and submission stay bound to the selected immutable versi
   await api("/workflows/" + record.id + "/select-version", "POST", {
     version: "2.0.0",
   });
-  const request = page.waitForRequest(
-    (r) =>
-      r.method() === "POST" && new URL(r.url()).pathname === "/api/v1/runs",
-  );
+  const before = await api("/runs");
   await dialog.getByRole("button", { name: "确认", exact: true }).click();
-  expect((await request).postDataJSON()).toMatchObject({
-    version: "1.0.0",
-    mode: "guided",
-    inputs: workflow.inputSchema.examples[0],
-  });
-  await expect(page).toHaveURL(/\/runs\/run_/);
-  const runId = new URL(page.url()).pathname.split("/").at(-1)!;
-  const run = await api("/runs/" + runId);
-  expect(run).toMatchObject({ environment: "production", version: "1.0.0" });
+  const handoff = page.getByRole("dialog", { name: "交给当前受限 Codex 启动" });
+  const prepared = JSON.parse(await handoff.locator("pre").innerText());
+  expect(prepared.arguments).toMatchObject({ workflowId: workflow.workflowId, version: "1.0.0", mode: "guided", inputs: workflow.inputSchema.examples[0] });
+  expect(await api("/runs")).toEqual(before);
 });
 
 test("missing immutable default fails closed without opening a draft-based preview", async ({

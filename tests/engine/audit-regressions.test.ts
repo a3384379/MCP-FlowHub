@@ -816,6 +816,9 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
       allowedQueryTemplates: toolName === "query" ? ["order-by-number-v1"] : [],
       maxRows: 100,
       timeoutSeconds: 5,
+      toolAdapters: { [toolName]: { version: 1, format: "structured",
+        environment: { source: "payload", pointer: "/environment" },
+        rowLimit: { serverMaxRows: 1, attestation: "Controlled local fixture constructs at most one row/log" } } },
     });
     return api("/bindings/" + record.id + "/verify", {
       probe: {
@@ -832,6 +835,7 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
       },
       serverEnforcedReadOnly: true,
       scope: "Local protocol regression fixture; no enterprise service",
+      serverMaxRows: 1,
       expectedEnvironmentPointer: "/environment",
     });
   }

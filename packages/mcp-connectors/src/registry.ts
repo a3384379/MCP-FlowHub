@@ -27,6 +27,8 @@ import {
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
 import type { Vault } from "../../security/src/index.js";
+import { assertConnectionCredentials, hasPlaintextCredentials, safeConnectionView } from "./connection-config.js";
+import { decodeToolResult, applyRowBudget, adapterFor, payloadSchema } from "../../contracts/src/tool-adapter.js";
 import {
   assertSafeSchemaPatterns,
   walkSchema,
@@ -48,7 +50,7 @@ export class Connectors {
     this.repo.tx(() => {
       for (const c of this.repo.all("connections"))
         if (
-          c.catalogSafetyVersion !== 1 &&
+          !hasPlaintextCredentials(c) && c.catalogSafetyVersion !== 1 &&
           (c.tools?.length || c.discovery || c.verifiedAt)
         ) {
           this.repo.put(
@@ -65,6 +67,7 @@ export class Connectors {
     });
   }
   catalogView(c: Json): Json {
+    c = safeConnectionView(c);
     if (c.catalogSafetyVersion === 1) return c;
     const {
       discovery,
@@ -95,6 +98,7 @@ export class Connectors {
         );
   }
   transport(c: Json): Transport {
+    assertConnectionCredentials(c);
     if (c.synthetic)
       return new StdioClientTransport({
         command: process.execPath,
@@ -152,6 +156,29 @@ export class Connectors {
       "Only HTTPS or explicit loopback HTTP is allowed.",
     );
     return new StreamableHTTPClientTransport(url, {
+      fetch: async (input, init) => {
+        const response = await fetch(input, init);
+        const maximum = 1048576;
+        if (Number(response.headers.get("content-length")) > maximum) {
+          await response.body?.cancel();
+          throw new HubError("OUTPUT_INVALID", "MCP transport response exceeds its byte limit.");
+        }
+        if (!response.body) return response;
+        const reader = response.body.getReader(); let bytes = 0;
+        const stream = new ReadableStream<Uint8Array>({
+          async pull(controller) {
+            const chunk = await reader.read();
+            if (chunk.done) { controller.close(); return; }
+            bytes += chunk.value.byteLength;
+            if (bytes > maximum) {
+              await reader.cancel();
+              controller.error(new HubError("OUTPUT_INVALID", "MCP transport response exceeds its byte limit."));
+            } else controller.enqueue(chunk.value);
+          },
+          cancel(reason) { return reader.cancel(reason); },
+        });
+        return new Response(stream, { status: response.status, statusText: response.statusText, headers: response.headers });
+      },
       requestInit: {
         headers: c.secretRef
           ? { Authorization: "Bearer " + this.vault.secret(c.secretRef) }
@@ -343,6 +370,7 @@ export class Connectors {
     timeout: number,
     beforeDispatch?: () => void,
   ) {
+    applyRowBudget(binding, node.config.toolName, args, binding.maxRows);
     const deadline = Date.now() + timeout;
     const remaining = () => {
       const milliseconds = deadline - Date.now();
@@ -417,6 +445,10 @@ export class Connectors {
       );
       rejectRefs(live.inputSchema);
       if (live.outputSchema) rejectRefs(live.outputSchema);
+      const adapter = adapterFor(binding, live.name);
+      ensure(!adapter || payloadSchema(binding, live), "SCHEMA_INVALID", "The adapter requires an explicit business payload Schema.");
+      ensure(adapter?.format !== "text_json" || !live.outputSchema,
+        "SCHEMA_INVALID", "Tools declaring structured output must use a structured adapter.");
       validate(live.inputSchema, args);
       const callTimeout = remaining();
       const value = await client.callTool(
@@ -427,37 +459,7 @@ export class Connectors {
           toolDefinition: live,
         },
       );
-      ensure(
-        !value.isError,
-        "TOOL_FAILED",
-        "Downstream tool returned an error.",
-      );
-      ensure(
-        value.structuredContent && typeof value.structuredContent === "object",
-        "OUTPUT_INVALID",
-        "Structured tool output is required.",
-      );
-      if (live.outputSchema)
-        validate(live.outputSchema, value.structuredContent);
-      const out = value.structuredContent as Json;
-      ensure(
-        out.environment === binding.environment,
-        "ENVIRONMENT_MISMATCH",
-        "Downstream environment evidence differs from binding.",
-      );
-      if (binding.simulationOnly)
-        ensure(
-          out.synthetic === true,
-          "ENVIRONMENT_MISMATCH",
-          "Synthetic binding returned non-synthetic data.",
-        );
-      if (Array.isArray(out.rows))
-        ensure(
-          out.rowCount === out.rows.length,
-          "OUTPUT_INVALID",
-          "Row count does not match actual rows.",
-        );
-      return out;
+      return decodeToolResult(binding, live, value);
     } catch (error) {
       if (!dispatched && Date.now() >= deadline)
         throw new HubError(

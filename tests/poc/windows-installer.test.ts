@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -13,6 +13,17 @@ const { installApplication, uninstallApplication, preflight, validateWindowsPath
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+
+test("F01 native Windows path aliases cannot overlap program/data or invalidate ownership", { skip: process.platform !== "win32" && "Requires Windows filesystem aliases" }, async (t) => {
+  const options = await fixture(t), canonical = await realpath(options.root);
+  t.diagnostic("8.3 alias differs from realpath: " + (options.root.toLowerCase() !== canonical.toLowerCase()));
+  await assert.rejects(preflight({ ...options, installDir: join(options.root, "用户 data", "nested"), dataDir: join(canonical, "用户 data") }), /INSTALL_PATH_UNSAFE/);
+  await installApplication(options);
+  const aliasOptions = { ...options, installDir: join(canonical, "程序 files"), dataDir: join(canonical, "用户 data") };
+  await preflight({ ...aliasOptions, requireInstalled: true });
+  await uninstallApplication(aliasOptions);
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
+});
 
 async function put(root: string, name: string, content: string) {
   await mkdir(dirname(join(root, name)), { recursive: true });
