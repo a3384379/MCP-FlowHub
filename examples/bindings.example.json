@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "flowhub.bindings/v1",
+  "description": "MOCK ONLY：合成绑定目录。共享数据库 MCP 的两份绑定复用相同模拟 endpoint/实现，但 credentialRef、connectionId、environment 彼此独立。不得直接替换 URL/密钥后把模拟验证当作生产验证。可用 workflow.schema.json 中 $defs.bindingCatalog 对本文件作结构校验。",
+  "simulationOnly": true,
+  "bindings": [
+    {
+      "bindingRef": "aliyun-log-prod",
+      "displayName": "阿里云生产日志（模拟）",
+      "environment": "production",
+      "validationStatus": "MOCK_VERIFIED",
+      "simulationOnly": true,
+      "realExecutionAllowed": false,
+      "transport": "streamable_http",
+      "endpoint": "https://aliyun-log.example.invalid/mcp",
+      "endpointAllowlist": [
+        "aliyun-log.example.invalid"
+      ],
+      "serverImplementationRef": "mock-aliyun-log",
+      "protocolEra": "legacy",
+      "credentialRef": "secret://demo/aliyun-log-prod",
+      "allowedTools": [
+        "aliyun_log_search"
+      ],
+      "lockedArguments": {
+        "/environment": "production",
+        "/project": "DEMO-LOG-PROD"
+      },
+      "allowedQueryTemplates": [],
+      "environmentEnforcement": "MOCK_ADAPTER_ONLY",
+      "readOnlyEnforcement": "MOCK_ADAPTER_ONLY",
+      "maxRows": 200,
+      "timeoutSeconds": 30,
+      "notes": "仅用于合成 fixture。example.invalid 不代表可连接服务；secret://demo 引用不含实际凭证。Mock 应使用受控内存/回环 transport 替身，不能向该地址发起生产调用。MOCK_VERIFIED 不等于真实端点、只读权限或环境隔离已经核验。生产发布仍需独立的 BINDING_VERIFIED 证据及人工批准。"
+    },
+    {
+      "bindingRef": "huawei-log-staging",
+      "displayName": "华为云试运行日志（模拟）",
+      "environment": "staging",
+      "validationStatus": "MOCK_VERIFIED",
+      "simulationOnly": true,
+      "realExecutionAllowed": false,
+      "transport": "streamable_http",
+      "endpoint": "https://huawei-log.example.invalid/mcp",
+      "endpointAllowlist": [
+        "huawei-log.example.invalid"
+      ],
+      "serverImplementationRef": "mock-huawei-log",
+      "protocolEra": "legacy",
+      "credentialRef": "secret://demo/huawei-log-staging",
+      "allowedTools": [
+        "huawei_log_search"
+      ],
+      "lockedArguments": {
+        "/environment": "staging",
+        "/project": "DEMO-LOG-STAGING"
+      },
+      "allowedQueryTemplates": [],
+      "environmentEnforcement": "MOCK_ADAPTER_ONLY",
+      "readOnlyEnforcement": "MOCK_ADAPTER_ONLY",
+      "maxRows": 200,
+      "timeoutSeconds": 30,
+      "notes": "仅用于合成 fixture。example.invalid 不代表可连接服务；secret://demo 引用不含实际凭证。Mock 应使用受控内存/回环 transport 替身，不能向该地址发起生产调用。MOCK_VERIFIED 不等于真实端点、只读权限或环境隔离已经核验。生产发布仍需独立的 BINDING_VERIFIED 证据及人工批准。"
+    },
+    {
+      "bindingRef": "shared-db-prod-readonly",
+      "displayName": "共享数据库 MCP · 生产只读（模拟）",
+      "environment": "production",
+      "validationStatus": "MOCK_VERIFIED",
+      "simulationOnly": true,
+      "realExecutionAllowed": false,
+      "transport": "streamable_http",
+      "endpoint": "https://shared-db.example.invalid/mcp",
+      "endpointAllowlist": [
+        "shared-db.example.invalid"
+      ],
+      "serverImplementationRef": "mock-shared-db",
+      "protocolEra": "legacy",
+      "credentialRef": "secret://demo/shared-db-prod-readonly",
+      "allowedTools": [
+        "query_template"
+      ],
+      "lockedArguments": {
+        "/environment": "production",
+        "/connectionId": "DEMO-DB-PROD"
+      },
+      "allowedQueryTemplates": [
+        "order-by-number-v1"
+      ],
+      "environmentEnforcement": "MOCK_ADAPTER_ONLY",
+      "readOnlyEnforcement": "MOCK_ADAPTER_ONLY",
+      "maxRows": 200,
+      "timeoutSeconds": 30,
+      "notes": "仅用于合成 fixture。example.invalid 不代表可连接服务；secret://demo 引用不含实际凭证。Mock 应使用受控内存/回环 transport 替身，不能向该地址发起生产调用。MOCK_VERIFIED 不等于真实端点、只读权限或环境隔离已经核验。生产发布仍需独立的 BINDING_VERIFIED 证据及人工批准。"
+    },
+    {
+      "bindingRef": "shared-db-staging-readonly",
+      "displayName": "共享数据库 MCP · 试运行只读（模拟）",
+      "environment": "staging",
+      "validationStatus": "MOCK_VERIFIED",
+      "simulationOnly": true,
+      "realExecutionAllowed": false,
+      "transport": "streamable_http",
+      "endpoint": "https://shared-db.example.invalid/mcp",
+      "endpointAllowlist": [
+        "shared-db.example.invalid"
+      ],
+      "serverImplementationRef": "mock-shared-db",
+      "protocolEra": "legacy",
+      "credentialRef": "secret://demo/shared-db-staging-readonly",
+      "allowedTools": [
+        "query_template"
+      ],
+      "lockedArguments": {
+        "/environment": "staging",
+        "/connectionId": "DEMO-DB-STAGING"
+      },
+      "allowedQueryTemplates": [
+        "order-by-number-v1"
+      ],
+      "environmentEnforcement": "MOCK_ADAPTER_ONLY",
+      "readOnlyEnforcement": "MOCK_ADAPTER_ONLY",
+      "maxRows": 200,
+      "timeoutSeconds": 30,
+      "notes": "仅用于合成 fixture。example.invalid 不代表可连接服务；secret://demo 引用不含实际凭证。Mock 应使用受控内存/回环 transport 替身，不能向该地址发起生产调用。MOCK_VERIFIED 不等于真实端点、只读权限或环境隔离已经核验。生产发布仍需独立的 BINDING_VERIFIED 证据及人工批准。"
+    }
+  ]
+}

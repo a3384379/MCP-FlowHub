@@ -1,0 +1,3111 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MCP FlowHub management API",
+    "version": "1.0.0-rc.1",
+    "description": "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/v1/openapi.json": {
+      "get": {
+        "summary": "GET /api/v1/openapi.json",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/state": {
+      "get": {
+        "summary": "GET /api/v1/auth/state",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/bootstrap": {
+      "post": {
+        "summary": "POST /api/v1/auth/bootstrap",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "setupToken",
+                  "password"
+                ],
+                "properties": {
+                  "setupToken": {},
+                  "password": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session": {
+      "post": {
+        "summary": "POST /api/v1/auth/session",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/auth/session",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/auth/session",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/vault/unlock": {
+      "post": {
+        "summary": "POST /api/v1/vault/unlock",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vault/lock": {
+      "post": {
+        "summary": "POST /api/v1/vault/lock",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/vault/password": {
+      "post": {
+        "summary": "POST /api/v1/vault/password",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "oldPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "oldPassword": {},
+                  "newPassword": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets": {
+      "post": {
+        "summary": "POST /api/v1/secrets",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label",
+                  "value"
+                ],
+                "properties": {
+                  "label": {},
+                  "value": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/secrets",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "summary": "GET /api/v1/settings",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/clients": {
+      "get": {
+        "summary": "GET /api/v1/clients",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/clients",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label",
+                  "workflowAllowlist"
+                ],
+                "properties": {
+                  "label": {},
+                  "workflowAllowlist": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clients/{id}/revoke": {
+      "post": {
+        "summary": "POST /api/v1/clients/:id/revoke",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/connections": {
+      "get": {
+        "summary": "GET /api/v1/connections",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/connections",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "transport",
+                  "protocolEra"
+                ],
+                "properties": {
+                  "name": {},
+                  "transport": {},
+                  "protocolEra": {},
+                  "endpoint": {},
+                  "allowedHosts": {},
+                  "secretRef": {},
+                  "command": {},
+                  "args": {},
+                  "commandApproved": {},
+                  "envRefs": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/connections/:id",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "name": {},
+                  "endpoint": {},
+                  "allowedHosts": {},
+                  "secretRef": {},
+                  "command": {},
+                  "args": {},
+                  "commandApproved": {},
+                  "envRefs": {},
+                  "protocolEra": {},
+                  "disabled": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/test": {
+      "post": {
+        "summary": "POST /api/v1/connections/:id/test",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/sync-tools": {
+      "post": {
+        "summary": "POST /api/v1/connections/:id/sync-tools",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/tools": {
+      "get": {
+        "summary": "GET /api/v1/tools",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/bindings": {
+      "get": {
+        "summary": "GET /api/v1/bindings",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/bindings",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "connectionId",
+                  "environment",
+                  "allowedTools",
+                  "lockedArguments",
+                  "allowedQueryTemplates",
+                  "maxRows",
+                  "timeoutSeconds"
+                ],
+                "properties": {
+                  "name": {},
+                  "connectionId": {},
+                  "environment": {},
+                  "allowedTools": {},
+                  "lockedArguments": {},
+                  "allowedQueryTemplates": {},
+                  "maxRows": {},
+                  "timeoutSeconds": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bindings/{id}/impact": {
+      "get": {
+        "summary": "GET /api/v1/bindings/:id/impact",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/bindings/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/bindings/:id",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "name": {},
+                  "allowedTools": {},
+                  "lockedArguments": {},
+                  "allowedQueryTemplates": {},
+                  "maxRows": {},
+                  "timeoutSeconds": {},
+                  "revoked": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bindings/{id}/verify": {
+      "post": {
+        "summary": "POST /api/v1/bindings/:id/verify",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "probe",
+                  "serverEnforcedReadOnly",
+                  "scope",
+                  "expectedEnvironmentPointer"
+                ],
+                "properties": {
+                  "probe": {},
+                  "serverEnforcedReadOnly": {},
+                  "scope": {},
+                  "expectedEnvironmentPointer": {},
+                  "expectedEnvironmentValue": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows": {
+      "get": {
+        "summary": "GET /api/v1/workflows",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/workflows",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflow"
+                ],
+                "properties": {
+                  "workflow": {},
+                  "layout": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/draft": {
+      "get": {
+        "summary": "GET /api/v1/workflows/:id/draft",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/workflows/:id/draft",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflow",
+                  "layout"
+                ],
+                "properties": {
+                  "workflow": {},
+                  "layout": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/validate": {
+      "post": {
+        "summary": "POST /api/v1/workflows/:id/validate",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/publish": {
+      "post": {
+        "summary": "POST /api/v1/workflows/:id/publish",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expectedRevision",
+                  "expectedBindingRevisions"
+                ],
+                "properties": {
+                  "expectedRevision": {},
+                  "expectedBindingRevisions": {},
+                  "changeNote": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/disable": {
+      "post": {
+        "summary": "POST /api/v1/workflows/:id/disable",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "disabled"
+                ],
+                "properties": {
+                  "disabled": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/versions": {
+      "get": {
+        "summary": "GET /api/v1/workflows/:id/versions",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/select-version": {
+      "post": {
+        "summary": "POST /api/v1/workflows/:id/select-version",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow-imports/preview": {
+      "post": {
+        "summary": "POST /api/v1/workflow-imports/preview",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflow"
+                ],
+                "properties": {
+                  "workflow": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow-imports/commit": {
+      "post": {
+        "summary": "POST /api/v1/workflow-imports/commit",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflow"
+                ],
+                "properties": {
+                  "workflow": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "summary": "GET /api/v1/runs",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/runs",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflowId",
+                  "version",
+                  "mode",
+                  "inputs",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "workflowId": {},
+                  "version": {},
+                  "mode": {},
+                  "inputs": {},
+                  "idempotencyKey": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}": {
+      "get": {
+        "summary": "GET /api/v1/runs/:id",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/events": {
+      "get": {
+        "summary": "GET /api/v1/runs/:id/events",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated event stream; Last-Event-ID or after cursor",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/advance": {
+      "post": {
+        "summary": "POST /api/v1/runs/:id/advance",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/cancel": {
+      "post": {
+        "summary": "POST /api/v1/runs/:id/cancel",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expectedRevision",
+                  "reason",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "expectedRevision": {},
+                  "reason": {},
+                  "idempotencyKey": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/resume": {
+      "post": {
+        "summary": "POST /api/v1/runs/:id/resume",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/review": {
+      "post": {
+        "summary": "POST /api/v1/runs/:id/review",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "reason": {},
+                  "idempotencyKey": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{id}/decision": {
+      "post": {
+        "summary": "POST /api/v1/approvals/:id/decision",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision",
+                  "actionHash",
+                  "snapshotHash",
+                  "expectedRevision"
+                ],
+                "properties": {
+                  "decision": {},
+                  "actionHash": {},
+                  "snapshotHash": {},
+                  "expectedRevision": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/artifacts/{artifactId}": {
+      "get": {
+        "summary": "GET /api/v1/runs/:id/artifacts/:artifactId",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/support-bundles/preview": {
+      "post": {
+        "summary": "POST /api/v1/support-bundles/preview",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/support-bundles/export": {
+      "post": {
+        "summary": "POST /api/v1/support-bundles/export",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "previewHash"
+                ],
+                "properties": {
+                  "previewHash": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backups": {
+      "post": {
+        "summary": "POST /api/v1/backups",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/backups",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/backups/preflight": {
+      "post": {
+        "summary": "POST /api/v1/backups/preflight",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "filename"
+                ],
+                "properties": {
+                  "filename": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/retention/preview": {
+      "post": {
+        "summary": "POST /api/v1/retention/preview",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/retention/commit": {
+      "post": {
+        "summary": "POST /api/v1/retention/commit",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "previewHash"
+                ],
+                "properties": {
+                  "previewHash": {}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "adminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "flowhub_session"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "data": {},
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "requestId"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "requestId"
+        ]
+      }
+    }
+  }
+}
