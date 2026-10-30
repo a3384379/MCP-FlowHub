@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "environment": "production",
+  "logs": [
+    {
+      "timestamp": "2026-10-29T00:12:01.000Z",
+      "level": "INFO",
+      "message": "Synthetic payment callback accepted; no real customer data.",
+      "traceId": "demo-trace-001",
+      "orderNo": "DEMO-1001"
+    },
+    {
+      "timestamp": "2026-10-29T00:12:01.120Z",
+      "level": "ERROR",
+      "message": "Synthetic bill update rolled back after simulated concurrency conflict.",
+      "traceId": "demo-trace-001",
+      "orderNo": "DEMO-1001"
+    }
+  ],
+  "truncated": false,
+  "nextCursor": null
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowhub.example.invalid/contracts/mock-results.schema.json",
+  "title": "FlowHub synthetic result contracts — design only",
+  "description": "仅为Mock/适配器输出设计。flowhub://schemas/log-search-result/v1 对应 $defs.logSearchResult；flowhub://schemas/query-template-result/v1 对应 $defs.queryTemplateResult。禁止网络加载该$id；由内置注册表解析。实际下游输出必须在适配层转换并验证，不能假定公司MCP已符合本契约。",
+  "$defs": {
+    "environment": { "enum": ["production", "staging", "test"] },
+    "logSearchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["synthetic", "environment", "logs", "truncated", "nextCursor"],
+      "properties": {
+        "synthetic": { "const": true },
+        "environment": { "$ref": "#/$defs/environment" },
+        "logs": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "level", "message", "traceId", "orderNo"],
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "level": { "enum": ["DEBUG", "INFO", "WARN", "ERROR"] },
+              "message": { "type": "string", "maxLength": 4000 },
+              "traceId": { "type": "string", "pattern": "^demo-", "maxLength": 128 },
+              "orderNo": { "type": "string", "pattern": "^DEMO-", "maxLength": 64 }
+            }
+          }
+        },
+        "truncated": { "type": "boolean" },
+        "nextCursor": { "type": ["string", "null"], "maxLength": 1024 }
+      }
+    },
+    "queryTemplateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["synthetic", "environment", "templateId", "rows", "rowCount", "truncated"],
+      "properties": {
+        "synthetic": { "const": true },
+        "environment": { "$ref": "#/$defs/environment" },
+        "templateId": { "const": "order-by-number-v1" },
+        "rows": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["orderNo", "orderStatus", "billStatus", "sentinel"],
+            "properties": {
+              "orderNo": { "type": "string", "pattern": "^DEMO-", "maxLength": 64 },
+              "orderStatus": { "enum": ["PAID", "UNPAID", "UNKNOWN"] },
+              "billStatus": { "enum": ["PAID", "UNPAID", "UNKNOWN"] },
+              "sentinel": { "type": "string", "maxLength": 128 }
+            }
+          }
+        },
+        "rowCount": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  }
+}
