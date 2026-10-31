@@ -11,7 +11,7 @@ export const projectRoot = fileURLToPath(
 export const VERSION = "1.0.0-rc.1";
 export const MODERN_PROTOCOL = "2026-07-28";
 export const SDK_VERSION = "2.4.0";
-export const TOOL_NAMES = [
+export const EXECUTION_TOOL_NAMES = [
   "workflow_search",
   "workflow_get",
   "workflow_start",
@@ -20,6 +20,10 @@ export const TOOL_NAMES = [
   "workflow_cancel",
   "artifact_read",
 ] as const;
+export const TOOL_NAMES = [...EXECUTION_TOOL_NAMES,
+  "host_scan", "host_scan_status", "capability_search", "capability_get", "capability_import",
+  "workflow_draft_get", "workflow_draft_create", "workflow_draft_patch", "workflow_draft_validate", "workflow_draft_publish",
+  "workflow_test_generate", "workflow_test_run", "workflow_test_status", "project_help_search"] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 export type Arguments = Record<string, unknown>;
 export type ToolHandler = (
@@ -28,7 +32,7 @@ export type ToolHandler = (
 ) => Promise<CallToolResult>;
 export const inputContract = JSON.parse(
   readFileSync(
-    resolve(projectRoot, "contracts/mcp-tool-inputs.schema.json"),
+    resolve(projectRoot, "contracts/mcp-v2-tool-inputs.schema.json"),
     "utf8",
   ),
 );
@@ -54,6 +58,6 @@ export function result(
     ...(isError ? { isError: true } : {}),
   };
 }
-export function failure(code: string, message: string): CallToolResult {
-  return result({ ok: false, error: { code, message } }, true);
+export function failure(code: string, message: string, details?: unknown): CallToolResult {
+  return result({ ok: false, error: { code, message, ...(details ? {details} : {}) } }, true);
 }

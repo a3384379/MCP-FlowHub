@@ -1,0 +1,18 @@
+
+> mcp-flowhub@1.0.0-rc.1 test:selftest
+> npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js
+
+
+> mcp-flowhub@1.0.0-rc.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 61 management paths.
+✔ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (2348.088917ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2606.728541

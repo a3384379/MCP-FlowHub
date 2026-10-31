@@ -7,20 +7,21 @@ import {
   failure,
   type Arguments,
   type ToolHandler,
+  type ToolName,
 } from "../../contracts/src/index.js";
 
 /** Transport-specific server instances share ONE daemon-owned handler. */
-export function createHubServer(handle: ToolHandler): McpServer {
+export function createHubServer(handle: ToolHandler, names:readonly ToolName[]=TOOL_NAMES): McpServer {
   const server = new McpServer(
     { name: "mcp-flowhub", version: VERSION },
     {
       capabilities: { tools: {} },
       maxToolInputElements: 10000,
       instructions:
-        "Search and get a published workflow, supply its exact version and required input, then start. Submit only the current checkpoint schema at WAITING_AGENT. Environment and resource bindings are immutable.",
+        "Run existing workflows: search → get → start. Author a workflow: capability_search/get → draft_create/patch → validate → test_generate/run/status → publish. Create, publish and run are distinct intents. Codex can propose fixtures without a model Key. Submit only the current checkpoint schema at WAITING_AGENT; host-only tools require actual Codex execution. Environment and resource bindings are immutable.",
     },
   );
-  for (const name of TOOL_NAMES) {
+  for (const name of names) {
     server.registerTool(
       name,
       {
@@ -32,6 +33,7 @@ export function createHubServer(handle: ToolHandler): McpServer {
             "workflow_get",
             "workflow_status",
             "artifact_read",
+            "host_scan_status", "capability_search", "capability_get", "workflow_draft_get", "workflow_draft_validate", "workflow_test_status", "project_help_search",
           ].includes(name),
         },
       },

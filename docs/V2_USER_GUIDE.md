@@ -1,6 +1,35 @@
-# 2.0 本地使用说明（开发中）
+# FlowHub 2.0 本地使用说明
 
-当前已完成 S0 迁移准备，新增功能尚未交付。不要把 upgrade-v2/ 设计资料当成已实现功能。
-沿用 README 的运行命令，使用 Node 24.19.0/npm 11.9.0 与独立 --data-dir、开发端口。
-不复用正式数据库，不自动修改 Codex 配置，不需要提供企业凭据。
-已实现功能与验证结果以 V2_IMPLEMENTATION.md 和 V2_ACCEPTANCE.md 为准。
+## 发现与导入
+
+Codex 发现页会首次扫描本机上下文。元数据扫描不调用业务工具；“连接并同步工具”通过真实 MCP 获取目录和 Schema。
+插件已安装、已启用、Schema 已发现及可执行是独立状态。多版本安装歧义、配置损坏、缺少认证都显示部分结果；不要把空清单当作已完整扫描。
+导入只写 FlowHub，源 Codex 配置不变。相对命令、凭据变量需要在 MCP 工具库补充绝对路径与 secretRef。托管插件和 Skill 使用 codex_host，由宿主执行。
+
+## 草稿与固定环境
+
+先创建草稿，再通过语义操作编辑、校验、生成用例和发布。创建、发布、启动是独立意图；明确请求连续完成时可依次调用，无人工审批节点。
+生产 production、试运行 staging、测试 test 的绑定不能混用。试运行数据库绑定先登记实际连接、锁定资源，再通过明确的只读合成探测及独立服务权限确认；协议目录同步不等于环境已经验证。
+只支持串行与互斥条件，不支持循环、并行或任意脚本。业务内容保持原值，连接认证值仅通过凭据库引用。
+
+## Codex 编排
+
+默认个人入口提供固定 21 工具。旧受限 execution 身份仍提供七个运行工具；显式 authoring 身份可创建并使用自己的新流程，不能取得未授权的旧流程。
+发现上下文通过本机管理 API 登记，host_scan 只接受已登记 contextId；不接受任意命令或扫描全盘。
+创建链路：capability_search/get → capability_import → workflow_draft_create/patch → workflow_draft_validate → workflow_test_generate/run/status → workflow_draft_publish。
+运行链路仍为 workflow_search/get/start/status/advance/cancel 和 artifact_read。
+
+## 用例生成与自测
+
+workflow_test_generate(strategy=deterministic) 根据输入 Schema 产生基准用例；agent_proposed 接收 Codex 提供的合成 Fixture 和断言，不需要模型 Key。
+workflow_test_run 默认 mock；在隔离库通过同一引擎与注入连接器执行，不读取真实 Secret、不连接真实业务服务。缺 Fixture 为 FIXTURE_MISSING/未覆盖；断言失败显示 expected/actual。修改草稿、能力或 Fixture 后旧基线显示 stale，需要重新生成/运行。
+contract/live 请求目前明确返回 TEST_MODE_UNSUPPORTED，不静默切换真实环境。
+
+## 常见错误
+
+TYPE_MISMATCH：映射来源与目标 Schema 类型不一致，检查节点、目标 JSON Pointer 及来源字段。
+MAPPING_INVALID：目标 Pointer 不合法、字段重叠或必填参数缺失，读取校验 issues 后局部修复。
+REVISION_CONFLICT：Web 与 AI 基于旧 revision 同时编辑，保留本地改动，重新读取后合并，不能整图覆盖。
+CAPABILITY_STALE：工具 Schema、来源或能力修订改变，读取新定义并修复草稿；旧发布版本不会自动更新。
+CREDENTIALS_REQUIRED：连接凭据尚未配置；不要把 Key 或口令放入聊天或 MCP 工具参数。
+FIXTURE_MISSING：自测尚无节点合成结果，不代表实际服务为空或正常。

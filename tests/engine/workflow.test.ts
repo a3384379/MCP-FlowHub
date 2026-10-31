@@ -640,7 +640,7 @@ test("report requires actual chapters/bytes, references and bounded UTF-8 reads"
   });
   assert.ok(rendered.content.includes("default-src 'none'"));
 });
-test("100 workflows remain a fixed seven-tool server; opaque search cursors bind to filters", async (t) => {
+test("100 workflows remain a fixed 21-tool server; opaque search cursors bind to filters", async (t) => {
   const { d, tool, dataDir } = await fixture(t);
   const original = d.engine.repo.get("workflows", "incident-staging").draft;
   const ambiguous = await tool("workflow_search", { query: "查一下数据库" });
@@ -683,7 +683,7 @@ test("100 workflows remain a fixed seven-tool server; opaque search cursors bind
     await client.connect(
       localHttpTransport(new URL(endpoint.url), endpoint.token),
     );
-    assert.equal((await client.listTools()).tools.length, 7);
+    assert.equal((await client.listTools()).tools.length, 21);
   } finally {
     await client.close();
   }

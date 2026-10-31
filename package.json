@@ -30,7 +30,8 @@
     "dev:web": "vite --host 127.0.0.1",
     "test:ui": "playwright test",
     "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
-    "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js"
+    "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js",
+    "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

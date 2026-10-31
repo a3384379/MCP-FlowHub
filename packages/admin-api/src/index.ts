@@ -30,6 +30,7 @@ import { AdminAuth } from "../../security/src/index.js";
 import { AuthoringService } from "../../workflow-authoring/src/index.js";
 import { CapabilityRegistry } from "../../capability-registry/src/index.js";
 import { registerV2 } from "./v2.js";
+import type { Application } from "../../application/src/index.js";
 import {
   previewRetention,
   commitRetention,
@@ -49,6 +50,7 @@ export async function registerAdmin(
   dataDir: string,
   authoring = new AuthoringService(engine),
   registry = new CapabilityRegistry(engine),
+  application?: Application,
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -278,13 +280,13 @@ export async function registerAdmin(
     }))),
   );
   app.post("/api/v1/clients", async (req) => {
-    const b = body(req, ["label", "workflowAllowlist"]);
+    const b = body(req, ["label", "workflowAllowlist"], ["authoring"]);
     ensure(
       typeof b.label === "string" &&
         b.label.length > 0 &&
         b.label.length <= 128 &&
         Array.isArray(b.workflowAllowlist) &&
-        b.workflowAllowlist.length > 0 &&
+        (b.workflowAllowlist.length > 0 || b.authoring === true) &&
         b.workflowAllowlist.length <= 100 &&
         b.workflowAllowlist.every(
           (w: Json) => typeof w === "string" && repo.get("workflows", w),
@@ -297,7 +299,7 @@ export async function registerAdmin(
         id: id("client"),
         label: b.label,
         workflowAllowlist: b.workflowAllowlist,
-        scopes: ["workflow:execute"],
+        scopes: b.authoring === true ? ["workflow:execute", "workflow:author"] : ["workflow:execute"],
         tokenHash: hash(token),
         revoked: false,
         createdAt: now(),
@@ -664,7 +666,7 @@ export async function registerAdmin(
         "Probe environment evidence differs.",
       );
       ensure(
-        (response.structuredContent as Json).environment === b.environment,
+        (response.structuredContent as Json).environment === undefined || (response.structuredContent as Json).environment === b.environment,
         "ENVIRONMENT_MISMATCH",
         "Normalized probe environment must match the fixed binding.",
       );
@@ -1055,7 +1057,7 @@ export async function registerAdmin(
     const b = body(req, ["previewHash"]);
     return data(commitRetention(repo, b.previewHash));
   });
-  registerV2(app, authoring, registry);
+  registerV2(app, authoring, registry, application);
   // preClose runs before Fastify waits for hijacked HTTP connections to finish.
   app.addHook("preClose", async () => {
     await registry.close();

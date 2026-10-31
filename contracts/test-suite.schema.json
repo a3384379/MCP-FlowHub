@@ -1,0 +1,183 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflowId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "draftRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "suiteRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "capabilityRevisions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "fixtureHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "generatedBy": {
+      "enum": [
+        "deterministic",
+        "agent_proposed",
+        "ai_assisted",
+        "manual"
+      ]
+    },
+    "mode": {
+      "const": "mock"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inputs": {
+            "type": "object"
+          },
+          "mockResults": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nodeId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "capabilityId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "responseMode": {
+                  "enum": [
+                    "structured",
+                    "text",
+                    "error",
+                    "timeout"
+                  ]
+                },
+                "result": {}
+              },
+              "required": [
+                "nodeId",
+                "capabilityId",
+                "responseMode",
+                "result"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "agentSubmissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nodeId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "payload": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "nodeId",
+                "payload"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "terminal_state",
+                    "node_state",
+                    "tool_called",
+                    "tool_not_called",
+                    "argument_equals",
+                    "output_equals",
+                    "artifact_contains",
+                    "error_code",
+                    "tool_call_count"
+                  ]
+                },
+                "nodeId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "pointer": {
+                  "type": "string",
+                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                },
+                "expected": {}
+              },
+              "required": [
+                "kind",
+                "expected"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "expectedValidationErrors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "inputs",
+          "mockResults",
+          "agentSubmissions",
+          "assertions",
+          "expectedValidationErrors"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "workflowId",
+    "draftRevision",
+    "suiteRevision",
+    "capabilityRevisions",
+    "fixtureHash",
+    "generatedBy",
+    "mode",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic workflow test-suite design"
+}

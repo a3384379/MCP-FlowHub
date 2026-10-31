@@ -415,7 +415,7 @@ test("MCP route authentication covers encoded and absolute targets and preserves
       Authorization: "Bearer " + token,
     });
     assert.equal(authenticated.status, 200, target);
-    assert.equal(authenticated.json.result.tools.length, 7, target);
+    assert.equal(authenticated.json.result.tools.length, 21, target);
     const scopedHeaders = { Authorization: "Bearer " + scoped };
     const allowed = await call(target, get("incident-staging"), scopedHeaders);
     assert.equal(allowed.status, 200, target);

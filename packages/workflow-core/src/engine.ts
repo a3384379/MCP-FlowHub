@@ -31,6 +31,7 @@ import type { Connectors } from "../../mcp-connectors/src/registry.js";
 import { validateWorkflow } from "./validate.js";
 import { queryScopes } from "./query-scope.js";
 import { schemaAt } from "./mapping-schema.js";
+import { MCP_RAW_RESULT } from "../../mcp-connectors/src/results.js";
 import { validateReportEvidence } from "./report-verification.js";
 const terminal = new Set([
   "SUCCEEDED",
@@ -1459,6 +1460,7 @@ export class Engine {
           }
           this.repo.tx(() => {
             this.storeOutput(r, n.id, value);
+            if(value[MCP_RAW_RESULT])this.storeArtifact(r,n.id,JSON.stringify(value[MCP_RAW_RESULT]),"application/mcp+json",{contentStored:true,synthetic:binding.simulationOnly});
             this.storeArtifact(
               r,
               n.id,

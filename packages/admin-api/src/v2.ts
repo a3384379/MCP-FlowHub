@@ -2,8 +2,9 @@ import type { FastifyInstance } from "fastify";
 import { ensure, id, type Json } from "../../contracts/src/domain.js";
 import type { AuthoringService } from "../../workflow-authoring/src/index.js";
 import type { CapabilityRegistry } from "../../capability-registry/src/index.js";
+import type { Application } from "../../application/src/index.js";
 
-export function registerV2(app: FastifyInstance, authoring: AuthoringService, registry: CapabilityRegistry) {
+export function registerV2(app: FastifyInstance, authoring: AuthoringService, registry: CapabilityRegistry, application?:Application) {
   const data=(value:Json)=>({data:value,requestId:id("req")});
   const arg=(req:Json)=>({...req.body,workflowId:req.params.id});
   app.get("/api/v2/host-contexts",async()=>data(registry.repo.all("host_contexts")));
@@ -22,4 +23,16 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   });
   app.post("/api/v2/workflows/:id/validate",async req=>data(authoring.validate(arg(req))));
   app.post("/api/v2/workflows/:id/publish",async req=>data(authoring.publish(arg(req))));
+  if(application) {
+    app.post("/api/v2/workflows/:id/test-suites",async req=>data(application.testing.generate(arg(req))));
+    app.get("/api/v2/test-suites/:id",async req=>data(application.testing.getSuite((req.params as Json).id)));
+    app.put("/api/v2/test-suites/:id",async req=>{
+      const body=req.body as Json,suite=application.testing.getSuite((req.params as Json).id);
+      return data(application.testing.generate({workflowId:suite.workflowId,expectedRevision:body.expectedRevision,
+        strategy:"agent_proposed",proposedCases:body.cases,baseSuiteId:suite.id,expectedSuiteRevision:body.expectedSuiteRevision,idempotencyKey:body.idempotencyKey}));
+    });
+    app.post("/api/v2/test-suites/:id/runs",async req=>data(application.testing.run({...req.body as Json,suiteId:(req.params as Json).id})));
+    app.get("/api/v2/test-runs/:id",async req=>data(application.testing.status((req.params as Json).id)));
+    app.get("/api/v2/help/search",async req=>data(application.knowledge.search(req.query)));
+  }
 }

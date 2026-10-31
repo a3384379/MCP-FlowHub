@@ -1577,7 +1577,7 @@ function App() {
             <strong>
               <span className="dot" /> Gateway MCP
             </strong>
-            <p>1 个入口 · 固定 7 个工具</p>
+            <p>1 个入口 · 固定 21 个工具</p>
             <div className="meter" />
           </div>
           <div className="profile">

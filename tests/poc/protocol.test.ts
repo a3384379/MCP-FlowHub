@@ -30,7 +30,10 @@ const expected = [
   "workflow_search",
   "workflow_start",
   "workflow_status",
-];
+  "host_scan", "host_scan_status", "capability_search", "capability_get", "capability_import",
+  "workflow_draft_get", "workflow_draft_create", "workflow_draft_patch", "workflow_draft_validate", "workflow_draft_publish",
+  "workflow_test_generate", "workflow_test_run", "workflow_test_status", "project_help_search",
+].sort();
 const structured = (res: CallToolResult) => {
   assert.ok(res.structuredContent);
   return res.structuredContent as Record<string, unknown>;
@@ -180,7 +183,7 @@ for (const era of ["modern", "legacy"] as Era[]) {
     );
 
     test(
-      `MCP-01/13 Hub ${era} × ${transport}: seven tools, one daemon, no fake execution`,
+      `MCP-01/13 Hub ${era} × ${transport}: 21 fixed tools, one daemon, no fake execution`,
       { timeout: 15000 },
       async (t) => {
         const dataDir = await mkdtemp(join(tmpdir(), "flowhub 中文 path "));

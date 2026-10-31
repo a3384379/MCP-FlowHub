@@ -138,7 +138,7 @@ export class CapabilityRegistry {
       ensure(this.repo.get("capabilities",cap.id)?.revision===cap.revision,"CAPABILITY_STALE","Capability changed while importing.",409);
       const previous=this.repo.get("connections",connection.id);
       if(!previous)this.repo.insert("connections",connection.id,discovered);
-      const bindingId="binding_"+hash([source.id,a.environment,a.lockedArguments??{}]).slice(0,24);
+      const bindingId="binding_"+hash([source.id,cap.id,a.environment,a.lockedArguments??{}]).slice(0,24);
       const binding={id:bindingId,revision:1,name:cap.name,connectionId:connection.id,connectionRevision:(previous??discovered).revision,environment:a.environment,
         allowedTools:[cap.name],lockedArguments:a.lockedArguments??{},allowedQueryTemplates:[],simulationOnly:false,validationStatus:"UNVERIFIED",maxRows:100,timeoutSeconds:10,
         sourceCapabilityId:cap.id};

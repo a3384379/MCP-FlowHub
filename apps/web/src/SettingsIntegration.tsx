@@ -110,7 +110,7 @@ export function SettingsIntegration({
   return (
     <>
       <section className="panel" aria-labelledby="host-integration-heading">
-        <span className="badge green">单入口 · 固定七工具</span>
+        <span className="badge green">单入口 · 固定工具（个人编排 21 / 执行 7）</span>
         <h2 id="host-integration-heading">接入 Codex</h2>
         <p>
           先启动本机 daemon，再让宿主启动 STDIO
@@ -268,7 +268,7 @@ export function SettingsIntegration({
           </details>
         )}
         <details>
-          <summary>固定七工具及用途</summary>
+          <summary>固定工具（个人编排 21 / 执行 7）及用途</summary>
           <ul>
             {(settings?.tools ?? []).map((name: string) => (
               <li key={name}>

@@ -25,7 +25,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S3–S7
+## S4–S7
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
@@ -52,3 +52,15 @@ CapabilityRegistry 落库扫描任务、来源、能力修订/历史及失效标
 
 保留边界：多版本缓存不能唯一定位时不猜安装版本；root manifest 未通过当前适配的格式标 unsupported；托管会话私有工具不声称可共享。带认证的来源需要在本地连接设置登记 secretRef，不经 MCP 参数传Key；没有通过业务探测伪造 BINDING_VERIFIED。
 S3–S7 尚未完成；Windows/真实模型仍未验证。
+
+## S3（已完成 SDK 闭环与本机回归）
+
+Application 统一分派固定 21 工具。个人默认身份可编排；现有仅 execution scope 的受限客户端保持七工具；authoring scope 的新建流程原子加入其自己的 allowlist。Web、MCP 复用 Authoring、目录及自测服务，bridge 未加业务逻辑。
+新增生产 MCP v2 输入契约；原 v1 七工具契约保留为兼容验证。按实际 JSON Schema strictRequired 修正 operation 条件分支中的 nodeId 声明，不放宽工具外层字段验证。
+WorkflowTesting 提供确定性/agent_proposed 生成、Suite CAS、Mock任务和独立断言；隔离 SQLite/Vault 与注入连接器复用 Engine，不复制连接endpoint或真实secret。缺夹具为 UNCOVERED，持久保存 expected/actual/trace/事件/覆盖缺口；草稿/能力/夹具修订失效后显示 stale。contract/live 请求明确不支持，不自动访问真实网络。
+原生 MCP 支持 structuredContent 与显式 text/json_text；v2 保留原始 MCP Envelope 产物。独立绑定探测不强迫第三方存在私有 environment 字段，仍要求可核验的固定资源证据。
+本地帮助初版采用真实文档分块和 FTS5，中文 bigram 与领域词，不索引设计包作为已实现功能。
+
+验证：npm run check exit 0；npm test 200/200 exit 0（70.6 秒）；最终 test:selftest exit 0。官方 Client 贯穿发现/导入/独立合成探测/创建/修改/校验/agent_proposed/Mock/发布/启动/检查点推进/读取实际 Markdown；另验证缺Fixture、100条流程固定21工具、旧受限身份固定7工具。没有额外模型 Key。
+证据：S3-check.txt、S3-full.txt、S3-selftest.txt。新脚本 test:selftest 已加入。
+未验证：真实 Codex 对当前开发服务的工具会话、真实 Provider、原生 Windows、企业 MCP；S4–S7 尚未完成。

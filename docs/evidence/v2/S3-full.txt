@@ -1,0 +1,269 @@
+
+> mcp-flowhub@1.0.0-rc.1 test
+> npm run build && node --test --test-concurrency=1 --test-timeout=60000 dist/tests/poc/*.test.js dist/tests/engine/*.test.js
+
+
+> mcp-flowhub@1.0.0-rc.1 build
+> npm run build:server && npm run build:web
+
+
+> mcp-flowhub@1.0.0-rc.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 61 management paths.
+
+> mcp-flowhub@1.0.0-rc.1 build:web
+> tsc -p apps/web/tsconfig.json && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 174 modules transformed.
+rendering chunks...
+computing gzip size...
+web-dist/index.html                   0.45 kB │ gzip:   0.36 kB
+web-dist/assets/index-BtLS94NE.css   31.30 kB │ gzip:   6.56 kB
+web-dist/assets/index-CWs9jlxv.js   529.21 kB │ gzip: 163.93 kB
+
+[33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m node_modules/@xyflow/react/dist/esm/index.js:1:1 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m1 │[0m "use client"
+ [38;5;240m  │[0m ──────┬─────  
+ [38;5;240m  │[0m       ╰─────── module level directive may not be preserved
+ [38;5;240m  │[0m 
+ [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[38;5;246m───╯[0m
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 100ms
+✔ run pagination reaches all older history, binds filters, and stays stable when new runs arrive (19.095959ms)
+✔ admin run responses preserve data arrays and paginate events beyond 200 with strict cursor bounds (129.788417ms)
+✔ binding impact resolves drafts, immutable publications and active snapshots without leaking arguments or mutating state (89.57725ms)
+✔ report mappings survive arbitrary node IDs and executed DB with declared fallback (954.100875ms)
+✔ report mappings survive arbitrary node IDs and skipped DB with template node (725.15825ms)
+✔ standard result refs accept non-synthetic local MCP evidence and retain strict mock provenance (675.057583ms)
+✔ seed is atomic at every write and resumes every legacy partial seed without overwriting unrelated records (712.6145ms)
+✔ dispatch checks asynchronous revocation, cancellation, deadlines and locked-vault result handling; production DB is serialized by connection (2438.666292ms)
+✔ oversized Agent output is rejected atomically and unused unknown outputSchemaRef is rejected before publication (514.224916ms)
+✔ real SDK catalog rejects credential echoes in schemas, descriptions, metadata and modern discovery before persistence (118.282291ms)
+✔ catalog discovery fails closed when the vault locks or its credential context changes across the SDK exchange (161.167667ms)
+✔ schema changes invalidate verified bindings and connection revisions atomically; unchanged catalogs retain verification (83.967875ms)
+✔ startup quarantines uninspected historical catalogs while the vault is locked (80.620333ms)
+✔ vault password rotation rewraps checkpoint delivery and operational outputs on the same run (399.261959ms)
+✔ connection PATCH clears the catalog baseline while live schema drift still invalidates the first verification (207.491166ms)
+✔ migration reconnects chains without touching the source and rejects ambiguous decisions or output dependencies (1.475834ms)
+▶ legacy half-seed catalog quarantine recovers only unchanged built-in Mock scopes
+  ✔ unchanged (17.971625ms)
+  ✔ revoked (12.175958ms)
+  ✔ changed-scope (11.51725ms)
+✔ legacy half-seed catalog quarantine recovers only unchanged built-in Mock scopes (114.171667ms)
+▶ whole object literals/references, nullable targets and local definitions retain schema context
+  ✔ literal-object (117.724084ms)
+  ✔ reference-object (87.384875ms)
+  ✔ nullable (90.837708ms)
+  ✔ definition (90.184209ms)
+✔ whole object literals/references, nullable targets and local definitions retain schema context (386.769209ms)
+✔ array item mappings create arrays and dispatch valid parameters (93.005666ms)
+✔ partial array object mappings must provide required fields at every mapped item (92.872792ms)
+✔ recovery atomically finishes interrupted dispatch attempts without retrying or overwriting known outcomes (92.567208ms)
+✔ optional source references and all missing declared bindings fail publication (86.544709ms)
+✔ known tool failure finishes the attempt and cancellation reports no in-flight call (92.134084ms)
+✔ ordinary Agent outputs can use arbitrary business field names and transform mapped inputs (101.325542ms)
+✔ ordinary from/to strings follow their schema without acquiring date range semantics (95.309708ms)
+✔ declared date-time ranges retain ordering, format and 24-hour limits (91.243958ms)
+▶ non-object Agent payload schemas fail publication and object payloads retain nested scalar types
+  ✔ string (84.189875ms)
+  ✔ array (85.447875ms)
+  ✔ integer (84.294ms)
+  ✔ number (87.137958ms)
+  ✔ boolean (86.197375ms)
+  ✔ null (84.910375ms)
+  ✔ object (97.15525ms)
+✔ non-object Agent payload schemas fail publication and object payloads retain nested scalar types (609.891084ms)
+✔ object payload compatibility resolves local definitions and schema combinations without accepting scalar-only roots (0.208834ms)
+✔ node validation aggregates safe structured issues with exact mapping and schema paths (81.770625ms)
+✔ missing query template mappings expose nodeId and a machine-readable field path (83.031833ms)
+✔ schema keyword property names and inert const data do not become executable schema keywords (96.102917ms)
+✔ original outputs preserve branch semantics and remain available after vault lock (134.711916ms)
+✔ declared query scope preserves original handoff, password rotation and retention without broadening scope (372.864833ms)
+✔ query parameters from undeclared Agent scope are rejected before publishing (81.25425ms)
+▶ safe read retries honor 0/2 limits and finish every dispatched attempt
+  ✔ maxRetries=0 (88.257125ms)
+  ✔ maxRetries=2 (390.953792ms)
+✔ safe read retries honor 0/2 limits and finish every dispatched attempt (479.615125ms)
+▶ unknown outcomes and policy failures never retry even when configured
+  ✔ OUTCOME_UNKNOWN (102.358ms)
+  ✔ AUTH_REQUIRED (87.5125ms)
+  ✔ BINDING_REVOKED (85.822917ms)
+  ✔ TOOL_SCHEMA_DRIFT (87.933334ms)
+  ✔ INPUT_INVALID (86.47825ms)
+  ✔ TOOL_TIMEOUT (88.81175ms)
+✔ unknown outcomes and policy failures never retry even when configured (539.482959ms)
+▶ retry backoff observes cancellation and revocation before the next dispatch
+  ✔ cancel (184.738917ms)
+  ✔ revoke (196.944417ms)
+✔ retry backoff observes cancellation and revocation before the next dispatch (382.004167ms)
+✔ nested business JSON keeps types, exact mapping and artifact bytes without a parallel encrypted display value (92.0085ms)
+✔ old encrypted business outputs hydrate the checkpoint and remain readable without rewriting history (139.57075ms)
+✔ external MOCK_VERIFIED results cannot bypass locked-vault execution protection and never replay unknown reads (729.449834ms)
+✔ built-in synthetic MCP remains usable with a locked vault when no credentials are stored (517.6985ms)
+✔ credential formats in log, query and Agent strings are sanitized without deleting diagnostic fields (1.127333ms)
+✔ long dotted text, URI authorities, assignments and incomplete keys finish under a child-process hard limit (25.646083ms)
+✔ vault redaction matches stored literals anywhere without plaintext persistence or cache (127.525792ms)
+✔ real MCP business results and Agent submissions retain original bytes in run and artifact persistence (612.577959ms)
+✔ publication binds the reviewed binding revisions and preserves previous immutable versions (183.355084ms)
+✔ report evidence accepts canonical template rows and explicit host table rows (1.853ms)
+✔ report hashes must be bound to each indexed artifact, with no body-hash substitution (0.69ms)
+✔ report index rejects ambiguous duplicates, undeclared references and invalid lengths (0.318875ms)
+✔ report evidence metadata must describe the actual stored UTF-8 bytes (0.103667ms)
+✔ report chapters and index share visible ATX headings outside fences and comments (0.414625ms)
+✔ AGT-13 invalid report evidence leaves zero reports and a reusable checkpoint; valid retry stores verified bytes (153.41025ms)
+✔ hidden report chapters reject atomically and the same checkpoint accepts visible chapters (109.291917ms)
+✔ retention removes expired result copies before new backups and preserves active runs and recent results (744.477416ms)
+✔ schema regex subset rejects dangerous workflow, Agent and discovered schemas before evaluation (681.349333ms)
+✔ schema-keyword business fields and inert literal data remain valid in workflow input and Agent output (26.737542ms)
+✔ every real schema position retains regex checks while literal data is bounded and inert (0.6285ms)
+✔ official SDK discovery accepts keyword field names and inert annotations but rejects actual regex and remote references (38.093ms)
+✔ Codex TOML and Claude JSON use actual separate formats and explicit scoped token-file paths (0.827458ms)
+✔ offline restore commands quote spaces, quotes and shell metacharacters without evaluating paths (28.178791ms)
+✔ settings and new/reloaded restricted clients return current-machine paths without token values (521.898625ms)
+✔ backup listing exposes local metadata and preflight leaves original backup and active business state untouched (467.520667ms)
+✔ preflight rejects traversal, symlinks, hardlinks, non-files and SQLite sidecars (469.673833ms)
+✔ preflight reports invalid and incompatible snapshots without returning restore commands (461.5825ms)
+✔ authoring creates real drafts, retains idempotency and restricts creation ownership (36.967792ms)
+✔ patch transaction rolls back all mutations and events, CAS and command replay are exact (11.802959ms)
+✔ layout CAS is independent from semantic edits and incomplete legal drafts retain issues (4.179583ms)
+✔ publish freezes v2 snapshot, respects revision and preserves v1 schema restrictions (3.831042ms)
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (727.256542ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (1537.449167ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (492.093541ms)
+✔ metadata scans report broken sources and never store inline credential values (510.992459ms)
+✔ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (2312.549417ms)
+✔ sequential migrations preserve a real v1 layout and immutable snapshot bytes (7.780583ms)
+✔ damaged history, missing columns, gaps and future versions never rebuild stores (9.969334ms)
+✔ failed multi-step migration rolls back DDL and history together (4.480792ms)
+✔ complete production guided MCP → Agent → DB → report chain (979.10275ms)
+✔ complete staging guided MCP → Agent → DB → report chain (840.612125ms)
+✔ branch skips DB, evidence/Agent scope cannot be forged, CAS conflicts and cancel (648.695708ms)
+✔ graph rejects cycles, parallel, environment override, cross-branch dependency (454.383708ms)
+✔ vault restart locks, checkpoints encrypted; run ownership and artifact UTF-8 bounds (728.36775ms)
+✔ admin API rejects CSRF and execution identity; immutable versions and import validation (455.385209ms)
+✔ crash recovery never replays dispatched unknown outcome; revoked binding blocks pending action (665.194167ms)
+✔ per-host token is workflow-scoped, cannot read another owner, and revocation takes effect (646.5495ms)
+✔ vault password rotation rewraps secrets and checkpoint deliveries atomically (839.598292ms)
+✔ deterministic auto flow runs without Agent; duplicate idempotency keys with changed input conflict (635.586625ms)
+✔ consistent SQLite backup and stopped-daemon restore preserve committed workflows (498.7735ms)
+✔ retention preview/commit never deletes active runs (649.2445ms)
+✔ report requires actual chapters/bytes, references and bounded UTF-8 reads (663.172125ms)
+✔ 100 workflows remain a fixed 21-tool server; opaque search cursors bind to filters (614.396666ms)
+✔ malformed STDIO closes transport; cached protocol revision and SDK cannot silently survive edits (5480.825417ms)
+▶ publication and checkpoint adversarial regressions
+  ✔ WF-07 stale draft writes cannot replace a newer revision (0.91375ms)
+  ✔ WF-10 disabled versions cannot start; history remains (2.117583ms)
+  ✔ AGT-02 auto cannot silently execute guided Agent tasks (4.483125ms)
+  ✔ AGT-05 bad token cannot advance (4.729834ms)
+  ✔ AGT-06 unauthorized SQL fields do not consume checkpoint (4.853375ms)
+  ✔ SEC-05 externally registered Mock can never become BINDING_VERIFIED (509.618875ms)
+  ✔ SEC-13 / WF-08 arbitrary code and file nodes cannot be imported (2.554625ms)
+  ✔ SEC-14 server rejects a query interval wider than one day (3.281916ms)
+✔ publication and checkpoint adversarial regressions (1213.028875ms)
+✔ Web-created guided run is owned by the selected restricted host and retains revocation/isolation (659.350917ms)
+✔ legacy migration backs up and copies draft/publication; recovery retires waiting runs and preserves history (779.239666ms)
+✔ verification sends no probe when binding revoked during discovery (587.557875ms)
+✔ verification sends no probe when connection disabled during connect (491.342542ms)
+✔ verification sends no probe when binding revoked during SDK preparation (472.735291ms)
+✔ Draft 2020-12 standards validation: supplied workflows and binding catalog (19.043375ms)
+✔ Draft 2020-12: seven-tool contract rejects eighth tool and forged approval (4.834208ms)
+✔ Draft 2020-12: supplied synthetic log/database results and negative control (3.012875ms)
+✔ SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets (909.731333ms)
+✔ draft PUT updates only an existing stable workflow ID and enforces its revision (480.126542ms)
+✔ publish requires the reviewed draft revision and cannot publish a concurrent save (453.664167ms)
+✔ public health, auth and static routes stay available; admin session and schema routes stay protected (493.050875ms)
+✔ MCP route authentication covers encoded and absolute targets and preserves scoped host identity (465.60425ms)
+✔ MCP factory fails closed when the adapter receives no authentication context (1.657ms)
+✔ daemon shutdown ends active authenticated SSE and removes endpoint and lock without client disconnect (685.703792ms)
+✔ administrator logout immediately closes its SSE and preserves another live session (613.757125ms)
+✔ an expired administrator session stops receiving SSE on the next heartbeat (2463.529458ms)
+✔ official MCP subscriptions end gracefully on daemon.close while modern and legacy tool calls remain functional (463.982ms)
+✔ CLI SIGTERM closes an acknowledged official MCP subscription without client abort (604.326875ms)
+✔ NSIS fetch rejects HTML, drains redirects without cancellation and only publishes a checksum-verified ZIP (10.573459ms)
+✔ NSIS fetch retains the prior output and fails closed on corrupt ZIPs or unapproved redirects (1.989958ms)
+✔ NSIS fetch revalidates a trusted local cache without touching the network (0.661125ms)
+✔ core HTTPS adapter preserves the default agent, signal and core response stream (0.696334ms)
+✔ synthetic package smoke separates real child cold-start readiness from the strict modern probe timeout (1611.631333ms)
+✔ synthetic startup failure retains safe stderr and fails before any protocol request (25.406083ms)
+✔ synthetic fixture that never becomes ready fails its startup deadline without sending an MCP probe (6014.150625ms)
+✔ MCP-03/04/13 Mock modern × stdio: discovery, validated call, Unicode, cleanup (335.780375ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub modern × stdio: 21 fixed tools, one daemon, no fake execution (781.20125ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock modern × http: discovery, validated call, Unicode, cleanup (38.532916ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub modern × http: 21 fixed tools, one daemon, no fake execution (366.153833ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock legacy × stdio: discovery, validated call, Unicode, cleanup (163.251459ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub legacy × stdio: 21 fixed tools, one daemon, no fake execution (519.0735ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock legacy × http: discovery, validated call, Unicode, cleanup (35.139792ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub legacy × http: 21 fixed tools, one daemon, no fake execution (361.635792ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ ENV-07: two simultaneous bridges observe the same daemon, instance and unchanged database (695.641042ms)
+✔ MCP-15: HTTP 401/403 never cause legacy negotiation or anonymous retry (2.177041ms)
+ℹ HTTP 401: one modern discovery request, no fallback
+ℹ HTTP 403: one modern discovery request, no fallback
+✔ interrupted restore at before-old blocks startup and explicitly recovers the preserved previous database (162.866375ms)
+✔ interrupted restore at after-old blocks startup and explicitly recovers the preserved previous database (144.28425ms)
+✔ interrupted restore at before-new blocks startup and explicitly recovers the preserved previous database (150.906875ms)
+✔ interrupted restore at after-new blocks startup and explicitly recovers the preserved previous database (157.674958ms)
+✔ a restore interrupted after deleting committed WAL blocks stale startup and retains latest data in the previous backup (233.283625ms)
+✔ empty, malformed and unsupported restore markers block new-store initialization and explicit restore archives them (97.522208ms)
+✔ restore rejects changed checksum before replacement and the original daemon can restart (407.734708ms)
+✔ restore rejects unsupported migration before replacement and the original daemon can restart (388.991709ms)
+✔ restore rejects missing migration before replacement and the original daemon can restart (344.069875ms)
+✔ restore rejects missing managed table before replacement and the original daemon can restart (340.64525ms)
+✔ restore rejects incomplete table before replacement and the original daemon can restart (347.163458ms)
+✔ restore rejects missing primary key before replacement and the original daemon can restart (342.180959ms)
+✔ restore rejects missing null constraint before replacement and the original daemon can restart (349.817875ms)
+✔ a compatible backup restores and preserves a usable copy of the replaced database (58.968208ms)
+✔ ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate daemon rejected (407.438375ms)
+✔ ENV-03/04: port conflict is actionable; failed startup releases its lock; loopback only (669.172834ms)
+✔ SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial (335.627417ms)
+✔ ENV-08: bridge without daemon fails without creating data or polluting stdout (112.631208ms)
+✔ CLI rejects unknown options, unknown commands and unsafe port inputs (96.332042ms)
+✔ offline source snapshot preserves original build inputs and excludes local state (30.106167ms)
+✔ source verification rejects changed bytes and a replaced source tree identity (17.620125ms)
+▶ runtime contract, example and template contents must match recoverable source
+  ✔ contracts (16.008041ms)
+  ✔ examples (14.124542ms)
+  ✔ templates (16.172542ms)
+✔ runtime contract, example and template contents must match recoverable source (46.644041ms)
+✔ runtime file additions and source manifest path escapes are rejected (14.135666ms)
+▶ source capture refuses symlinks and credential-bearing npm configuration
+  ✔ npm credentials (5.794917ms)
+  ✔ symlink (8.197916ms)
+✔ source capture refuses symlinks and credential-bearing npm configuration (14.244875ms)
+✔ a source edit during packaging requires a fresh candidate (14.342584ms)
+✔ installer ownership preserves data and extra files across upgrade and uninstall (11.702417ms)
+✔ install refuses unrelated directories, changed payloads, and extra-file collisions before replacing files (6.448209ms)
+✔ daemon locks and process-inspection failures block every destructive installer operation (4.287208ms)
+✔ Unicode bridge paths, external Node CLI references and options before serve all block replacement (1.553792ms)
+✔ Windows program paths reject drive roots, UNC and program/data overlap (0.3125ms)
+✔ uninstall rejects marker traversal and directory-link replacements without deleting data (5.815458ms)
+✔ uninstaller does not claim or remove an unowned directory (1.497042ms)
+✔ compiler archive hash and native PE headers reject substitutes (1.622625ms)
+✔ native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds (2.801333ms)
+✔ Linux invocation cannot generate a Windows installer (25.594ms)
+ℹ tests 200
+ℹ suites 0
+ℹ pass 200
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 70556.6065

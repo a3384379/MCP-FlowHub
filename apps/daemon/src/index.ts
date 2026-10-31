@@ -8,11 +8,14 @@ import { Connectors } from "../../../packages/mcp-connectors/src/registry.js";
 import { Engine } from "../../../packages/workflow-core/src/engine.js";
 import { registerAdmin } from "../../../packages/admin-api/src/index.js";
 import { createHubServer } from "../../../packages/mcp-server/src/index.js";
+import { Application } from "../../../packages/application/src/index.js";
 import {
   VERSION,
   projectRoot,
   result,
   failure,
+  TOOL_NAMES,
+  EXECUTION_TOOL_NAMES,
 } from "../../../packages/contracts/src/index.js";
 import { HubError, hash } from "../../../packages/contracts/src/domain.js";
 import {
@@ -47,13 +50,13 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
       await repo.backup(join(await backupDirectory(dataDir, true), "pre-legacy-retirement-" + instanceId + ".sqlite"));
     }
     engine.recover();
-    const service = engine;
+    const service = engine, application=new Application(engine);
     app = createLocalHttp(
       (subject) =>
         createHubServer(async (name, args) => {
           try {
             return result({
-              ...service.handle(name, args, subject),
+              ...await application.handle(name, args, subject),
               instanceId,
             });
           } catch (error) {
@@ -64,9 +67,9 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
                     "INTERNAL_ERROR",
                     "Operation could not be completed.",
                   );
-            return failure(e.code, e.message);
+            return failure(e.code, e.message, e.details);
           }
-        }),
+        }, subject==="execution"||repo.get("clients",subject)?.scopes?.includes("workflow:author")?TOOL_NAMES:EXECUTION_TOOL_NAMES),
       token,
       (header) => {
         if (!header?.startsWith("Bearer ")) return undefined;
@@ -75,7 +78,7 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
           .find((c) => !c.revoked && c.tokenHash === hash(header.slice(7)))?.id;
       },
     );
-    await registerAdmin(app, engine, dataDir);
+    await registerAdmin(app, engine, dataDir, application.authoring, application.registry, application);
     app.get("/api/v1/health", async () => ({
       status: "ok",
       version: VERSION,
@@ -135,10 +138,12 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
       instanceId,
       boots: store.boots,
       engine,
+      application,
       close: async () => {
         if (closed) return;
         closed = true;
         try {
+          await application.close();
           await service.close();
           await app!.close();
         } finally {

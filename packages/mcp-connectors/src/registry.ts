@@ -1,4 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
+import { adaptMcpResult, MCP_RAW_RESULT } from "./results.js";
 import {
   Client,
   StreamableHTTPClientTransport,
@@ -432,16 +433,9 @@ export class Connectors {
         "TOOL_FAILED",
         "Downstream tool returned an error.",
       );
+      const {value:out}=adaptMcpResult(value,node.config.resultAdapterRef??"structured",live.outputSchema);
       ensure(
-        value.structuredContent && typeof value.structuredContent === "object",
-        "OUTPUT_INVALID",
-        "Structured tool output is required.",
-      );
-      if (live.outputSchema)
-        validate(live.outputSchema, value.structuredContent);
-      const out = value.structuredContent as Json;
-      ensure(
-        out.environment === binding.environment,
+        out.environment === undefined || out.environment === binding.environment,
         "ENVIRONMENT_MISMATCH",
         "Downstream environment evidence differs from binding.",
       );
@@ -457,6 +451,7 @@ export class Connectors {
           "OUTPUT_INVALID",
           "Row count does not match actual rows.",
         );
+      if(node.config.resultAdapterRef||node.config.capabilityRef)Object.defineProperty(out,MCP_RAW_RESULT,{value,enumerable:false});
       return out;
     } catch (error) {
       if (!dispatched && Date.now() >= deadline)

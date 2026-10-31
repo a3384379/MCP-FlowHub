@@ -255,7 +255,13 @@
                             "then": {
                               "required": [
                                 "nodeId"
-                              ]
+                              ],
+                              "properties": {
+                                "nodeId": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              }
                             }
                           }
                         ]
