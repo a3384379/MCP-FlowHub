@@ -192,12 +192,9 @@ function queryWorkflow(f: ReturnType<typeof fixture>) {
     "/templateId": { value: "by-id-v1" },
   };
   f.workflow.nodes.splice(1, 0, agentNode({ "/accountId": { ref: { source: "input", pointer: "/value" } } },
-    { accountId: { type: "string", pattern: "^1[3-9]\\d{9}$" } }),
-    { id: "approve", title: "Approve", type: "approval", config: { actionNodeId: "read", summary: "Synthetic read",
-      expiresAfterSeconds: 300, approvalChannel: "admin_ui", bindToResolvedArguments: true,
-      invalidateOnArgumentChange: true } });
+    { accountId: { type: "string", pattern: "^1[3-9]\\d{9}$" } }));
   f.workflow.edges = [{ source: "start", target: "agent", port: "next" },
-    { source: "agent", target: "approve", port: "next" }, { source: "approve", target: "read", port: "next" },
+    { source: "agent", target: "read", port: "next" },
     { source: "read", target: "end", port: "next" }];
 }
 
@@ -340,7 +337,7 @@ test("schema keyword property names and inert const data do not become executabl
   } finally { await f.close(); }
 });
 
-test("encrypted operational outputs preserve branch semantics, block while locked, and resume without dispatch", async () => {
+test("original outputs preserve branch semantics and remain available after vault lock", async () => {
   let calls = 0;
   const f = fixture(async (_b, _n, _a, _t, dispatch) => { dispatch(); calls++; return {}; });
   try {
@@ -355,44 +352,33 @@ test("encrypted operational outputs preserve branch semantics, block while locke
       { source: "agent", target: "same", port: "next" }, { source: "same", target: "read", port: "true" },
       { source: "same", target: "end", port: "false" }, { source: "read", target: "end", port: "next" }];
     const run = f.start({ value }), state = await settled(f.engine, run.runId);
-    assert.equal(state.checkpoint.inputs.accountId, "[PHONE]");
+    assert.equal(state.checkpoint.inputs.accountId, value);
     advance(f, state, { accountId: value }); f.vault.lock();
-    const locked = await settled(f.engine, run.runId);
-    assert.equal(locked.state, "BLOCKED"); assert.equal(locked.waitingReason, "CREDENTIAL_LOCKED"); assert.equal(calls, 0);
-    f.vault.unlock("Synthetic-mapping-password-2026"); f.engine.resume(run.runId);
+    f.vault.unlock("Synthetic-mapping-password-2026");
     assert.equal((await settled(f.engine, run.runId)).state, "SUCCEEDED"); assert.equal(calls, 1);
     const record = f.repo.get("runs", run.runId);
-    assert.equal(record.outputs.agent.accountId, "[PHONE]"); assert.equal(record.outputs.same, true);
-    assert.equal(JSON.stringify(record.outputs).includes(value), false);
-    assert.equal(JSON.stringify(record.operationalOutputs).includes(value), false);
-    assert.equal(JSON.stringify(f.repo.all("artifacts")).includes(value), false);
-    assert.ok(record.outputBytes > Buffer.byteLength(JSON.stringify(record.outputs)));
+    assert.equal(record.outputs.agent.accountId, value); assert.equal(record.outputs.same, true);
+    assert.equal(JSON.stringify(record.outputs).includes(value), true);
+    assert.equal(record.operationalOutputs, undefined);
+    assert.equal(f.engine.status(run.runId).outputs.agent.accountId, value);
+    assert.ok(record.outputBytes > 0);
   } finally { await f.close(); }
 });
 
-test("declared query scope survives redacted handoff, password rotation and retention without broadening scope", async () => {
+test("declared query scope preserves original handoff, password rotation and retention without broadening scope", async () => {
   let args: Json;
   const f = fixture(async (_b, _n, input, _t, dispatch) => { dispatch(); args = input; return {}; });
   try {
     const value = "13900000001"; queryWorkflow(f);
     const run = f.start({ value }), state = await settled(f.engine, run.runId);
-    assert.equal(state.checkpoint.inputs.accountId, "[PHONE]");
+    assert.equal(state.checkpoint.inputs.accountId, value);
     assert.throws(() => advance(f, state, { accountId: "13900000002" }),
       (error: any) => error.code === "SCOPE_OVERRIDE_DENIED");
     assert.equal(f.engine.status(run.runId).revision, state.revision);
-    const before = f.repo.get("runs", run.runId).operationalOutputs.start.ciphertext;
     f.vault.changePassword("Synthetic-mapping-password-2026", "Rotated-synthetic-password-2026");
-    assert.notEqual(f.repo.get("runs", run.runId).operationalOutputs.start.ciphertext, before);
     f.vault.lock(); f.vault.unlock("Rotated-synthetic-password-2026");
     assert.equal(f.engine.status(run.runId).checkpoint.token, state.checkpoint.token);
-    advance(f, state, { accountId: "[PHONE]" });
-    const approval = await settled(f.engine, run.runId);
-    assert.equal(approval.state, "WAITING_APPROVAL");
-    assert.equal(approval.approval.arguments.parameters.accountId, "[PHONE]");
-    assert.equal(approval.approval.action.toolName, "read");
-    assert.equal(approval.approval.action.bindingId, "b");
-    f.engine.approve(approval.approval.id, { decision: "approve", expectedRevision: approval.revision,
-      actionHash: approval.approval.actionHash, snapshotHash: approval.snapshotHash });
+    advance(f, state, { accountId: value });
     assert.equal((await settled(f.engine, run.runId)).state, "SUCCEEDED");
     assert.equal(args.parameters.accountId, value);
     const record = f.repo.get("runs", run.runId);
@@ -415,64 +401,6 @@ test("query parameters from undeclared Agent scope are rejected before publishin
     };
     assert.throws(() => f.engine.validateDraft(f.workflow), (error: any) => error.code === "SCOPE_UNDECLARED");
   } finally { await f.close(); }
-});
-
-test("legacy pending approvals derive immutable action summaries after recovery without changing approval authority", async () => {
-  const f = fixture();
-  try {
-    queryWorkflow(f);
-    const run = f.start({ value: "13900000001" }), agent = await settled(f.engine, run.runId);
-    advance(f, agent, { accountId: "[PHONE]" });
-    const waiting = await settled(f.engine, run.runId);
-    const expected = waiting.approval.action;
-    const legacy = f.repo.get("approvals", waiting.approval.id); delete legacy.action;
-    f.repo.put("approvals", legacy.id, legacy);
-    const before = f.repo.get("runs", run.runId), events = f.repo.events(run.runId);
-    const current = f.repo.get("bindings", "b");
-    f.repo.put("bindings", "b", { ...current, revision: current.revision + 1, maxRows: 1,
-      lockedArguments: { "/environment": "different-current-scope" }, validationStatus: "REVOKED" });
-    const recovered = new Engine(f.repo, f.vault, f.engine.connectors); recovered.recover();
-    const view = recovered.status(run.runId);
-    assert.deepEqual(view.approval.action, expected);
-    assert.deepEqual(f.repo.get("approvals", legacy.id), legacy);
-    assert.deepEqual(f.repo.get("runs", run.runId), before);
-    assert.deepEqual(f.repo.events(run.runId), events);
-    const request = { decision: "approve", expectedRevision: view.revision,
-      actionHash: legacy.actionHash, snapshotHash: view.snapshotHash };
-    assert.throws(() => recovered.approve(legacy.id, request), (error: any) => error.code === "BINDING_REVOKED");
-    f.repo.put("bindings", "b", current);
-    recovered.approve(legacy.id, request);
-    assert.equal((await settled(recovered, run.runId)).state, "SUCCEEDED");
-    await recovered.close();
-  } finally { await f.close(); }
-});
-
-test("legacy approval rejects illegal targets and inconsistent frozen snapshots without rewriting records", async (t) => {
-  for (const kind of ["target", "snapshot-hash", "missing-binding", "missing-snapshot", "non-array-tools", "array-locks"])
-    await t.test(kind, async () => {
-      const f = fixture();
-      try {
-        queryWorkflow(f);
-        const run = f.start({ value: "13900000001" }), agent = await settled(f.engine, run.runId);
-        advance(f, agent, { accountId: "[PHONE]" });
-        const waiting = await settled(f.engine, run.runId);
-        const legacy = f.repo.get("approvals", waiting.approval.id); delete legacy.action;
-        const record = f.repo.get("runs", run.runId);
-        if (kind === "target") legacy.targetNodeId = "end";
-        if (kind === "snapshot-hash") record.snapshot.workflow.name = "corrupted snapshot";
-        if (kind === "missing-snapshot") delete record.snapshot;
-        if (kind === "missing-binding") record.snapshot.bindings = [];
-        if (kind === "non-array-tools") record.snapshot.bindings[0].allowedTools = "read";
-        if (kind === "array-locks") record.snapshot.bindings[0].lockedArguments = [];
-        if (["missing-binding", "non-array-tools", "array-locks"].includes(kind)) {
-          record.snapshotHash = "sha256:" + hash(record.snapshot); legacy.snapshotHash = record.snapshotHash;
-        }
-        f.repo.put("approvals", legacy.id, legacy); f.repo.put("runs", record.id, record);
-        assert.throws(() => f.engine.status(run.runId), (error: any) => error.code === "APPROVAL_INVALID");
-        assert.deepEqual(f.repo.get("approvals", legacy.id), legacy);
-        assert.deepEqual(f.repo.get("runs", record.id), record);
-      } finally { await f.close(); }
-    });
 });
 
 test("safe read retries honor 0/2 limits and finish every dispatched attempt", async (t) => {
@@ -527,4 +455,54 @@ test("retry backoff observes cancellation and revocation before the next dispatc
       await f.engine.close(); assert.equal(calls, 1);
     } finally { await f.close(); }
   });
+});
+
+test("nested business JSON keeps types, exact mapping and artifact bytes without a parallel encrypted display value", async () => {
+  const business = { email: "dev@example.com", phone: "13900000001", orderNo: "订单-017",
+    url: "https://example.com/order?token=ordinary-business-text", password: "业务字段", token: 42,
+    nested: { flag: true, empty: null, count: 3, items: ["中文日志 password=wrong token=expired"] } };
+  let dispatched: Json;
+  const f = fixture(async (_b, _n, args, _t, dispatch) => { dispatch(); dispatched = args.value; return business; });
+  try {
+    const schema = object({ email: { type: "string" }, phone: { type: "string" }, orderNo: { type: "string" },
+      url: { type: "string" }, password: { type: "string" }, token: { type: "number" },
+      nested: object({ flag: { type: "boolean" }, empty: { type: "null" }, count: { type: "number" },
+        items: { type: "array", items: { type: "string" } } }) });
+    f.workflow.inputSchema = object({ value: schema });
+    f.tool({ value: schema });
+    f.workflow.nodes[1]!.config.argumentsMappings = { "/value": { ref: { source: "input", pointer: "/value" } } };
+    const run = f.start({ value: business });
+    const state = await settled(f.engine, run.runId);
+    assert.equal(state.state, "SUCCEEDED");
+    assert.deepEqual(dispatched, business);
+    assert.deepEqual(state.outputs.read, business);
+    assert.deepEqual(f.repo.get("runs", run.runId).outputs.read, business);
+    assert.equal(f.repo.get("runs", run.runId).operationalOutputs, undefined);
+    const artifact = f.engine.readArtifact({ runId: run.runId, artifactId: state.artifacts[0].id });
+    assert.deepEqual(JSON.parse(artifact.content), business);
+    assert.equal(state.events.some(e => e.type === "WAITING_APPROVAL"), false);
+  } finally { await f.close(); }
+});
+
+test("old encrypted business outputs hydrate the checkpoint and remain readable without rewriting history", async () => {
+  const f = fixture();
+  try {
+    queryWorkflow(f);
+    const run = f.start({ value: "13900000001" }), waiting = await settled(f.engine, run.runId);
+    const record = f.repo.get("runs", run.runId), original = record.outputs.start;
+    record.operationalOutputs = { start: f.vault.encrypt(JSON.stringify(original), run.runId + ":output:start") };
+    record.outputs.start = { value: "[PHONE]" };
+    record.checkpoint.inputs.accountId = "[PHONE]";
+    f.repo.put("runs", run.runId, record);
+    const before = hash(f.repo.get("runs", run.runId));
+    const hydrated = f.engine.status(run.runId);
+    assert.equal(hydrated.checkpoint.inputs.accountId, "13900000001");
+    assert.deepEqual(hydrated.outputs.start, original);
+    assert.equal(hash(f.repo.get("runs", run.runId)), before);
+    f.vault.lock();
+    assert.equal(f.engine.status(run.runId).outputAvailability, "VAULT_LOCKED");
+    f.vault.unlock("Synthetic-mapping-password-2026");
+    advance(f, hydrated, { accountId: "13900000001" });
+    assert.equal((await settled(f.engine, run.runId)).state, "SUCCEEDED");
+  } finally { await f.close(); }
 });

@@ -225,43 +225,12 @@ test("SEC-11/12: matched admin routes require session and CSRF for canonical, ab
     arguments: submission,
   });
   assert.notEqual(accepted.isError, true, JSON.stringify(accepted));
-  current = await waitFor("WAITING_APPROVAL");
-  const decision = {
-    decision: "approve",
-    expectedRevision: current.revision,
-    actionHash: current.approval.actionHash,
-    snapshotHash: current.snapshotHash,
-  };
-  const decisionPath = "/api/v1/approvals/" + current.approval.id + "/decision";
-  for (const target of adminTargets(daemon.port, decisionPath)) {
-    assert.equal((await call(target, decision)).status, 401, target);
-    assert.equal(
-      (await call(target, decision, { Authorization: "Bearer " + token }))
-        .status,
-      401,
-      target,
-    );
-    assert.equal(
-      (await call(target, decision, { Cookie: cookie })).status,
-      403,
-      target,
-    );
-    assert.equal((await api("/runs/" + run.runId)).state, "WAITING_APPROVAL");
-    assert.equal(
-      daemon.engine.repo.get("approvals", current.approval.id).state,
-      "PENDING",
-    );
-  }
-  const approved = await call(
-    adminTargets(daemon.port, decisionPath)[3]!,
-    decision,
-    adminHeaders,
-  );
-  assert.equal(approved.status, 200);
-  assert.equal(
-    daemon.engine.repo.get("approvals", current.approval.id).state,
-    "APPROVED",
-  );
+  current = await waitFor("WAITING_AGENT");
+  assert.equal(current.checkpoint.nodeId, "synthesize");
+  assert.equal(current.steps.db, "SUCCEEDED");
+  const removed = await call("/api/v1/approvals/removed/decision", { decision: "approve" }, adminHeaders);
+  assert.equal(removed.status, 404);
+
 });
 
 test("draft PUT updates only an existing stable workflow ID and enforces its revision", async (t) => {

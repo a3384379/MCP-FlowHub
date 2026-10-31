@@ -145,7 +145,7 @@ export class Engine {
           ),
         );
         w.description =
-          "纯合成演示：固定环境日志 → Agent 分析 → 独立人工审批 → 只读核对 → 报告。不会连接企业系统。";
+          "纯合成演示：固定环境日志 → Agent 分析 → 只读核对 → 报告。不会连接企业系统。";
         w.tags.push("排查", "日志", "报告");
         for (const n of w.nodes)
           if (n.type === "mcp_tool")
@@ -154,6 +154,10 @@ export class Engine {
             ).schemaHash;
         const existing = this.repo.get("workflows", w.workflowId),
           version = this.repo.get("versions", w.workflowId + "@" + w.version);
+        // An interrupted old seed may already contain an immutable legacy
+        // workflow. Preserve it for explicit copy migration instead of replacing it.
+        if (existing?.draft?.nodes?.some((node: Node) => node.type === "approval") ||
+          version?.snapshot?.workflow?.nodes?.some((node: Node) => node.type === "approval")) continue;
         ensure(
           !version || hash(version.snapshot.workflow) === hash(w),
           "SEED_CONFLICT",
@@ -186,7 +190,22 @@ export class Engine {
   recover() {
     for (const run of this.repo.all("runs")) {
       if (terminal.has(run.state)) continue;
-      if (this.expireApproval(run)) continue;
+      if (run.state === "WAITING_APPROVAL" || run.snapshot?.workflow?.nodes?.some((node: Node) => node.type === "approval")) {
+        // Never resume an old snapshot under changed execution semantics.
+        this.repo.tx(() => {
+          if (run.dispatch) {
+            const attempt = this.repo.get("attempts", run.dispatch);
+            if (attempt?.state === "DISPATCHED") this.repo.put("attempts", attempt.id,
+              { ...attempt, state: "OUTCOME_UNKNOWN", errorCode: "LEGACY_WORKFLOW_RETIRED", finishedAt: now() });
+          }
+          run.state = run.dispatch ? "OUTCOME_UNKNOWN" : "CANCELLED";
+          run.steps[run.current] = run.state;
+          run.errorCode = "LEGACY_WORKFLOW_RETIRED";
+          delete run.checkpoint;
+          this.save(run, "LEGACY_WORKFLOW_RETIRED", run.current);
+        });
+        continue;
+      }
       if (run.dispatch) {
         this.repo.tx(() => {
           const attempt = this.repo.get("attempts", run.dispatch);
@@ -297,7 +316,7 @@ export class Engine {
         contentHash: "sha256:" + hash(snapshot),
         publishedAt: now(),
         publishedBy: "admin",
-        changeNote: this.vault.redact(changeNote),
+        changeNote: changeNote,
       };
       this.repo.insert("versions", version.id, version);
       this.repo.put(
@@ -323,6 +342,8 @@ export class Engine {
       workflowId + "@" + (version ?? wf.defaultVersion),
     );
     ensure(v, "VERSION_MISMATCH", "Exact published version unavailable.", 409);
+    ensure(!v.snapshot.workflow.nodes.some((node: Node) => node.type === "approval"),
+      "LEGACY_WORKFLOW_RETIRED", "Create and publish a migrated workflow copy before starting this legacy version.", 409);
     return v;
   }
   private allowed(workflowId: string, owner: string) {
@@ -369,7 +390,8 @@ export class Engine {
     }
     const ranked = this.repo
       .all("workflows")
-      .filter((w) => w.enabled && w.defaultVersion && this.allowed(w.id, owner))
+      .filter((w) => w.enabled && w.defaultVersion && this.allowed(w.id, owner) &&
+        !this.repo.get("versions", w.id + "@" + w.defaultVersion)?.snapshot.workflow.nodes.some((node: Node) => node.type === "approval"))
       .map((w) => {
         const v = this.version(w.id),
           flow = v.snapshot.workflow;
@@ -591,75 +613,8 @@ export class Engine {
     );
     return r;
   }
-  private expireApproval(r: Json) {
-    if (r.state !== "WAITING_APPROVAL" || !r.approvalId) return false;
-    const a = this.repo.get("approvals", r.approvalId);
-    if (!a || a.state !== "PENDING" || a.expiresAt > Date.now()) return false;
-    this.repo.tx(() => {
-      a.state = "EXPIRED";
-      a.expiredAt = now();
-      this.repo.put("approvals", a.id, a);
-      r.state = "FAILED";
-      r.errorCode = "CHECKPOINT_EXPIRED";
-      r.steps[r.current] = "FAILED";
-      this.save(r, "APPROVAL_EXPIRED", r.current);
-    });
-    return true;
-  }
-  private approvalAction(r: Json, targetId: string) {
-    const workflow = r.snapshot?.workflow;
-    ensure(workflow && Array.isArray(workflow.nodes) && Array.isArray(r.snapshot.bindings),
-      "APPROVAL_INVALID", "Approval execution snapshot is missing.");
-    const targets = workflow.nodes.filter((node: Node) => node.id === targetId);
-    ensure(targets.length === 1 && targets[0].type === "mcp_tool",
-      "APPROVAL_INVALID", "Approval target is not a unique frozen tool action.");
-    const target = targets[0], bindingId = workflow.bindings?.[target.config.bindingKey];
-    const bindings = r.snapshot.bindings.filter((binding: Json) => binding?.id === bindingId);
-    ensure(bindings.length === 1, "APPROVAL_INVALID", "Approval frozen binding is missing or ambiguous.");
-    const binding = bindings[0];
-    ensure(binding.environment === r.environment && workflow.environment === r.environment &&
-      Array.isArray(binding.allowedTools) && binding.allowedTools.includes(target.config.toolName) &&
-      typeof binding.connectionId === "string" && Number.isInteger(binding.revision) && binding.revision > 0 &&
-      [workflow.budgets?.maxRows, workflow.budgets?.maxToolSeconds, binding.maxRows, binding.timeoutSeconds]
-        .every((value) => Number.isFinite(value) && value > 0) &&
-      binding.lockedArguments && typeof binding.lockedArguments === "object" && !Array.isArray(binding.lockedArguments),
-      "APPROVAL_INVALID", "Approval frozen action scope is inconsistent.");
-    const verification = binding.verification ?? {};
-    return this.vault.redact({
-      toolName: target.config.toolName,
-      bindingId: binding.id,
-      bindingRevision: binding.revision,
-      connectionId: binding.connectionId,
-      lockedArguments: binding.lockedArguments,
-      maxRows: Math.min(workflow.budgets.maxRows, binding.maxRows),
-      timeoutSeconds: Math.min(workflow.budgets.maxToolSeconds, binding.timeoutSeconds),
-      verification: Object.fromEntries(["at", "synthetic", "serverEnforcedReadOnly", "scope"]
-        .filter((key) => Object.hasOwn(verification, key)).map((key) => [key, verification[key]])),
-    });
-  }
-  private approvalView(r: Json) {
-    const approval = r.approvalId ? this.repo.get("approvals", r.approvalId) : undefined;
-    if (!approval || approval.action || approval.state !== "PENDING") return approval;
-    const workflow = r.snapshot?.workflow;
-    ensure(workflow && Array.isArray(workflow.nodes) && Array.isArray(workflow.edges) &&
-      r.snapshot && typeof r.snapshot === "object", "APPROVAL_INVALID", "Legacy approval execution snapshot is malformed.");
-    const nodes = Array.isArray(workflow?.nodes)
-      ? workflow.nodes.filter((node: Node) => node.id === r.current) : [];
-    ensure(r.state === "WAITING_APPROVAL" && approval.runId === r.id && approval.nodeId === r.current &&
-      approval.snapshotHash === r.snapshotHash && r.snapshotHash === "sha256:" + hash(r.snapshot) &&
-      workflow.workflowId === r.workflowId && workflow.version === r.version &&
-      approval.environment === r.environment && nodes.length === 1 && nodes[0].type === "approval" &&
-      nodes[0].config.actionNodeId === approval.targetNodeId &&
-      workflow.edges.filter((edge: Json) => edge.source === r.current).length === 1 &&
-      workflow.edges.some((edge: Json) => edge.source === r.current && edge.port === "next" && edge.target === approval.targetNodeId),
-      "APPROVAL_INVALID", "Legacy approval does not match its frozen execution snapshot.");
-    // This is a read projection only. Never rewrite the approval, revision or
-    // action hash, and never replace its frozen scope with a live binding.
-    return { ...approval, action: this.approvalAction(r, approval.targetNodeId) };
-  }
   status(runId: string, owner = "execution", after = 0, limit = 50) {
     const r = this.owned(runId, owner);
-    this.expireApproval(r);
     if (
       r.checkpoint &&
       r.checkpoint.expiresAt < Date.now() &&
@@ -684,6 +639,11 @@ export class Engine {
         ...(!this.vault.locked
           ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) }
           : {}),
+        ...(Object.keys(r.operationalOutputs ?? {}).length ? {
+          inputs: this.vault.locked ? undefined : mappings(
+            r.snapshot.workflow.nodes.find((node: Node) => node.id === info.nodeId)?.config.inputMappings,
+            r.inputs, this.operationalOutputs(r)),
+        } : {}),
         availableEvidence: artifacts,
         nodeOutcomes: r.steps,
       };
@@ -699,13 +659,24 @@ export class Engine {
       currentNode: r.current,
       steps: r.steps,
       checkpoint,
-      approval: this.approvalView(r),
       events: this.repo.events(r.id, after, limit),
       artifacts,
       waitingReason: r.errorCode ?? null,
       vaultLocked: this.vault.locked,
       createdAt: r.createdAt,
-      inputs: this.vault.redact(r.inputs),
+      inputs: r.inputs,
+      outputs: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? undefined : this.operationalOutputs(r),
+      outputAvailability: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? "VAULT_LOCKED" : "AVAILABLE",
+      nodeDetails: (r.snapshot?.workflow?.nodes ?? []).map((node: Node) => {
+        const attempts = this.repo.all("attempts").filter(a => a.runId === r.id && a.nodeId === node.id);
+        let arguments_;
+        if (!r.resultsExpiredAt && node.type === "mcp_tool" && r.steps[node.id] !== "PENDING" && r.steps[node.id] !== "SKIPPED") {
+          try { arguments_ = this.resolveArguments(r, node); } catch { /* Historical raw data may need vault unlock. */ }
+        }
+        return { nodeId: node.id, title: node.title, toolName: node.config.toolName, arguments: arguments_,
+          durationMs: attempts.reduce((sum, a) => sum + (a.finishedAt ? Math.max(0, Date.parse(a.finishedAt) - Date.parse(a.createdAt)) : 0), 0),
+          errorCode: attempts.at(-1)?.errorCode };
+      }),
       retryOfRunId: r.retryOfRunId,
     };
   }
@@ -762,7 +733,7 @@ export class Engine {
             evidenceRefs: this.evidenceIds(r.id),
           };
         } else {
-          payload = this.restoreQueryScope(r, n, submission.payload);
+          payload = this.validateQueryScope(r, n, submission.payload);
           validate(n.config.outputSchema, payload);
         }
         this.validateEvidence(r, payload);
@@ -807,7 +778,7 @@ export class Engine {
           r.revision++;
           this.repo.put("runs", r.id, r);
           this.repo.event(r.id, "CANCEL_REQUESTED", {
-            reason: this.vault.redact(String(args.reason)),
+            reason: String(args.reason),
           });
         }
         return {
@@ -820,82 +791,6 @@ export class Engine {
     );
     if (response.state === "CANCELLED")
       this.releaseDatabase(String(args.runId));
-    return response;
-  }
-  approve(approvalId: string, request: Json) {
-    const approval = this.repo.get("approvals", approvalId);
-    const waiting = approval && this.repo.get("runs", approval.runId);
-    if (waiting) this.expireApproval(waiting);
-    const response = this.repo.tx(() => {
-      const a = this.repo.get("approvals", approvalId);
-      ensure(
-        a && a.state === "PENDING",
-        "APPROVAL_STALE",
-        "Approval already consumed or missing.",
-        409,
-      );
-      const r = this.repo.get("runs", a.runId);
-      ensure(
-        r &&
-          r.state === "WAITING_APPROVAL" &&
-          r.approvalId === a.id &&
-          request.expectedRevision === r.revision,
-        "REVISION_CONFLICT",
-        "Run changed.",
-        409,
-      );
-      ensure(
-        a.expiresAt > Date.now() &&
-          request.actionHash === a.actionHash &&
-          request.snapshotHash === r.snapshotHash,
-        "APPROVAL_STALE",
-        "Approval parameters changed or expired.",
-        409,
-      );
-      this.bindingsReady(r.snapshot);
-      const target: Node = r.snapshot.workflow.nodes.find(
-        (n: Node) => n.id === a.targetNodeId,
-      );
-      ensure(
-        hash({
-          snapshotHash: r.snapshotHash,
-          nodeId: target.id,
-          args: this.resolveArguments(r, target),
-        }) === a.actionHash,
-        "APPROVAL_STALE",
-        "Resolved action changed.",
-        409,
-      );
-      ensure(
-        ["approve", "reject"].includes(request.decision),
-        "INPUT_INVALID",
-        "Decision must be approve/reject.",
-      );
-      a.state = request.decision === "approve" ? "APPROVED" : "REJECTED";
-      a.decidedAt = now();
-      a.decidedBy = "admin";
-      this.repo.put("approvals", a.id, a);
-      if (request.decision === "reject") r.state = "REJECTED";
-      else {
-        r.steps[r.current] = "SUCCEEDED";
-        this.storeOutput(r, r.current, { decision: "approved" });
-        r.current = target.id;
-        r.state = "RUNNING";
-        r.approvedAction = {
-          id: a.id,
-          actionHash: a.actionHash,
-          target: target.id,
-          expiresAt: a.expiresAt,
-        };
-      }
-      delete r.approvalId;
-      r.revision++;
-      this.repo.put("runs", r.id, r);
-      this.repo.event(r.id, "APPROVAL_" + a.state, { approvalId: a.id });
-      this.repo.audit("admin", "approval:" + request.decision, a.id);
-      return { runId: r.id, state: r.state };
-    });
-    this.schedule(response.runId);
     return response;
   }
   resume(runId: string) {
@@ -1048,19 +943,16 @@ export class Engine {
       "BUDGET_EXCEEDED",
       "Node output exceeds byte budget.",
     );
-    const clean = this.vault.redact(value);
-    const operational = hash(clean) === hash(value) ? undefined :
-      this.vault.encrypt(JSON.stringify(value), r.id + ":output:" + nodeId);
+    const output = clone(value);
     const protectedOutputs = { ...(r.operationalOutputs ?? {}) };
-    if (operational) protectedOutputs[nodeId] = operational;
-    else delete protectedOutputs[nodeId];
+    delete protectedOutputs[nodeId];
     const outputBytes =
       Object.entries(r.outputs)
         .filter(([key]) => key !== nodeId)
         .reduce(
           (sum, [, output]) => sum + Buffer.byteLength(JSON.stringify(output)),
           0,
-        ) + Buffer.byteLength(JSON.stringify(clean)) +
+        ) + Buffer.byteLength(JSON.stringify(output)) +
       (Object.keys(protectedOutputs).length ? Buffer.byteLength(JSON.stringify(protectedOutputs)) : 0);
     // Output JSON and artifact bytes are separate persisted representations.
     // Each is counted once; end-node references do not create another output.
@@ -1070,7 +962,7 @@ export class Engine {
       "BUDGET_EXCEEDED",
       "Stored run outputs and artifacts exceed byte budget.",
     );
-    r.outputs[nodeId] = clean;
+    r.outputs[nodeId] = output;
     if (Object.keys(protectedOutputs).length) r.operationalOutputs = protectedOutputs;
     else delete r.operationalOutputs;
     r.outputBytes = outputBytes;
@@ -1083,18 +975,15 @@ export class Engine {
       outputs[nodeId] = JSON.parse(this.vault.decrypt(envelope, r.id + ":output:" + nodeId));
     return outputs;
   }
-  private restoreQueryScope(r: Json, n: Node, submitted: Json) {
-    let payload = clone(submitted);
+  private validateQueryScope(r: Json, n: Node, submitted: Json) {
+    const payload = clone(submitted);
     for (const scope of queryScopes(r.snapshot.workflow, r.snapshot.bindings).filter((scope) => scope.nodeId === n.id)) {
       const expected = resolveValue(scope.source, r.inputs, {});
       let actual: Json;
       try { actual = get(payload, scope.pointer); }
       catch { continue; } // The output schema reports missing required fields.
-      if (hash(actual) === hash(expected)) continue;
-      ensure(hash(actual) === hash(this.vault.redact(expected)),
+      ensure(hash(actual) === hash(expected),
         "SCOPE_OVERRIDE_DENIED", "Agent cannot change a declared query input scope.");
-      if (scope.pointer === "") payload = clone(expected);
-      else set(payload, scope.pointer, expected);
     }
     return payload;
   }
@@ -1117,7 +1006,7 @@ export class Engine {
       "ARTIFACT_INVALID",
       "Report references an unknown artifact.",
     );
-    const clean = this.vault.redact(text),
+    const clean = text,
       verification = {
         contentStored: true,
         formatValidated: true,
@@ -1411,7 +1300,7 @@ export class Engine {
             reportContract:
               n.config.kind === "host_skill" ? REPORT_HEADINGS : undefined,
             requiredOutputSchema: n.config.outputSchema,
-            inputs: this.vault.redact(mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r))),
+            inputs: mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
             expiresAt: Date.now() + 86400000,
             expectedRevision: r.revision,
             tokenHash: hash(token),
@@ -1421,34 +1310,6 @@ export class Engine {
           r.state = "WAITING_AGENT";
           this.repo.put("runs", r.id, r);
           this.repo.event(r.id, "WAITING_AGENT", { nodeId: n.id });
-          return;
-        }
-        if (n.type === "approval") {
-          const target = w.nodes.find((x) => x.id === n.config.actionNodeId)!,
-            args = this.resolveArguments(r, target),
-            approval = {
-              id: id("approval"),
-              runId: r.id,
-              nodeId: n.id,
-              targetNodeId: target.id,
-              summary: n.config.summary,
-              environment: r.environment,
-              arguments: this.vault.redact(args),
-              action: this.approvalAction(r, target.id),
-              actionHash: hash({
-                snapshotHash: r.snapshotHash,
-                nodeId: target.id,
-                args,
-              }),
-              snapshotHash: r.snapshotHash,
-              expiresAt: Date.now() + n.config.expiresAfterSeconds * 1000,
-              state: "PENDING",
-            };
-          this.repo.insert("approvals", approval.id, approval);
-          r.approvalId = approval.id;
-          r.steps[n.id] = "WAITING_APPROVAL";
-          r.state = "WAITING_APPROVAL";
-          this.save(r, "WAITING_APPROVAL", n.id);
           return;
         }
         if (n.type === "condition") {
@@ -1485,15 +1346,6 @@ export class Engine {
               (b: Json) => b.id === w.bindings[n.config.bindingKey],
             ),
             args = this.resolveArguments(r, n);
-          if (binding.allowedQueryTemplates.length)
-            ensure(
-              r.approvedAction?.target === n.id &&
-                r.approvedAction.expiresAt > Date.now() &&
-                r.approvedAction.actionHash ===
-                  hash({ snapshotHash: r.snapshotHash, nodeId: n.id, args }),
-              "APPROVAL_REQUIRED",
-              "A specific approved action is required.",
-            );
           const attempt = {
             id: id("attempt"),
             runId: r.id,
@@ -1544,31 +1396,9 @@ export class Engine {
                 );
                 ensure(
                   hash(this.resolveArguments(current, n)) === attempt.inputHash,
-                  "APPROVAL_STALE",
+                  "ARGUMENTS_CHANGED",
                   "Resolved arguments changed before tool dispatch.",
                 );
-                if (binding.allowedQueryTemplates.length) {
-                  const approval =
-                    current.approvedAction &&
-                    this.repo.get("approvals", current.approvedAction.id);
-                  ensure(
-                    current.approvedAction?.target === n.id &&
-                      current.approvedAction.expiresAt > Date.now() &&
-                      current.approvedAction.actionHash ===
-                        hash({
-                          snapshotHash: current.snapshotHash,
-                          nodeId: n.id,
-                          args,
-                        }) &&
-                      approval?.state === "APPROVED" &&
-                      approval.expiresAt > Date.now() &&
-                      approval.actionHash ===
-                        current.approvedAction.actionHash &&
-                      approval.snapshotHash === current.snapshotHash,
-                    "APPROVAL_STALE",
-                    "The specific approved action expired or changed before tool dispatch.",
-                  );
-                }
                 current.toolCalls++;
                 current.dispatch = attempt.id;
                 this.repo.insert("attempts", attempt.id, attempt);
@@ -1595,7 +1425,7 @@ export class Engine {
             !this.vault.locked ||
               (binding.simulationOnly && this.repo.all("secrets").length === 0),
             "CREDENTIAL_LOCKED",
-            "Vault locked after dispatch; the result cannot be safely redacted or replayed.",
+            "Vault locked after dispatch; secure execution cannot continue.",
           );
           ensure(
             (value.rows?.length ?? value.logs?.length ?? 0) <=
@@ -1635,7 +1465,7 @@ export class Engine {
             this.storeArtifact(
               r,
               n.id,
-              JSON.stringify(this.vault.redact(value), null, 2),
+              JSON.stringify(value, null, 2),
               "application/json",
               {
                 contentStored: true,
@@ -1649,7 +1479,6 @@ export class Engine {
               finishedAt: now(),
             });
             delete r.dispatch;
-            delete r.approvedAction;
             r.steps[n.id] = "SUCCEEDED";
             if (r.state === "CANCEL_REQUESTED") r.state = "CANCELLED";
             else r.current = this.next(r, n.id);

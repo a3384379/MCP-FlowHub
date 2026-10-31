@@ -11,7 +11,6 @@ const runStates = new Set([
   "QUEUED",
   "RUNNING",
   "WAITING_AGENT",
-  "WAITING_APPROVAL",
   "BLOCKED",
   "CANCEL_REQUESTED",
   "SUCCEEDED",

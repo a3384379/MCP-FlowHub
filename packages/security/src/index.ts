@@ -11,9 +11,9 @@ import {
   now,
   type Json,
   HubError,
-  redact as redactValue,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
+import { protectDiagnostic } from "./diagnostics.js";
 const derive = (password: string, salt: string) =>
   scryptSync(password, salt, 32, {
     N: 32768,
@@ -141,13 +141,13 @@ export class Vault {
     ensure(s, "AUTH_REQUIRED", "Secret unavailable.", 401);
     return this.decrypt(s.encrypted, ref);
   }
-  redact(value: Json): Json {
+  protectDiagnostic(value: Json): Json {
     // Decrypt only inside this call. No plaintext matcher survives vault lock,
     // password rotation, or the operation that stores the sanitized result.
     const secrets = this.locked
       ? []
       : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
-    return redactValue(value, secrets);
+    return protectDiagnostic(value, secrets);
   }
   catalogContext() {
     ensure(
@@ -174,7 +174,7 @@ export class Vault {
     const inspect = (item: Json, schema = false): void => {
       if (typeof item === "string")
         ensure(
-          redactValue(item, secrets) === item,
+          protectDiagnostic(item, secrets) === item,
           "CATALOG_SENSITIVE",
           "Downstream catalog contains credentials or private data; no catalog was stored.",
         );
@@ -187,7 +187,7 @@ export class Vault {
             schema || ["inputSchema", "outputSchema"].includes(key);
           if (!childSchema)
             ensure(
-              redactValue({ [key]: "catalog-field" })[key] !== "[REDACTED]",
+              protectDiagnostic({ [key]: "catalog-field" })[key] !== "[REDACTED]",
               "CATALOG_SENSITIVE",
               "Downstream catalog contains a credential field; no catalog was stored.",
             );

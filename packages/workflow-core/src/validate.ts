@@ -6,7 +6,6 @@ import {
   hash,
   get,
   HubError,
-  redact,
   type Workflow,
   type Json,
 } from "../../contracts/src/domain.js";
@@ -15,6 +14,7 @@ import {
   walkSchema,
 } from "../../contracts/src/schema-safety.js";
 import { schemaAt, assertAssignable, validateMappedLiteral } from "./mapping-schema.js";
+import { protectDiagnostic } from "../../security/src/diagnostics.js";
 import { queryScopes } from "./query-scope.js";
 const overlap = (a: string, b: string) =>
   a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
@@ -155,13 +155,6 @@ export function validateWorkflow(
     const n = byId.get(nodeId)!;
     if (n.type === "input") return w.inputSchema;
     if (n.type === "condition") return { type: "boolean" };
-    if (n.type === "approval")
-      return {
-        type: "object",
-        properties: { decision: { type: "string", const: "approved" } },
-        required: ["decision"],
-        additionalProperties: false,
-      };
     if (n.type === "mcp_tool") {
       const b = bindings.find((b) => b.id === w.bindings[n.config.bindingKey]);
       return connections
@@ -392,31 +385,13 @@ export function validateWorkflow(
           "TEMPLATE_LOCKED",
           "Query template must be a fixed approved literal.",
         );
-        const approval = w.nodes.find(
-          (a) =>
-            a.type === "approval" &&
-            a.config.actionNodeId === n.id &&
-            dom.get(n.id)!.has(a.id),
-        );
-        ensure(
-          approval,
-          "APPROVAL_REQUIRED",
-          "Database action must be dominated by its independent approval.",
-        );
         issuePath = nodePath + "/argumentsMappings";
         queryScopes({ ...w, nodes: w.nodes.filter((node) => node.type !== "mcp_tool" || node.id === n.id) }, bindings);
       }
     }
-    if (n.type === "approval")
-      ensure(
-        byId.get(n.config.actionNodeId)?.type === "mcp_tool" &&
-          successors(n.id)[0] === n.config.actionNodeId,
-        "APPROVAL_INVALID",
-        "Approval must immediately precede its action.",
-      );
     } catch (error) {
       const failure = error instanceof HubError ? error : new HubError("SCHEMA_INVALID", "Node schema could not be validated.");
-      issues.push({ code: failure.code, message: redact(failure.message), nodeId: n.id, path: issuePath });
+      issues.push({ code: failure.code, message: protectDiagnostic(failure.message), nodeId: n.id, path: issuePath });
     }
   }
   if (issues.length) throw new HubError(issues[0]!.code, issues[0]!.message, 422, { issues });

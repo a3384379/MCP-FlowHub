@@ -24,7 +24,7 @@
    ```
 
 5. 宿主 command 设置为包内 runtime/node.exe；args 数组为包内 dist/apps/daemon/src/cli.js、mcp、--stdio、--data-dir、批准目录。不拼接 shell，不把 token 放宿主参数，不提交企业路径。
-6. 真实 Codex 发现七工具，调用 workflow_search(query="排查") 和 workflow_get；样例明确标为合成；真实环境不使用这些绑定。workflow_start 应创建真实运行并停在 WAITING_AGENT；宿主回传分析、管理员独立批准后继续。记录 Codex/Windows 版本、era/协议及脱敏结果，模拟宿主不能替代。
+6. 真实 Codex 发现七工具，调用 workflow_search(query="排查") 和 workflow_get；样例明确标为合成；真实环境不使用这些绑定。workflow_start 应创建真实运行并停在 WAITING_AGENT；宿主回传分析后自动继续。记录 Codex/Windows 版本、era/协议及原始业务值完整性结果，模拟宿主不能替代。
 7. 独立 MCP 客户端连接 `flowhub mock --stdio`，调用 synthetic_order_lookup，传 `{"orderNo":"DEMO-1001"}`，应得到 synthetic=true、test 哨兵与中文 emoji。
 8. 重启 daemon，确认 instance ID 持续、启动计数增加；同目录重复 daemon 被拒，多桥共享同一实例。验证加密策略开启时配置/SQLite/子进程可用，不关闭安全软件。
 
@@ -35,7 +35,7 @@
 - DAEMON_ALREADY_RUNNING：不能并发启动。崩溃遗留 daemon.lock 时，读记录 PID，在本机确认进程已退出且无其他 daemon 使用该目录，再手动移除**该锁文件**。不自动抢锁/杀进程，不删数据库/token；PID 复用无法判断则由管理员处理。
 - RESTORE_INCOMPLETE：恢复中断的 `restore-pending.json` 会阻止普通启动，包括当前库缺失或标记损坏时。保留标记、`replaced-*.sqlite` 和 `backups/`，不要删标记后启动空库。确认 daemon 已停止并按上条处理失效锁后，显式重跑 `flowhub restore --data-dir <目录> --backup <已验证备份>`；恢复成功才清标记，旧标记归档到备份目录。一致性 `pre-restore-*.sqlite` 包含恢复前已提交的 WAL 数据，应优先用于回退。
 - RC token 是本机随机执行身份，无企业凭据；不要分享数据目录。可在接入设置创建独立宿主身份并即时撤销。
-- 仅回传版本/错误码/合成复现/脱敏结论，不回传企业凭据、日志、路径、表结构或诊断全文。
+- 仅回传版本/错误码/合成复现/无业务内容的结论，不回传企业凭据、日志、路径、表结构或诊断全文。
 
 ## 待填记录
 

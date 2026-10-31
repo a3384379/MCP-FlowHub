@@ -10,7 +10,8 @@ import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
 import { startDaemon } from "../../apps/daemon/src/index.js";
 import { createLocalHttp } from "../../apps/daemon/src/http.js";
 import { result } from "../../packages/contracts/src/index.js";
-import { redact, type Json } from "../../packages/contracts/src/domain.js";
+import type { Json } from "../../packages/contracts/src/domain.js";
+import { protectDiagnostic as redact } from "../../packages/security/src/diagnostics.js";
 import { Repository } from "../../packages/persistence/src/repository.js";
 import { Vault } from "../../packages/security/src/index.js";
 import {
@@ -73,7 +74,7 @@ test("credential formats in log, query and Agent strings are sanitized without d
 
 test("long dotted text, URI authorities, assignments and incomplete keys finish under a child-process hard limit", () => {
   const module = new URL(
-    "../../packages/contracts/src/domain.js",
+    "../../packages/security/src/diagnostics.js",
     import.meta.url,
   ).href;
   const child = spawnSync(
@@ -82,14 +83,14 @@ test("long dotted text, URI authorities, assignments and incomplete keys finish 
       "--input-type=module",
       "-e",
       `
-    import {redact} from ${JSON.stringify(module)};
+    import {protectDiagnostic as redact} from ${JSON.stringify(module)};
     const dotted = 'a.'.repeat(131072);
     if (redact(dotted) !== dotted) process.exit(2);
-    if (redact(dotted + '@example.com').includes('@example.com')) process.exit(3);
+    if (!redact(dotted + '@example.com').includes('@example.com')) process.exit(3);
     if (redact('postgres://' + 'x'.repeat(262144) + '@127.0.0.1/test').includes('x'.repeat(64))) process.exit(4);
     if (redact('password=' + 'x'.repeat(262144)).includes('x'.repeat(64))) process.exit(5);
     if (redact('-----BEGIN PRIVATE KEY-----\\n'.repeat(16384)).includes('BEGIN PRIVATE KEY')) process.exit(6);
-    if (redact('normal diagnostics user@example.com.').includes('@')) process.exit(7);
+    if (!redact('normal diagnostics user@example.com.').includes('@')) process.exit(7);
     process.stdout.write('PASS');
   `,
     ],
@@ -112,7 +113,7 @@ test("vault redaction matches stored literals anywhere without plaintext persist
   const secret = randomBytes(24).toString("base64") + ".*+?";
   const ref = vault.addSecret("synthetic redaction fixture", secret);
   const message = "before<" + secret + ">after";
-  const clean = vault.redact({
+  const clean = vault.protectDiagnostic({
     arbitrary: message,
     query: [message],
     agent: { summary: message },
@@ -126,7 +127,7 @@ test("vault redaction matches stored literals anywhere without plaintext persist
   assert.equal(clean.arbitrary, "before<[REDACTED]>after");
   assert.equal(
     vault
-      .redact(encodeURIComponent(secret))
+      .protectDiagnostic(encodeURIComponent(secret))
       .includes(encodeURIComponent(secret)),
     false,
   );
@@ -136,14 +137,14 @@ test("vault redaction matches stored literals anywhere without plaintext persist
     "vault stored plaintext",
   );
   vault.lock();
-  assert.equal(vault.redact("password=" + secret).includes(secret), false);
+  assert.equal(vault.protectDiagnostic("password=" + secret).includes(secret), false);
   repo.remove("secrets", ref.id);
   vault.unlock("Synthetic-redaction-password-241");
   // Removed credentials must not remain in a process-wide plaintext matcher.
-  assert.equal(vault.redact(message) === message, true);
+  assert.equal(vault.protectDiagnostic(message) === message, true);
 });
 
-test("real MCP results and Agent submissions are redacted before run and artifact persistence", async (t) => {
+test("real MCP business results and Agent submissions retain original bytes in run and artifact persistence", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "flowhub-redaction-"));
   const daemon = await startDaemon({ dataDir: directory, port: 0 });
   t.after(async () => {
@@ -185,7 +186,7 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     " ; postgres://demo:" +
     secret +
     "@127.0.0.1/test ; password=" +
-    secret;
+    secret + " ; dev@example.com 13900000001 订单-017 https://example.com/中文 token=password";
   const inputSchema = {
     type: "object",
     properties: { environment: { const: "production", type: "string" } },
@@ -232,7 +233,7 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     label: "fixture transport",
     value: token,
   });
-  await api("/secrets", { label: "fixture output", value: secret });
+
   const connection = await api("/connections", {
     name: "synthetic redaction fixture",
     transport: "streamable_http",
@@ -288,7 +289,7 @@ test("real MCP results and Agent submissions are redacted before run and artifac
       config: {
         kind: "analysis",
         instructions: "synthetic fixture",
-        inputMappings: {},
+        inputMappings: { "/logResult": { ref: { source: "node", nodeId: "read", pointer: "" } } },
         outputSchema: {
           type: "object",
           properties: { summary: { type: "string" } },
@@ -311,6 +312,16 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     { source: "read", target: "analysis", port: "next" },
     { source: "analysis", target: "end", port: "next" },
   ];
+  const reportSchema = { type: "object", properties: { reportMarkdown: { type: "string" },
+    evidenceRefs: { type: "array", items: { type: "string" } } }, required: ["reportMarkdown", "evidenceRefs"], additionalProperties: false };
+  flow.nodes.splice(3, 0, { id: "report", title: "Report", type: "report_template", config: {
+    templateRef: "incident-markdown/v1", outputSchema: reportSchema,
+    inputMappings: { "/analysis": { ref: { source: "node", nodeId: "analysis", pointer: "" } },
+      "/question": { ref: { source: "input", pointer: "/question" } } },
+  } });
+  flow.nodes.find((n: Json) => n.id === "end").config.resultRef.ref.nodeId = "report";
+  flow.edges.find((e: Json) => e.source === "analysis").target = "report";
+  flow.edges.push({ source: "report", target: "end", port: "next" });
   const saved = await api("/workflows", { workflow: flow });
   await api("/workflows/" + flow.workflowId + "/publish", {
     expectedRevision: saved.revision,
@@ -337,6 +348,8 @@ test("real MCP results and Agent submissions are redacted before run and artifac
     throw new Error("synthetic run state timed out");
   };
   const waiting = await waitFor("WAITING_AGENT");
+  assert.equal(waiting.checkpoint.inputs.logResult.logs[0].message, echo);
+  assert.equal(JSON.stringify(await api("/connections")).includes(token), false);
   const host = createClient("modern", "redaction-agent-regression");
   t.after(() => host.close());
   await host.connect(
@@ -361,8 +374,8 @@ test("real MCP results and Agent submissions are redacted before run and artifac
   const stored = daemon.engine.repo.get("runs", started.runId);
   assert.equal(
     JSON.stringify(stored.outputs).includes(secret),
-    false,
-    "run outputs leaked a known credential",
+    true,
+    "business output changed",
   );
   const artifacts = daemon.engine.repo
     .all("artifacts")
@@ -370,12 +383,19 @@ test("real MCP results and Agent submissions are redacted before run and artifac
   assert.equal(artifacts.length > 0, true);
   assert.equal(
     artifacts.some((artifact) => artifact.content.includes(secret)),
-    false,
-    "artifact content leaked a known credential",
+    true,
+    "business artifact changed",
   );
   assert.equal(
     stored.outputs.read.logs[0].message.includes("127.0.0.1/test"),
     true,
   );
-  assert.equal(stored.outputs.analysis.summary.includes("[REDACTED]"), true);
+  assert.equal(stored.outputs.analysis.summary, echo);
+  assert.equal(stored.operationalOutputs, undefined);
+  assert.equal(stored.outputs.read.logs[0].message, echo);
+  const markdown = artifacts.find(a => a.mimeType === "text/markdown")!;
+  const read = daemon.engine.readArtifact({ runId: started.runId, artifactId: markdown.id });
+  assert.ok(read.content.includes(echo));
+  assert.equal(read.content, markdown.content);
+  assert.ok(artifacts.find(a => a.mimeType === "text/html")!.content.includes("&lt;"));
 });

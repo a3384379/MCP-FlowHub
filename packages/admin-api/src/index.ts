@@ -17,13 +17,13 @@ import {
   id,
   hash,
   get,
-  redact,
   validate,
   clone,
   workflowSchema,
   type Json,
   type Workflow,
 } from "../../contracts/src/domain.js";
+import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth } from "../../security/src/index.js";
@@ -490,7 +490,7 @@ export async function registerAdmin(
 
   app.get("/api/v1/bindings", async () => data(repo.all("bindings")));
   app.get("/api/v1/bindings/:id/impact", async (req) =>
-    data(vault.redact(bindingImpact(repo, param(req)))),
+    data(vault.protectDiagnostic(bindingImpact(repo, param(req)))),
   );
   app.post("/api/v1/bindings", async (req) => {
     const b = body(req, [
@@ -825,6 +825,39 @@ export async function registerAdmin(
     validate(workflowSchema, w);
   }
   // Import uses the same runtime schema; graph/binding validation is deferred to publish.
+  app.get("/api/v1/legacy-workflows", async () => data({
+    workflows: repo.all("workflows").filter(w => w.draft?.nodes?.some((n: Json) => n.type === "approval"))
+      .map(w => ({ workflowId: w.id, revision: w.revision, source: "draft" })),
+    versions: repo.all("versions").filter(v => v.snapshot?.workflow?.nodes?.some((n: Json) => n.type === "approval"))
+      .map(v => ({ workflowId: v.workflowId, version: v.version, source: "published" })),
+    runs: repo.all("runs").filter(r => r.errorCode === "LEGACY_WORKFLOW_RETIRED")
+      .map(r => ({ runId: r.id, state: r.state })),
+  }));
+  app.post("/api/v1/workflows/:id/migrate-legacy", async (req) => {
+    const b = body(req, ["targetId", "expectedRevision"], ["sourceVersion"]);
+    const source = repo.get("workflows", param(req));
+    ensure(source && source.revision === b.expectedRevision, "REVISION_CONFLICT", "Source changed.", 409);
+    const original = b.sourceVersion
+      ? repo.get("versions", source.id + "@" + b.sourceVersion)?.snapshot?.workflow : source.draft;
+    ensure(original, "VERSION_MISMATCH", "Source version is unavailable.");
+    const workflow = withoutLegacyNodes(original);
+    workflow.workflowId = b.targetId;
+    workflow.version = "1.0.0";
+    workflow.name += "（自动执行副本）";
+    // Validate the proposal before backup or mutation. Never replace another draft.
+    engine.validateDraft(workflow);
+    ensure(!repo.get("workflows", workflow.workflowId), "REVISION_CONFLICT", "Target already exists.", 409);
+    const directory = await backupDirectory(dataDir, true);
+    const backup = join(directory, "pre-workflow-migration-" + id("backup") + ".sqlite");
+    await repo.backup(backup);
+    return data(repo.tx(() => {
+      ensure(repo.get("workflows", source.id)?.revision === b.expectedRevision,
+        "REVISION_CONFLICT", "Source changed during backup.", 409);
+      const draft = engine.saveDraft(workflow, undefined, {});
+      repo.audit("admin", "legacy-workflow-copy", source.id);
+      return { draft, backup, published: false };
+    }));
+  });
   app.get("/api/v1/runs", async (req) => ({
     ...listRuns(req.query),
     requestId: id("req"),
@@ -836,8 +869,14 @@ export async function registerAdmin(
       "mode",
       "inputs",
       "idempotencyKey",
-    ]);
-    return data(engine.start(b));
+    ], ["clientId"]);
+    const { clientId, ...arguments_ } = b;
+    if (clientId !== undefined) {
+      const client = repo.get("clients", clientId);
+      ensure(client && !client.revoked && client.workflowAllowlist.includes(b.workflowId),
+        "WORKFLOW_NOT_AVAILABLE", "Selected host cannot execute this workflow.", 404);
+    }
+    return data(engine.start(arguments_, clientId ?? "execution"));
   });
   const owner = (runId: string) => {
     const run = repo.get("runs", runId);
@@ -916,19 +955,6 @@ export async function registerAdmin(
   );
   app.post("/api/v1/runs/:id/review", async (req) =>
     data(engine.review(param(req), body(req, ["reason", "idempotencyKey"]))),
-  );
-  app.post("/api/v1/approvals/:id/decision", async (req) =>
-    data(
-      engine.approve(
-        param(req),
-        body(req, [
-          "decision",
-          "actionHash",
-          "snapshotHash",
-          "expectedRevision",
-        ]),
-      ),
-    ),
   );
   app.get("/api/v1/runs/:id/artifacts/:artifactId", async (req) => {
     const q = req.query as Json,

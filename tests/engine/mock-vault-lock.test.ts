@@ -35,7 +35,7 @@ async function wait(engine: Engine, runId: string, expected: string) {
   assert.fail("Timed out waiting for " + expected);
 }
 
-test("external MOCK_VERIFIED results cannot bypass locked-vault redaction and never replay unknown reads", async (t) => {
+test("external MOCK_VERIFIED results cannot bypass locked-vault execution protection and never replay unknown reads", async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), "flowhub-mock-locked-vault-"));
   const daemon = await startDaemon({ dataDir, port: 0 }),
     engine = daemon.engine;
@@ -233,8 +233,7 @@ test("external MOCK_VERIFIED results cannot bypass locked-vault redaction and ne
   const artifact = engine.repo
     .all("artifacts")
     .find((a) => a.runId === fresh.runId)!;
-  assert.ok(!artifact.content.includes(canary));
-  assert.ok(artifact.content.includes("[REDACTED]"));
+  assert.ok(artifact.content.includes(canary));
 });
 
 test("built-in synthetic MCP remains usable with a locked vault when no credentials are stored", async (t) => {

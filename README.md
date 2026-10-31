@@ -1,70 +1,50 @@
 # MCP FlowHub
 
-一个本机 MCP 入口，固定七工具，多条可视化受控工作流。Codex 继续分析，Hub 负责确定性执行、固定环境、独立人工审批和证据归档。
+面向 Codex 等 AI Harness 的轻量级、可视化 MCP 能力编排与管理工具，优先服务个人开发者。配置一次工作流，之后由 Codex 选择并执行。
 
-当前版本 **1.0.0-rc.1**。已实现管理界面和端到端合成流程。Windows 原生 CI、真实 Codex 和企业只读联调仍需分别验收。
+统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server 和固定七工具：workflow_search、workflow_get、workflow_start、workflow_advance、workflow_status、workflow_cancel、artifact_read。
 
 ## 启动
 
-Node **24.19.0**、npm **11.9.0**，使用现有 checkout：
+Node **24.19.0**、npm **11.9.0**：
 
     npm ci
     npm run build
     npm start
 
-默认仅监听 127.0.0.1:18473。首次管理页需要数据目录内 admin-setup-token 的一次性设置码，创建至少 12 字符密码；首次设置同时初始化凭据库。重启后需单独解锁。设置码和执行 token 不写日志，不要分享数据目录。
-
-另一个终端：
-
-    npm run mcp
-
-显式数据目录与端口：
+默认 http://127.0.0.1:18473。首次使用数据目录内 admin-setup-token 设置码创建管理员口令并初始化凭据库；重启后单独解锁。另一个终端运行 `npm run mcp`，或按接入设置生成受限宿主配置。
 
     npm start -- --data-dir /tmp/flowhub-dev --port 18474
     npm run mcp -- --data-dir /tmp/flowhub-dev
-    node dist/apps/daemon/src/cli.js doctor --data-dir /tmp/flowhub-dev
 
-Linux 默认 $XDG_DATA_HOME/mcp-flowhub（未设时 ~/.local/share/mcp-flowhub），Windows 默认 %LOCALAPPDATA%\MCP-FlowHub。程序和数据分离。POSIX 目录 0700、令牌/数据库 0600；Windows ACL 待批准设备核验。
+Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/share/mcp-flowhub），Windows 为 %LOCALAPPDATA%\MCP-FlowHub。程序与数据分离。
 
-## 已实现能力
+## 能力
 
-- 六页面 React 管理中心：工作流库、React Flow 画布、MCP 工具库、环境权限、运行证据、接入设置。支持拖拽连线、节点/映射/Schema 编辑、保存/校验/发布。
-- 官方 SDK v2：modern 2026-07-28 / legacy 2025-11-25，STDIO 与 Streamable HTTP。唯一 daemon、无第二引擎薄桥；连接目录分页、Schema 指纹/历史、代际缓存和修订失效。
-- 受限 DSL：串行/互斥、图/支配/类型/映射校验、不可变发布、默认版本指针、禁用草稿导入、环境/资源/模板锁定。
-- 持久化状态机、快照、dispatch intent、CAS/幂等、预算/取消、检查点恢复；不确定结果终态、人工复核新运行。
-- 独立管理员、CSRF/Host/Origin、scrypt + AES-GCM、重启锁定/口令轮换、独立宿主范围/撤销。
-- 审批绑定具体 snapshotHash/actionHash/参数/有效期。七工具无法批准、解锁或修改连接。
-- Agent/宿主 Skill 交接、实际 Markdown/安全 HTML 报告、章节/归属/引用/字节/哈希验证，预声明且明确选择的模板降级。
-- SQLite WAL/迁移校验、一致性备份、停止服务恢复、保留期预览清理、先预览再导出的脱敏支持包。
-- 两套真实协议合成排查，生产/试运行使用不同哨兵，不连接企业系统，不要求额外模型 API。
+- MCP 连接、工具发现、Schema 指纹、固定环境绑定、资源与工具白名单。
+- React Flow 画布，拖拽、连接、参数映射、Schema 编辑、保存、校验及不可变发布。
+- 串行与互斥分支；确定性 auto 与 Codex guided；预算、取消、幂等和明确的不确定结果。
+- Agent 分析与宿主 Skill 交接，Markdown/安全 HTML 报告，执行步骤、参数、实际输出、耗时与证据索引。
+- 业务输入、MCP 结果、Agent 输出和报告按原值保存及传递，不做业务内容自动替换。
+- 加密凭据库、secretRef、独立管理会话及受限宿主身份，凭据不在连接列表或配置导出明文回显。
+- SQLite 一致性备份、停止服务恢复、结果保留与清理、仅含版本/计数/状态/错误码的诊断导出。
 
-真实绑定必须完成获准探测及独立服务端只读权限确认。MOCK_VERIFIED 不授权真实生产执行。
+标准链路：日志 MCP → Agent 分析 → 条件 → 数据库 MCP（可跳过）→ 结果分析 → 报告 Skill。工具满足发布版本、有效配置、可用连接、正确绑定、有效参数及工具白名单后直接执行。没有人工审批节点、审批接口或业务脱敏开关。
 
-## 验证与离线包
+Web 启动 guided 运行时选择接入设置中创建的受限宿主身份。只有所选 owner 可以通过 MCP 继续该运行，其他宿主不能接管；管理员仍可查看或取消。不要使用默认全权限令牌规避归属限制。
+
+## 升级与验证
+
+升级前创建一致性备份；旧流程处理见 [迁移指南](docs/MIGRATION_AUTOMATION.md)。不删除数据库，不改变旧发布快照。旧审批流程复制为新草稿后需校验并明确发布。旧活跃审批运行先自动备份再停止；已派发而结果不明的调用标为 OUTCOME_UNKNOWN，不自动重放。
 
     npm run check
     npm test
+    npm run build
     npm run test:ui
     npm run package:local
     npm run test:package
     npm run verify:release
 
-浏览器测试使用系统 Chromium，或 FLOWHUB_CHROMIUM 指定路径；否则使用 npx playwright install chromium 安装官方浏览器。CI Ubuntu 执行浏览器测试；Windows 原生执行协议/引擎和打包测试。
+Windows 包必须由原生 Windows CI 构建和测试；Linux 结果不能替代。测试仅使用合成 MCP 与数据。真实 Codex、实际公司服务与 Windows 行为需外部验收，不自动发布。
 
-Windows 构建机运行 npm run package:windows。Linux 拒绝伪 Windows 包。候选包含平台 Node、生产依赖/SQLite 原生模块、编译 UI、启动器、SBOM、第三方许可与哈希；目标机无需 npm install。包内 ./flowhub serve 或 flowhub.cmd serve 启动。哈希不是代码签名。
-
-管理页创建一致性备份。恢复必须先停止 daemon：
-
-    node dist/apps/daemon/src/cli.js restore --data-dir <数据目录> --backup <备份文件>
-
-恢复前自动保存旧数据库，不覆盖程序和执行令牌。升级前先备份；禁止把不兼容的新数据库直接交给旧程序。
-
-## 文档与边界
-
-- [宿主接入及 Skill](docs/HOST_INTEGRATION.md)、[设备核验与升级](docs/LOCAL_VALIDATION.md)
-- [最新修复与审计](docs/evidence/REMEDIATION-2026-10-30.md)、[候选版验收](docs/evidence/RC-2026-10-29.md)、[实施进度](docs/PLAN.md)、[依赖基线](docs/DEPENDENCY_BASELINE.md)
-- 用户原始 [方案](docs/01_产品与架构设计.md)、[接口](docs/02_协议接口与数据设计.md)、[100 项验收设计](docs/04_测试验收与云端交付.md)、[交互原型](docs/reference/interaction-prototype.html)
-
-不宣称 100 项验收全过。公司加密兼容、Windows ACL、实际生产/试运行和真实 Codex 需外部记录，未满足前不作生产发布。当前不含旧 HTTP+SSE 自动 OAuth、任意代码节点、并行/循环、多租户和自动更新。没有可信安全重试依据时保守停止，不重复执行结果不明的调用。
-
-用户源码许可证由维护者决定；第三方保留原许可及 SDK Apache-2.0/MIT 过渡说明。
+[产品架构](docs/01_产品与架构设计.md) · [协议数据](docs/02_协议接口与数据设计.md) · [UI](docs/03_UI原型与交互规格.md) · [测试验收](docs/04_测试验收与云端交付.md) · [宿主接入](docs/HOST_INTEGRATION.md) · [安装核验](docs/LOCAL_VALIDATION.md) · [实施记录](docs/PLAN.md)

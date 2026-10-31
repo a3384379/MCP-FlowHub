@@ -747,10 +747,6 @@ dd {
 .timeline strong {
   font-weight: 500;
 }
-.approval {
-  border-color: #ebd6b1;
-  background: #fffefa;
-}
 .artifact {
   display: flex;
   gap: 12px;
@@ -1198,7 +1194,6 @@ footer small {
   margin: 15px 0;
 }
 .artifact-hash,
-.approval dd,
 .verification-details dd {
   overflow-wrap: anywhere;
 }

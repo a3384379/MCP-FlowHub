@@ -191,19 +191,6 @@
       }
     },
     {
-      "id": "approval",
-      "title": "人工批准参数化只读查询",
-      "type": "approval",
-      "config": {
-        "actionNodeId": "db",
-        "summary": "在管理页面核对当前固定环境、数据库绑定、order-by-number-v1 模板及已解析的 DEMO 订单号；审批只覆盖这一组参数。拒绝则终止运行为 REJECTED，不调用数据库。",
-        "approvalChannel": "admin_ui",
-        "bindToResolvedArguments": true,
-        "invalidateOnArgumentChange": true,
-        "expiresAfterSeconds": 600
-      }
-    },
-    {
       "id": "db",
       "title": "查询固定模板的订单记录",
       "type": "mcp_tool",
@@ -432,18 +419,13 @@
     },
     {
       "source": "need_db",
-      "target": "approval",
+      "target": "db",
       "port": "true"
     },
     {
       "source": "need_db",
       "target": "synthesize",
       "port": "false"
-    },
-    {
-      "source": "approval",
-      "target": "db",
-      "port": "next"
     },
     {
       "source": "db",
