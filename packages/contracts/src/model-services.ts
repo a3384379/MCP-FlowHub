@@ -19,6 +19,7 @@ export function modelErrorHint(code: string): string {
     MODEL_INVALID_CONFIGURATION: "模型或请求参数不被当前接口支持，请核对协议并选择模型。",
     MODEL_UNSUPPORTED_TOOLS: "该模型不支持当前工具调用格式，可更换模型或仅用于问答。",
     MODEL_TIMEOUT: "请求超时，请检查网络或调整请求超时。",
+    MODEL_STREAM_INTERRUPTED: "模型连接中途断开，已输出的回复和工具回执已保留。可以继续回复，不会重复执行原操作。",
     MODEL_CONNECTION_FAILED: "无法连接模型服务，请检查网络和 Base URL。",
     MODEL_REQUEST_FAILED: "模型服务拒绝请求，请检查协议、模型与 API 项目权限。",
     MODEL_OUTPUT_INVALID: "模型服务没有返回有效的目录或响应数据。",

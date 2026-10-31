@@ -23,7 +23,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
-import { AssistantPanel } from "./features/assistant/AssistantPanel";
+import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
@@ -472,7 +472,8 @@ function App() {
   const [undoCount, setUndoCount] = useState(0),
     [redoCount, setRedoCount] = useState(0);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-  const [inspectorTab,setInspectorTab]=useState("properties");
+  const [assistantOpenRequest,setAssistantOpenRequest]=useState(0);
+  const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
   const savingRef=useRef(false);
   const [changedByAI,setChangedByAI]=useState<string[]>([]);
   const busyRef = useRef(busy);
@@ -1483,6 +1484,10 @@ function App() {
     : path.split("/")[1] === "tools"
       ? "connections"
       : (path.split("/")[1] ?? "workflows");
+  const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
+  const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
+  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
+  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+({editor:"流程编排",workflows:"工作流库",connections:"MCP 工具库",discovery:"Codex 发现",models:"模型设置",assistant:"AI 工作台",runs:"运行记录",settings:"接入设置",bindings:"环境与权限"} as J)[page];
   if (!auth)
     return (
       <div className="login">
@@ -1705,7 +1710,7 @@ function App() {
           )}
           {page === "discovery" && <DiscoveryPage api={api} />}
           {page === "models" && <ModelsPage api={api} />}
-          {page === "assistant" && <section className="v2-page"><h1>AI 工作台</h1><AssistantPanel api={api} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /></section>}
+          {page === "assistant" && <section className="panel assistant-workbench"><h1>与 FlowHub 对话</h1><p>助手已移到页面右下角。直接提问、连续追问，或从流程画布让助手解释和修改当前流程。消息与工具结果保存在同一段会话中。</p><button className="primary" onClick={openAssistant}>打开聊天助手</button><p>在聊天窗口中可查看历史、放大阅读或新建会话。日常使用无需切换到此页面。</p></section>}
           {page === "workflows" && (
             <>
               <PageHead
@@ -2018,7 +2023,7 @@ function App() {
                 </Badge>
                 <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"} · r{draft.revision}</span>
                 {draft.draft.executionRequirements?.requiresCodex&&<Badge>需要 Codex 宿主</Badge>}
-                <button onClick={()=>{setInspectorCollapsed(false);setInspectorTab("ai");}}>AI 助手</button>
+                <button onClick={openAssistant}>AI 助手</button>
                 <button
                   disabled={!undoCount || busy || jsonInvalid}
                   onClick={() => undoEdit()}
@@ -2415,8 +2420,8 @@ function App() {
                   </ReactFlow>
                 </div>
                 <aside className="inspector">
-                  <div className="actions"><button onClick={()=>setInspectorTab("properties")}>属性</button><button onClick={()=>setInspectorTab("ai")}>AI 助手</button></div>
-                  {inspectorTab==="ai" ? <AssistantPanel api={api} context={{workflowId:draft.id,revision:draft.revision,selectedNodeIds:selected?[selected]:[]}} dirty={dirty} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /> : <>
+                  <div className="actions"><span>节点属性</span><button onClick={openAssistant}>AI 助手</button></div>
+                  <>
                   <EditorTextContext.Provider
                     value={{
                       cache: jsonTextCache.current,
@@ -2730,7 +2735,7 @@ function App() {
                       <Empty text="选择节点，查看工具、参数映射和输出契约" />
                     )}
                   </EditorTextContext.Provider>
-                </>}
+                </>
                 </aside>
               </div>
               <TestingPanel api={api} workflowId={draft.id} revision={draft.revision} />
@@ -3168,7 +3173,7 @@ function App() {
                     <span className="error">{run.waitingReason}</span>
                   )}
                 </div>
-                <details className="panel"><summary>使用助手解释当前运行与选定证据</summary><AssistantPanel api={api} context={{workflowId:run.workflowId,runId:run.runId}} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /></details>
+                <section className="panel"><button onClick={openAssistant}>使用助手解释当前运行</button><p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p></section>
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
@@ -3582,6 +3587,17 @@ function App() {
           <small>本机工作空间 / 独立管理员</small>
         </footer>
       </main>
+      <FloatingAssistant
+        api={api}
+        context={assistantContext}
+        contextLabel={assistantContextLabel}
+        dirty={dirty}
+        openRequest={assistantOpenRequest}
+        workflows={workflows}
+        runs={runs}
+        onNavigate={navigate}
+        onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
+      />
       {modal && (
         <div
           className="modal-backdrop"

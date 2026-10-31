@@ -43,6 +43,7 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     app.post("/api/v2/assistant/sessions",async()=>data(application.assistant.session()));
     app.delete("/api/v2/assistant/sessions/:id",async req=>data(application.assistant.deleteSession((req.params as Json).id)));
     app.get("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.messagePage((req.params as Json).id,req.query)));
+    app.get("/api/v2/assistant/sessions/:id/conversation",async req=>data(application.assistant.conversationPage((req.params as Json).id,req.query)));
     app.get("/api/v2/assistant/sessions/:id/tasks",async req=>{
       const sessionId=(req.params as Json).id;application.assistant.messages(sessionId);
       return data(registry.repo.all("assistant_tasks").filter(t=>t.sessionId===sessionId).map(t=>application.assistant.task(t.id)));

@@ -16,6 +16,7 @@ export function requestedActions(text:string):string[] {
     for(const rawClause of sentence.split(/[，,。；;!！?？]|但是|不过|但|而是|\bbut\b/i)) {
       let clause=rawClause.trim();if(!clause)continue;
       if(/解释|说明|原理|如何|怎么|为什么|\b(?:explain|describe|how|why|what)\b/i.test(clause))continue;
+      if(/(?:给(?:我|个|出|一份|一个)?|提供|列出).{0,20}(?:方案|建议|思路)|(?:只|仅|先).{0,8}(?:方案|设计图)/.test(clause)&&!/(?:并|然后|接着)(?:保存|修改|应用|实现)/.test(clause))continue;
       const asking=question.test(clause)||(/[?？]/.test(sentence)&&sentence.trim().replace(/[?？]+$/,"").endsWith(clause));
       clause=clause.replace(/(?:dry|trial|test)[-\s]run|试运行|运行原理|运行模式|运行环境/gi," ");
       const occurrences=Object.entries(actionPatterns).flatMap(([action,pattern])=>[...clause.matchAll(pattern)].map(match=>({action,index:match.index!}))).sort((a,b)=>a.index-b.index);
