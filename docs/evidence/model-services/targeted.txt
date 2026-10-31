@@ -1,0 +1,13 @@
+✔ model endpoints normalize complete URLs across protocol changes without duplicate paths (0.762ms)
+✔ real model catalog uses saved Vault credentials, returns only metadata, and never changes profiles or leaks error bodies (161.091084ms)
+✔ catalog rejects redirects, malformed bodies and remains bounded by AbortSignal (57.604375ms)
+✔ model parameters require the exact official model page and absent fields stay unknown (1.038625ms)
+✔ public model documentation has a fixed official origin, no authentication, byte limits, caching and shutdown cancellation (46.0765ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 462.68625

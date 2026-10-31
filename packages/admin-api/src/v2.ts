@@ -32,6 +32,8 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   app.post("/api/v2/workflows/:id/publish",async req=>data(authoring.publish(arg(req))));
   app.post("/api/v2/workflows/:id/undo",async req=>data(authoring.undo(arg(req))));
   if(application) {
+    app.get("/api/v2/model-docs",async req=>data(await application.assistant.modelDocumentation(req.query)));
+    app.post("/api/v2/model-catalog",async req=>data(await application.assistant.modelCatalog(req.body)));
     app.get("/api/v2/model-profiles",async()=>data(application.assistant.profiles()));
     app.post("/api/v2/model-profiles",async req=>data(application.assistant.saveProfile(req.body)));
     app.patch("/api/v2/model-profiles/:id",async req=>data(application.assistant.saveProfile(req.body,(req.params as Json).id)));

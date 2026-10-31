@@ -169,3 +169,17 @@ S5–S7 尚未完成。
 `npm run check`、`npm test`（含build）均exit0，后台340/340；`npm run test:ui` exit0，36/36。新增真实临时daemon测试首次初始化、错误账号/密码、重启/加密数据保留、既有口令保护、会话及CSRF，以及真实浏览器默认登录。浏览器夹具首次从源码目录加载时项目根目录不匹配，已改用实际构建入口，未修改产品根路径逻辑。证据见evidence/default-admin/。
 
 已使用原持久化目录/端口18473干净重启本地daemon，并实际验证admin/admin登录、认证后读取流程、退出验证会话及health=ok；未清库、未push或发布。此次为源码/本地运行更新，前轮alpha.2归档包保留为原审计提交快照，未声称重新打包。
+
+## 模型服务与官方目录（2026-10-31）
+
+根据用户截图复现：Responses配置填入`/v1/chat/completions`，旧providerUrl会拼接为`/v1/chat/completions/responses`。已将Base URL/完整端点统一归一化，保留Responses和Chat Completions两套请求协议。
+
+新增模型服务选择：OpenAI（ChatGPT）自动填写官方Base URL，默认Responses；自定义兼容服务保留。新增受管理会话/CSRF保护的POST `/api/v2/model-catalog`，从当前Key获取真实可用ID/归属/创建/停用信息，前端搜索下拉、停用模型禁选、未知ID不默认为正确，Key/服务变化使目录失效，迟到回包不能替换新选择。新Key只在保存时加密入Vault，编辑可复用原Key，改变origin需提供新服务Key。
+
+新增GET `/api/v2/model-docs?model=...`，仅查询固定官方域名和精确模型ID的公开Markdown；不发送API Key、禁止重定向、10秒/256KiB预算、1小时/128项缓存。按精确Model ID核验后提取上下文、最大输入/输出、推理强度和Chat工具限制，附sourceUrl/contentHash/fetchedAt，未提供字段保留未知。没有静态抄录模型名称或参数。官方接口依据：https://developers.openai.com/api/reference/resources/models/methods/list ，官网参数依据：https://developers.openai.com/api/docs/models/gpt-6-luna 。
+
+错误分类增加模型不存在/Key无权限、错误端点、额度不足、参数不兼容；不回显服务端原始错误正文或Key。额度错误不作限流重试。前端探测卡片显示可操作的中文原因。
+
+实际验证：`npm run check` exit0；`npm test`（含build）345/345、0skip、114.6秒；`npm run test:ui`38/38、49秒；新增目录/官网参数定向5/5。初始UI夹具对option使用isDisabled断言及异步input→select切换等待不当已修正，实际disabled属性和下拉行为都有回归；初次失败保留。证据在evidence/model-services/，归档文本仅去ANSI及行尾空白。
+
+本地真实配置已以CAS将错误完整端点修正为官方Base URL，原Key引用不变，模型仍为gpt-6-luna。复用用户已配置Key的真实目录返回130个模型且包含该ID，官网参数查询成功；原文本/工具/流式三项均实际passed，结果已持久化。仅发送简短合成探测请求，不读取业务数据；这是最小连接验收，不替代30个真实自然语言业务场景评测。已重启原数据目录/18473服务，无push、merge或Release；没有重建前轮离线归档。

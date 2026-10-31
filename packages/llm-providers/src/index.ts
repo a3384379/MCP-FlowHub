@@ -5,13 +5,15 @@ export type ModelRequest={messages:Json[];tools:Json[];signal:AbortSignal;stream
 export interface ModelProvider { complete(request:ModelRequest):Promise<ModelTurn>; }
 export type ProviderFactory=(profile:Json,key:string)=>ModelProvider;
 
-export function providerUrl(baseUrl:string,kind:string) {
-  const url=new URL(baseUrl);
+export function providerBaseUrl(baseUrl:string) {
+  let url:URL;try{url=new URL(baseUrl);}catch{throw new HubError("INPUT_INVALID","Enter a valid model Base URL.");}
   ensure((url.protocol==="https:"||(url.protocol==="http:"&&["127.0.0.1","localhost","[::1]"].includes(url.hostname)))&&!url.username&&!url.password&&!url.search&&!url.hash,"INPUT_INVALID","Use an HTTPS provider URL, or an explicit loopback test URL.");
-  const suffix=kind==="openai_responses"?"responses":"chat/completions";
-  url.pathname=url.pathname.replace(/\/+$/,"");
-  if(!url.pathname.endsWith("/"+suffix))url.pathname+="/"+suffix;
-  return url.href;
+  url.pathname=url.pathname.replace(/\/+$/,"").replace(/\/(?:responses|chat\/completions)$/,"");
+  return url.href.replace(/\/+$/,"");
+}
+export function providerUrl(baseUrl:string,kind:string) {
+  ensure(["openai_responses","openai_compatible_chat"].includes(kind),"INPUT_INVALID","Unsupported model protocol.");
+  return providerBaseUrl(baseUrl)+"/"+(kind==="openai_responses"?"responses":"chat/completions");
 }
 function validateCalls(calls:ModelCall[]) {
   ensure(new Set(calls.map(c=>c.id)).size===calls.length,"TOOL_ARGUMENTS_INCOMPLETE","Duplicate tool call IDs.");
@@ -41,6 +43,33 @@ async function bodyJson(response:Response) {
   const result=new Uint8Array(bytes);let offset=0;for(const part of parts){result.set(part,offset);offset+=part.length;}
   try{return JSON.parse(new TextDecoder().decode(result)) as Json;}catch{throw new HubError("MODEL_OUTPUT_INVALID","Provider returned invalid JSON.");}
 }
+const safeProviderCodes=new Set(["model_not_found","invalid_api_key","insufficient_quota","billing_hard_limit_reached","permission_denied","unsupported_parameter","unsupported_value","invalid_request_error"]);
+export async function modelServiceFailure(response:Response,attempts=1):Promise<HubError> {
+  let body:Json;try{body=await bodyJson(response);}catch{body=null;}
+  const providerCode=safeProviderCodes.has(body?.error?.code)?body.error.code:null;
+  const parameter=["model","tools","stream","parallel_tool_calls","messages","input"].includes(body?.error?.param)?body.error.param:null;
+  const code=response.status===401||response.status===403?"MODEL_AUTH_FAILED":
+    providerCode==="model_not_found"?"MODEL_NOT_AVAILABLE":
+    ["insufficient_quota","billing_hard_limit_reached"].includes(providerCode)?"MODEL_QUOTA_EXCEEDED":
+    response.status===404?"MODEL_ENDPOINT_NOT_FOUND":response.status===429?"MODEL_RATE_LIMITED":
+    parameter==="tools"?"MODEL_UNSUPPORTED_TOOLS":response.status===400?"MODEL_INVALID_CONFIGURATION":"MODEL_REQUEST_FAILED";
+  return new HubError(code,"Model service rejected the request.",422,{status:response.status,providerCode,parameter,attempts});
+}
+export async function fetchModelCatalog(baseUrl:string,key:string,signal:AbortSignal) {
+  const endpoint=providerBaseUrl(baseUrl)+"/models";
+  const response=await fetch(endpoint,{headers:{Authorization:"Bearer "+key,Accept:"application/json"},signal,redirect:"error"});
+  if(!response.ok)throw await modelServiceFailure(response);
+  const result=await bodyJson(response);
+  ensure(Array.isArray(result.data)&&result.data.length<=10000,"MODEL_OUTPUT_INVALID","Invalid model catalog.");
+  const models=result.data.map((model:Json)=>{
+    ensure(typeof model?.id==="string"&&model.id.length>0&&model.id.length<=256,"MODEL_OUTPUT_INVALID","Invalid model identifier.");
+    return {id:model.id,ownedBy:typeof model.owned_by==="string"?model.owned_by.slice(0,160):null,
+      created:Number.isSafeInteger(model.created)&&model.created>=0&&model.created<=253402300799?model.created:null,
+      shutdownDate:typeof model.shutdown_date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(model.shutdown_date)?model.shutdown_date:null};
+  });
+  ensure(new Set(models.map((model:Json)=>model.id)).size===models.length,"MODEL_OUTPUT_INVALID","Duplicate model identifiers.");
+  return {models:models.sort((a:Json,b:Json)=>a.id.localeCompare(b.id)),endpoint,fetchedAt:new Date().toISOString()};
+}
 function cancelled(signal:AbortSignal):never {
   if(signal.reason instanceof HubError)throw signal.reason;
   throw new HubError("TASK_CANCELLED","Task cancelled.");
@@ -65,10 +94,10 @@ export class HttpModelProvider implements ModelProvider {
     for(let attempt=0;;attempt++) {
       response=await fetch(providerUrl(this.profile.baseUrl,this.profile.providerKind),{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+this.key},body:JSON.stringify(body),signal,redirect:"error"});
       if(response.ok)break;
-      await response.body?.cancel();
+      const failure=await modelServiceFailure(response,attempt+1);
       const raw=response.headers.get("retry-after"),retryMs=raw===null?250:/^\d+(?:\.\d+)?$/.test(raw)?Number(raw)*1000:Math.max(0,Date.parse(raw)-Date.now());
-      if(response.status===429&&attempt<2&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
-      throw new HubError(response.status===401||response.status===403?"MODEL_AUTH_FAILED":response.status===429?"MODEL_RATE_LIMITED":"MODEL_REQUEST_FAILED","Model service rejected the request.",422,{status:response.status,retryAfter:raw,attempts:attempt+1});
+      if(failure.code==="MODEL_RATE_LIMITED"&&attempt<2&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
+      throw failure;
     }
     if(!request.stream) {
       const data=await bodyJson(response);

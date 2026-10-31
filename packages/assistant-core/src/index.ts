@@ -1,8 +1,10 @@
 import { id, now, hash, ensure, validate, HubError, type Json } from "../../contracts/src/domain.js";
 import { TOOL_NAMES, inputContract } from "../../contracts/src/index.js";
 import type { Application } from "../../application/src/index.js";
-import { HttpModelProvider, providerUrl, type ProviderFactory, type ModelTurn } from "../../llm-providers/src/index.js";
+import { HttpModelProvider, providerUrl, providerBaseUrl, fetchModelCatalog, type ProviderFactory, type ModelTurn } from "../../llm-providers/src/index.js";
 import { requestedActions } from "../../contracts/src/assistant-intent.js";
+import { OPENAI_BASE_URL, modelServiceId, modelErrorHint } from "../../contracts/src/model-services.js";
+import { fetchOfficialModelDoc } from "../../llm-providers/src/model-docs.js";
 const active=new Set(["GENERATING","CALLING_TOOL"]);
 const readTools=["project_help_search","capability_search","capability_get","workflow_draft_get","workflow_search","workflow_get","workflow_status","artifact_read","workflow_test_status"];
 
@@ -19,6 +21,7 @@ function addUsage(before:Json,next:Json):Json {
 }
 export class AssistantCore {
   private closing=false;
+  private modelDocCache=new Map<string,Json>();
   private ensureOpen(){ensure(!this.closing,"SERVICE_STOPPING","The assistant is stopping.",503);}
   private jobs=new Map<string,Promise<void>>();
   private controllers=new Map<string,AbortController>();
@@ -33,12 +36,16 @@ export class AssistantCore {
   saveProfile(a:Json,profileId?:string) {
     this.ensureOpen();
     const {apiKey,expectedRevision,...value}=a;
-    validate({type:"object",required:["name","providerKind","baseUrl","model"],properties:{name:{type:"string",minLength:1,maxLength:160},providerKind:{enum:["openai_responses","openai_compatible_chat"]},baseUrl:{type:"string",maxLength:2048},model:{type:"string",minLength:1,maxLength:256},timeoutMs:{type:"integer",minimum:1000,maximum:300000},stream:{type:"boolean"},disabled:{type:"boolean"},limits:{type:"object",properties:{maxRounds:{type:"integer",minimum:1,maximum:12},maxToolCalls:{type:"integer",minimum:1,maximum:24},maxCorrectionAttempts:{type:"integer",minimum:1,maximum:3},taskTimeoutMs:{type:"integer",minimum:1000,maximum:300000}},additionalProperties:false}},additionalProperties:false},value);
+    validate({type:"object",required:["name","providerKind","baseUrl","model"],properties:{serviceId:{enum:["openai","custom"]},name:{type:"string",minLength:1,maxLength:160},providerKind:{enum:["openai_responses","openai_compatible_chat"]},baseUrl:{type:"string",maxLength:2048},model:{type:"string",minLength:1,maxLength:256},timeoutMs:{type:"integer",minimum:1000,maximum:300000},stream:{type:"boolean"},disabled:{type:"boolean"},limits:{type:"object",properties:{maxRounds:{type:"integer",minimum:1,maximum:12},maxToolCalls:{type:"integer",minimum:1,maximum:24},maxCorrectionAttempts:{type:"integer",minimum:1,maximum:3},taskTimeoutMs:{type:"integer",minimum:1000,maximum:300000}},additionalProperties:false}},additionalProperties:false},value);
+    value.baseUrl=providerBaseUrl(value.baseUrl);
+    value.serviceId??=modelServiceId(value.baseUrl);
+    ensure(value.serviceId!=="openai"||value.baseUrl===OPENAI_BASE_URL,"INPUT_INVALID","OpenAI uses https://api.openai.com/v1.");
     providerUrl(value.baseUrl,value.providerKind);
     ensure(apiKey===undefined || (typeof apiKey==="string"&&apiKey.length>=8&&apiKey.length<=8192),"INPUT_INVALID","Invalid API Key input.");
     return this.repo.tx(()=>{
       const before=profileId?this.repo.get("model_profiles",profileId):null;
       ensure(!profileId||(before&&before.revision===expectedRevision),"REVISION_CONFLICT","Model profile changed.",409);
+      ensure(!before?.secretRef||apiKey!==undefined||new URL(before.baseUrl).origin===new URL(value.baseUrl).origin,"MODEL_CREDENTIAL_SCOPE_MISMATCH","A new service origin needs its own API Key.");
       const identityChanged=!!before&&["providerKind","baseUrl","model"].some(key=>before[key]!==value[key])||apiKey!==undefined;
       const profile={...before,...value,id:profileId??id("model"),revision:(before?.revision??0)+1,timeoutMs:value.timeoutMs??before?.timeoutMs??180000,
         secretRef:apiKey?this.app.engine.vault.addSecret("Model API credential",apiKey).id:before?.secretRef??null,
@@ -46,6 +53,49 @@ export class AssistantCore {
       this.repo.put("model_profiles",profile.id,profile,before?.revision);
       return {...profile,keyConfigured:!!profile.secretRef};
     });
+  }
+  async modelCatalog(a:Json) {
+    this.ensureOpen();
+    validate({type:"object",required:["serviceId"],properties:{serviceId:{enum:["openai","custom"]},baseUrl:{type:"string",maxLength:2048},profileId:{type:"string",minLength:1,maxLength:256},expectedRevision:{type:"integer",minimum:1},apiKey:{type:"string",minLength:8,maxLength:8192}},additionalProperties:false},a);
+    const before=a.profileId?this.repo.get("model_profiles",a.profileId):null;
+    ensure(!a.profileId||before,"NOT_FOUND","Model profile missing.",404);
+    ensure(!before||a.expectedRevision===before.revision,"REVISION_CONFLICT","Model profile changed.",409);
+    const baseUrl=providerBaseUrl(a.baseUrl??(a.serviceId==="openai"?OPENAI_BASE_URL:before?.baseUrl??""));
+    ensure(a.serviceId!=="openai"||baseUrl===OPENAI_BASE_URL,"INPUT_INVALID","Use the official OpenAI Base URL.");
+    ensure(a.apiKey!==undefined||!before?.secretRef||new URL(before.baseUrl).origin===new URL(baseUrl).origin,"MODEL_CREDENTIAL_SCOPE_MISMATCH","A new service origin needs its own API Key.");
+    const key=a.apiKey??(before?.secretRef?this.app.engine.vault.secret(before.secretRef):null);
+    ensure(key,"MODEL_NOT_CONFIGURED","Configure a model API Key first.");
+    const catalogId=id("catalog"),controller=new AbortController(),timeout=AbortSignal.timeout(15000),signal=AbortSignal.any([controller.signal,timeout]);
+    this.controllers.set(catalogId,controller);
+    const job=(async()=>{try{
+      const catalog=await fetchModelCatalog(baseUrl,key,signal);
+      this.ensureOpen();
+      ensure(!before||this.repo.get("model_profiles",before.id)?.revision===before.revision,"REVISION_CONFLICT","Model profile changed while loading models.",409);
+      return {...catalog,serviceId:a.serviceId,docsUrl:a.serviceId==="openai"?"https://developers.openai.com/api/docs/models":null};
+    }catch(error){
+      if(controller.signal.aborted)throw new HubError("SERVICE_STOPPING","Model catalog request cancelled.",503);
+      if(timeout.aborted)throw new HubError("MODEL_TIMEOUT","Model catalog request timed out.");
+      if(error instanceof HubError)throw error;
+      throw new HubError("MODEL_CONNECTION_FAILED","Could not load the model catalog.");
+    }})().finally(()=>{this.controllers.delete(catalogId);this.jobs.delete(catalogId);});
+    this.jobs.set(catalogId,job.then(()=>{},()=>{}));return job;
+  }
+  async modelDocumentation(a:Json) {
+    this.ensureOpen();
+    validate({type:"object",required:["model"],properties:{model:{type:"string",pattern:"^[a-z0-9][a-z0-9._-]{0,127}$"}},additionalProperties:false},a);
+    const cached=this.modelDocCache.get(a.model);if(cached&&Date.now()-Date.parse(cached.fetchedAt)<3600000)return cached;
+    const jobId=id("model-doc"),controller=new AbortController(),timeout=AbortSignal.timeout(10000);
+    this.controllers.set(jobId,controller);
+    const job=(async()=>{try{
+      const result=await fetchOfficialModelDoc(a.model,AbortSignal.any([controller.signal,timeout]));this.ensureOpen();
+      if(this.modelDocCache.size>=128)this.modelDocCache.delete(this.modelDocCache.keys().next().value!);
+      this.modelDocCache.set(a.model,result);return result;
+    }catch(error){
+      if(controller.signal.aborted)throw new HubError("SERVICE_STOPPING","Documentation query cancelled.",503);
+      if(error instanceof HubError)throw error;
+      return {status:"unavailable",reason:timeout.aborted?"DOCUMENT_TIMEOUT":"DOCUMENT_CONNECTION_FAILED",fetchedAt:now(),sourceUrl:"https://developers.openai.com/api/docs/models/"+encodeURIComponent(a.model)};
+    }})().finally(()=>{this.controllers.delete(jobId);this.jobs.delete(jobId);});
+    this.jobs.set(jobId,job.then(()=>{},()=>{}));return job;
   }
   deleteProfile(profileId:string) {
     ensure(!this.repo.all("assistant_tasks").some(t=>t.modelProfileId===profileId&&active.has(t.status)),"PROFILE_IN_USE","An active task uses this profile.",409);
@@ -67,7 +117,7 @@ export class AssistantCore {
       const response=await provider.complete({messages:[{role:"user",content:kind==="tools"?"Call flowhub_probe with value ok.":"Reply ok."}],tools:kind==="tools"?[{name:"flowhub_probe",description:"Synthetic connection probe",parameters:{type:"object",properties:{value:{type:"string"}},required:["value"],additionalProperties:false}}]:[],signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)]),stream:kind==="stream"});
       const validProbe=response.calls.length===1&&response.calls[0]!.name==="flowhub_probe"&&hash(JSON.parse(response.calls[0]!.arguments))===hash({value:"ok"});
       results[kind]={status:kind==="tools"&&!validProbe?"unsupported":"passed",testedAt:now()};
-    }catch(e){results[kind]={status:"failed",errorCode:e instanceof HubError?e.code:"MODEL_CONNECTION_FAILED",testedAt:now()};}
+    }catch(e){const code=e instanceof HubError?e.code:"MODEL_CONNECTION_FAILED";results[kind]={status:"failed",errorCode:code,message:modelErrorHint(code),...(e instanceof HubError&&e.details?{httpStatus:e.details.status,providerCode:e.details.providerCode}:{}),testedAt:now()};}
     ensure(!controller.signal.aborted,"SERVICE_STOPPING","Model probe was cancelled because the assistant is stopping.",503);
     this.repo.put("model_profiles",profileId,{...profile,capabilities:results,lastTestAt:now(),revision:profile.revision+1},profile.revision);return results;
     })().finally(()=>{this.controllers.delete(probeId);this.jobs.delete(probeId);});
