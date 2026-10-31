@@ -1,0 +1,178 @@
+{
+  "scope": "Static design prototype only; synthetic fixtures",
+  "checks": [
+    "MCP list has six fixture services",
+    "Design and fixture scope clearly labeled",
+    "Chinese use case search",
+    "Original name search",
+    "Empty filtered state",
+    "Host only filter",
+    "Combined location and plugin filter",
+    "Plugin source filter",
+    "English original presentation toggle",
+    "Chinese preferred presentation toggle",
+    "MCP detail drawer",
+    "Raw tool identity retained",
+    "Catalog and execution verification separated",
+    "MCP related skills shown",
+    "Dependency and shared plugin shown separately",
+    "Technical JSON collapsed by default",
+    "Escape restores focus to opener",
+    "Skill list separate from MCP tools",
+    "Independent Skills not forced under an MCP",
+    "Skill dependency evidence visible",
+    "Skill belongs to plugin with provenance",
+    "Dialog focus wraps to last action",
+    "Dialog focus wraps to close control",
+    "No declared dependency kept distinct",
+    "Three plugin groups plus independent skill explanation",
+    "Navigating plugin to Skill to required MCP",
+    "Nested detail navigation restores original list focus",
+    "Connection and discovery issues separated",
+    "Unsupported plugin not labeled installed or ready",
+    "Chinese synchronization flow has three steps",
+    "Copyable translation task retains no-execution scope",
+    "Scan scope explains metadata versus tool sync",
+    "Scan action explicitly says prototype only",
+    "Tool sync explicitly says prototype only",
+    "No horizontal overflow 1366",
+    "No horizontal overflow 390",
+    "No horizontal overflow 320",
+    "Plugin groups no overflow at 320",
+    "Skill drawer no overflow at 320",
+    "No browser JavaScript errors",
+    "Only local prototype document GET requests; no API model or MCP requests"
+  ],
+  "dimensions": [
+    {
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "content": 1366
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "width": 320,
+      "height": 740,
+      "viewport": 320,
+      "content": 320
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:18481/preview.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:18481/preview.html"
+    }
+  ],
+  "productionChanges": false,
+  "realDiscoveryTested": false,
+  "realChineseSubmissionTested": false,
+  "verifiedAt": "2026-10-31T12:42:06.884979+00:00",
+  "baseline": "d0c0699",
+  "checkCount": 41,
+  "commands": [
+    "PATH=<Node24.19.0/npm11.9.0> bash ~/.codex/skills/playwright/scripts/playwright_cli.sh -s=discovery-design open http://127.0.0.1:18481/preview.html --config=/tmp/flowhub-chat-design-cli.json",
+    "playwright-cli -s=discovery-design run-code --filename=/tmp/flowhub-discovery-design-check.js",
+    "playwright-cli -s=discovery-design run-code --filename=/tmp/flowhub-discovery-design-final-captures.js"
+  ],
+  "exitCode": 0,
+  "limitations": [
+    "Static prototype interactions and layout only",
+    "No production build or application regression performed in this design-only task",
+    "No user Codex scan, business MCP call, or model request",
+    "Chinese metadata submission and source relationship parser changes are proposed, not implemented"
+  ],
+  "artifacts": {
+    "issues.png": {
+      "bytes": 161776,
+      "sha256": "def2ae137e7829b350e13a930016b3405f6fdf2057cbbdd943e1f371e515fa77"
+    },
+    "localization.png": {
+      "bytes": 252942,
+      "sha256": "f17612a7d9fe8f17285c16340ff2d34faea185ef74f626bff60f27b506302672"
+    },
+    "mcp-detail.png": {
+      "bytes": 238646,
+      "sha256": "d87f53dc2900cd9834b6aa0b1b4f75d431ca153f005861df334d441e47b1bef0"
+    },
+    "mcp-panel.png": {
+      "bytes": 83320,
+      "sha256": "81477d465b90dc7f0681aeea2435a1d6ee0b5fc91249ef696f7761cfb619b051"
+    },
+    "mobile-detail.png": {
+      "bytes": 64524,
+      "sha256": "9b266c44cecf0ba8f662cdbfde946af0f6ed542d210cebfd2ceeeeb602de259a"
+    },
+    "mobile.png": {
+      "bytes": 78949,
+      "sha256": "33bd0075c994416b1bb67878cd7faa6243ed02c2f92d6622713a11e45020acfc"
+    },
+    "overview.png": {
+      "bytes": 235781,
+      "sha256": "8fdda61bdabdfd5d6d6fa5339b9ea45ccc0e884920034ad02d624367b24c50f4",
+      "viewport": {
+        "width": 1440,
+        "height": 1240
+      }
+    },
+    "plugin-relations.png": {
+      "bytes": 208287,
+      "sha256": "ed53bed0f08db944b774791f1b22e2d749707fec46938eab811c2f4d1b4772e3",
+      "viewport": {
+        "width": 1440,
+        "height": 1320
+      }
+    },
+    "skill-detail.png": {
+      "bytes": 240020,
+      "sha256": "6d23189ef77e2e3104cd208c86ef746dc63057805529115f4510cdbc63960272"
+    },
+    "skill-panel.png": {
+      "bytes": 84103,
+      "sha256": "d57c50b76cdce15f0fba0b8fd29ddf5f36d4aacd19c6852dddfecce06773c5a4"
+    },
+    "skills.png": {
+      "bytes": 263841,
+      "sha256": "8caf064cb0c403802642cce8f75def7b5b9899aa3fa392ace3cd3e9211e8be17",
+      "viewport": {
+        "width": 1440,
+        "height": 1420
+      }
+    }
+  },
+  "prototypeSha256": "ebda51894f6d47ff89753896f81177ed93665b8cc72c8ca1b000a8e36f48ad4f",
+  "console": {
+    "messages": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "reproduction": [
+    "mkdir -p output/playwright/discovery-design",
+    "python3 -m http.server 18481 --bind 127.0.0.1 --directory docs/design/discovery-v2",
+    "PATH=/tmp/flowhub-v2-runtime/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:$PATH bash /Users/sqz/.codex/skills/playwright/scripts/playwright_cli.sh -s=discovery-design open http://127.0.0.1:18481/preview.html --config=/tmp/flowhub-chat-design-cli.json",
+    "playwright-cli -s=discovery-design run-code --filename=docs/design/discovery-v2/verify-prototype.js",
+    "playwright-cli -s=discovery-design run-code --filename=docs/design/discovery-v2/capture-design.js"
+  ],
+  "checkHistory": [
+    {
+      "result": "harness selector assertion failed",
+      "reason": "Exact getByText could not match text in a fact cell containing a nested label. Updated selector to inspect the fact grid; no product code issue.",
+      "message": "Catalog and execution verification separated"
+    },
+    {
+      "result": "passed",
+      "checks": 41,
+      "exitCode": 0
+    }
+  ]
+}

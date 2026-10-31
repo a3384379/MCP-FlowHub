@@ -49,16 +49,18 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
   const api=await authenticate(page),fixture=await discoveryFixture();
   try {
     const context=await openDiscovery(page,api,fixture),status=page.locator(".v2-discovery [role=status]");
-    await expect(status).toContainText("正在扫描");await expect(status).toContainText("SUCCEEDED");
-    await expect(page.locator(".v2-discovery .row").filter({hasText:fixture.skillName})).toContainText("codex_host");
-    await page.getByRole("button",{name:"连接并同步工具",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("SUCCEEDED");
+    await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
+    await page.getByRole("tab",{name:/Skills 技能/}).click(); await expect(page.locator(".d-cap-row").filter({hasText:fixture.skillName})).toContainText("仅 Codex 调用"); await page.getByRole("tab",{name:/MCP 服务/}).click();
+    await page.getByRole("button",{name:"同步工具目录",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
     const catalog=await api("/api/v2/capabilities?contextId="+context.id),direct=catalog.items.find((cap:any)=>cap.name==="synthetic_order_lookup"),skill=catalog.items.find((cap:any)=>cap.name===fixture.skillName);
     expect(direct).toMatchObject({executor:"hub_direct",availability:"ready",kind:"mcp_tool"});expect(skill).toMatchObject({executor:"codex_host",availability:"host_only",kind:"skill"});
-    const row=page.locator(".v2-discovery .row").filter({hasText:"synthetic_order_lookup"});
-    await row.getByRole("button",{name:"查看能力",exact:true}).click();
-    await expect(page.getByRole("heading",{name:"synthetic_order_lookup · 实际 Schema 与来源",exact:true})).toBeVisible();
-    await expect(page.locator(".v2-discovery pre")).toContainText('"orderNo"');
-    await expect(page.locator(".v2-discovery pre")).toContainText(direct.sourceRefs[0].sourceId);
+    await page.locator(".d-cap-row").filter({hasText:fixture.sourceName}).getByRole("button").click();
+    const drawer=page.getByRole("dialog");await drawer.locator(".d-tool-card").filter({hasText:"synthetic_order_lookup"}).getByRole("button",{name:"参数与结果",exact:true}).click();
+    await expect(drawer.getByRole("heading",{name:"synthetic_order_lookup",exact:true})).toBeVisible();
+    await drawer.getByText("原始说明与技术信息",{exact:true}).click();
+    await expect(drawer.locator("pre")).toContainText('"orderNo"');
+    await expect(drawer.locator("pre")).toContainText(direct.sourceRefs[0].sourceId);
+    await page.keyboard.press("Escape");
     expect(await readFile(fixture.mcpStarted,"utf8")).toContain("started");
     const invocations=(await readFile(fixture.calls,"utf8")).trim().split("\n").map(line=>JSON.parse(line));expect(invocations).toContainEqual(["mcp","list","--json"]);
 
@@ -115,12 +117,12 @@ test("UI-01: real discovery displays loading, complete empty, partial and regist
   const api=await authenticate(page),fixture=await discoveryFixture(false);
   try {
     await openDiscovery(page,api,fixture);const status=page.locator(".v2-discovery [role=status]");
-    await expect(status).toContainText("正在扫描");await expect(status).toContainText("SUCCEEDED");await expect(status).toContainText("来源覆盖：complete");
-    await expect(page.getByText("尚无匹配能力。MCP 工具 Schema 需要“连接并同步工具”。",{exact:true})).toBeVisible();
-    const sources=page.locator(".v2-discovery .panel").filter({has:page.getByRole("heading",{name:"来源与已安装组件",exact:true})});await expect(sources.locator("li")).toHaveCount(0);
-    await writeFile(join(fixture.home,"config.toml"),"[malformed TOML");await page.getByRole("button",{name:"重新扫描",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("PARTIAL");await expect(status).toContainText("来源覆盖：partial");
-    await expect(page.getByText("部分来源需要处理：CONFIG_PARSE_ERROR",{exact:true})).toBeVisible();await expect(page.getByText(/0\s*项已安装/)).toHaveCount(0);
+    await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");await expect(status).toContainText("来源覆盖：完整");
+    await expect(page.getByText("已扫描范围内没有MCP 服务。",{exact:true})).toBeVisible();
+    await expect(page.locator(".d-cap-row")).toHaveCount(0); await expect(page.locator(".d-stat").first()).toContainText("0");
+    await writeFile(join(fixture.home,"config.toml"),"[malformed TOML");await page.getByRole("button",{name:"重新扫描",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("部分完成");await expect(status).toContainText("来源覆盖：部分");
+    await page.getByRole("tab",{name:/需处理/}).click();await expect(page.getByRole("heading",{name:"配置格式无法解析",exact:true})).toBeVisible(); await expect(page.locator(".d-stat").first()).toContainText("未知");await expect(page.getByText(/0\s*项已安装/)).toHaveCount(0);
     await page.getByText("登记本机 Codex 上下文",{exact:true}).click();await page.getByLabel("Codex Home（留空使用默认）",{exact:true}).fill(join(fixture.root,"missing-home"));await page.getByRole("button",{name:"登记上下文",exact:true}).click();
-    await expect(page.locator(".v2-discovery [role=alert]")).toBeVisible();await expect(page.locator(".v2-discovery [role=alert]")).not.toBeEmpty();await expect(status).toContainText("PARTIAL");
+    await expect(page.locator(".v2-discovery [role=alert]")).toBeVisible();await expect(page.locator(".v2-discovery [role=alert]")).not.toBeEmpty();await expect(status).toContainText("部分完成");
   } finally {await rm(fixture.root,{recursive:true,force:true});}
 });
