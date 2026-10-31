@@ -149,6 +149,55 @@ const submission = (f: any, entries: any[], key: string) => ({
   idempotencyKey: key,
 });
 
+test("discovery issues identify the matching setup flow and source without exposing launch arguments or credentials", async (t) => {
+  const f = await setup(t),
+    path = join(f.home, "plugins/cache/market/dev/1/.mcp.json");
+  await writeFile(
+    path,
+    JSON.stringify({
+      mcpServers: {
+        refs: {
+          url: "https://synthetic.invalid/mcp",
+          bearer_token_env_var: "SYNTHETIC_AUTH",
+        },
+        manual: {
+          command: process.execPath,
+          args: ["--opaque-option", "DO_NOT_COPY_ARGUMENT"],
+        },
+        secretArg: {
+          command: process.execPath,
+          args: ["--token", "DO_NOT_COPY_SECRET"],
+        },
+        customHeader: {
+          url: "https://synthetic.invalid/mcp",
+          http_headers: { "X-API-Key": "DO_NOT_COPY_HEADER" },
+        },
+        pending: { url: "https://synthetic.invalid/mcp" },
+        hosted: { command: "synthetic-host-launcher" },
+      },
+    }),
+  );
+  await f.scan("issue-actions", "metadata");
+  const issues = f.app.registry.catalog.overview(f.context.id).issues;
+  const byName = (name: string) =>
+    issues.find((issue: any) => issue.name === name);
+  assert.equal(byName("refs").connectionSetup, "references");
+  assert.equal(byName("refs").executor, "hub_direct");
+  assert.equal(byName("manual").connectionSetup, "manual");
+  assert.equal(byName("secretArg").connectionSetup, "manual");
+  assert.equal(byName("customHeader").connectionSetup, "manual");
+  assert.equal(byName("hosted").connectionSetup, "host");
+  assert.equal(byName("pending").code, "CATALOG_NOT_SYNCED");
+  for (const issue of issues.filter((issue: any) => issue.entityId))
+    assert.equal(issue.source, path);
+  const serialized = JSON.stringify(issues);
+  assert.ok(!serialized.includes("DO_NOT_COPY_ARGUMENT"));
+  assert.ok(!serialized.includes("DO_NOT_COPY_SECRET"));
+  assert.ok(!serialized.includes("DO_NOT_COPY_HEADER"));
+  assert.equal(f.calls(), 0);
+  assert.equal(f.repo.all("connections").length, 0);
+});
+
 test("real source metadata distinguishes plugin ownership, declared dependencies, mentions and independent Skills", async (t) => {
   const f = await setup(t),
     job = await f.scan("relations");

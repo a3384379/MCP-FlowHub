@@ -31,6 +31,7 @@ import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { subscribeEvents } from "./shared/v2";
 import { mergeDraft } from "./shared/draft-merge";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
+import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
 import {
   ConnectionForm,
@@ -474,6 +475,12 @@ function App() {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [assistantOpenRequest,setAssistantOpenRequest]=useState(0);
   const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
+  useEffect(() => {
+    if (path !== "/assistant" || !session) return;
+    history.replaceState(history.state, "", "/workflows");
+    setPath("/workflows");
+    setAssistantOpenRequest(value => value + 1);
+  }, [path, session]);
   const savingRef=useRef(false);
   const [changedByAI,setChangedByAI]=useState<string[]>([]);
   const busyRef = useRef(busy);
@@ -618,6 +625,21 @@ function App() {
     setPath(next);
     setModal(null);
     setArtifact(null);
+  };
+  const manageDiscovery = (destination: DiscoveryDestination) => {
+    const name = destination.name || "新连接";
+    if (destination.type === "connection") {
+      navigate("/connections");
+      setModal({ type: "connection", title: "手动连接 · " + name,
+        sourceNotice: "来自 Codex 发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
+        payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
+      });
+    } else {
+      navigate("/settings");
+      setModal(destination.type === "unlock"
+        ? { type: "unlock", title: "解锁凭据库", password: "" }
+        : { type: "secret", title: "新增凭据", label: destination.name || "新凭据", value: "" });
+    }
   };
   useEffect(() => {
     history.replaceState({ ...history.state, flowhubIndex: 0 }, "");
@@ -1487,7 +1509,7 @@ function App() {
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
   const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
   const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
-  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+({editor:"流程编排",workflows:"工作流库",connections:"MCP 工具库",discovery:"Codex 发现",models:"模型设置",assistant:"AI 工作台",runs:"运行记录",settings:"接入设置",bindings:"环境与权限"} as J)[page];
+  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+({editor:"流程编排",workflows:"工作流库",connections:"MCP 工具库",discovery:"Codex 发现",models:"模型设置",runs:"运行记录",settings:"接入设置",bindings:"环境与权限"} as J)[page];
   if (!auth)
     return (
       <div className="login">
@@ -1610,7 +1632,6 @@ function App() {
             ["editor", "流程编排"],
             ["connections", "MCP 工具库"],
             ["discovery", "Codex 发现"],
-            ["assistant", "AI 工作台"],
             ["models", "模型设置"],
             ["bindings", "环境与权限"],
             ["runs", "运行记录"],
@@ -1677,7 +1698,7 @@ function App() {
                   bindings: "环境与权限",
                   runs: "运行记录",
                   settings: "接入设置",
-                  discovery:"Codex 发现",assistant:"AI 工作台",models:"模型设置",
+                  discovery:"Codex 发现",models:"模型设置",
                 } as J
               )[page]
             }
@@ -1708,9 +1729,8 @@ function App() {
               {notice}
             </div>
           )}
-          {page === "discovery" && <DiscoveryPage api={api} />}
+          {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
           {page === "models" && <ModelsPage api={api} />}
-          {page === "assistant" && <section className="panel assistant-workbench"><h1>与 FlowHub 对话</h1><p>助手已移到页面右下角。直接提问、连续追问，或从流程画布让助手解释和修改当前流程。消息与工具结果保存在同一段会话中。</p><button className="primary" onClick={openAssistant}>打开聊天助手</button><p>在聊天窗口中可查看历史、放大阅读或新建会话。日常使用无需切换到此页面。</p></section>}
           {page === "workflows" && (
             <>
               <PageHead
@@ -3618,6 +3638,7 @@ function App() {
                 ×
               </button>
             </div>
+            {modal.sourceNotice && <p className="banner">{modal.sourceNotice}</p>}
             {modal.type === "versions" ? (
               <>
                 <div className="actions">

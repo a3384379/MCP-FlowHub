@@ -175,6 +175,29 @@ async function setup(page: Page) {
     original,
     scan,
     seedChinese,
+    addIssues: async () => {
+      const path = join(plugin, ".mcp.json");
+      const config = JSON.parse(await readFile(path, "utf8"));
+      config.mcpServers["manual-" + suffix] = {
+        command: process.execPath,
+        args: ["--opaque-option", "SYNTHETIC_OPAQUE_VALUE"],
+      };
+      config.mcpServers["credential-" + suffix] = {
+        command: process.execPath,
+        args: [mcp],
+        env_vars: ["SYNTHETIC_AUTH"],
+      };
+      await writeFile(path, JSON.stringify(config));
+      await page.getByRole("button", { name: "重新扫描", exact: true }).click();
+      await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
+      await page.getByRole("tab", { name: /需处理/ }).click();
+      return {
+        path,
+        manual: "manual-" + suffix,
+        credential: "credential-" + suffix,
+        mcp,
+      };
+    },
     close: () => rm(root, { recursive: true, force: true }),
   };
 }
@@ -191,9 +214,13 @@ test("typed discovery uses real catalog, Chinese descriptions and evidenced plug
     await expect(page.locator(".d-stat").nth(2)).toContainText("1");
     await f.scan();
     await f.seedChinese();
-    await page.getByRole("textbox", { name: "搜索名称或用途" }).fill("研发协作插件");
+    await page
+      .getByRole("textbox", { name: "搜索名称或用途" })
+      .fill("研发协作插件");
     await expect(page.locator(".d-cap-row")).toHaveCount(1);
-    await expect(page.locator(".d-cap-row .d-source")).toContainText("研发协作插件");
+    await expect(page.locator(".d-cap-row .d-source")).toContainText(
+      "研发协作插件",
+    );
     await page
       .getByRole("textbox", { name: "搜索名称或用途" })
       .fill("测试订单");
@@ -250,6 +277,195 @@ test("typed discovery uses real catalog, Chinese descriptions and evidenced plug
     await expect(page.locator(".d-tree")).toContainText("代码审查");
     expect(await readFile(join(f.skill, "SKILL.md"), "utf8")).toBe(f.original);
     expect(errors).toEqual([]);
+  } finally {
+    await f.close();
+  }
+});
+
+test("issue actions open the matching manual connection and credential forms and complete real directory sync", async ({
+  page,
+}) => {
+  const f = await setup(page);
+  try {
+    const issue = await f.addIssues(),
+      original = await readFile(issue.path, "utf8");
+    const row = (name: string) =>
+      page
+        .locator(".d-issue")
+        .filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await row(issue.manual)
+      .getByRole("button", { name: "手动连接", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/connections$/);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByLabel("连接名称", { exact: true })).toHaveValue(
+      issue.manual,
+    );
+    await expect(dialog.getByLabel("传输方式", { exact: true })).toHaveValue(
+      "",
+    );
+    await dialog.getByLabel("传输方式", { exact: true }).selectOption("stdio");
+    await dialog
+      .getByLabel("绝对可执行文件路径", { exact: true })
+      .fill(process.execPath);
+    await dialog
+      .getByRole("button", { name: "添加命令参数", exact: true })
+      .click();
+    await dialog.getByLabel("命令参数 1", { exact: true }).fill(issue.mcp);
+    await dialog
+      .getByRole("checkbox", {
+        name: "我已核对程序和每项参数，获准启动该本机程序",
+      })
+      .check();
+    await dialog.getByRole("button", { name: "确认", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    const card = page
+      .locator(".connection-grid .panel")
+      .filter({
+        has: page.getByRole("heading", { name: issue.manual, exact: true }),
+      });
+    await card.getByRole("button", { name: "检测与同步", exact: true }).click();
+    await expect(card).toContainText("已验证协议");
+    expect(
+      (await f.api("/api/v1/connections")).find(
+        (c: any) => c.name === issue.manual,
+      ).tools.length,
+    ).toBeGreaterThan(0);
+    await page.goto("/discovery");
+    await page.getByRole("tab", { name: /需处理/ }).click();
+    await row(issue.credential)
+      .getByRole("button", { name: "配置凭据", exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog")
+        .getByRole("heading", { name: "选择本地凭据引用" }),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "解锁凭据库", exact: true })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "解锁凭据库", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByLabel("凭据库口令", { exact: true })
+      .fill("Synthetic-browser-password-041");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "确认", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.goto("/discovery");
+    await page.getByRole("tab", { name: /需处理/ }).click();
+    await row(issue.credential)
+      .getByRole("button", { name: "配置凭据", exact: true })
+      .click();
+    await page.getByRole("dialog").getByRole("button", { name: "添加凭据", exact: true }).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.getByLabel("凭据标签", { exact: true })).toHaveValue(issue.credential);
+    await page.getByLabel("凭据值", { exact: true }).fill("SYNTHETIC_SECRET_DO_NOT_DISPLAY");
+    await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.goto("/discovery");
+    await page.getByRole("tab", { name: /需处理/ }).click();
+    await row(issue.credential)
+      .getByRole("button", { name: "配置凭据", exact: true })
+      .click();
+    const secret = (await f.api("/api/v1/secrets")).find(
+      (s: any) => s.label === issue.credential,
+    );
+    await page
+      .getByRole("dialog")
+      .getByLabel("SYNTHETIC_AUTH", { exact: true })
+      .selectOption(secret.id);
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "保存连接引用", exact: true })
+      .click();
+    await expect(page.getByRole("dialog").getByRole("status")).toContainText(
+      "凭据引用已保存",
+    );
+    await page.keyboard.press("Escape");
+    await page
+      .getByRole("button", { name: "同步工具目录", exact: true })
+      .first()
+      .click();
+    await expect
+      .poll(
+        async () =>
+          (await f.catalog("mcp_server")).items.find(
+            (e: any) => e.name === issue.credential,
+          )?.availability,
+      )
+      .toBe("ready");
+    await expect(row(issue.credential)).toHaveCount(0);
+    expect(await readFile(issue.path, "utf8")).toBe(original);
+    expect(await page.locator("body").innerText()).not.toContain(
+      "SYNTHETIC_SECRET_DO_NOT_DISPLAY",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat", async ({
+  page,
+}) => {
+  const f = await setup(page);
+  try {
+    const issues = await f.addIssues();
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page
+      .getByRole("textbox", { name: "搜索名称或用途" })
+      .fill(issues.manual);
+    const row = page.locator(".d-issue");
+    await expect(row).toHaveCount(1);
+    await row.getByRole("button", { name: "处理说明", exact: true }).click();
+    await expect(page.getByRole("dialog")).toContainText(issues.path);
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "检查发现设置", exact: true })
+      .click();
+    await expect(page.locator("#discovery-settings")).toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(page.locator("#discovery-settings summary")).toBeFocused();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page
+      .getByRole("textbox", { name: "搜索名称或用途" })
+      .fill("no-such-issue");
+    await expect(
+      page.getByText("没有匹配的问题，试试其他名称或诊断代码。", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.goto("/assistant");
+    await expect(page).toHaveURL(/\/workflows$/);
+    await expect(
+      page.getByRole("button", { name: "AI 工作台", exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator(".assistant-workbench")).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "FlowHub 助手聊天窗口", exact: true }),
+    ).toBeVisible();
+    const session = await page
+      .getByRole("region", { name: "FlowHub 助手聊天窗口" })
+      .getAttribute("data-session-id");
+    await page
+      .getByRole("button", { name: "收起聊天窗口", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "打开 FlowHub 助手", exact: true })
+      .click();
+    await expect(
+      page.getByRole("region", { name: "FlowHub 助手聊天窗口" }),
+    ).toHaveAttribute("data-session-id", session!);
   } finally {
     await f.close();
   }

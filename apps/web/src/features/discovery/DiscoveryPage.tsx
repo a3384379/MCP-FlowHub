@@ -3,6 +3,12 @@ import { DiscoveryDetail } from "./DiscoveryDetail";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
 import { DiscoveryList, PluginRelations } from "./DiscoveryList";
 import { DiscoverySettings } from "./DiscoverySettings";
+import { DiscoveryIssues } from "./DiscoveryIssues";
+import {
+  issueAction,
+  type Issue,
+  type DiscoveryDestination,
+} from "./issue-actions";
 import { useDiscovery } from "./useDiscovery";
 import { Icon, issueLabels, type Api } from "./shared";
 import "./discovery.css";
@@ -13,18 +19,54 @@ const tabs = [
   ["plugin", "插件与关系"],
   ["issue", "需处理"],
 ];
-export function DiscoveryPage({ api }: { api: Api }) {
+export function DiscoveryPage({
+  api,
+  onManage,
+}: {
+  api: Api;
+  onManage: (destination: DiscoveryDestination) => void;
+}) {
   const d = useDiscovery(api),
     [english, setEnglish] = useState(false),
     [detailId, setDetailId] = useState(""),
     [help, setHelp] = useState(false),
     [concept, setConcept] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false),
+    [guide, setGuide] = useState<Issue | null>(null),
+    [detailMode, setDetailMode] = useState<"details" | "credentials">(
+      "details",
+    );
+  const settings = () => {
+    setGuide(null);
+    setSettingsOpen(true);
+    requestAnimationFrame(() => {
+      const element = document.getElementById("discovery-settings");
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      element?.querySelector<HTMLElement>("summary")?.focus();
+    });
+  };
+  const detail = (id: string, mode: "details" | "credentials" = "details") => {
+    setDetailMode(mode);
+    setDetailId(id);
+  };
+  const handleIssue = (issue: Issue) => {
+    const action = issueAction(issue);
+    if (action.type === "connection")
+      onManage({ type: "connection", name: issue.name });
+    else if (action.type === "credentials")
+      detail(issue.entityId, "credentials");
+    else if (action.type === "sync") void d.refresh("catalog");
+    else if (action.type === "rescan") void d.refresh();
+    else if (action.type === "settings") settings();
+    else setGuide(issue);
+  };
   const [drafts, setDrafts] = useState<Record<string, any>>({}),
     [copied, setCopied] = useState(false);
   const task = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     setDetailId("");
     setHelp(false);
+    setGuide(null);
   }, [d.contextId]);
   const count = (kind: string) =>
     d.catalog?.counts[kind === "issue" ? "issues" : kind] ?? "未知";
@@ -107,7 +149,8 @@ export function DiscoveryPage({ api }: { api: Api }) {
                     wsl: "WSL",
                   } as Record<string, string>
                 )[c.executionLocation] ?? c.executionLocation}{" "}
-                · {c.canonicalCwd.split(/[\\/]/).filter(Boolean).at(-1)} · {c.profile || "默认 Profile"}
+                · {c.canonicalCwd.split(/[\\/]/).filter(Boolean).at(-1)} ·{" "}
+                {c.profile || "默认 Profile"}
               </option>
             ))}
           </select>
@@ -134,6 +177,8 @@ export function DiscoveryPage({ api }: { api: Api }) {
         context={d.context}
         busy={d.busy}
         register={d.register}
+        expanded={settingsOpen}
+        onToggle={setSettingsOpen}
       />
       {d.error && (
         <div className="d-error" role="alert">
@@ -277,67 +322,29 @@ export function DiscoveryPage({ api }: { api: Api }) {
           aria-busy={d.loading}
         >
           {d.kind === "issue" ? (
-            <div className="d-issues">
-              {(d.catalog?.issues ?? [])
-                .filter((i: any) =>
-                  [i.name, i.code, issueLabels[i.code], i.source]
-                    .join(" ")
-                    .toLowerCase()
-                    .includes(d.query.toLowerCase()),
-                )
-                .map((issue: any, index: number) => (
-                  <article className="d-issue" key={index}>
-                    <Icon name="issue" />
-                    <div>
-                      <h3>
-                        {issue.name ||
-                          issueLabels[issue.code] ||
-                          "来源需要处理"}
-                      </h3>
-                      <p>{issueLabels[issue.code] ?? issue.code}</p>
-                      <details>
-                        <summary>查看来源与诊断代码</summary>
-                        <code>{issue.code}</code>
-                        <p>
-                          {issue.source || issue.sourceId || "当前本机上下文"}
-                        </p>
-                      </details>
-                    </div>
-                    {issue.entityId ? (
-                      <button onClick={() => setDetailId(issue.entityId)}>
-                        查看详情
-                      </button>
-                    ) : (
-                      <button
-                        disabled={d.busy}
-                        onClick={() => void d.refresh()}
-                      >
-                        重新扫描
-                      </button>
-                    )}
-                  </article>
-                ))}
-              {!d.catalog?.issues?.length && (
-                <div className="d-empty">
-                  {d.catalog?.scanId
-                    ? "当前快照没有需要处理的问题。"
-                    : "尚未扫描，问题数量未知。"}
-                </div>
-              )}
-            </div>
+            <DiscoveryIssues
+              issues={d.catalog?.issues ?? []}
+              query={d.query}
+              busy={d.busy}
+              scanned={!!d.catalog?.scanId}
+              onAction={handleIssue}
+              onDetail={detail}
+              onSettings={settings}
+              onGuide={setGuide}
+            />
           ) : d.items.length ? (
             d.kind === "plugin" ? (
               <PluginRelations
                 items={d.items}
                 english={english}
-                onDetail={setDetailId}
+                onDetail={detail}
                 api={api}
               />
             ) : (
               <DiscoveryList
                 items={d.items}
                 english={english}
-                onDetail={setDetailId}
+                onDetail={detail}
               />
             )
           ) : (
@@ -396,6 +403,11 @@ export function DiscoveryPage({ api }: { api: Api }) {
           id={detailId}
           api={api}
           english={english}
+          initialMode={detailMode}
+          onManage={(destination) => {
+            setDetailId("");
+            onManage(destination);
+          }}
           close={() => setDetailId("")}
           onNavigate={setDetailId}
           onChanged={() => d.load()}
@@ -404,6 +416,71 @@ export function DiscoveryPage({ api }: { api: Api }) {
           drafts={drafts}
           setDraft={changeDraft}
         />
+      )}
+      {guide && (
+        <DiscoveryDrawer
+          label="需处理 / 操作指引"
+          close={() => setGuide(null)}
+          footer={
+            <>
+              <button onClick={settings}>检查发现设置</button>
+              <button
+                className="primary"
+                disabled={d.busy}
+                onClick={() => {
+                  setGuide(null);
+                  void d.refresh();
+                }}
+              >
+                修正后重新扫描
+              </button>
+            </>
+          }
+        >
+          <h2 id="d-drawer-title">
+            {guide.displayName ||
+              guide.name ||
+              issueLabels[guide.code] ||
+              "来源需要处理"}
+          </h2>
+          <p>{issueLabels[guide.code] ?? guide.code}</p>
+          <p>{issueAction(guide).help}</p>
+          <ol className="d-localization-steps">
+            <li>
+              查看下方来源位置，在 Codex 中核对该 MCP、插件或 Skill
+              的配置；没有来源文件时，核对当前本机上下文。
+            </li>
+            <li>
+              {[
+                "CONFIG_PARSE_ERROR",
+                "SKILL_METADATA_INVALID",
+                "SKILL_DEPENDENCY_INVALID",
+              ].includes(guide.code)
+                ? "修正对应 TOML、JSON 或 YAML 的格式与字段；修改原文件后保存。"
+                : [
+                      "ambiguous",
+                      "HOST_SOURCE_AMBIGUOUS",
+                      "PLUGIN_VERSION_AMBIGUOUS",
+                    ].includes(guide.code)
+                  ? "确认实际启用的来源或插件版本，解决同名来源歧义；FlowHub 不会自动猜选。"
+                  : "确认服务或插件已启用，来源路径可读，服务地址或启动方式仍有效。"}
+            </li>
+            <li>
+              需要 FlowHub 独立调用时，在 MCP 工具库登记独立连接；仅 Codex
+              提供的能力使用宿主执行。
+            </li>
+            <li>
+              回到这里重新扫描；需要工具定义时再同步工具目录。扫描通过不等于业务执行已验证。
+            </li>
+          </ol>
+          <div className="d-detail-section">
+            <h3>来源位置</h3>
+            <p className="d-mono">
+              {guide.source || d.context?.codexHome || "当前本机上下文"}
+            </p>
+            <p className="d-mono">{guide.code}</p>
+          </div>
+        </DiscoveryDrawer>
       )}
       {help && (
         <DiscoveryDrawer

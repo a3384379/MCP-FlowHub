@@ -15,6 +15,7 @@ export const issueLabels: Record<string, string> = {
   CONFIG_PARSE_ERROR: "配置格式无法解析",
   SOURCE_UNREADABLE: "来源无法读取",
   CODEX_NOT_FOUND: "未找到 Codex",
+  EXECUTION_LOCATION_UNSUPPORTED: "当前上下文的运行位置与本机不一致",
   PLUGIN_MANIFEST_UNSUPPORTED: "插件清单格式暂不支持",
   PLUGIN_VERSION_AMBIGUOUS: "无法唯一确定插件版本",
   STATIC_RESOLUTION_PARTIAL: "当前使用静态配置，生效范围尚未完全确认",

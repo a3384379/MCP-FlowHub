@@ -10,6 +10,7 @@ import {
   type Api,
   type Entity,
 } from "./shared";
+import type { DiscoveryDestination } from "./issue-actions";
 
 type Form = {
   displayName: string;
@@ -38,6 +39,8 @@ export function DiscoveryDetail({
   snapshot,
   drafts,
   setDraft,
+  initialMode,
+  onManage,
 }: {
   id: string;
   api: Api;
@@ -49,6 +52,8 @@ export function DiscoveryDetail({
   snapshot: string;
   drafts: Record<string, Form>;
   setDraft: (id: string, value: Form | null) => void;
+  initialMode: "details" | "credentials";
+  onManage: (destination: DiscoveryDestination) => void;
 }) {
   const [entity, setEntity] = useState<Entity | null>(null),
     [tab, setTab] = useState("tools"),
@@ -100,6 +105,20 @@ export function DiscoveryDetail({
       .then(async (value) => {
         if (token !== generation.current) return;
         setEntity(value);
+        if (
+          initialMode === "credentials" &&
+          !value.stale &&
+          value.connectionSetup !== "manual" &&
+          value.executor === "hub_direct"
+        ) {
+          const values = await api("/secrets");
+          if (token !== generation.current) return;
+          setSecrets(values);
+          setRefs({});
+          setImportInline(false);
+          setEditing(false);
+          setCredentials(true);
+        }
         if (value.entityKind === "mcp_server") await loadTools(value);
       })
       .catch((e) => {
@@ -108,7 +127,7 @@ export function DiscoveryDetail({
     return () => {
       generation.current++;
     };
-  }, [id, snapshot]);
+  }, [id, snapshot, initialMode]);
   const form = drafts[id] ?? (entity ? formFor(entity) : null);
   const change = (key: keyof Form, value: string) => {
     if (form) setDraft(id, { ...form, [key]: value });
@@ -281,7 +300,18 @@ export function DiscoveryDetail({
             : "用于 Codex 流程"}
           <Icon name="chevron" />
         </button>
-      ) : entity.availability === "credentials_required" &&
+      ) : !entity.stale &&
+        (entity.connectionSetup === "manual" ||
+          entity.availability === "unsupported") &&
+        !entity.self ? (
+        <button
+          className="primary"
+          onClick={() => onManage({ type: "connection", name: entity.name })}
+        >
+          手动连接
+        </button>
+      ) : !entity.stale &&
+        entity.availability === "credentials_required" &&
         entity.executor === "hub_direct" ? (
         <button
           className="primary"
@@ -398,6 +428,7 @@ export function DiscoveryDetail({
                 <label key={name}>
                   {name}
                   <select
+                    aria-label={name}
                     value={refs[name] ?? ""}
                     onChange={(e) =>
                       setRefs({ ...refs, [name]: e.target.value })
@@ -420,7 +451,19 @@ export function DiscoveryDetail({
                 />
                 将来源配置中已有的内联凭据存入本地 Vault
               </label>
-              <a href="/settings">前往接入设置管理凭据</a>
+              <div className="d-actions">
+                <button
+                  onClick={() => onManage({ type: "vault", name: entity.name })}
+                >
+                  添加凭据
+                </button>
+                <button onClick={() => onManage({ type: "unlock" })}>
+                  解锁凭据库
+                </button>
+              </div>
+              {!secrets.length && (
+                <p>尚无可选凭据。先添加凭据，再返回此处选择对应引用。</p>
+              )}
               <button onClick={() => setCredentials(false)}>返回详情</button>
             </div>
           ) : importTarget ? (

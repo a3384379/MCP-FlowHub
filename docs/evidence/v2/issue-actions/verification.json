@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-31",
+  "scope": "Actionable discovery issues and removal of redundant assistant workbench",
+  "baseline": "1023c89",
+  "checks": [
+    {
+      "command": "npm run check",
+      "exitCode": 0
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 364,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "npm run test:ui",
+      "exitCode": 0,
+      "passed": 49,
+      "failed": 0
+    }
+  ],
+  "firstTargetedUI": {
+    "passed": 6,
+    "failed": 1,
+    "reason": "Credential select lacked explicit accessible label; fixed aria-label, final full browser suite passes."
+  },
+  "evidence": {
+    "backend": "backend.txt",
+    "ui": "ui.txt",
+    "check": "check.txt",
+    "initialFailure": "ui-first-failure.txt",
+    "desktop": "desktop.png",
+    "mobile": "mobile.png",
+    "localRuntime": "runtime.json"
+  },
+  "testIsolation": "Real daemon, SQLite, browser, official MCP SDK; temporary synthetic Codex/MCP configurations. No company business or paid model calls. CLI screenshot browser uses a separate temporary profile.",
+  "limitations": [
+    "Windows native acceptance not run",
+    "Real company MCP business permissions not exercised",
+    "Real model translation quality not tested"
+  ],
+  "delivery": {
+    "push": false,
+    "merge": false,
+    "release": false
+  }
+}

@@ -642,16 +642,6 @@
 .assistant-source header button {
   padding: 4px 7px;
 }
-.assistant-workbench {
-  max-width: 760px;
-  padding: 32px !important;
-}
-.assistant-workbench p {
-  max-width: 590px;
-}
-.assistant-workbench > button {
-  margin-top: 12px;
-}
 @keyframes assistant-pulse {
   50% {
     opacity: 0.35;

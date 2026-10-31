@@ -370,13 +370,25 @@ export class DiscoveryCatalog {
             : e.availability,
         entityId: e.id,
         name: e.name,
+        displayName: this.present(e).displayName,
+        executor: e.executor,
+        connectionSetup: e.connectionSetup,
+        source: e.locator?.path ?? e.path,
       })),
       ...stale.map((e) => ({
         code: "SOURCE_STALE",
         entityId: e.id,
         name: e.name,
+        source: e.locator?.path ?? e.path,
       })),
-      ...issues.filter((i: Json) => !represented.has(i.sourceId)),
+      ...issues
+        .filter((i: Json) => !represented.has(i.sourceId))
+        .map((issue: Json) => ({
+          ...issue,
+          ...(entities.some((e) => e.id === issue.sourceId)
+            ? { entityId: issue.sourceId }
+            : {}),
+        })),
     ];
     return {
       contextId,

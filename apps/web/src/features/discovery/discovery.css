@@ -617,9 +617,24 @@
 .d-issue > svg {
   color: #b58a46;
 }
-.d-issue > div {
+.d-issue > .d-issue-body {
   flex: 1;
   min-width: 0;
+}
+.d-issue .d-issue-help {
+  color: #526783;
+  line-height: 1.7;
+  max-width: 760px;
+}
+.d-issue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 370px;
+}
+.d-issue h3 {
+  overflow-wrap: anywhere;
 }
 .d-issue p {
   font-size: 12px;
@@ -1296,6 +1311,12 @@
   }
   .d-issue button {
     font-size: 11px;
+  }
+  .d-issue-actions {
+    flex-basis: 100%;
+    max-width: none;
+    justify-content: flex-start;
+    padding-left: 34px;
   }
   .d-issue p {
     font-size: 11px;

@@ -4,10 +4,14 @@ export function DiscoverySettings({
   context,
   busy,
   register,
+  expanded,
+  onToggle,
 }: {
   context: any;
   busy: boolean;
   register: (form: any, update?: boolean) => Promise<void>;
+  expanded: boolean;
+  onToggle: (open: boolean) => void;
 }) {
   const [form, setForm] = useState({
     codexHome: "",
@@ -31,7 +35,12 @@ export function DiscoverySettings({
       });
   }, [context?.id, context?.revision]);
   return (
-    <details className="d-settings">
+    <details
+      id="discovery-settings"
+      className="d-settings"
+      open={expanded}
+      onToggle={(e) => onToggle(e.currentTarget.open)}
+    >
       <summary>登记本机 Codex 上下文</summary>
       <p>
         只读取当前机器的配置。项目目录、Codex 版本与 Profile

@@ -125,7 +125,9 @@ export class CapabilityRegistry {
       const worker=async()=>{while(index<scan.sources.length){check();const source=scan.sources[index++]!;
         const sourceId="src_"+hash([context.id,source.sourceKey]).slice(0,24),prior=this.repo.get("capability_sources",sourceId),sourceFingerprint=hash(source.config),self=selfSource(source,this.identity),policy=sourcePolicy(source.config);
         const direct=!self&&!policy.unsupported&&!!(source.config.url||(isAbsolute(source.config.command??"")&&!/\$\{|\{\{/.test(JSON.stringify(source.config))));
+        const referenceCredentials=Object.keys(source.config.env_http_headers??{}).every(name=>name.toLowerCase()==="authorization")&&Object.entries(source.config.http_headers??{}).every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+/i.test(value));
         const value:Json={id:sourceId,contextId:context.id,contextRevision:context.revision,sourceKey:source.sourceKey,name:source.name,kind:source.kind,locator:source.locator,sourceChain:source.sourceChain,
+          connectionSetup:policy.credentialArgs||policy.embeddedUrl||policy.unsupported||!referenceCredentials?"manual":direct?"references":"host",
           enabled:source.enabled,sourceFingerprint,revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,
           self,executor:self?"informational":direct?"hub_direct":"codex_host",discovery:"metadata_only",installation:"installed",
           availability:!source.enabled?"disabled":policy.credentialArgs||policy.embeddedUrl?"credentials_required":policy.unsupported?"unsupported":policy.requiresCredentials?"credentials_required":"not_checked",credentialPolicyVersion:3,unsupportedReason:policy.unsupportedArgs?"LAUNCHER_ARGUMENTS_UNSUPPORTED":policy.unsupported?"SOURCE_CONFIGURATION_UNSUPPORTED":null,credentialVariables:policy.credentialVariables,discoveredAt:now(),stale:false};
