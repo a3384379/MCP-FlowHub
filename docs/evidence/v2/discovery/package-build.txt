@@ -1,0 +1,50 @@
+
+> mcp-flowhub@2.0.0-alpha.2 package:local
+> npm run build && node scripts/package.mjs
+
+
+> mcp-flowhub@2.0.0-alpha.2 build
+> npm run build:server && npm run build:web
+
+
+> mcp-flowhub@2.0.0-alpha.2 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 82 management paths.
+
+> mcp-flowhub@2.0.0-alpha.2 build:web
+> tsc -p apps/web/tsconfig.json && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 194 modules transformed.
+rendering chunks...
+computing gzip size...
+web-dist/index.html                   0.45 kB │ gzip:   0.35 kB
+web-dist/assets/index-kUpMcnz6.css   62.12 kB │ gzip:  13.05 kB
+web-dist/assets/index-DBA-iSeH.js   634.39 kB │ gzip: 196.72 kB
+
+[33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m node_modules/@xyflow/react/dist/esm/index.js:1:1 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m1 │[0m "use client"
+ [38;5;240m  │[0m ──────┬─────  
+ [38;5;240m  │[0m       ╰─────── module level directive may not be preserved
+ [38;5;240m  │[0m 
+ [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[38;5;246m───╯[0m
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 190ms
+added 96 packages in 1s
+Bundle verified: 6105 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{
+  "bundle": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-10-31T13-34-38-470Z",
+  "archive": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-10-31T13-34-38-470Z.tar.gz",
+  "archiveSha256": "104c18cd6e2e8f57c14bb16aec6709462bbd970513d73d4ef1c5736855857ecd",
+  "components": 96
+}

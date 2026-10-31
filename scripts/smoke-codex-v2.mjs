@@ -16,6 +16,8 @@ await writeFile(join(home,"config.toml"),[
   'command = '+tomlString(process.execPath),
   'args = ['+[resolve("dist/apps/daemon/src/cli.js"),"mcp","--stdio","--data-dir",dataDir].map(tomlString).join(",")+']',
 ].join("\n"));
+const skillRoot=join(home,"skills","local-review-report");await mkdir(skillRoot,{recursive:true});
+await writeFile(join(skillRoot,"SKILL.md"),"---\nname: local-review-report\ndescription: Format supplied results into a short report.\n---\nUse only supplied results. No script or business tool is required.\n");
 const child=spawn(codex,["app-server","--stdio"],{cwd:resolve("."),env:{...process.env,CODEX_HOME:home},stdio:["pipe","pipe","pipe"]});
 child.stderr.resume();let closed=false;
 const lines=createInterface({input:child.stdout});
@@ -47,6 +49,11 @@ try {
   const context=await daemon.application.registry.context({codexHome:home,cwd:resolve("."),codexPath:codex});
   const scan=await tool("host_scan",{contextId:context.id,depth:"metadata",idempotencyKey:"host-scan"});await daemon.application.registry.idle();
   assert.ok(["SUCCEEDED","PARTIAL"].includes((await tool("host_scan_status",{scanId:scan.scanId})).status));
+  const skill=(await tool("capability_search",{contextId:context.id,kind:"skill",query:"local-review-report"})).items.find(item=>item.name==="local-review-report");assert.ok(skill?.discovery);
+  const display=skill.discovery,originalRevision=skill.revision;
+  const translated=await tool("host_scan",{contextId:context.id,action:"submit_descriptions",expectedContextRevision:context.revision,idempotencyKey:"codex-chinese-description",entries:[{entityId:display.id,entityKind:display.entityKind,expectedSourceRevision:display.revision,sourceFingerprint:display.sourceFingerprint,expectedPresentationRevision:display.presentation.revision,locale:"zh-CN",displayName:"本地报告整理",summary:"整理输入结果，输出简短报告。",evidenceRefs:[display.evidenceRefs[0]]}]});assert.equal(translated.status,"descriptions_saved");
+  const localized=(await tool("capability_search",{contextId:context.id,kind:"skill",query:"整理输入结果"})).items.find(item=>item.id===skill.id);assert.ok(localized);assert.equal(localized.name,"local-review-report");assert.equal(localized.revision,originalRevision);assert.equal(localized.discovery.displayName,"本地报告整理");
+  stages.push({stage:"actual_codex_uploads_chinese_description",status:"PASS",entityId:display.id,originalName:localized.name,displayName:localized.discovery.displayName,presentationRevision:localized.discovery.presentation.revision});
   const created=await tool("workflow_draft_create",{workflowId:"codex-local-smoke",name:"真实宿主合成闭环",environment:"test",mode:"auto",template:"blank",idempotencyKey:"create"});
   const reportSchema={type:"object",properties:{reportMarkdown:{type:"string"},evidenceRefs:{type:"array",items:{type:"string"}}},required:["reportMarkdown","evidenceRefs"],additionalProperties:false};
   const changed=await tool("workflow_draft_patch",{workflowId:created.workflowId,expectedRevision:created.revision,idempotencyKey:"patch",operations:[{op:"add_node",nodeId:"report",nodeType:"report_template",title:"真实模板报告",config:{templateRef:"incident-markdown/v1",inputMappings:{},outputSchema:reportSchema}},{op:"disconnect",source:"input",target:"end",port:"next"},{op:"connect",source:"input",target:"report",port:"next"},{op:"connect",source:"report",target:"end",port:"next"}]});

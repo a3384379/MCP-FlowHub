@@ -1,0 +1,222 @@
+{
+  "codeHead": "02017ad",
+  "url": "http://127.0.0.1:18473",
+  "processId": 86040,
+  "health": "ok",
+  "integrity": "ok",
+  "schemaVersions": [
+    1,
+    2,
+    3
+  ],
+  "priorMigrationChecksumsUnchanged": true,
+  "preservedTableCount": 24,
+  "changedProtectedTables": [],
+  "protectedTablesBefore": {
+    "approvals": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "artifacts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "assistant_messages": {
+      "rows": 8,
+      "sha256": "d74068421fc687ebc84475d3c5a8a7e757d76c9dbfb53109ac0cf17d2dcbd00f"
+    },
+    "assistant_sessions": {
+      "rows": 1,
+      "sha256": "a0f009e1f7f284cc5ba9bc9f0c90054f64ddbbb2bd409f5a8be15c9b4c847aa6"
+    },
+    "assistant_tasks": {
+      "rows": 5,
+      "sha256": "ce39bf88afb69af87c8b098f855588e25434d301b5ce737f6d10a266568ada60"
+    },
+    "assistant_tool_calls": {
+      "rows": 3,
+      "sha256": "a54565eb323b2b61c53d294533e7e49975f86114b2b78de7c6182840e7095c8d"
+    },
+    "attempts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "authoring_commands": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "bindings": {
+      "rows": 4,
+      "sha256": "3fe609787d4d241af49bbfd95e01484d7af61347461f793acac48a8585af6ce3"
+    },
+    "capabilities": {
+      "rows": 62,
+      "sha256": "df85ec7ae445fc7f75c9f18c04e8e8a694afab3a9c4765464d9fc7b00dceda11"
+    },
+    "capability_revisions": {
+      "rows": 62,
+      "sha256": "9357db170ab9f095e261a604e7e5c903d8fd21bb487582c9c96327d81d0351e4"
+    },
+    "capability_sources": {
+      "rows": 73,
+      "sha256": "26e8ad242fb7ddbe0777bd2b901ca2b93d15d013e373392f44abac031baa6aec"
+    },
+    "clients": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "connections": {
+      "rows": 1,
+      "sha256": "5eb93e3c01de77db2057dee5204a1dbff9cd8cecfbedf0ce6f6b2e201c109913"
+    },
+    "discovery_jobs": {
+      "rows": 2,
+      "sha256": "2b9f0b2f9795ab0021532cd487281c5fda23920fd5cab30b68b690381ea85967"
+    },
+    "host_contexts": {
+      "rows": 1,
+      "sha256": "1e3fe950bfaadfa713fff587c68a0f4d06270a4077e52e9dbc20af178fbf0f4a"
+    },
+    "model_profiles": {
+      "rows": 1,
+      "sha256": "42963162e3e55192235885cd5efa3e7dac69c8e7a9ad7b7b18a877c786339d4b"
+    },
+    "runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "secrets": {
+      "rows": 1,
+      "sha256": "15614467635776b031f29f85d59b618d9760dfa4bbac031275897e0f9f47c13f"
+    },
+    "settings": {
+      "rows": 3,
+      "sha256": "9ea8300a6395935d8ce9cf3cdd344ce6a107259989e7e691069ea88e8eecd008"
+    },
+    "versions": {
+      "rows": 2,
+      "sha256": "58abbc05024fae0ec294d9a71ba4a3b6fe3a2c6062ac48c6bf2134ae5d54dde1"
+    },
+    "workflow_test_runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflow_test_suites": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflows": {
+      "rows": 2,
+      "sha256": "fc87eebaeb0ef0709c49b90bb19ad0d9d434ca23eed0f26d868ad71b25019a29"
+    }
+  },
+  "protectedTablesAfter": {
+    "approvals": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "artifacts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "assistant_messages": {
+      "rows": 8,
+      "sha256": "d74068421fc687ebc84475d3c5a8a7e757d76c9dbfb53109ac0cf17d2dcbd00f"
+    },
+    "assistant_sessions": {
+      "rows": 1,
+      "sha256": "a0f009e1f7f284cc5ba9bc9f0c90054f64ddbbb2bd409f5a8be15c9b4c847aa6"
+    },
+    "assistant_tasks": {
+      "rows": 5,
+      "sha256": "ce39bf88afb69af87c8b098f855588e25434d301b5ce737f6d10a266568ada60"
+    },
+    "assistant_tool_calls": {
+      "rows": 3,
+      "sha256": "a54565eb323b2b61c53d294533e7e49975f86114b2b78de7c6182840e7095c8d"
+    },
+    "attempts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "authoring_commands": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "bindings": {
+      "rows": 4,
+      "sha256": "3fe609787d4d241af49bbfd95e01484d7af61347461f793acac48a8585af6ce3"
+    },
+    "capabilities": {
+      "rows": 62,
+      "sha256": "df85ec7ae445fc7f75c9f18c04e8e8a694afab3a9c4765464d9fc7b00dceda11"
+    },
+    "capability_revisions": {
+      "rows": 62,
+      "sha256": "9357db170ab9f095e261a604e7e5c903d8fd21bb487582c9c96327d81d0351e4"
+    },
+    "capability_sources": {
+      "rows": 73,
+      "sha256": "26e8ad242fb7ddbe0777bd2b901ca2b93d15d013e373392f44abac031baa6aec"
+    },
+    "clients": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "connections": {
+      "rows": 1,
+      "sha256": "5eb93e3c01de77db2057dee5204a1dbff9cd8cecfbedf0ce6f6b2e201c109913"
+    },
+    "discovery_jobs": {
+      "rows": 2,
+      "sha256": "2b9f0b2f9795ab0021532cd487281c5fda23920fd5cab30b68b690381ea85967"
+    },
+    "host_contexts": {
+      "rows": 1,
+      "sha256": "1e3fe950bfaadfa713fff587c68a0f4d06270a4077e52e9dbc20af178fbf0f4a"
+    },
+    "model_profiles": {
+      "rows": 1,
+      "sha256": "42963162e3e55192235885cd5efa3e7dac69c8e7a9ad7b7b18a877c786339d4b"
+    },
+    "runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "secrets": {
+      "rows": 1,
+      "sha256": "15614467635776b031f29f85d59b618d9760dfa4bbac031275897e0f9f47c13f"
+    },
+    "settings": {
+      "rows": 3,
+      "sha256": "9ea8300a6395935d8ce9cf3cdd344ce6a107259989e7e691069ea88e8eecd008"
+    },
+    "versions": {
+      "rows": 2,
+      "sha256": "58abbc05024fae0ec294d9a71ba4a3b6fe3a2c6062ac48c6bf2134ae5d54dde1"
+    },
+    "workflow_test_runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflow_test_suites": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflows": {
+      "rows": 2,
+      "sha256": "fc87eebaeb0ef0709c49b90bb19ad0d9d434ca23eed0f26d868ad71b25019a29"
+    }
+  },
+  "backupFilename": "flowhub-1793453407785-backup_e7d09818-fb27-412c-9f78-88101201fa81.sqlite",
+  "backupVerified": true,
+  "existingAdminLogin": "passed",
+  "vaultLocked": false,
+  "newDiscoveryApiStatus": 200,
+  "userDataDirectoryUnchanged": true,
+  "rawUserDataCommitted": false,
+  "modelCalls": 0,
+  "businessToolCalls": 0,
+  "knowledgeIndexesRebuilt": true,
+  "vaultDefaultPasswordUnlock": "passed"
+}

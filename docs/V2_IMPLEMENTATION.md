@@ -189,3 +189,7 @@ S5–S7 尚未完成。
 实际验证：`npm run check` exit0；`npm test`（含build）345/345、0skip、114.6秒；`npm run test:ui`38/38、49秒；新增目录/官网参数定向5/5。初始UI夹具对option使用isDisabled断言及异步input→select切换等待不当已修正，实际disabled属性和下拉行为都有回归；初次失败保留。证据在evidence/model-services/，归档文本仅去ANSI及行尾空白。
 
 本地真实配置已以CAS将错误完整端点修正为官方Base URL，原Key引用不变，模型仍为gpt-6-luna。复用用户已配置Key的真实目录返回130个模型且包含该ID，官网参数查询成功；原文本/工具/流式三项均实际passed，结果已持久化。仅发送简短合成探测请求，不读取业务数据；这是最小连接验收，不替代30个真实自然语言业务场景评测。已重启原数据目录/18473服务，无push、merge或Release；没有重建前轮离线归档。
+
+## 2026-10-31 发现页分类与中文同步
+
+本地产品提交：097192d（关系/显示层/迁移/固定工具兼容）、02017ad（正式分类页/详情/关系/中文编辑）。D1-D4已完成，真实Codex中文上传与合成编排闭环通过；原数据保留及服务更新见 [实施记录](design/discovery-v2/实施记录.md)。无自动push、merge或Release。

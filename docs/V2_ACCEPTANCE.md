@@ -33,3 +33,7 @@ S7最终代码：check/build exit 0；后台225/225（78.5秒）、浏览器24/2
 macOS arm64离线候选2.0.0-alpha.1：package:local / test:package / verify:release均exit 0；包内Node独立启动、中文帮助、真实持久化编排、modern/legacy两种协议、个人21工具/旧身份7工具均通过。新增助手模块被篡改后完整性检查明确失败。首次包测试发现CLI真实路径入口和薄桥目录权限问题，均已修复并补回归；没有删测试绕过。最终本地提交后再次生成干净源码候选，最终路径与hash从artifacts/latest-package.json读取。
 
 S7当时104项矩阵为 **72 PASS / 26 PARTIAL / 6 UNVERIFIED**。PASS只对条目列明的合成或本机证据有效，不代表真实模型/企业/Windows验收；PARTIAL仍不可计为通过。30条真实目标模型评测全部UNVERIFIED，0次真实Provider调用。Windows原生构建/安装器/公司策略、真实企业MCP权限、现有Desktop会话授权仍未验证。没有运行会覆盖日常安装的安装器smoke。
+
+## 2026-10-31 Codex发现页与中文同步增量
+
+本轮限定发现目录、中文显示层及相关链路。check、后端363/363、浏览器47/47通过；实际本机Codex通过21工具目录、中文说明提交检索和编排/Mock/运行/报告闭环，模型回合0。实际本机原服务已更新，24张原配置与业务表hash一致，升级前备份验证通过。详细结果、原始失败与修正日志见 [发现页证据](evidence/v2/discovery/verification.json) 和 [实施记录](design/discovery-v2/实施记录.md)。未执行真实模型自然语言翻译质量、公司MCP与Windows原生验收。先前助手专项未提交审计材料保持原样，不将其开放问题算作本轮已修复。
