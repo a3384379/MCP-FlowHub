@@ -133,7 +133,7 @@
     },
     "workflow_start": {
       "title": "workflow_start inputSchema",
-      "description": "按指定已发布版本创建运行快照并立即返回句柄。不得接受环境、连接、凭证或策略覆盖。mode 必须与已发布版本允许的执行模式一致；auto 不绕过 Agent 或人工审批约束。",
+      "description": "按指定已发布版本创建运行快照并立即返回句柄。不得接受环境、连接、凭证或策略覆盖。mode 必须与已发布版本允许的执行模式一致；auto 不绕过 Agent 任务约束。",
       "type": "object",
       "properties": {
         "workflowId": {
@@ -197,7 +197,7 @@
           "maxLength": 128
         },
         "submission": {
-          "description": "只支持下述两个互斥提交类型。当前节点/检查点是否接受某类型由运行时判定；本字段不能审批 WAITING_APPROVAL。",
+          "description": "只支持下述两个互斥提交类型。当前节点/检查点是否接受某类型由运行时判定。",
           "oneOf": [
             {
               "title": "AgentResultSubmission",

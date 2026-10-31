@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/flowhub/schemas/workflow/v1",
   "title": "MCP FlowHub workflow design contract v1",
-  "description": "Machine-readable design draft, not a product implementation or a real-production approval. Strict workflow keys and a constrained schema subset. Graph semantics, reference dominance, approval binding, schema hashes, environment binding and permissions require separate domain validation.",
+  "description": "FlowHub constrained workflow schema. Graph semantics, references, schema hashes and environment bindings require domain validation.",
   "$comment": "The examples are MOCK ONLY. Unknown DSL/config keys are forbidden. Dictionary keys and literal JSON values are data. No remote schema retrieval is allowed.",
   "type": "object",
   "properties": {
@@ -28,10 +28,17 @@
       "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
     },
     "environment": {
-      "enum": ["production", "staging", "test"]
+      "enum": [
+        "production",
+        "staging",
+        "test"
+      ]
     },
     "mode": {
-      "enum": ["guided", "auto"]
+      "enum": [
+        "guided",
+        "auto"
+      ]
     },
     "tags": {
       "type": "array",
@@ -214,7 +221,12 @@
           "maxLength": 512
         },
         "format": {
-          "enum": ["date-time", "date", "uri", "uuid"]
+          "enum": [
+            "date-time",
+            "date",
+            "uri",
+            "uuid"
+          ]
         },
         "minItems": {
           "type": "integer",
@@ -235,7 +247,9 @@
           "type": "number"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "additionalProperties": false,
       "description": "Deliberately restricted JSON Schema subset for workflow input and agent output. External $ref, code, and arbitrary keywords are not accepted. Values under properties are schemas; values under const/examples are inert data.",
       "allOf": [
@@ -248,7 +262,10 @@
             }
           },
           "then": {
-            "required": ["properties", "additionalProperties"]
+            "required": [
+              "properties",
+              "additionalProperties"
+            ]
           }
         },
         {
@@ -260,7 +277,9 @@
             }
           },
           "then": {
-            "required": ["items"]
+            "required": [
+              "items"
+            ]
           }
         }
       ]
@@ -274,7 +293,9 @@
               "$ref": "#/$defs/jsonValue"
             }
           },
-          "required": ["value"],
+          "required": [
+            "value"
+          ],
           "additionalProperties": false
         },
         {
@@ -294,7 +315,10 @@
                       "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
                     }
                   },
-                  "required": ["source", "pointer"],
+                  "required": [
+                    "source",
+                    "pointer"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -313,13 +337,19 @@
                       "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
                     }
                   },
-                  "required": ["source", "nodeId", "pointer"],
+                  "required": [
+                    "source",
+                    "nodeId",
+                    "pointer"
+                  ],
                   "additionalProperties": false
                 }
               ]
             }
           },
-          "required": ["ref"],
+          "required": [
+            "ref"
+          ],
           "additionalProperties": false
         }
       ]
@@ -339,7 +369,11 @@
               "$ref": "#/$defs/mapping"
             }
           },
-          "required": ["op", "left", "right"],
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
           "additionalProperties": false
         },
         {
@@ -352,14 +386,20 @@
               "$ref": "#/$defs/mapping"
             }
           },
-          "required": ["op", "value"],
+          "required": [
+            "op",
+            "value"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
             "op": {
-              "enum": ["and", "or"]
+              "enum": [
+                "and",
+                "or"
+              ]
             },
             "args": {
               "type": "array",
@@ -370,7 +410,10 @@
               }
             }
           },
-          "required": ["op", "args"],
+          "required": [
+            "op",
+            "args"
+          ],
           "additionalProperties": false
         }
       ],
@@ -458,7 +501,12 @@
           "$ref": "#/$defs/dataSchema"
         }
       },
-      "required": ["kind", "instructions", "inputMappings", "outputSchema"],
+      "required": [
+        "kind",
+        "instructions",
+        "inputMappings",
+        "outputSchema"
+      ],
       "additionalProperties": false
     },
     "hostSkillConfig": {
@@ -533,43 +581,8 @@
           "$ref": "#/$defs/condition"
         }
       },
-      "required": ["expression"],
-      "additionalProperties": false
-    },
-    "approvalConfig": {
-      "type": "object",
-      "properties": {
-        "actionNodeId": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
-        },
-        "summary": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 2000
-        },
-        "approvalChannel": {
-          "const": "admin_ui"
-        },
-        "bindToResolvedArguments": {
-          "const": true
-        },
-        "invalidateOnArgumentChange": {
-          "const": true
-        },
-        "expiresAfterSeconds": {
-          "type": "integer",
-          "minimum": 30,
-          "maximum": 3600
-        }
-      },
       "required": [
-        "actionNodeId",
-        "summary",
-        "approvalChannel",
-        "bindToResolvedArguments",
-        "invalidateOnArgumentChange",
-        "expiresAfterSeconds"
+        "expression"
       ],
       "additionalProperties": false
     },
@@ -599,7 +612,11 @@
           "$ref": "#/$defs/dataSchema"
         }
       },
-      "required": ["templateRef", "inputMappings", "outputSchema"],
+      "required": [
+        "templateRef",
+        "inputMappings",
+        "outputSchema"
+      ],
       "additionalProperties": false
     },
     "endConfig": {
@@ -609,7 +626,9 @@
           "$ref": "#/$defs/mapping"
         }
       },
-      "required": ["resultRef"],
+      "required": [
+        "resultRef"
+      ],
       "additionalProperties": false
     },
     "node": {
@@ -633,7 +652,12 @@
               "$ref": "#/$defs/inputConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         },
         {
@@ -655,7 +679,12 @@
               "$ref": "#/$defs/mcpToolConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         },
         {
@@ -677,7 +706,12 @@
               "$ref": "#/$defs/agentTaskConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         },
         {
@@ -699,29 +733,12 @@
               "$ref": "#/$defs/conditionConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
-            },
-            "title": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 160
-            },
-            "type": {
-              "const": "approval"
-            },
-            "config": {
-              "$ref": "#/$defs/approvalConfig"
-            }
-          },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         },
         {
@@ -743,7 +760,12 @@
               "$ref": "#/$defs/reportTemplateConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         },
         {
@@ -765,7 +787,12 @@
               "$ref": "#/$defs/endConfig"
             }
           },
-          "required": ["id", "title", "type", "config"],
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
           "additionalProperties": false
         }
       ]
@@ -782,10 +809,18 @@
           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
         },
         "port": {
-          "enum": ["next", "true", "false"]
+          "enum": [
+            "next",
+            "true",
+            "false"
+          ]
         }
       },
-      "required": ["source", "target", "port"],
+      "required": [
+        "source",
+        "target",
+        "port"
+      ],
       "additionalProperties": false
     },
     "budgets": {
@@ -858,7 +893,11 @@
           "maxLength": 160
         },
         "environment": {
-          "enum": ["production", "staging", "test"]
+          "enum": [
+            "production",
+            "staging",
+            "test"
+          ]
         },
         "validationStatus": {
           "const": "MOCK_VERIFIED"
@@ -892,7 +931,10 @@
           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
         },
         "protocolEra": {
-          "enum": ["legacy", "modern"]
+          "enum": [
+            "legacy",
+            "modern"
+          ]
         },
         "credentialRef": {
           "type": "string",

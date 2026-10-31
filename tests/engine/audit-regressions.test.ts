@@ -123,15 +123,6 @@ async function complete(
     reason: "本机夹具回归测试",
     evidenceRefs: [log],
   });
-  if (queryNeeded) {
-    state = await wait(engine, started.runId, "WAITING_APPROVAL");
-    engine.approve(state.approval.id, {
-      decision: "approve",
-      expectedRevision: state.revision,
-      actionHash: state.approval.actionHash,
-      snapshotHash: state.snapshotHash,
-    });
-  }
   state = await wait(engine, started.runId, "WAITING_AGENT");
   const refs = state.artifacts.map((a: Json) => a.id);
   advance(engine, state, {
@@ -664,7 +655,7 @@ function gate() {
   return { enter, release, seen, blocked };
 }
 
-test("dispatch checks asynchronous revocation, cancellation, approval, deadlines and locked-vault result handling; production DB is serialized by connection", async (t) => {
+test("dispatch checks asynchronous revocation, cancellation, deadlines and locked-vault result handling; production DB is serialized by connection", async (t) => {
   const { d, api } = await fixture(t),
     engine = d.engine;
   let listGate: ReturnType<typeof gate> | undefined;
@@ -846,23 +837,8 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
     const tool = engine.repo
       .get("connections", connection.id)
       .tools.find((value: Json) => value.name === (query ? "query" : "read"));
-    const sourceApproval = w.nodes.find((n) => n.type === "approval")!;
     w.nodes = [
       { id: "input", title: "Input", type: "input", config: {} },
-      ...(query
-        ? [
-            {
-              id: "approval",
-              title: "Approve",
-              type: "approval",
-              config: {
-                ...sourceApproval.config,
-                actionNodeId: "call",
-                expiresAfterSeconds: seconds,
-              },
-            },
-          ]
-        : []),
       {
         id: "call",
         title: "Call",
@@ -890,16 +866,7 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
         },
       },
     ];
-    w.edges = query
-      ? [
-          { source: "input", target: "approval", port: "next" },
-          { source: "approval", target: "call", port: "next" },
-          { source: "call", target: "end", port: "next" },
-        ]
-      : [
-          { source: "input", target: "call", port: "next" },
-          { source: "call", target: "end", port: "next" },
-        ];
+    w.edges = [{ source: "input", target: "call", port: "next" }, { source: "call", target: "end", port: "next" }];
     return w;
   }
   function publish(w: Workflow) {
@@ -917,14 +884,6 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
       },
       owner,
     );
-  }
-  function approve(state: Json) {
-    return engine.approve(state.approval.id, {
-      decision: "approve",
-      expectedRevision: state.revision,
-      actionHash: state.approval.actionHash,
-      snapshotHash: state.snapshotHash,
-    });
   }
   try {
     for (const change of [
@@ -1018,14 +977,11 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
       q2 = workflow(secondBinding, true, 600);
     publish(q1);
     publish(q2);
-    const pending = [];
-    for (const w of [q1, q2, q1])
-      pending.push(await wait(engine, start(w).runId, "WAITING_APPROVAL"));
     const heldQueries = gate();
     queryGate = heldQueries;
     const beforeQueries = queryCalls;
     peak = 0;
-    for (const state of pending) approve(state);
+    const pending = [q1, q2, q1].map(w => start(w));
     await heldQueries.seen;
     await new Promise((resolve) => setTimeout(resolve, 80));
     assert.equal(
@@ -1043,50 +999,6 @@ test("dispatch checks asynchronous revocation, cancellation, approval, deadlines
     assert.equal(queryCalls - beforeQueries, 3);
     assert.equal(peak, 1);
     queryGate = undefined;
-    // Pending approval expiry is visible through status and restart recovery.
-    for (const recover of [false, true]) {
-      const run = start(q1),
-        waiting = await wait(engine, run.runId, "WAITING_APPROVAL");
-      const a = engine.repo.get("approvals", waiting.approval.id);
-      engine.repo.put("approvals", a.id, { ...a, expiresAt: Date.now() - 1 });
-      if (recover) engine.recover();
-      const expired = engine.status(run.runId);
-      assert.equal(expired.state, "FAILED");
-      assert.equal(expired.waitingReason, "CHECKPOINT_EXPIRED");
-      assert.equal(expired.approval.state, "EXPIRED");
-      const persisted = hash({
-        run: engine.repo.get("runs", run.runId),
-        approval: expired.approval,
-        events: engine.repo.events(run.runId),
-      });
-      assert.throws(() => approve(expired), { code: "APPROVAL_STALE" });
-      assert.equal(
-        hash({
-          run: engine.repo.get("runs", run.runId),
-          approval: engine.repo.get("approvals", a.id),
-          events: engine.repo.events(run.runId),
-        }),
-        persisted,
-      );
-      assert.throws(() => engine.resume(run.runId), { code: "STATE_INVALID" });
-    }
-    // Approval can also expire while discovery is in flight after a valid decision.
-    const late = await wait(engine, start(q1).runId, "WAITING_APPROVAL");
-    const heldApproval = gate();
-    listGate = heldApproval;
-    const callsBeforeExpiry = queryCalls;
-    approve(late);
-    await heldApproval.seen;
-    const approved = engine.repo.get("approvals", late.approval.id);
-    engine.repo.put("approvals", approved.id, {
-      ...approved,
-      expiresAt: Date.now() - 1,
-    });
-    heldApproval.release();
-    const stale = await wait(engine, late.runId, "FAILED");
-    assert.equal(stale.waitingReason, "APPROVAL_STALE");
-    assert.equal(queryCalls, callsBeforeExpiry);
-    assert.equal(stale.artifacts.length, 0);
     // Once actually dispatched, a vault lock prevents unsafe persistence and replay.
     const realBinding = await binding("read"),
       lockedWorkflow = workflow(realBinding);

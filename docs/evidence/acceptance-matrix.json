@@ -1,6 +1,6 @@
 {
   "date": "2026-10-29",
-  "scope": "Design-case matrix, independent of runner test counts. Original 45-runner/1-browser record is superseded by docs/evidence/REMEDIATION-2026-10-29.md and artifacts/remediation-verification.json; individual BLOCKED/UNVERIFIED cases remain unchanged. No claim of all 100 design cases passing.",
+  "scope": "Historical 2026-10-29 design-case matrix, superseded for current requirements by docs/04_测试验收与云端交付.md and docs/07_本次交付验证记录.md. Old approval and business-redaction expectations are retired. Historical statuses do not claim current acceptance.",
   "cases": [
     {
       "id": "ENV-01",

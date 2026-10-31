@@ -7,7 +7,7 @@
 - 只有 `flowhub serve` 持有 SQLite 和业务状态。STDIO 薄桥只转发，不启动 daemon、不写数据库。
 - 固定七工具：workflow_search、workflow_get、workflow_start、workflow_advance、workflow_status、workflow_cancel、artifact_read。
 - 新工作流只新增数据；禁止任意工具透传、shell/eval 节点、环境覆盖和模型自行批准。
-- V1 仅串行与互斥分支；WAITING_AGENT 与 WAITING_APPROVAL 分开；生产只读依赖真实服务端权限。
+- V1 仅串行与互斥分支；仅 WAITING_AGENT 宿主交接；不含人工审批节点或业务内容自动脱敏；生产只读依赖真实服务端权限。
 - 使用官方 SDK v2 协议适配；不自行实现现代/legacy 消息转换；认证失败不触发降级。
 - Node 24.19.0、npm 11.9.0、package-lock.json；依赖变动更新 docs/DEPENDENCY_BASELINE.md。
 - 用户已授权继续实现全部云端功能。S0 的开发范围限制已被本次授权取代；Windows/公司设备门禁保留为外部验收，不阻塞云端代码开发。

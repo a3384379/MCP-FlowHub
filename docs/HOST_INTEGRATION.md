@@ -7,7 +7,7 @@
 3. workflow_start 指定 mode/version/inputs/idempotencyKey。重试使用同键，不同内容必须新键。
 4. workflow_status 增量读取 events；等待时退避。只在 WAITING_AGENT 推进。
 5. workflow_advance 提交 runId/checkpointId/checkpointToken/expectedRevision/idempotencyKey/submission，只含当前输出 Schema 声明的字段。
-6. WAITING_APPROVAL 交由用户独立管理会话。模型执行令牌不能批准。
+6. Agent 提交通过后自动继续绑定的工具与报告节点，无人工审批。Web 启动时选择该受限宿主身份，不能使用其他 owner 的运行。
 7. artifact_read 按同 run artifactId 分块读取，offset 是 UTF-8 字节边界。
 8. OUTCOME_UNKNOWN 不重复外部动作；由管理员复核并建立带 retryOfRunId 的新运行。
 

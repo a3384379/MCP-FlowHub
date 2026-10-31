@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 const password = "Synthetic-browser-password-041";
-test("bootstrap, six pages, real flow canvas, save/validate, start and independent approval boundaries", async ({
+test("bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -46,7 +46,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and independe
   ).toBeVisible();
   await page.getByRole("button", { name: "工作流库", exact: true }).click();
   await page.getByRole("button", { name: "打开编排" }).nth(1).click();
-  await expect(page.locator(".react-flow__node")).toHaveCount(9);
+  await expect(page.locator(".react-flow__node")).toHaveCount(8);
   await page.getByRole("button", { name: "校验流程", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("后端校验通过");
   await page

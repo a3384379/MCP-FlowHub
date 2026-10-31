@@ -95,7 +95,7 @@ for (const env of ["production", "staging"])
   test(
     "complete " +
       env +
-      " guided MCP → Agent → independent approval → DB → report chain",
+      " guided MCP → Agent → DB → report chain",
     async (t) => {
       const { d, api, tool } = await fixture(t);
       const start = {
@@ -117,32 +117,6 @@ for (const env of ["production", "staging"])
       });
       await tool("workflow_advance", first);
       await tool("workflow_advance", first);
-      state = await wait(tool, r.runId, "WAITING_APPROVAL");
-      assert.equal(state.steps.db, "PENDING");
-      // Execution token cannot approve over the admin endpoint.
-      const bad = await fetch(
-        "http://127.0.0.1:" +
-          d.port +
-          "/api/v1/approvals/" +
-          state.approval.id +
-          "/decision",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        },
-      );
-      assert.equal(bad.status, 401);
-      const approved = await api(
-        "/approvals/" + state.approval.id + "/decision",
-        {
-          decision: "approve",
-          expectedRevision: state.revision,
-          actionHash: state.approval.actionHash,
-          snapshotHash: state.snapshotHash,
-        },
-      );
-      assert.equal(approved.status, 200);
       state = await wait(tool, r.runId, "WAITING_AGENT");
       assert.equal(state.checkpoint.nodeId, "synthesize");
       const dbRef = state.artifacts.find((a: Json) => a.nodeId === "db").id;
@@ -292,7 +266,7 @@ test("branch skips DB, evidence/Agent scope cannot be forged, CAS conflicts and 
     "CANCELLED",
   );
 });
-test("graph rejects cycles, parallel, environment override, missing approval and cross-branch dependency", async (t) => {
+test("graph rejects cycles, parallel, environment override, cross-branch dependency", async (t) => {
   const { d } = await fixture(t);
   const base = d.engine.repo.get("workflows", "incident-staging").draft;
   for (const mutate of [
@@ -848,75 +822,6 @@ test("publication and checkpoint adversarial regressions", async (t) => {
     },
   );
   await tool("workflow_advance", advance(state, payload));
-  state = await wait(tool, created.runId, "WAITING_APPROVAL");
-  await t.test(
-    "AGT-08 model approval submission cannot replace administrator",
-    async () => {
-      await assert.rejects(
-        tool("workflow_advance", {
-          ...advance(
-            { ...state, checkpoint: { id: "fake", token: "fake" } },
-            {},
-          ),
-          submission: { type: "agent_result", payload: { approved: true } },
-        }),
-        /REVISION_CONFLICT/,
-      );
-      assert.equal(
-        (await tool("workflow_status", { runId: created.runId })).state,
-        "WAITING_APPROVAL",
-      );
-    },
-  );
-  await t.test("AGT-09 stale approval action hash is refused", async () => {
-    const response = await api(
-      "/approvals/" + state.approval.id + "/decision",
-      {
-        decision: "approve",
-        expectedRevision: state.revision,
-        actionHash: "changed",
-        snapshotHash: state.snapshotHash,
-      },
-    );
-    assert.equal(response.status, 409);
-    assert.equal(
-      d.engine.repo
-        .all("attempts")
-        .filter((a) => a.runId === created.runId && a.nodeId === "db").length,
-      0,
-    );
-  });
-  await t.test("AGT-10 rejected approval remains terminal", async () => {
-    const response = await api(
-      "/approvals/" + state.approval.id + "/decision",
-      {
-        decision: "reject",
-        expectedRevision: state.revision,
-        actionHash: state.approval.actionHash,
-        snapshotHash: state.snapshotHash,
-      },
-    );
-    assert.equal(response.status, 200);
-    await assert.rejects(
-      tool("workflow_advance", {
-        ...advance(
-          { ...state, checkpoint: { id: "fake", token: "fake" } },
-          payload,
-        ),
-      }),
-      /REVISION_CONFLICT/,
-    );
-    assert.equal(
-      (await tool("workflow_status", { runId: created.runId })).state,
-      "REJECTED",
-    );
-    assert.equal(
-      d.engine.repo
-        .all("attempts")
-        .filter((a) => a.runId === created.runId && a.nodeId === "db").length,
-      0,
-    );
-  });
   await t.test(
     "SEC-05 externally registered Mock can never become BINDING_VERIFIED",
     async () => {
@@ -1007,4 +912,103 @@ test("publication and checkpoint adversarial regressions", async (t) => {
       );
     },
   );
+});
+
+test("Web-created guided run is owned by the selected restricted host and retains revocation/isolation", async (t) => {
+  const { d, api, dataDir } = await fixture(t);
+  const client = await api("/clients", { label: "Scoped Codex", workflowAllowlist: ["incident-staging"] });
+  const owner = client.data.id;
+  const host = createClient("modern");
+  t.after(() => host.close());
+  await host.connect(localHttpTransport(new URL("http://127.0.0.1:" + d.port + "/mcp"),
+    await readFile(join(dataDir, client.data.tokenFile), "utf8")));
+  const started = await api("/runs", { workflowId: "incident-staging", version: "1.0.0", mode: "guided", inputs,
+    clientId: owner, idempotencyKey: crypto.randomUUID() });
+  assert.equal(started.status, 200);
+  const runId = started.data.runId;
+  let state: Json;
+  for (let i = 0; i < 200; i++) {
+    state = d.engine.status(runId, owner);
+    if (state.state === "WAITING_AGENT") break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  assert.equal(state.checkpoint.nodeId, "plan");
+  assert.throws(() => d.engine.status(runId), { code: "WORKFLOW_NOT_AVAILABLE" });
+  assert.throws(() => d.engine.status(runId, "other-host"), { code: "WORKFLOW_NOT_AVAILABLE" });
+  const denied = await api("/runs", { workflowId: "incident-production", version: "1.0.0", mode: "guided", inputs,
+    clientId: owner, idempotencyKey: crypto.randomUUID() });
+  assert.equal(denied.status, 404);
+  const accepted = await host.callTool({ name: "workflow_advance", arguments: advance(state, {
+    queryNeeded: false, orderNo: inputs.orderNo, reason: "合成日志已足够", evidenceRefs: [state.artifacts[0].id],
+  }) });
+  assert.notEqual(accepted.isError, true);
+  for (let i = 0; i < 200; i++) {
+    state = d.engine.status(runId, owner);
+    if (state.checkpoint?.nodeId === "synthesize") break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  const refs = state.artifacts.map((a: Json) => a.id);
+  assert.notEqual((await host.callTool({ name: "workflow_advance", arguments: advance(state, {
+    summary: "完整合成分析", findings: [{ statement: "合成日志分析", kind: "hypothesis", evidenceRefs: refs }], nextActions: ["复查"], evidenceRefs: refs,
+  }) })).isError, true);
+  for (let i = 0; i < 200; i++) {
+    state = d.engine.status(runId, owner);
+    if (state.checkpoint?.nodeId === "report") break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  assert.notEqual((await host.callTool({ name: "workflow_advance", arguments: {
+    ...advance(state, {}), submission: { type: "host_skill_unavailable", useDeclaredFallback: true },
+  } })).isError, true);
+  for (let i = 0; i < 200; i++) {
+    state = d.engine.status(runId, owner);
+    if (state.state === "SUCCEEDED") break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  assert.equal(state.state, "SUCCEEDED");
+  await api("/clients/" + owner + "/revoke", {});
+  assert.throws(() => d.engine.start({ workflowId: "incident-staging", version: "1.0.0", mode: "guided", inputs,
+    idempotencyKey: crypto.randomUUID() }, owner), { code: "WORKFLOW_NOT_AVAILABLE" });
+});
+
+test("legacy migration backs up and copies draft/publication; recovery retires waiting runs and preserves history", async (t) => {
+  const { d, api, dataDir } = await fixture(t);
+  const repo = d.engine.repo, source = repo.get("workflows", "incident-staging");
+  const legacy = structuredClone(source.draft);
+  legacy.nodes.push({ id: "legacy-gate", title: "legacy", type: "approval", config: { actionNodeId: "db" } });
+  legacy.edges.find((e: Json) => e.target === "db").target = "legacy-gate";
+  legacy.edges.push({ source: "legacy-gate", target: "db", port: "next" });
+  source.draft = legacy;
+  repo.put("workflows", source.id, source);
+  const version = repo.get("versions", source.id + "@1.0.0");
+  version.snapshot.workflow = legacy;
+  version.snapshotHash = "sha256:" + hash(version.snapshot);
+  repo.put("versions", version.id, version);
+  const before = hash({ source, version });
+  repo.insert("runs", "legacy-waiting", { id: "legacy-waiting", owner: "execution", state: "WAITING_APPROVAL",
+    workflowId: source.id, version: "1.0.0", snapshot: version.snapshot, snapshotHash: version.snapshotHash,
+    current: "legacy-gate", steps: { "legacy-gate": "WAITING_APPROVAL" }, revision: 1, createdAt: new Date().toISOString() });
+  repo.insert("approvals", "legacy-record", { id: "legacy-record", runId: "legacy-waiting", state: "PENDING" });
+  const migrated = await api("/workflows/" + source.id + "/migrate-legacy", {
+    targetId: "legacy-migrated-copy", expectedRevision: source.revision, sourceVersion: "1.0.0",
+  });
+  assert.equal(migrated.status, 200, JSON.stringify(migrated));
+  assert.equal(migrated.data.published, false);
+  assert.equal(migrated.data.draft.defaultVersion, null);
+  assert.equal(migrated.data.draft.draft.nodes.some((n: Json) => n.type === "approval"), false);
+  assert.equal(hash({ source: repo.get("workflows", source.id), version: repo.get("versions", version.id) }), before);
+  assert.ok((await readFile(migrated.data.backup)).byteLength > 0);
+  await assert.rejects(async () => d.engine.start({ workflowId: source.id, version: "1.0.0", mode: "guided", inputs,
+    idempotencyKey: crypto.randomUUID() }));
+  // Simulate an interrupted old installation whose seed completion marker is absent.
+  repo.remove("settings", "seeded");
+  await d.close();
+  const restarted = await startDaemon({ dataDir, port: 0 });
+  try {
+    assert.equal(restarted.engine.status("legacy-waiting").state, "CANCELLED");
+    assert.equal(restarted.engine.status("legacy-waiting").waitingReason, "LEGACY_WORKFLOW_RETIRED");
+    assert.equal(restarted.engine.repo.get("approvals", "legacy-record").state, "PENDING");
+    assert.equal(hash(restarted.engine.repo.get("versions", version.id)), hash(version));
+    const backups = await import("node:fs/promises").then(fs => fs.readdir(join(dataDir, "backups")));
+    assert.ok(backups.some(file => file.startsWith("pre-legacy-retirement-")));
+  } finally { await restarted.close(); }
 });

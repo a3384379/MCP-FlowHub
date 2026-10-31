@@ -131,7 +131,7 @@ test("SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-rou
       body: '{"approved":true}',
     },
   );
-  assert.equal(approve.status, 401);
+  assert.equal(approve.status, 404);
   if (process.platform !== "win32") {
     assert.equal(
       (await stat(join(dataDir, "execution-token"))).mode & 0o777,

@@ -29,7 +29,7 @@ const expectedTools = [
 ];
 const expectedNodes = [
   'input', 'mcp_tool', 'agent_task', 'condition',
-  'approval', 'report_template', 'end',
+  'report_template', 'end',
 ];
 const counts = { positive: 0, negative: 0, failed: 0 };
 const has = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
@@ -280,9 +280,6 @@ function checkGraph(workflow, catalog, { realPublication = false } = {}) {
       destinations.forEach(pointerSegments);
       destinations.forEach((left, i) => destinations.slice(i + 1).forEach(right => requireThat(!pathOverlap(left, right), 'OVERLAPPING_MAPPING', 'Parent/child destinations overlap')));
     }
-    if (node.type === 'approval') {
-      requireThat(nodes.get(node.config.actionNodeId)?.type === 'mcp_tool', 'APPROVAL_TARGET', 'Approval must name an MCP tool node');
-    }
     if (node.type !== 'mcp_tool') continue;
     const binding = byBinding.get(workflow.bindings[node.config.bindingKey]);
     requireThat(Boolean(binding), 'BINDING_MISSING', 'Unknown binding role/ref');
@@ -296,8 +293,6 @@ function checkGraph(workflow, catalog, { realPublication = false } = {}) {
       for (const locked of Object.keys(binding.lockedArguments)) requireThat(!pathOverlap(destination, locked), 'LOCKED_ARGUMENT', 'A mapping overlaps locked environment/resource routing');
     }
     if (node.config.bindingKey === 'db') {
-      const approvals = workflow.nodes.filter(a => a.type === 'approval' && a.config.actionNodeId === node.id);
-      requireThat(approvals.some(a => dominators.get(node.id).has(a.id)), 'APPROVAL_REQUIRED', 'Every DB path must pass its specific approval');
       requireThat(equal(node.config.argumentsMappings['/templateId'], { value: 'order-by-number-v1' }), 'TEMPLATE_LOCKED', 'Fixture DB query template must be fixed');
     }
   }
@@ -449,23 +444,19 @@ try {
   mutateWorkflow('unsupported condition operator', w => { w.nodes[3].config.expression.op = 'eval'; });
   mutateWorkflow('invalid version string', w => { w.version = 'latest'; });
   mutateWorkflow('remote data-schema ref', w => { w.inputSchema.$ref = 'https://example.invalid/schema'; });
-  mutateWorkflow('model approval channel', w => { w.nodes[4].config.approvalChannel = 'mcp'; });
+  mutateWorkflow('removed approval node rejected', w => { w.nodes[4].type = 'approval'; });
   mutateWorkflow('invalid environment value', w => { w.environment = 'production2'; });
   mutateWorkflow('duplicate node id', w => { w.nodes.push(copy(w.nodes[0])); }, 'DUPLICATE_NODE', true);
   mutateWorkflow('cross-environment binding', w => { w.environment = 'staging'; }, 'ENVIRONMENT', true);
-  mutateWorkflow('DB path bypasses approval', w => {
-    w.edges.find(e => e.source === 'need_db' && e.port === 'true').target = 'db';
-    w.edges.find(e => e.source === 'need_db' && e.port === 'false').target = 'approval';
-  }, 'APPROVAL_REQUIRED', true);
-  mutateWorkflow('optional DB used as required ref', w => { w.nodes[6].config.inputMappings['/db'] = { ref: { source: 'node', nodeId: 'db', pointer: '' } }; }, 'REFERENCE_DOMINANCE', true);
+  mutateWorkflow('optional DB used as required ref', w => { w.nodes.find(n => n.id === 'synthesize').config.inputMappings['/db'] = { ref: { source: 'node', nodeId: 'db', pointer: '' } }; }, 'REFERENCE_DOMINANCE', true);
   mutateWorkflow('auto contains agent checkpoint', w => { w.mode = 'auto'; }, 'MODE', true);
   mutateWorkflow('tool outside binding allowlist', w => { w.nodes[1].config.toolName = 'delete_logs'; }, 'TOOL_ALLOWLIST', true);
-  mutateWorkflow('query template is changed', w => { w.nodes[5].config.argumentsMappings['/templateId'] = { value: 'unapproved-template' }; }, 'TEMPLATE_LOCKED', true);
-  mutateWorkflow('environment override mapping', w => { w.nodes[5].config.argumentsMappings['/environment'] = { value: 'staging' }; }, 'LOCKED_ARGUMENT', true);
-  mutateWorkflow('prototype destination path', w => { w.nodes[5].config.argumentsMappings['/__proto__/admin'] = { value: true }; }, 'PROTOTYPE_PATH', true);
+  mutateWorkflow('query template is changed', w => { w.nodes.find(n => n.id === 'db').config.argumentsMappings['/templateId'] = { value: 'unapproved-template' }; }, 'TEMPLATE_LOCKED', true);
+  mutateWorkflow('environment override mapping', w => { w.nodes.find(n => n.id === 'db').config.argumentsMappings['/environment'] = { value: 'staging' }; }, 'LOCKED_ARGUMENT', true);
+  mutateWorkflow('prototype destination path', w => { w.nodes.find(n => n.id === 'db').config.argumentsMappings['/__proto__/admin'] = { value: true }; }, 'PROTOTYPE_PATH', true);
   mutateWorkflow('cycle', w => { w.edges.find(e => e.source === 'report').target = 'log'; }, 'CYCLE', true);
   mutateWorkflow('parallel branch', w => { w.edges.push({ source: 'log', target: 'synthesize', port: 'next' }); }, 'BRANCH_PORTS', true);
-  mutateWorkflow('overlapping parent/child mapping', w => { w.nodes[5].config.argumentsMappings['/parameters'] = { value: {} }; }, 'OVERLAPPING_MAPPING', true);
+  mutateWorkflow('overlapping parent/child mapping', w => { w.nodes.find(n => n.id === 'db').config.argumentsMappings['/parameters'] = { value: {} }; }, 'OVERLAPPING_MAPPING', true);
   negative('mock fixtures cannot authorize real publication', () => checkGraph(production, catalog, { realPublication: true }), 'MOCK_REAL_EXECUTION');
   negative('duplicate binding reference', () => { const value = copy(catalog); value.bindings.push(copy(value.bindings[0])); checkCatalog(value); }, 'DUPLICATE_BINDING');
   negative('binding environment lock mismatch', () => { const value = copy(catalog); value.bindings[0].lockedArguments['/environment'] = 'staging'; checkCatalog(value); }, 'BINDING_LOCK');

@@ -17,7 +17,7 @@ export function createHubServer(handle: ToolHandler): McpServer {
       capabilities: { tools: {} },
       maxToolInputElements: 10000,
       instructions:
-        "Search and get a published workflow, supply its exact version and required input, then start. Submit only the current checkpoint schema at WAITING_AGENT. WAITING_APPROVAL requires independent administrator action; execution tools cannot approve. Environment and resource bindings are immutable.",
+        "Search and get a published workflow, supply its exact version and required input, then start. Submit only the current checkpoint schema at WAITING_AGENT. Environment and resource bindings are immutable.",
     },
   );
   for (const name of TOOL_NAMES) {

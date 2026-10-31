@@ -242,7 +242,6 @@ const labels: Record<string, string> = {
   mcp_tool: "MCP 工具",
   agent_task: "Codex 任务",
   condition: "条件分支",
-  approval: "人工审批",
   report_template: "模板报告",
   end: "结束归档",
 };
@@ -257,14 +256,12 @@ const glyph: Record<string, string> = {
   mcp_tool: "☁",
   agent_task: "✧",
   condition: "⑂",
-  approval: "✓",
   report_template: "▧",
   end: "◎",
 };
 const statusLabels: Record<string, string> = {
   SUCCEEDED: "已完成",
   WAITING_AGENT: "等待 Agent",
-  WAITING_APPROVAL: "等待人工审批",
   BLOCKED: "已阻断",
   OUTCOME_UNKNOWN: "结果未知",
   FAILED: "失败",
@@ -750,7 +747,7 @@ function App() {
         id: n.id,
         type: "default",
         position: record.layout[n.id] ?? {
-          x: n.type === "approval" ? 80 : 230,
+          x: 230,
           y: i * 140,
         },
         data: {
@@ -1039,6 +1036,8 @@ function App() {
         (v: J) => v.workflowId === w.id && v.version === w.defaultVersion,
       );
       const workflow = published?.snapshot?.workflow;
+      if (workflow?.nodes.some((node: J) => node.type === "approval"))
+        throw new Error("旧流程已停止新增运行，请先迁移为自动执行副本并发布");
       if (
         !w.defaultVersion ||
         !workflow ||
@@ -1051,6 +1050,8 @@ function App() {
         type: "start",
         title: "启动工作流",
         published,
+        clients: (await api("/clients")).filter((c: J) => !c.revoked && c.workflowAllowlist.includes(w.id)),
+        clientId: "",
         payload: structuredClone(workflow.inputSchema.examples?.[0] ?? {}),
       });
     });
@@ -1167,14 +1168,6 @@ function App() {
     },
     condition: {
       expression: { op: "eq", left: { value: true }, right: { value: true } },
-    },
-    approval: {
-      actionNodeId: "db",
-      summary: "请核对固定环境、资源和参数",
-      approvalChannel: "admin_ui",
-      bindToResolvedArguments: true,
-      invalidateOnArgumentChange: true,
-      expiresAfterSeconds: 600,
     },
     report_template: {
       templateRef: "incident-markdown/v1",
@@ -1309,6 +1302,7 @@ function App() {
           version: workflow.version,
           mode: workflow.mode,
           inputs: m.payload,
+          ...(m.clientId ? { clientId: m.clientId } : {}),
           idempotencyKey: uid(),
         });
         setModal(null);
@@ -1413,23 +1407,6 @@ function App() {
       await load();
       return true;
     }, successMessage);
-  };
-  const approve = async (decision: string) => {
-    if (busy || !run || pathRef.current !== "/runs/" + run.runId) return;
-    await act(
-      async () => {
-        await api("/approvals/" + run.approval.id + "/decision", "POST", {
-          decision,
-          actionHash: run.approval.actionHash,
-          snapshotHash: run.snapshotHash,
-          expectedRevision: run.revision,
-        });
-        await refreshRun();
-      },
-      decision === "approve"
-        ? "已批准此版本及参数的动作"
-        : "已拒绝，数据库不会执行",
-    );
   };
   const page = path.includes("/editor")
     ? "editor"
@@ -1813,6 +1790,12 @@ function App() {
                         >
                           版本
                         </button>
+                        {w.draft.nodes.some((n: J) => n.type === "approval") && <button disabled={busy} onClick={() => act(async () => {
+                          const migrated = await api("/workflows/" + w.id + "/migrate-legacy", "POST", {
+                            targetId: w.id.slice(0, 40) + "-auto-" + Date.now(), expectedRevision: w.revision,
+                          });
+                          await load(); chooseWorkflow(migrated.draft);
+                        }, "已备份并创建自动执行草稿副本，原版本保留")}>迁移旧流程副本</button>}
                         <button onClick={() => chooseWorkflow(w)}>
                           打开编排
                         </button>
@@ -2992,7 +2975,7 @@ function App() {
               <PageHead
                 eyebrow="EXECUTION HISTORY"
                 title="运行记录"
-                text="查看不可变运行快照、Agent 待办、人工审批及证据归档。"
+                text="查看不可变运行快照、Agent 待办及证据归档。"
               />
               <section className="panel">
                 <label className="field">
@@ -3117,6 +3100,13 @@ function App() {
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
+                    <p>当前节点：{run.currentNode}</p>
+                    {run.nodeDetails?.map((node: J) => <details key={node.nodeId}>
+                      <summary>{node.title} · {run.steps[node.nodeId]}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                      {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
+                      {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
+                      {node.errorCode && <p className="error">{node.errorCode}</p>}
+                    </details>)}
                     <div className="timeline">
                       {Object.entries(run.steps).map(([id, state]) => (
                         <div
@@ -3156,82 +3146,6 @@ function App() {
                           解锁
                         </button>
                       </div>
-                    )}
-                    {run.approval && run.state === "WAITING_APPROVAL" && (
-                      <section className="panel approval">
-                        <Badge tone="amber">独立人工审批</Badge>
-                        <h2>确认本次只读动作</h2>
-                        <p>{run.approval.summary}</p>
-                        <dl>
-                          <dt>固定环境 / 版本</dt>
-                          <dd>
-                            {run.approval.environment} / v{run.version}
-                          </dd>
-                          <dt>目标节点 / 实际工具</dt>
-                          <dd>
-                            {run.approval.targetNodeId} /{" "}
-                            {run.approval.action?.toolName ??
-                              "未记录，不能批准"}
-                          </dd>
-                          <dt>绑定 / 修订</dt>
-                          <dd>
-                            {run.approval.action?.bindingId ?? "未记录"} /{" "}
-                            {run.approval.action?.bindingRevision ?? "未知"}
-                          </dd>
-                          <dt>连接</dt>
-                          <dd>
-                            {run.approval.action?.connectionId ?? "未记录"}
-                          </dd>
-                          <dt>最大行数 / 超时</dt>
-                          <dd>
-                            {run.approval.action?.maxRows ?? "未知"} 行 /{" "}
-                            {run.approval.action?.timeoutSeconds ?? "未知"} 秒
-                          </dd>
-                          <dt>到期时间</dt>
-                          <dd>
-                            {new Date(run.approval.expiresAt).toISOString()}
-                          </dd>
-                          <dt>动作 hash</dt>
-                          <dd>
-                            <code>{run.approval.actionHash}</code>
-                          </dd>
-                        </dl>
-                        <details>
-                          <summary>冻结资源与只读依据</summary>
-                          <pre>
-                            {pretty({
-                              lockedArguments:
-                                run.approval.action?.lockedArguments,
-                              verification: run.approval.action?.verification,
-                            })}
-                          </pre>
-                        </details>
-                        <pre>{pretty(run.approval.arguments)}</pre>
-                        <small>
-                          审批绑定当前 snapshotHash 与
-                          actionHash，过期或参数变化将被拒绝。
-                        </small>
-                        <div className="actions">
-                          <button
-                            className="danger"
-                            disabled={busy}
-                            onClick={() => approve("reject")}
-                          >
-                            拒绝并结束
-                          </button>
-                          <button
-                            className="primary"
-                            disabled={
-                              busy ||
-                              !run.approval.action ||
-                              Date.now() >= run.approval.expiresAt
-                            }
-                            onClick={() => approve("approve")}
-                          >
-                            确认批准此动作
-                          </button>
-                        </div>
-                      </section>
                     )}
                     {run.checkpoint && (
                       <section className="panel">
@@ -3545,7 +3459,7 @@ function App() {
                   </p>
                 </section>
                 <section className="panel">
-                  <h2>脱敏支持包</h2>
+                  <h2>诊断导出（仅元数据）</h2>
                   <p>
                     程序与数据分离。备份包含敏感状态，只保存在本机；支持包仅导出白名单元数据。
                   </p>
@@ -3821,7 +3735,7 @@ function App() {
             ) : modal.type === "retention" ? (
               <>
                 <p>
-                  原始结果到期后，日志、查询、分析及报告正文和相关审批参数、事件备注一并清理。
+                  原始结果到期后，日志、查询、分析及报告正文和事件备注一并清理。
                   业务输入与运行元数据保留 30 天。活跃运行不受影响。
                 </p>
                 <ul>
@@ -3909,7 +3823,7 @@ function App() {
                     >
                       <option value="blank">空白（输入 → 结束）</option>
                       <option value="incident">
-                        问题排查（宿主分析与人工审批）
+                        问题排查（宿主分析与自动执行）
                       </option>
                       <option value="deterministic">
                         确定性采集（日志 → 结束）
@@ -3943,6 +3857,12 @@ function App() {
                   发布时间：{startVersion.publishedAt}
                 </p>
                 <small>发布摘要：{startVersion.contentHash}</small>
+                <label>继续执行的宿主身份
+                  <select aria-label="继续执行的宿主身份" value={modal.clientId} onChange={e => setModal({ ...modal, clientId: e.target.value })}>
+                    <option value="">本机执行身份</option>
+                    {modal.clients.map((c: J) => <option key={c.id} value={c.id}>{c.label ?? c.id}</option>)}
+                  </select>
+                </label>
                 <p>
                   输入严格按已发布 Schema 校验。不得覆盖环境、连接或模板；包含
                   Agent 的流程需要先解锁凭据库。
