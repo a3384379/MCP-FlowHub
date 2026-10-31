@@ -5,14 +5,18 @@ import { AuthoringService } from "../../workflow-authoring/src/index.js";
 import { CapabilityRegistry } from "../../capability-registry/src/index.js";
 import { WorkflowTesting } from "../../workflow-testing/src/index.js";
 import { ProjectKnowledge } from "../../project-knowledge/src/index.js";
+import { AssistantCore } from "../../assistant-core/src/index.js";
+import type { ProviderFactory } from "../../llm-providers/src/index.js";
 
 export class Application {
   readonly authoring:AuthoringService;
   readonly registry:CapabilityRegistry;
   readonly testing:WorkflowTesting;
   readonly knowledge:ProjectKnowledge;
-  constructor(readonly engine:Engine) {
+  readonly assistant:AssistantCore;
+  constructor(readonly engine:Engine,options:{providerFactory?:ProviderFactory}={}) {
     this.authoring=new AuthoringService(engine);this.registry=new CapabilityRegistry(engine);this.testing=new WorkflowTesting(this.authoring);this.knowledge=new ProjectKnowledge(engine.repo);
+    this.assistant=new AssistantCore(this,options.providerFactory);
   }
   async handle(name:ToolName,args:Json,owner="execution"):Promise<Json> {
     ensure(validArguments(name,args),"INPUT_INVALID","Arguments do not match the fixed tool contract.");
@@ -36,5 +40,5 @@ export class Application {
       default:throw new Error("Unknown fixed tool.");
     }
   }
-  async close(){await this.registry.close();await this.testing.close();}
+  async close(){await this.assistant.close();await this.registry.close();await this.testing.close();}
 }

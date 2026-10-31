@@ -1,0 +1,29 @@
+
+> mcp-flowhub@1.0.0-rc.1 test:assistant
+> npm run build:server && node --test dist/tests/engine/v2-assistant.test.js
+
+
+> mcp-flowhub@1.0.0-rc.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 70 management paths.
+✔ assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes (147.845292ms)
+✔ help mode cannot mutate and half JSON never dispatches (95.205833ms)
+✔ tool validation feedback permits bounded correction and preserves Web revision conflicts (104.489375ms)
+✔ cancellation aborts pending generation with no tool writes (94.395167ms)
+✔ restart marks unfinished durable tasks interrupted and retains tool receipts (93.697291ms)
+✔ model profile Key is encrypted and never stored in command or ordinary profile bodies (96.369416ms)
+✔ Chinese help and exact error names retrieve current version sources with real citations (89.569375ms)
+✔ text-only model probes remain useful for help and refuse composition without fake writes (88.567833ms)
+✔ repeated invalid edits stop after three feedback rounds without overwriting a draft (90.561333ms)
+✔ Responses and Chat Completions use separate envelopes and protocol paths (19.824375ms)
+✔ streamed JSON waits for completed finish and interrupted arguments never become a tool call (6.345417ms)
+✔ provider authentication and 429 failures stay typed and bounded (1.827375ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1167.234875

@@ -31,7 +31,8 @@
     "test:ui": "playwright test",
     "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
     "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js",
-    "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js"
+    "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js",
+    "test:assistant": "npm run build:server && node --test dist/tests/engine/v2-assistant.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

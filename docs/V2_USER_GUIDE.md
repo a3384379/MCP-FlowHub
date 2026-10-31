@@ -33,3 +33,9 @@ REVISION_CONFLICT：Web 与 AI 基于旧 revision 同时编辑，保留本地改
 CAPABILITY_STALE：工具 Schema、来源或能力修订改变，读取新定义并修复草稿；旧发布版本不会自动更新。
 CREDENTIALS_REQUIRED：连接凭据尚未配置；不要把 Key 或口令放入聊天或 MCP 工具参数。
 FIXTURE_MISSING：自测尚无节点合成结果，不代表实际服务为空或正常。
+
+## 网页助手与模型
+
+模型设置明确选择 Responses 或兼容 Chat Completions 协议，填写服务地址与模型名，Key 只在专用输入保存至本机 Vault。无 Key 时仍可用发现、手工画布、Codex 和 Mock 自测。更换 Key 不会回显原值，不使用浏览器 localStorage 保存 Key。
+帮助模式只检索和解释，附当前版本引用；编排模式根据请求选择编辑、自测、发布或运行。工具卡片才是实际动作回执，聊天中的完成声明不是保存证据。
+MODEL_AUTH_FAILED 表示认证失败，MODEL_RATE_LIMITED 表示429；保留会话，不无限重试。MODEL_UNSUPPORTED_TOOLS 表示仅文本模型，仍可问答。取消停止后续动作，已经完成的工具回执会保留。重启的未完成任务为 INTERRUPTED，不自动重放写操作。

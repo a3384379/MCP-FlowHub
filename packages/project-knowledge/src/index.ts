@@ -31,7 +31,10 @@ export class ProjectKnowledge {
       for(const [name,definition] of Object.entries(inputContract.$defs) as [string,Json][]) {
         if(!definition.description)continue;
         const content=name+" "+definition.description,chunkId="tool:"+name;
-        this.repo.put("knowledge_chunks",chunkId,{id:chunkId,documentId:"tools",chunkIndex:name,content,sourcePath:"contracts/mcp-v2-tool-inputs.schema.json",heading:name,lineStart:1,lineEnd:1,contentHash:hash(content),productVersion:VERSION,availability:"implemented"});
+        const sourceLines=readFileSync(resolve(projectRoot,"contracts/mcp-v2-tool-inputs.schema.json"),"utf8").split("\n"),defs=sourceLines.findIndex(l=>l.trim()==='"$defs": {');
+        const lineStart=sourceLines.findIndex((l,index)=>index>defs&&l.trim()===JSON.stringify(name)+": {")+1;
+        const lineEnd=sourceLines.findIndex((l,index)=>index>=lineStart&&l.trim().startsWith('"description":')&&l.includes(JSON.stringify(definition.description)))+1;
+        this.repo.put("knowledge_chunks",chunkId,{id:chunkId,documentId:"tools",chunkIndex:name,content,sourcePath:"contracts/mcp-v2-tool-inputs.schema.json",heading:name,lineStart,lineEnd:Math.max(lineStart,lineEnd),contentHash:hash(content),productVersion:VERSION,availability:"implemented"});
         this.repo.db.prepare("INSERT INTO knowledge_fts VALUES(?,?)").run(chunkId,tokens(content).join(" "));
       }
     });

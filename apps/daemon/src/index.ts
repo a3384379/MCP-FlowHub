@@ -9,6 +9,7 @@ import { Engine } from "../../../packages/workflow-core/src/engine.js";
 import { registerAdmin } from "../../../packages/admin-api/src/index.js";
 import { createHubServer } from "../../../packages/mcp-server/src/index.js";
 import { Application } from "../../../packages/application/src/index.js";
+import type { ProviderFactory } from "../../../packages/llm-providers/src/index.js";
 import {
   VERSION,
   projectRoot,
@@ -24,7 +25,7 @@ import {
   loadOrCreateToken,
 } from "./local-config.js";
 import { createLocalHttp } from "./http.js";
-export async function startDaemon(options: { dataDir: string; port: number }) {
+export async function startDaemon(options: { dataDir: string; port: number; providerFactory?:ProviderFactory }) {
   const dataDir = await prepareDataDir(options.dataDir),
     unlock = await acquireLock(dataDir);
   let store: ReturnType<typeof openStore> | undefined,
@@ -50,7 +51,7 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
       await repo.backup(join(await backupDirectory(dataDir, true), "pre-legacy-retirement-" + instanceId + ".sqlite"));
     }
     engine.recover();
-    const service = engine, application=new Application(engine);
+    const service = engine, application=new Application(engine,options.providerFactory?{providerFactory:options.providerFactory}:{});
     app = createLocalHttp(
       (subject) =>
         createHubServer(async (name, args) => {

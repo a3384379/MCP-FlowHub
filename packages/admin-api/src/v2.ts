@@ -24,6 +24,18 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   app.post("/api/v2/workflows/:id/validate",async req=>data(authoring.validate(arg(req))));
   app.post("/api/v2/workflows/:id/publish",async req=>data(authoring.publish(arg(req))));
   if(application) {
+    app.get("/api/v2/model-profiles",async()=>data(application.assistant.profiles()));
+    app.post("/api/v2/model-profiles",async req=>data(application.assistant.saveProfile(req.body)));
+    app.patch("/api/v2/model-profiles/:id",async req=>data(application.assistant.saveProfile(req.body,(req.params as Json).id)));
+    app.delete("/api/v2/model-profiles/:id",async req=>data(application.assistant.deleteProfile((req.params as Json).id)));
+    app.post("/api/v2/model-profiles/:id/test",async req=>data(await application.assistant.testProfile((req.params as Json).id)));
+    app.get("/api/v2/assistant/sessions",async()=>data(application.assistant.sessions()));
+    app.post("/api/v2/assistant/sessions",async()=>data(application.assistant.session()));
+    app.delete("/api/v2/assistant/sessions/:id",async req=>data(application.assistant.deleteSession((req.params as Json).id)));
+    app.get("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.messages((req.params as Json).id)));
+    app.post("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.submit((req.params as Json).id,req.body)));
+    app.get("/api/v2/assistant/tasks/:id",async req=>data(application.assistant.task((req.params as Json).id)));
+    app.post("/api/v2/assistant/tasks/:id/cancel",async req=>data(application.assistant.cancel((req.params as Json).id)));
     app.post("/api/v2/workflows/:id/test-suites",async req=>data(application.testing.generate(arg(req))));
     app.get("/api/v2/test-suites/:id",async req=>data(application.testing.getSuite((req.params as Json).id)));
     app.put("/api/v2/test-suites/:id",async req=>{

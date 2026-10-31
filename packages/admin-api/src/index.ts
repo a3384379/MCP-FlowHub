@@ -899,52 +899,33 @@ export async function registerAdmin(
       eventCursor: eventCursor(repo, runId, after, limit, status.events),
     });
   });
-  app.get("/api/v1/runs/:id/events", async (req, reply) => {
+  const streamEvents = (req: FastifyRequest, reply: Json, initial: number, read: (after: number) => Json[], cursor: (event: Json) => number, intervalMs = 2000) => {
     ensure(!streamsClosing, "SERVICE_STOPPING", "The daemon is stopping.", 503);
-    const runId = param(req);
-    engine.status(runId, owner(runId));
-    const page = eventPageQuery(req.query, req.headers["last-event-id"]);
-    let after = page.after;
-    reply.hijack();
-    reply.raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    });
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const cleanup = () => {
-      clearInterval(interval);
-      eventStreams.delete(close);
-    };
-    const close = () => {
-      cleanup();
-      reply.raw.end();
-    };
-    eventStreams.set(close, req.headers.cookie);
-    reply.raw.on("close", cleanup);
-    const send = () => {
-      auth.check(req.headers.cookie);
-      for (const event of repo.events(runId, after, page.limit)) {
-        reply.raw.write(
-          "id: " + event.seq + "\ndata: " + JSON.stringify(event) + "\n\n",
-        );
-        after = event.seq;
-      }
-    };
-    try {
-      send();
-    } catch {
-      close();
-      return;
-    }
-    interval = setInterval(() => {
-      try {
-        send();
-        reply.raw.write(": keepalive\n\n");
-      } catch {
-        close();
-      }
-    }, 2000);
+    let after=initial;
+    reply.hijack();reply.raw.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"});
+    let interval: ReturnType<typeof setInterval>|undefined;
+    const cleanup=()=>{clearInterval(interval);eventStreams.delete(close);};
+    const close=()=>{cleanup();reply.raw.end();};
+    eventStreams.set(close,req.headers.cookie);reply.raw.on("close",cleanup);
+    const send=()=>{auth.check(req.headers.cookie);for(const event of read(after)) {
+      if(reply.raw.writableLength>1048576){close();return;}
+      reply.raw.write("id: "+cursor(event)+"\ndata: "+JSON.stringify(event)+"\n\n");after=cursor(event);
+    }};
+    try{send();}catch{close();return;}
+    interval=setInterval(()=>{try{send();reply.raw.write(": keepalive\n\n");}catch{close();}},intervalMs);
+  };
+  app.get("/api/v1/runs/:id/events", async (req, reply) => {
+    const runId=param(req);engine.status(runId,owner(runId));
+    const page=eventPageQuery(req.query,req.headers["last-event-id"]);
+    streamEvents(req,reply,page.after,after=>repo.events(runId,after,page.limit),event=>event.seq);
+  });
+  app.get("/api/v2/events", async (req,reply) => {
+    const q=req.query as Json,after=Number(req.headers["last-event-id"]??q.afterEventId??0);
+    ensure(Number.isSafeInteger(after)&&after>=0,"INPUT_INVALID","Invalid event cursor.");
+    streamEvents(req,reply,after,cursor=>repo.changes(cursor).map(event=>{
+      if((q.taskId&&event.taskId!==q.taskId)||(q.workflowId&&event.workflowId!==q.workflowId))return {eventId:event.eventId,type:"cursor",timestamp:event.timestamp};
+      return event;
+    }),event=>event.eventId,250);
   });
   app.post("/api/v1/runs/:id/advance", async () => {
     throw new HubError(

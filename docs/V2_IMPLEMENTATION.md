@@ -25,7 +25,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S4–S7
+## S5–S7
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
@@ -64,3 +64,16 @@ WorkflowTesting 提供确定性/agent_proposed 生成、Suite CAS、Mock任务�
 验证：npm run check exit 0；npm test 200/200 exit 0（70.6 秒）；最终 test:selftest exit 0。官方 Client 贯穿发现/导入/独立合成探测/创建/修改/校验/agent_proposed/Mock/发布/启动/检查点推进/读取实际 Markdown；另验证缺Fixture、100条流程固定21工具、旧受限身份固定7工具。没有额外模型 Key。
 证据：S3-check.txt、S3-full.txt、S3-selftest.txt。新脚本 test:selftest 已加入。
 未验证：真实 Codex 对当前开发服务的工具会话、真实 Provider、原生 Windows、企业 MCP；S4–S7 尚未完成。
+
+## S4（已完成合成 Provider 与助手验证）
+
+Responses 与 OpenAI-compatible Chat Completions 两个适配器分别构建消息/工具/回执与路径，支持非流式和完整流式终态；半截参数或断流不派发写工具，401/429/超时分类，不盲重试。ScriptedModelProvider 仅通过测试依赖注入，不伪装真实模型。
+模型设置使用 Vault secretRef，Key 不进入 profile、命令账本或普通输出；连接测试分别报告文本/工具/流式，文本模型可帮助但不能假执行编排。没有读取或复用 Codex OAuth。
+持久化会话、任务、taskId+callId ledger、真实工具回执与 usage（缺失为 null），通过统一 Application 编辑；根据 requestedActions 限制工具，帮助模式无写工具。限制轮次/工具数/重复错误，支持取消与重启 INTERRUPTED，不重放未明确完成的调用。默认只附当前选择的上下文与有限帮助片段，原始业务内容不改写；过长上下文/工具回执明确截断，完整回执保留。
+已有 SSE 生命周期基础复用为 /api/v2/events，eventId 游标重放，鉴权失效/注销/关闭会结束连接；事件只驱动读更新，不重复发 patch。
+知识库仅索引当前用户文档和实际工具描述，FTS5 使用 CJK bigram/ASCII/领域词。引用带源行号/hash/版本，不把设计包当作现有功能。
+
+验证：npm run check exit 0；build:server exit 0；test:assistant 12/12 exit 0；既有 SSE 生命周期 3/3 exit 0（首次组合 13/13，随后新增 2 项能力/修错预算）。覆盖真实共享服务改图、重复callId、帮助模式、半截JSON、CAS修错、取消、重启、Key加密、无Key、中文检索、双协议路径、断流、401/429、文本模型及三次失败停止。
+证据：S4-check.txt、S4-tests.txt。官方资料核对：OpenAI function-calling 与 Responses/Chat streaming-events 文档。
+按用户明确要求，缺真实 Key 不阻塞本地代码与合成测试；环境中无 OPENAI_API_KEY，无工作区 env 文件，本阶段真实模型调用 0。真实问答/编排和30场景评测未验证，不能用上述 Scripted/localhost 测试替代。
+S5–S7 尚未完成。
