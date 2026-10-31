@@ -161,3 +161,11 @@ S5–S7 尚未完成。
 当前104项95 PASS /4 PARTIAL /5 UNVERIFIED；PARTIAL及30真实模型评测未当作通过。完整配置优先链、工具漂移到修复发布复合场景、发布复合CAS场景及真实host-only执行仍缺完整验收；Windows/WSL、企业权限、安装卸载与新机教程维持独立门禁。
 
 本地包门禁：`npm run package:local`、`npm run test:package`、`npm run verify:release`均exit0，包内Node、中文帮助、持久化编排、现代/legacy及21/7目录、助手模块与README篡改拒绝均通过，证据audit/package*.txt。此轮预证据提交包为审计验证，最终证据提交后再构建并验证clean候选；最终build-info.gitSha=HEAD、dirty=false，归档路径与hash读取artifacts/latest-package.json，最终只读日志位于/tmp/flowhub-v2-audit-delivery-*，不再把最终包hash写回源码。
+
+## 登录简化（2026-10-31）
+
+按用户要求，首次使用直接以admin/admin登录，登录页添加账号字段并移除设置码/创建管理员步骤。首次有效默认登录事务初始化管理员和Vault；已有管理员与凭据库不被覆盖，旧的仅密码登录和一次性bootstrap API保留兼容。默认短口令例外只用于首次默认初始化，其他口令设置/轮换保持原规则。
+
+`npm run check`、`npm test`（含build）均exit0，后台340/340；`npm run test:ui` exit0，36/36。新增真实临时daemon测试首次初始化、错误账号/密码、重启/加密数据保留、既有口令保护、会话及CSRF，以及真实浏览器默认登录。浏览器夹具首次从源码目录加载时项目根目录不匹配，已改用实际构建入口，未修改产品根路径逻辑。证据见evidence/default-admin/。
+
+已使用原持久化目录/端口18473干净重启本地daemon，并实际验证admin/admin登录、认证后读取流程、退出验证会话及health=ok；未清库、未push或发布。此次为源码/本地运行更新，前轮alpha.2归档包保留为原审计提交快照，未声称重新打包。

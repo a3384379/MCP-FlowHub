@@ -26,7 +26,7 @@ import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js"
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
-import { AdminAuth } from "../../security/src/index.js";
+import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
 import { AuthoringService } from "../../workflow-authoring/src/index.js";
 import { CapabilityRegistry } from "../../capability-registry/src/index.js";
 import { registerV2 } from "./v2.js";
@@ -193,8 +193,23 @@ export async function registerAdmin(
     return data({ csrf: session.csrf });
   });
   app.post("/api/v1/auth/session", async (req, reply) => {
-    const b = body(req, ["password"]),
-      session = auth.login(b.password);
+    const b = body(req, ["password"], ["username"]);
+    if (!auth.initialized) {
+      auth.throttle("default-bootstrap");
+      ensure((b.username === undefined || b.username === DEFAULT_ADMIN_USERNAME) &&
+        b.password === DEFAULT_ADMIN_PASSWORD && !vault.initialized,
+        "AUTH_REQUIRED", "Invalid administrator account or password.", 401);
+      try {
+        repo.tx(() => {
+          auth.setup(DEFAULT_ADMIN_PASSWORD, true);
+          vault.initialize(DEFAULT_ADMIN_PASSWORD, true);
+        });
+      } catch (error) { vault.lock(); throw error; }
+      await unlink(setupPath).catch(error => {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      });
+    }
+    const session = auth.login(b.password, b.username);
     loginCookie(reply, session);
     return data({ csrf: session.csrf });
   });

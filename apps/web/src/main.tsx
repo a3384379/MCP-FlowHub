@@ -432,7 +432,7 @@ function App() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [password, setPassword] = useState(""),
-    [setupToken, setSetupToken] = useState("");
+    [username, setUsername] = useState("admin");
   const [workflows, setWorkflows] = useState<J[]>([]),
     [connections, setConnections] = useState<J[]>([]),
     [bindings, setBindings] = useState<J[]>([]),
@@ -1512,36 +1512,25 @@ function App() {
           <div className="brand">
             <b>F</b>FlowHub <small>LOCAL WORKFLOW HUB</small>
           </div>
-          <h1>{auth?.initialized ? "欢迎回来" : "创建本机管理员"}</h1>
+          <h1>{auth?.initialized ? "欢迎回来" : "登录 FlowHub"}</h1>
           <p>一个 MCP 入口，多条受控工作流。管理会话独立于 Agent 执行身份。</p>
-          {!auth?.initialized && (
-            <label className="field">
-              本机一次性设置码
-              <input
-                autoComplete="off"
-                value={setupToken}
-                onChange={(e) => setSetupToken(e.target.value)}
-              />
-              <small>
-                在数据目录的 admin-setup-token 文件中查看；不会出现在日志或 URL
-                中。
-              </small>
-            </label>
-          )}
+          {!auth.initialized && <p>默认账号：admin，默认密码：admin。</p>}
+          <label className="field">
+            管理员账号
+            <input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
+          </label>
           <label className="field">
             管理员密码
             <input
               type="password"
-              autoComplete={
-                auth?.initialized ? "current-password" : "new-password"
-              }
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
                   document.getElementById("login")?.click();
               }}
-              placeholder="至少 12 个字符"
+              placeholder={auth.initialized ? "请输入密码" : "默认密码：admin"}
             />
           </label>
           {error && (
@@ -1577,26 +1566,21 @@ function App() {
             onClick={() =>
               act(async () => {
                 const s = await api(
-                  auth.initialized ? "/auth/session" : "/auth/bootstrap",
+                  "/auth/session",
                   "POST",
-                  auth.initialized ? { password } : { setupToken, password },
+                  { username, password },
                 );
                 csrf = s.csrf;
                 setSession(s);
                 setPassword("");
-                setSetupToken("");
                 setAuth(await api("/auth/state"));
               })
             }
           >
-            {busy
-              ? "正在验证…"
-              : auth?.initialized
-                ? "登录管理中心"
-                : "创建并进入"}
+            {busy ? "正在验证…" : "登录管理中心"}
           </button>
           <div className="login-note">
-            默认仅回环监听 · 凭据加密存储 · 无默认密码
+            默认仅回环监听 · 凭据加密存储
           </div>
         </div>
       </div>

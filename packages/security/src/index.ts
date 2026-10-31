@@ -21,10 +21,13 @@ const derive = (password: string, salt: string) =>
     p: 1,
     maxmem: 64 * 1024 * 1024,
   });
-export function passwordHash(password: string) {
+export const DEFAULT_ADMIN_USERNAME = "admin";
+export const DEFAULT_ADMIN_PASSWORD = "admin";
+
+export function passwordHash(password: string, allowDefaultAdmin = false) {
   ensure(
     typeof password === "string" &&
-      password.length >= 12 &&
+      (password.length >= 12 || allowDefaultAdmin && password === DEFAULT_ADMIN_PASSWORD) &&
       password.length <= 256,
     "PASSWORD_WEAK",
     "Password must contain 12–256 characters.",
@@ -49,14 +52,14 @@ export class Vault {
   get locked() {
     return !this.key;
   }
-  initialize(password: string) {
+  initialize(password: string, allowDefaultAdmin = false) {
     ensure(
       !this.initialized,
       "VAULT_EXISTS",
       "Vault already initialized.",
       409,
     );
-    passwordHash(password);
+    passwordHash(password, allowDefaultAdmin);
     const salt = randomBytes(16).toString("hex");
     this.key = derive(password, salt);
     this.generation++;
@@ -281,9 +284,9 @@ export class AdminAuth {
   get initialized() {
     return !!this.repo.get("settings", "admin");
   }
-  setup(password: string) {
+  setup(password: string, allowDefaultAdmin = false) {
     ensure(!this.initialized, "ADMIN_EXISTS", "Admin already configured.", 409);
-    this.repo.insert("settings", "admin", passwordHash(password));
+    this.repo.insert("settings", "admin", passwordHash(password, allowDefaultAdmin));
   }
   throttle(key: string) {
     const old = this.attempts.get(key);
@@ -298,11 +301,11 @@ export class AdminAuth {
       until: Date.now() + 60000,
     });
   }
-  login(password: string) {
+  login(password: string, username = DEFAULT_ADMIN_USERNAME) {
     this.throttle("login");
     const admin = this.repo.get("settings", "admin");
     ensure(
-      admin && passwordMatches(password, admin),
+      username === DEFAULT_ADMIN_USERNAME && admin && passwordMatches(password, admin),
       "AUTH_REQUIRED",
       "Invalid administrator password.",
       401,
