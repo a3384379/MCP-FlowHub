@@ -10,6 +10,7 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   app.get("/api/v2/host-contexts",async()=>data(registry.repo.all("host_contexts")));
   app.post("/api/v2/host-contexts",async req=>data(await registry.context(req.body)));
   app.post("/api/v2/host-scans",async req=>data(registry.scan(req.body)));
+  app.post("/api/v2/capability-sources/:id/credentials",async req=>data(await registry.configureSource({...req.body as Json,sourceId:(req.params as Json).id})));
   app.get("/api/v2/host-scans/:id",async req=>data(registry.status((req.params as Json).id)));
   app.get("/api/v2/capabilities",async req=>data(registry.search(req.query)));
   app.get("/api/v2/capabilities/:id",async req=>data(registry.get({...req.query as Json,capabilityId:(req.params as Json).id})));

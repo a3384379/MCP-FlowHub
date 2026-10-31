@@ -63,3 +63,10 @@ test("semantic undo and redo preserve unrelated later fields and reject same-fie
   f.patch([{op:"set_metadata",changes:{name:"New user value"}}],5);
   assert.throws(()=>f.authoring.undo({workflowId:"authoring-demo",expectedRevision:6,commandId:ai.commandId,idempotencyKey:"conflict"}),{code:"REVISION_CONFLICT"});assert.equal(f.authoring.get("authoring-demo").draft.name,"New user value");
 });
+test("undo cannot remove a node referenced by later user edits",async t=>{
+  const f=authoringFixture();t.after(f.close);f.create();
+  const added=f.patch([{op:"add_node",nodeId:"ai-node",nodeType:"agent_task",title:"AI",config:{kind:"analysis",instructions:"Analyze",inputMappings:{},outputSchema:{type:"object",properties:{},additionalProperties:false}}}]);
+  f.patch([{op:"add_node",nodeId:"later",nodeType:"agent_task",title:"User",config:{kind:"analysis",instructions:"Analyze",inputMappings:{"/data":{ref:{source:"node",nodeId:"ai-node",pointer:""}}},outputSchema:{type:"object",properties:{},additionalProperties:false}}}],2);
+  assert.throws(()=>f.authoring.undo({workflowId:"authoring-demo",expectedRevision:3,commandId:added.commandId,idempotencyKey:"referenced"}),{code:"REFERENCE_IN_USE"});
+  assert.equal(f.authoring.get("authoring-demo").revision,3);assert.ok(f.authoring.get("authoring-demo").draft.nodes.some((n:any)=>n.id==="ai-node"));
+});

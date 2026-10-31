@@ -76,3 +76,26 @@ test("metadata scans report broken sources and never store inline credential val
   assert.equal(status.sources[0].availability,"credentials_required");
   assert.equal(f.repo.all("connections").length,0);
 });
+test("explicit local credential import seals inline env, preserves source, and enables independent catalog",async t=>{
+  const f=await setup(t),entry=join(f.root,"authenticated-mcp.mjs");
+  f.registry.engine.vault.initialize("Synthetic-credential-password");
+  await writeFile(entry,`import {McpServer,fromJsonSchema} from ${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server"))};import {serveStdio} from ${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server/stdio"))};if(process.env.ACCESS_TOKEN!=='SYNTHETIC_PRIVATE_VALUE')process.exit(2);serveStdio(()=>{const s=new McpServer({name:'credential-fixture',version:'1'},{capabilities:{tools:{}}});s.registerTool('read',{inputSchema:fromJsonSchema({type:'object',additionalProperties:false})},async()=>({content:[{type:'text',text:'ok'}]}));return s;},{legacy:'serve'});`);
+  const original=JSON.stringify([{name:"private",enabled:true,transport:{type:"stdio",command:process.execPath,args:[entry],env:{ACCESS_TOKEN:"SYNTHETIC_PRIVATE_VALUE"}}}]);
+  await writeFile(join(f.home,"cli.json"),original);
+  const context=await f.context();f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"before"});await f.registry.close();assert.equal(f.registry.search().items.length,0);
+  const source=f.repo.all("capability_sources")[0],args={sourceId:source.id,expectedRevision:source.revision,idempotencyKey:"configure",importInlineCredentials:true};
+  await assert.rejects(f.registry.configureSource(args,"some-mcp-owner"),{code:"AUTH_REQUIRED"});
+  const imported=await f.registry.configureSource(args);assert.deepEqual(await f.registry.configureSource(args),imported);
+  const connection=f.repo.get("connections",imported.connectionId);assert.equal(f.registry.engine.vault.secret(connection.envRefs.ACCESS_TOKEN),"SYNTHETIC_PRIVATE_VALUE");
+  for(const table of ["capability_sources","connections","secrets","discovery_jobs"] as const)assert.ok(!JSON.stringify(f.repo.all(table)).includes("SYNTHETIC_PRIVATE_VALUE"));
+  assert.equal(await readFile(join(f.home,"cli.json"),"utf8"),original);
+  f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"after"});await f.registry.close();assert.equal(f.registry.search().items.length,1);
+  const cap=f.registry.search().items[0],binding=await f.registry.import({capabilityId:cap.id,expectedSourceRevision:cap.revision,target:"hub_direct",environment:"test",idempotencyKey:"binding"});
+  assert.equal(f.repo.get("bindings",binding.bindingId).validationStatus,"UNVERIFIED");
+});
+test("context trust options use CAS and do not silently mutate an existing registration",async t=>{
+  const f=await setup(t),context=await f.context();
+  assert.equal((await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true})).projectTrusted,false);
+  const updated=await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:1});assert.equal(updated.projectTrusted,true);assert.equal(updated.revision,2);
+  await assert.rejects(f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,expectedRevision:1}),{code:"REVISION_CONFLICT"});
+});

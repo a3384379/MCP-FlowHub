@@ -25,7 +25,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S6–S7
+## S6–S7（以下阶段状态以末尾记录为准）
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
@@ -90,3 +90,18 @@ S5–S7 尚未完成。
 浏览器首次缺少锁定版本 Chromium 1248，已安装官方隔离测试浏览器；未操作日常Chrome配置。实际 UI 验证模型由 localhost 合成HTTP提供，持久化改图/刷新/undo/redo/未保存输入保护/Mock自测均通过；截图为1440/1366/390，检查整页无水平溢出。截图已人工式视觉检查（工具查看像素），不以截图替代断言。
 证据：S5-backend.txt、S5-ui-full.txt、S5-ui-final.txt、S5-check.txt 和 S5-ui-*.png。
 未验证：真实模型/真实企业服务/原生Windows。S6全回归与真实宿主、S7打包恢复仍在后续。
+
+## S6 完成：回归与真实本机宿主（2026-10-31）
+
+新增 `scripts/smoke-codex-v2.mjs` / `test:codex-local`：当前真实 Codex 0.164.0-alpha.11.1，以临时 CODEX_HOME、无凭据登录、独立 daemon/data-dir，通过 App Server mcpServer/tool/call 完成21工具发现→host_scan→草稿创建/改图→校验→生成/Mock自测→发布→启动→读取真实1094字节报告。结果 S6-codex.txt，模型回合0、业务服务调用0；不代表30场景自然语言验收。
+
+边界修复：显式本地凭据配置入口将来源内联环境/Bearer值加密入Vault，或选择已有secretRef；扫描/MCP不导入凭据，不复制Codex OAuth，源文件不改，仍须独立验证绑定。发现页增加自定义Home/CWD/Profile/可信项目/App Server选项与更新CAS。撤销拒绝删除后续编辑仍引用的节点；分析worker对401/429立即停止，仅JSON/Schema错误允许有限修正；模型工具探测验证实际probe名称与完整参数。v2节点可声明rowLimitArgument，派发前取用户/工作流/绑定限额最小值；无原生映射明确记unsupported，不用结果裁剪假称前置限额。
+
+实际命令（均使用S0隔离锁定runtime）：
+- `npm run check` exit 0；S6初次补丁发现TS类型约束后已修复。
+- `npm run build:server && node --test dist/tests/engine/v2-authoring.test.js dist/tests/engine/v2-discovery.test.js dist/tests/engine/v2-executors.test.js dist/tests/engine/v2-results-limits.test.js` exit 0，16/16。初次新增测试夹具缺合法对象Schema/未初始化Vault，已修正后重跑；未放宽产品约束。
+- `npm test` exit 0，220/220，81.5秒；包含完整build，S6-tests.txt。
+- `npm run test:ui` exit 0，24/24，26.9秒；S6-ui.txt。仅隔离Playwright浏览器。
+- `node scripts/smoke-codex-v2.mjs` exit 0；真实宿主最小闭环，S6-codex.txt。
+
+104项逐项记录在 `docs/evidence/v2/acceptance-results.json`，S6评估64 PASS（限定合成/宿主证据）、30 PARTIAL（不能视为通过）、10 UNVERIFIED。30项真实模型记录在nl-evaluation-results.json，全部UNVERIFIED，不用Mock代替。原生Windows、企业权限/服务、桌面已有会话工具和真实模型未验证。S7打包/停机恢复尚待完成。

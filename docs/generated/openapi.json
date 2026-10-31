@@ -3261,6 +3261,61 @@
         }
       }
     },
+    "/api/v2/capability-sources/{id}/credentials": {
+      "post": {
+        "summary": "POST /api/v2/capability-sources/:id/credentials",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
     "/api/v2/host-scans/{id}": {
       "get": {
         "summary": "GET /api/v2/host-scans/:id",

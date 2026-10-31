@@ -4,7 +4,7 @@
 
 Codex 发现页会首次扫描本机上下文。元数据扫描不调用业务工具；“连接并同步工具”通过真实 MCP 获取目录和 Schema。
 插件已安装、已启用、Schema 已发现及可执行是独立状态。多版本安装歧义、配置损坏、缺少认证都显示部分结果；不要把空清单当作已完整扫描。
-导入只写 FlowHub，源 Codex 配置不变。相对命令、凭据变量需要在 MCP 工具库补充绝对路径与 secretRef。托管插件和 Skill 使用 codex_host，由宿主执行。
+导入只写 FlowHub，源 Codex 配置不变。相对命令需要在 MCP 工具库补充绝对路径。带认证的来源先点“配置连接凭据”，将变量名映射到已有 Vault ID，或明确勾选导入该来源的内联环境变量/Bearer 凭据；只有专用本地管理入口能导入。Vault 必须已解锁，其他认证头暂报 CREDENTIAL_IMPORT_UNSUPPORTED。然后同步目录、导入能力并独立验证绑定。托管插件和 Skill 使用 codex_host，由宿主执行。
 
 ## 草稿与固定环境
 
@@ -46,3 +46,9 @@ MODEL_AUTH_FAILED 表示认证失败，MODEL_RATE_LIMITED 表示429；保留会�
 工具卡片提供撤销/重做，只逆转该动作涉及的字段；后来同字段已修改时返回 REVISION_CONFLICT，其他编辑保持不变。新节点仅局部布局，不重排整张画布。
 自测面板可生成、编辑Fixture、运行Mock并查看expected/actual。通过后修改草稿会提示基线过期。
 运行的 analysis 检查点可选择已配置模型继续，使用独占租约和同一推进接口；host_tool/host_skill 或明确 codex_host 节点须由Codex执行，Key不能替代宿主权限。
+
+## 上下文、限额与宿主验收
+
+发现页可登记自定义 Codex Home、项目目录和 Profile，并明确是否读取可信项目或独立 App Server 会话；读取选项更新使用 revision CAS。独立会话目录不能代表桌面会话已有授权。
+v2 MCP 节点可显式配置 rowLimitArgument（例如 /limit）为下游 Schema 的数字型原生参数，执行前取用户值、工作流预算、绑定预算的最小值。未声明时 TOOL_LIMIT_ENFORCEMENT 事件记录 unsupported；返回结果行数检查不能保证远端查询成本受限。
+开发者可运行 npm run test:codex-local；它使用临时 CODEX_HOME、合成库与独立 daemon，通过当前本机 Codex App Server 完成真实 MCP 编排/自测/报告闭环，不读取已有登录凭据，不调用付费模型。30 个自然语言真实模型场景需另行配置模型后验收，协议测试通过不代表模型效果已验收。

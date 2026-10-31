@@ -521,6 +521,12 @@
           ],
           "additionalProperties": false
         },
+        "rowLimitArgument": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)+$",
+          "maxLength": 512,
+          "description": "Explicit native numeric row-limit argument pointer. No limit parameter name is guessed. Without this, pre-dispatch enforcement is recorded as unsupported."
+        },
         "resultAdapterRef": {
           "enum": [
             "structured",

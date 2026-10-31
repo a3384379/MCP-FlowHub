@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
-import { hash, id, now, ensure, HubError, type Json } from "../../contracts/src/domain.js";
+import { hash, id, now, ensure, validate, HubError, type Json } from "../../contracts/src/domain.js";
 import { createContext, scanHost, resolveSource } from "../../host-discovery/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 
@@ -12,8 +12,35 @@ export class CapabilityRegistry {
   get repo(){return this.engine.repo;}
   async context(a:Json={}) {
     const context=await createContext(a);const prior=this.repo.get("host_contexts",context.id);
+    if(prior&&a.expectedRevision!==undefined){ensure(prior.revision===a.expectedRevision,"REVISION_CONFLICT","Host context changed.",409);const saved={...context,revision:prior.revision+1,createdAt:prior.createdAt};this.repo.put("host_contexts",context.id,saved,prior.revision);return saved;}
     if(!prior)this.repo.insert("host_contexts",context.id,{...context,createdAt:now()});
     return prior??context;
+  }
+  /** Explicit local-admin credential import; scans and MCP tools cannot invoke this. */
+  async configureSource(a:Json,owner="admin") {
+    ensure(owner==="admin","AUTH_REQUIRED","Use authenticated local connection settings.",403);
+    validate({type:"object",properties:{sourceId:{type:"string"},expectedRevision:{type:"integer"},idempotencyKey:{type:"string",minLength:1},importInlineCredentials:{type:"boolean"},secretRefs:{type:"object",additionalProperties:{type:"string"}}},required:["sourceId","expectedRevision","idempotencyKey"],additionalProperties:false},a);
+    const source=this.repo.get("capability_sources",a.sourceId);
+    ensure(source&&!source.self&&!source.stale&&source.executor==="hub_direct","SELF_REFERENCE_DENIED","Select an independent current source.");
+    ensure(source.revision===a.expectedRevision,"CAPABILITY_STALE","Source changed.",409);
+    const context=this.repo.get("host_contexts",source.contextId),config=await resolveSource(context,source.locator);
+    ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source configuration changed.",409);
+    const prepared=this.repo.command(owner,"source.configure",a.idempotencyKey,{...a,sourceFingerprint:source.sourceFingerprint},()=>{
+      const headers=Object.entries(config.http_headers??{});
+      ensure(headers.every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+$/i.test(value)),"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authentication is supported; configure other transports separately.");
+      const connection=this.connection(config,source.id,a.importInlineCredentials===true),refs={...(a.secretRefs??{})};
+      for(const name of config.env_vars??[])ensure(refs[name],"CREDENTIALS_REQUIRED","Choose a local Vault reference for "+name);
+      for(const name of Object.keys(config.env??{}))ensure(a.importInlineCredentials||refs[name],"CREDENTIALS_REQUIRED","Explicitly import inline credentials or choose Vault references.");
+      for(const ref of Object.values(refs))this.engine.vault.secret(String(ref));
+      connection.envRefs={...connection.envRefs,...refs};
+      if(config.bearer_token_env_var){ensure(refs[config.bearer_token_env_var],"CREDENTIALS_REQUIRED","Choose the Bearer Vault reference.");connection.secretRef=refs[config.bearer_token_env_var];}
+      if(headers.length){ensure(a.importInlineCredentials,"CREDENTIALS_REQUIRED","Explicit inline credential import required.");connection.secretRef=this.engine.vault.addSecret("Imported MCP Bearer credential",String(headers[0]![1]).replace(/^Bearer /i,"")).id;}
+      connection.sourceFingerprint=source.sourceFingerprint;
+      const previous=this.repo.get("connections",connection.id);connection.revision=(previous?.revision??0)+1;
+      this.repo.put("connections",connection.id,connection,previous?.revision);
+      return {connectionId:connection.id};
+    });
+    return {...prepared,status:"credentials_configured",next:"Rescan the catalog; resource bindings still require independent verification."};
   }
   scan(a:Json,owner="admin") {
     const context=this.repo.get("host_contexts",a.contextId);ensure(context,"NOT_FOUND","Register a local context first.",404);
@@ -62,8 +89,10 @@ export class CapabilityRegistry {
           self,executor:self?"informational":direct?"hub_direct":"codex_host",discovery:"metadata_only",installation:"installed",
           availability:unresolved?"credentials_required":"not_checked",credentialVariables:[...(source.config.env_vars??[]),...Object.keys(source.config.env??{}),...(source.config.bearer_token_env_var?[source.config.bearer_token_env_var]:[])],discoveredAt:now(),stale:false};
         sourceIds.add(sourceId);
-        if(depth==="catalog"&&source.enabled&&!self&&direct&&!unresolved)try {
-          const connection=this.connection(source.config,sourceId,false);
+        const prepared=this.repo.get("connections","conn_"+hash(sourceId).slice(0,24));
+        const configured=prepared?.sourceFingerprint===sourceFingerprint;
+        if(depth==="catalog"&&source.enabled&&!self&&direct&&(!unresolved||configured))try {
+          const connection=configured?prepared:this.connection(source.config,sourceId,false);
           const discovered=await this.engine.connectors.discover(connection);
           value.discovery="schema_discovered";value.availability="ready";
           for(const tool of discovered.tools) {
@@ -98,7 +127,7 @@ export class CapabilityRegistry {
       });
     }catch(e){update({status:"FAILED",issues:[{code:e instanceof HubError?e.code:"SOURCE_UNREADABLE"}],coverage:"partial"});}
   }
-  private connection(config:Json,sourceId:string,importSecrets:boolean) {
+  private connection(config:Json,sourceId:string,importSecrets:boolean):Json {
     const refs:Json={};
     if(importSecrets)for(const [name,value] of Object.entries(config.env??{}))refs[name]=this.engine.vault.addSecret("Imported MCP variable "+name,String(value)).id;
     const url=config.url?new URL(config.url):null;
@@ -135,10 +164,12 @@ export class CapabilityRegistry {
     ensure(["production","staging","test"].includes(a.environment),"INPUT_INVALID","Explicit environment required.");
     const context=this.repo.get("host_contexts",cap.contextId),config=await resolveSource(context,source.locator);
     ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source configuration changed.",409);
-    if((config.env_vars?.length??0)>0||config.bearer_token_env_var||config.http_headers)return {status:"configuration_required",missing:source.credentialVariables};
+    const prepared=this.repo.get("connections","conn_"+hash(source.id).slice(0,24));
+    const configured=prepared?.sourceFingerprint===source.sourceFingerprint;
+    if(!configured&&((config.env_vars?.length??0)>0||config.bearer_token_env_var||Object.keys(config.http_headers??{}).length))return {status:"configuration_required",missing:source.credentialVariables};
     // Resolve network discovery outside the short transaction. No business call occurs.
-    const connection=this.connection(config,source.id,false);
-    if(Object.keys(config.env??{}).length)return {status:"configuration_required",missing:Object.keys(config.env),reason:"Register credential references through local connection settings."};
+    const connection=configured?prepared:this.connection(config,source.id,false);
+    if(!configured&&Object.keys(config.env??{}).length)return {status:"configuration_required",missing:Object.keys(config.env),reason:"Register credential references through local connection settings."};
     const discovered=await this.engine.connectors.discover(connection);
     return this.repo.command(owner,"capability.import",a.idempotencyKey,a,()=>{
       ensure(this.repo.get("capabilities",cap.id)?.revision===cap.revision,"CAPABILITY_STALE","Capability changed while importing.",409);

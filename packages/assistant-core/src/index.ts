@@ -46,7 +46,8 @@ export class AssistantCore {
     const provider=this.provider(profile),results:Json={};
     for(const kind of ["text","tools","stream"])try{
       const response=await provider.complete({messages:[{role:"user",content:kind==="tools"?"Call flowhub_probe with value ok.":"Reply ok."}],tools:kind==="tools"?[{name:"flowhub_probe",description:"Synthetic connection probe",parameters:{type:"object",properties:{value:{type:"string"}},required:["value"],additionalProperties:false}}]:[],signal:AbortSignal.timeout(15000),stream:kind==="stream"});
-      results[kind]={status:kind==="tools"&&response.calls.length===0?"unsupported":"passed",testedAt:now()};
+      const validProbe=response.calls.length===1&&response.calls[0]!.name==="flowhub_probe"&&hash(JSON.parse(response.calls[0]!.arguments))===hash({value:"ok"});
+      results[kind]={status:kind==="tools"&&!validProbe?"unsupported":"passed",testedAt:now()};
     }catch(e){results[kind]={status:"failed",errorCode:e instanceof HubError?e.code:"MODEL_CONNECTION_FAILED",testedAt:now()};}
     this.repo.put("model_profiles",profileId,{...profile,capabilities:results,lastTestAt:now(),revision:profile.revision+1},profile.revision);return results;
   }
@@ -123,13 +124,13 @@ export class AssistantCore {
         for(let attempt=0;attempt<3;attempt++)try {
           const turn=await provider.complete({messages,tools:[],signal:AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]),stream:false});
           ensure(!turn.calls.length,"HOST_CAPABILITY_UNAVAILABLE","Analysis cannot dispatch host-only tools.");payload=JSON.parse(turn.text);validate(status.checkpoint.requiredOutputSchema,payload);ready=true;break;
-        }catch(e){if(controller.signal.aborted)throw e;messages.push({role:"user",content:"Output was invalid. Return only JSON conforming to the original schema."});}
+        }catch(e){if(controller.signal.aborted||(!(e instanceof SyntaxError)&&!(e instanceof HubError&&e.code==="INPUT_INVALID")))throw e;messages.push({role:"user",content:"Output was invalid. Return only JSON conforming to the original schema."});}
         ensure(ready,"INPUT_INVALID","Model output did not match checkpoint schema; checkpoint retained.");ensure(!controller.signal.aborted,"TASK_CANCELLED","Analysis cancelled.");
         const lease=this.repo.get("settings",accepted.claimKey);ensure(lease?.claimId===accepted.claimId&&lease.expiresAt>Date.now(),"CHECKPOINT_CLAIMED","Analysis claim expired.",409);
         const result=this.app.engine.advance({runId,checkpointId:status.checkpoint.id,checkpointToken:status.checkpoint.token,expectedRevision:status.revision,idempotencyKey:key+":advance",submission:{type:"agent_result",payload}},owner,accepted.claimId);
         this.repo.put("assistant_tool_calls",accepted.taskId+":analysis",{id:accepted.taskId+":analysis",taskId:accepted.taskId,callId:"analysis",name:"workflow_advance",status:"COMPLETED",result});
         this.repo.put("assistant_tasks",accepted.taskId,{...this.repo.get("assistant_tasks",accepted.taskId),status:"COMPLETED",answer:"Analysis submitted through the existing checkpoint service.",result});this.repo.changed("task.completed",{taskId:accepted.taskId,data:result});
-      }catch(e){const task=this.repo.get("assistant_tasks",accepted.taskId);if(!["CANCELLED","INTERRUPTED"].includes(task.status))this.repo.put("assistant_tasks",accepted.taskId,{...task,status:controller.signal.aborted?"CANCELLED":"FAILED",errorCode:e instanceof HubError?e.code:"MODEL_OUTPUT_INVALID"});}
+      }catch(e){const task=this.repo.get("assistant_tasks",accepted.taskId);if(!["CANCELLED","INTERRUPTED"].includes(task.status)){const status=controller.signal.aborted?"CANCELLED":"FAILED",errorCode=e instanceof HubError?e.code:"MODEL_OUTPUT_INVALID";this.repo.put("assistant_tasks",accepted.taskId,{...task,status,errorCode});this.repo.changed("task.completed",{taskId:accepted.taskId,data:{status,errorCode}});}}
       finally{if(this.repo.get("settings",accepted.claimKey)?.claimId===accepted.claimId)this.repo.remove("settings",accepted.claimKey);}})()
         .finally(()=>{this.controllers.delete(accepted.taskId);this.jobs.delete(accepted.taskId);});this.jobs.set(accepted.taskId,work);
     }

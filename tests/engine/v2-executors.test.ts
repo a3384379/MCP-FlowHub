@@ -40,3 +40,9 @@ test("host-only checkpoint freezes identity and arguments and cannot be consumed
   f.engine.advance({runId:f.runId,checkpointId:status.checkpoint.id,checkpointToken:status.checkpoint.token,expectedRevision:status.revision,idempotencyKey:"host",submission:{type:"agent_result",payload:{summary:"Host reported result"}}});
   assert.equal(f.repo.get("runs",f.runId).hostReported.agent.verification,"host_reported");
 });
+test("analysis auth errors do not retry or consume the checkpoint",async t=>{
+  const {HubError}=await import("../../packages/contracts/src/domain.js");
+  const f=await setup(t,"analysis",[()=>{throw new HubError("MODEL_AUTH_FAILED","Synthetic denied",401);}]);
+  const task=f.app.assistant.analyzeCheckpoint(f.runId,f.profile.id,"auth-denied");await f.app.assistant.settled();
+  assert.equal(f.provider.requests.length,1);assert.equal(f.app.assistant.task(task.taskId).errorCode,"MODEL_AUTH_FAILED");assert.equal(f.engine.status(f.runId).state,"WAITING_AGENT");
+});

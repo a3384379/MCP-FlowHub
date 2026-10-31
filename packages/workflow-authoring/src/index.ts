@@ -205,6 +205,8 @@ export class AuthoringService {
       }
       const metadata=(value:Json)=>Object.fromEntries(Object.entries(value).filter(([k])=>!["nodes","edges","bindings"].includes(k)));
       revert(draft,metadata(command.beforeDraft),metadata(command.afterDraft),"/");revert(draft.bindings,command.beforeDraft.bindings,command.afterDraft.bindings,"/bindings/");revert(layout,command.beforeLayout,command.afterLayout,"/layout/");
+      const removed=current.draft.nodes.filter((n:Json)=>!liveNodes[n.id]).map((n:Json)=>n.id);
+      ensure(!draft.edges.some((e:Json)=>removed.includes(e.source)||removed.includes(e.target))&&!draft.nodes.some((n:Json)=>removed.some((key:string)=>mentions(n.config,key))),"REFERENCE_IN_USE","Later edits reference a node this undo would remove.",409);
       validate(workflowSchema,draft);
       const saved={...current,draft,layout,revision:current.revision+1,layoutRevision:current.layoutRevision+(same(layout,current.layout)?0:1),name:draft.name,updatedAt:now()};
       delete saved.workflow;delete saved.issues;delete saved.capabilityRefs;

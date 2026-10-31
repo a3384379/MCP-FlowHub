@@ -32,7 +32,8 @@
     "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
     "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js",
     "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js",
-    "test:assistant": "npm run build:server && node --test dist/tests/engine/v2-assistant.test.js"
+    "test:assistant": "npm run build:server && node --test dist/tests/engine/v2-assistant.test.js",
+    "test:codex-local": "npm run build:server && node scripts/smoke-codex-v2.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

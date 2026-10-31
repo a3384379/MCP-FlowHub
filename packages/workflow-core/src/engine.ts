@@ -1171,6 +1171,13 @@ export class Engine {
     };
     const args = mappings(n.config.argumentsMappings, r.inputs, this.operationalOutputs(r), arrayAt);
     for (const [key, v] of Object.entries(b.lockedArguments)) set(args, key, v, arrayAt);
+    if(n.config.rowLimitArgument) {
+      const pointer=n.config.rowLimitArgument,definition=schemaAt(schema,pointer);let requested;
+      try{requested=get(args,pointer);}catch(e){if(!(e instanceof HubError&&e.code==="REFERENCE_MISSING"))throw e;}
+      ensure(["integer","number"].includes(definition.type),"LIMIT_UNSUPPORTED","The declared native row-limit argument is not numeric.");
+      ensure(requested===undefined||(Number.isSafeInteger(requested)&&requested>0),"INPUT_INVALID","The native row limit must be a positive integer.");
+      set(args,pointer,Math.min(requested??Infinity,r.snapshot.workflow.budgets.maxRows,b.maxRows),arrayAt);
+    }
     if (b.allowedQueryTemplates.length)
       ensure(
         b.allowedQueryTemplates.includes(args.templateId),
@@ -1368,6 +1375,7 @@ export class Engine {
             createdAt: now(),
           };
           r.steps[n.id] = "RUNNING";
+          if(w.schemaVersion==="flowhub.workflow/v2")this.repo.event(r.id,"TOOL_LIMIT_ENFORCEMENT",{nodeId:n.id,status:n.config.rowLimitArgument?"native_argument":"unsupported",argumentPointer:n.config.rowLimitArgument??null,effectiveLimit:n.config.rowLimitArgument?get(args,n.config.rowLimitArgument):null,postResultRowBudget:Math.min(w.budgets.maxRows,binding.maxRows)});
           this.save(r, "TOOL_PREPARING", n.id);
           const started = Date.now();
           activeStarted = started;

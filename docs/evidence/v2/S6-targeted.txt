@@ -1,0 +1,29 @@
+
+> mcp-flowhub@1.0.0-rc.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 74 management paths.
+✔ authoring creates real drafts, retains idempotency and restricts creation ownership (51.229667ms)
+✔ patch transaction rolls back all mutations and events, CAS and command replay are exact (16.595042ms)
+✔ layout CAS is independent from semantic edits and incomplete legal drafts retain issues (5.652ms)
+✔ publish freezes v2 snapshot, respects revision and preserves v1 schema restrictions (4.18775ms)
+✔ semantic undo and redo preserve unrelated later fields and reject same-field conflicts (6.856ms)
+✔ undo cannot remove a node referenced by later user edits (4.800584ms)
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (3248.45775ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (1237.889083ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (144.391458ms)
+✔ metadata scans report broken sources and never store inline credential values (170.815458ms)
+✔ explicit local credential import seals inline env, preserves source, and enables independent catalog (673.957333ms)
+✔ context trust options use CAS and do not silently mutate an existing registration (235.816167ms)
+✔ assistant analysis uses a checkpoint lease and existing advance, retaining business originals (170.291583ms)
+✔ host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key (103.582208ms)
+✔ analysis auth errors do not retry or consume the checkpoint (102.190875ms)
+✔ real text-only MCP retains raw business content without environment and receives a clamped native limit (500.2625ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5912.884375
