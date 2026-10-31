@@ -1,0 +1,21 @@
+
+> mcp-flowhub@1.0.0-rc.1 test:discovery
+> npm run build:server && node --test dist/tests/engine/v2-discovery.test.js
+
+
+> mcp-flowhub@1.0.0-rc.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 56 management paths.
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (202.81775ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (1107.493417ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (488.2485ms)
+✔ metadata scans report broken sources and never store inline credential values (528.447792ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2447.029209

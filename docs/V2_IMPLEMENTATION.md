@@ -25,7 +25,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S2–S7
+## S3–S7
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
@@ -41,3 +41,14 @@ S0 后续修复：macOS 安装器夹具使用 realpath，仍保留拒绝目录�
 验证：npm run check exit 0；build:server exit 0；Authoring/迁移/恢复/既有发布CAS 共 16 项 exit 0。早期一次测试暴露“草稿断开全部边被Schema拒绝”，已只在 v2 Schema 放宽零边中间草稿，发布图检查不放宽。先前恢复负例的未知版本改为 999，避免与正式 migration 2 冲突。
 证据：docs/evidence/v2/S1-tests.txt、S1-check.txt。脚本 test:authoring 已真实加入 package.json。
 未验证：原生 Windows、真实 MCP/模型；S2–S7 仍待实施。
+
+## S2（已完成本机发现与合成协议验证）
+
+实现 HostContext、实际 help 检测的 CLI JSON、真实 TOML 回退、可信项目/Profile 部分覆盖标记、Windows/WSL/本机执行位置隔离、本地已装标记+Manifest+Skill 扫描。只读 App Server 适配使用本机 generate-ts 的 0.164.0-alpha.11.1 请求类型，版本不符拒绝并回退；生产不调用 plugin/list/read，不执行 hooks。
+CapabilityRegistry 落库扫描任务、来源、能力修订/历史及失效标记；同名工具按来源隔离、按需Schema、分页游标绑定过滤与快照；导入只建 FlowHub 连接/绑定，不改 Codex 配置，不伪造真实环境验证。缺认证/相对命令/宿主能力保持不可直接调用；连接密钥不进入目录。正式 React 发现页已接后端。
+
+验证：npm run check exit 0；test:discovery（包含 build:server）4/4 exit 0，覆盖已装/市场、禁用、多组件、真实 SDK STDIO catalog、同名工具、重复扫描/导入、源消失、凭据不落目录、损坏来源、TOML多行/引用、Profile、可信项目及外部执行位置。最初自引用判断过宽，测试发现临时目录名误判，现已收窄。
+实际本机元数据扫描：Codex 0.164.0-alpha.11.1，macOS，host_effective；11 MCP 来源、25 插件、57 Skills；PARTIAL/PLUGIN_VERSION_AMBIGUOUS。没有业务调用或模型调用；没有连接本机下游业务服务。日志 S2-local.txt、S2-tests.txt。
+
+保留边界：多版本缓存不能唯一定位时不猜安装版本；root manifest 未通过当前适配的格式标 unsupported；托管会话私有工具不声称可共享。带认证的来源需要在本地连接设置登记 secretRef，不经 MCP 参数传Key；没有通过业务探测伪造 BINDING_VERIFIED。
+S3–S7 尚未完成；Windows/真实模型仍未验证。

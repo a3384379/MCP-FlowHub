@@ -29,7 +29,8 @@
     "build:web": "tsc -p apps/web/tsconfig.json && vite build",
     "dev:web": "vite --host 127.0.0.1",
     "test:ui": "playwright test",
-    "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js"
+    "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
+    "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",
@@ -41,7 +42,8 @@
     "better-sqlite3": "13.0.3",
     "fastify": "5.12.7",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "smol-toml": "1.4.2"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

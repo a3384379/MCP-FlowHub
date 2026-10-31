@@ -23,6 +23,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
+import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import { SettingsIntegration } from "./SettingsIntegration";
 import {
   ConnectionForm,
@@ -74,7 +75,7 @@ async function api(
   signal?: AbortSignal,
   withMeta = false,
 ): Promise<J> {
-  const response = await fetch("/api/v1" + path, {
+  const response = await fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
     method,
     headers: {
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
@@ -1550,6 +1551,7 @@ function App() {
             ["workflows", "工作流库"],
             ["editor", "流程编排"],
             ["connections", "MCP 工具库"],
+            ["discovery", "Codex 发现"],
             ["bindings", "环境与权限"],
             ["runs", "运行记录"],
             ["settings", "接入设置"],
@@ -1645,6 +1647,7 @@ function App() {
               {notice}
             </div>
           )}
+          {page === "discovery" && <DiscoveryPage api={api} />}
           {page === "workflows" && (
             <>
               <PageHead

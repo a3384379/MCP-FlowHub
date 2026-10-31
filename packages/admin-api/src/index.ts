@@ -28,6 +28,7 @@ import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth } from "../../security/src/index.js";
 import { AuthoringService } from "../../workflow-authoring/src/index.js";
+import { CapabilityRegistry } from "../../capability-registry/src/index.js";
 import { registerV2 } from "./v2.js";
 import {
   previewRetention,
@@ -47,6 +48,7 @@ export async function registerAdmin(
   engine: Engine,
   dataDir: string,
   authoring = new AuthoringService(engine),
+  registry = new CapabilityRegistry(engine),
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -1053,9 +1055,10 @@ export async function registerAdmin(
     const b = body(req, ["previewHash"]);
     return data(commitRetention(repo, b.previewHash));
   });
-  registerV2(app, authoring);
+  registerV2(app, authoring, registry);
   // preClose runs before Fastify waits for hijacked HTTP connections to finish.
   app.addHook("preClose", async () => {
+    await registry.close();
     streamsClosing = true;
     for (const close of eventStreams.keys()) close();
   });
