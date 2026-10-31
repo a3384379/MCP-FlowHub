@@ -1,0 +1,20 @@
+Command: node --test --test-concurrency=1 --test-timeout=60000 dist/tests/engine/v2-conversation.test.js dist/tests/engine/v2-assistant.test.js dist/tests/engine/v2-assistant-audit-regressions.test.js dist/tests/engine/v2-assistant-acceptance.test.js
+Exit: 0
+Note: after the final cachedTools projection addition.
+
+✔ runtime inventory separates unscanned, empty, partial and failed; projection excludes credentials and transport data (109.498333ms)
+✔ metadata is never presented as a fully known catalog; stale and host-only capabilities remain distinct (98.158334ms)
+✔ real state is included before help and three turns retain same-scope history without executing tools (103.624792ms)
+✔ conversation page groups per-turn receipts in one batch, paginates, and enforces owner (100.673459ms)
+✔ partial reply survives cancellation and a conversation reload; continuation only reads saved results (99.584833ms)
+✔ streaming promptly releases ordinary short text while protecting checkpoint credentials split across chunks (100.798875ms)
+✔ a follow-up can read the workflow created in this same scoped conversation, but cannot access an unrelated draft (141.909292ms)
+✔ design and advice questions do not grant edit permissions; implementing an agreed plan does (0.201625ms)
+ℹ tests 48
+ℹ suites 0
+ℹ pass 48
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12626.673167
