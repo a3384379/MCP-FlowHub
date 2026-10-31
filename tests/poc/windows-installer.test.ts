@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -19,7 +19,7 @@ async function put(root: string, name: string, content: string) {
   await writeFile(join(root, name), content);
 }
 async function fixture(t: TestContext) {
-  const root = await mkdtemp(join(tmpdir(), "FlowHub 安装 helper "));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "FlowHub 安装 helper ")));
   t.after(() => rm(root, { recursive: true, force: true }));
   const installDir = join(root, "程序 files");
   const dataDir = join(root, "用户 data");

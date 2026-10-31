@@ -1,0 +1,150 @@
+{
+  "type": "object",
+  "properties": {
+    "capabilityId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "mcp_tool",
+        "skill"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "executor": {
+      "enum": [
+        "hub_direct",
+        "codex_host",
+        "informational"
+      ]
+    },
+    "availability": {
+      "enum": [
+        "ready",
+        "not_checked",
+        "credentials_required",
+        "unreachable",
+        "unsupported",
+        "stale"
+      ]
+    },
+    "installation": {
+      "enum": [
+        "installed",
+        "available_only",
+        "unknown"
+      ]
+    },
+    "enabled": {
+      "enum": [
+        "enabled",
+        "disabled",
+        "unknown"
+      ]
+    },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceKind": {
+            "enum": [
+              "user_config",
+              "project_config",
+              "plugin_bundle",
+              "host_runtime",
+              "manual"
+            ]
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "sourceId",
+          "sourceKind",
+          "locator",
+          "revision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "bindingCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "bindingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environment": {
+            "enum": [
+              "production",
+              "staging",
+              "test",
+              "development"
+            ]
+          }
+        },
+        "required": [
+          "bindingId",
+          "environment"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "synthetic": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "capabilityId",
+    "kind",
+    "name",
+    "description",
+    "revision",
+    "contextId",
+    "executor",
+    "availability",
+    "installation",
+    "enabled",
+    "sourceRefs",
+    "bindingCandidates",
+    "synthetic"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capability metadata; no credential values"
+}

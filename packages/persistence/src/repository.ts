@@ -1,118 +1,13 @@
 import Database from "better-sqlite3";
 import { chmodSync } from "node:fs";
 import { hash, now, ensure, type Json } from "../../contracts/src/domain.js";
-const TABLES = [
-  "settings",
-  "connections",
-  "bindings",
-  "workflows",
-  "versions",
-  "runs",
-  "artifacts",
-  "approvals",
-  "secrets",
-  "attempts",
-  "clients",
-] as const;
-export type Table = (typeof TABLES)[number];
-const repositoryDdl = TABLES.map(
-  (t) =>
-    "CREATE TABLE IF NOT EXISTS " +
-    t +
-    " (id TEXT PRIMARY KEY, revision INTEGER NOT NULL, body TEXT NOT NULL)",
-).join(";");
-const journalDdl =
-  "CREATE TABLE IF NOT EXISTS commands(owner TEXT,operation TEXT,key TEXT,request_hash TEXT NOT NULL,response TEXT NOT NULL,PRIMARY KEY(owner,operation,key)); CREATE TABLE IF NOT EXISTS run_events(run_id TEXT,seq INTEGER,body TEXT NOT NULL,PRIMARY KEY(run_id,seq)); CREATE TABLE IF NOT EXISTS audit_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,body TEXT NOT NULL)";
-const migrationDdl =
-  "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL,applied_at TEXT NOT NULL)";
-const managedTables = [...TABLES, "commands", "run_events", "audit_events"];
-// Derive required names, types, nullability and primary keys from the same DDL
-// used to create new stores, without changing the existing v1 checksum.
-const expectedLayouts = (() => {
-  const reference = new Database(":memory:");
-  try {
-    reference.exec(migrationDdl + ";" + repositoryDdl + ";" + journalDdl);
-    return new Map(
-      ["schema_migrations", ...managedTables].map((table) => [
-        table,
-        hash(reference.pragma("table_info(" + table + ")")),
-      ]),
-    );
-  } finally {
-    reference.close();
-  }
-})();
-
-/** Read-only compatibility check shared by startup and pre-replacement restore. */
-export function validateMigrations(
-  db: Database.Database,
-  allowUninitialized = false,
-) {
-  const tables = new Set(
-    (
-      db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
-        name: string;
-      }[]
-    ).map((row) => row.name),
-  );
-  const pristine = managedTables.every((table) => !tables.has(table));
-  if (!tables.has("schema_migrations")) {
-    ensure(
-      allowUninitialized && pristine,
-      "MIGRATION_MISMATCH",
-      "Migration history is missing.",
-      500,
-    );
-    return;
-  }
-  const checkLayout = (table: string) =>
-    ensure(
-      hash(db.pragma("table_info(" + table + ")")) ===
-        expectedLayouts.get(table),
-      "MIGRATION_MISMATCH",
-      "Database columns or constraints do not match the recorded migration.",
-      500,
-    );
-  checkLayout("schema_migrations");
-  const history = db
-    .prepare(
-      "SELECT version, checksum, applied_at FROM schema_migrations ORDER BY version",
-    )
-    .all() as { version: number; checksum: string }[];
-  if (allowUninitialized && pristine && history.length === 0) return;
-  ensure(
-    history.length === 1 && history[0]!.version === 1,
-    "MIGRATION_MISMATCH",
-    "Migration history is unsupported by this program.",
-    500,
-  );
-  ensure(
-    history[0]!.checksum === hash(repositoryDdl),
-    "MIGRATION_MISMATCH",
-    "Migration checksum changed.",
-    500,
-  );
-  ensure(
-    managedTables.every((table) => tables.has(table)),
-    "MIGRATION_MISMATCH",
-    "Database tables do not match the recorded migration.",
-    500,
-  );
-  for (const table of managedTables) checkLayout(table);
-}
-
+import { V1_TABLES } from "./v1.js";
+import { migrate } from "./migrations.js";
+export { validateMigrations } from "./migrations.js";
+export type Table = (typeof V1_TABLES)[number];
 export class Repository {
   constructor(public db: Database.Database) {
-    validateMigrations(db, true);
-    db.exec(migrationDdl);
-    db.transaction(() => {
-      db.exec(repositoryDdl);
-      db.exec(journalDdl);
-      db.prepare("INSERT OR IGNORE INTO schema_migrations VALUES(1,?,?)").run(
-        hash(repositoryDdl),
-        now(),
-      );
-    })();
+    migrate(db);
   }
   get<T = Json>(table: Table, id: string): T | undefined {
     const row = this.db

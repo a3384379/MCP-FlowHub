@@ -1,0 +1,15 @@
+{
+  "scope": "offline_ui_prototype_only_not_product_tests",
+  "checks": [
+    "discover / scan / import synthetic source",
+    "editor / select assistant / synthetic patch",
+    "test panel shows simulated pass and uncovered case separately",
+    "model panel does not accept real keys / simulated probe",
+    "scripted chat updates shared demo workflow",
+    "all six pages fit 1440 / 1366 / 390 widths without whole-page overflow"
+  ],
+  "pageErrors": [],
+  "externalNetworkRequests": [],
+  "status": "pass",
+  "renderMode": "Playwright set_content; this sandbox blocks file:// navigation by policy; no policy changed"
+}

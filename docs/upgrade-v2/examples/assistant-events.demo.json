@@ -1,0 +1,38 @@
+[
+  {
+    "eventId": "evt_001",
+    "type": "tool.started",
+    "taskId": "task_demo",
+    "workflowId": "prod-incident-v2",
+    "timestamp": "2026-10-31T02:33:00Z",
+    "data": {
+      "name": "workflow_draft_patch"
+    }
+  },
+  {
+    "eventId": "evt_002",
+    "type": "draft.changed",
+    "taskId": "task_demo",
+    "workflowId": "prod-incident-v2",
+    "revision": 2,
+    "timestamp": "2026-10-31T02:33:01Z",
+    "data": {
+      "changedNodeIds": [
+        "logs"
+      ],
+      "source": "assistant",
+      "synthetic": true
+    }
+  },
+  {
+    "eventId": "evt_003",
+    "type": "task.completed",
+    "taskId": "task_demo",
+    "workflowId": "prod-incident-v2",
+    "timestamp": "2026-10-31T02:33:02Z",
+    "data": {
+      "summary": "仅为设计示例：草稿保存完成",
+      "synthetic": true
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "workflowId": "prod-incident-v2",
+  "name": "生产问题排查",
+  "environment": "production",
+  "mode": "guided",
+  "template": "blank",
+  "contextId": "ctx_demo_windows",
+  "idempotencyKey": "demo-create-001"
+}

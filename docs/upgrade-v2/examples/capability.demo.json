@@ -1,0 +1,73 @@
+{
+  "capabilityId": "cap_demo_aliyun_search",
+  "kind": "mcp_tool",
+  "name": "demo_log_search",
+  "description": "仅供设计与合成测试的日志能力，不是真实阿里云服务",
+  "revision": 1,
+  "contextId": "ctx_demo_windows",
+  "executor": "hub_direct",
+  "availability": "ready",
+  "installation": "installed",
+  "enabled": "enabled",
+  "sourceRefs": [
+    {
+      "sourceId": "src_demo_user",
+      "sourceKind": "user_config",
+      "locator": "fixture://codex-home/config.toml",
+      "revision": 1
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "orderNo": {
+        "type": "string",
+        "minLength": 1
+      },
+      "environment": {
+        "const": "production"
+      }
+    },
+    "required": [
+      "orderNo",
+      "environment"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "logs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "orderNo": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "message",
+            "orderNo"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "logs"
+    ],
+    "additionalProperties": false
+  },
+  "bindingCandidates": [
+    {
+      "bindingId": "binding_demo_prod_logs",
+      "environment": "production"
+    }
+  ],
+  "synthetic": true
+}

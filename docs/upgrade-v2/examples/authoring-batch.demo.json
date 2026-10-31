@@ -1,0 +1,67 @@
+{
+  "workflowId": "prod-incident-v2",
+  "expectedRevision": 1,
+  "idempotencyKey": "demo-patch-001",
+  "operations": [
+    {
+      "op": "set_binding",
+      "key": "logs",
+      "bindingId": "binding_demo_prod_logs"
+    },
+    {
+      "op": "set_input_schema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "orderNo": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "orderNo"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "op": "add_node",
+      "nodeId": "logs",
+      "nodeType": "mcp_tool",
+      "title": "查询生产日志",
+      "capabilityRef": {
+        "capabilityId": "cap_demo_aliyun_search",
+        "revision": 1
+      },
+      "config": {
+        "bindingKey": "logs",
+        "argumentsMappings": {
+          "/orderNo": {
+            "ref": {
+              "source": "input",
+              "pointer": "/orderNo"
+            }
+          }
+        }
+      }
+    },
+    {
+      "op": "disconnect",
+      "source": "input",
+      "target": "end",
+      "port": "next"
+    },
+    {
+      "op": "connect",
+      "source": "input",
+      "target": "logs",
+      "port": "next"
+    },
+    {
+      "op": "connect",
+      "source": "logs",
+      "target": "end",
+      "port": "next"
+    }
+  ]
+}
