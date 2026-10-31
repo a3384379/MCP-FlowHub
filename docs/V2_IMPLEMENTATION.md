@@ -141,3 +141,23 @@ S5–S7 尚未完成。
 | S5 | c4fb1f2 | AI真实画布同步/撤销/执行器衔接 |
 | S6 | cbdeeed | 真实本机Codex联调/凭据入口/回归矩阵 |
 | S7 | 本节所在提交，见git log | 本地离线候选/升级回滚/包门禁及最终修复 |
+
+## S7 后审计修复：alpha.2（2026-10-31）
+
+本轮从5c68e54开始，工作区原干净，fetch后main仍45eed03。按用户要求用max独立审计、xhigh修复，继续在原仓库，不接触正式库。发现13条、编排/自测8条、助手14条原始及补修记录按原场景关闭；后续精确验收补齐引用重建stale、Skill报告合同、终态自测过期显示和数据生命周期。原35条包含同一缺陷后续补修，不能计作35个独立漏洞。逐项触发/修改/验证/限制见V2_AUDIT.md和audit/closeout.json。
+
+实际实现提交：`5c44b68`。其后证据提交同时纳入隔离Playwright配置，最终候选以该证据提交HEAD为准。源码/契约/运行版本统一2.0.0-alpha.2，未改依赖版本。已交付v1/v2迁移DDL/checksum原字节冻结；没有清理用户数据库，没有恢复审批/自动脱敏，不push/merge/Release。
+
+实际命令（项目隔离Node24.19.0/npm11.9.0）：
+- `npm run check` exit0；37正例/65负例设计检查和两套TS通过。
+- `npm test`（含完整build）exit0，338/338、0 skip，120.1秒；audit/tests.txt。
+- `npm run test:ui` exit0，35/35、49.1秒；audit/ui.txt。不操作日常Chrome资料，测试CLI用Node真实子进程及空Codex Home。
+- `node scripts/smoke-codex-v2.mjs` exit0，真实0.164.0-alpha.11.1宿主经21工具完成创建/自测/发布/运行/报告，真实模型回合0；audit/codex.txt。
+- `node scripts/smoke-v2-upgrade.mjs` exit0，实际旧45eed03程序→alpha.2→停机恢复→旧程序重启，业务逐行/发布hash/报告字节不变；audit/upgrade.txt。
+- `node scripts/benchmark-v2.mjs` exit0，100节点50样本校验P95 4.41ms；500组件10样本扫描P95 125.15ms；本机合成指标，画布事件P95未测。
+
+修复过程中保留真实失败：原UI27/30、旧夹具选择器34/35，随后用实际测试关闭。常量条件不可覆盖的false分支正确PARTIAL，未改回假绿；真实自测成功和stale另有独立浏览器测试。
+
+当前104项95 PASS /4 PARTIAL /5 UNVERIFIED；PARTIAL及30真实模型评测未当作通过。完整配置优先链、工具漂移到修复发布复合场景、发布复合CAS场景及真实host-only执行仍缺完整验收；Windows/WSL、企业权限、安装卸载与新机教程维持独立门禁。
+
+本地包门禁：`npm run package:local`、`npm run test:package`、`npm run verify:release`均exit0，包内Node、中文帮助、持久化编排、现代/legacy及21/7目录、助手模块与README篡改拒绝均通过，证据audit/package*.txt。此轮预证据提交包为审计验证，最终证据提交后再构建并验证clean候选；最终build-info.gitSha=HEAD、dirty=false，归档路径与hash读取artifacts/latest-package.json，最终只读日志位于/tmp/flowhub-v2-audit-delivery-*，不再把最终包hash写回源码。

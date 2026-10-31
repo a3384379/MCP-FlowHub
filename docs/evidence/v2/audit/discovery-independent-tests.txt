@@ -1,0 +1,39 @@
+✔ DISC-03/DISC-05: legacy CLI never receives unsupported JSON; same-name static layers stay partial with exact provenance (112.283209ms)
+✔ PLUG-05: unsupported manifest layouts or declared format versions stay partial and are never guessed (378.9185ms)
+✔ PLUG-04/PLUG-06/PLUG-07: installed host Skill is indexed without scripts, hooks, unstable RPCs or fabricated connections (182.852833ms)
+✔ PLUG-08: Skill content drift advances semantic revision, mtime-only refresh does not, and publication stays immutable (271.457083ms)
+✔ CAP-02: the same endpoint with distinct Vault references keeps independent identities and old bindings (519.32675ms)
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (113.055084ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (818.487417ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (39.912458ms)
+✔ metadata scans report broken sources and never store inline credential values (87.866708ms)
+✔ explicit local credential import seals inline env, preserves source, and enables independent catalog (631.840084ms)
+✔ context trust options use CAS and do not silently mutate an existing registration (109.024ms)
+✔ credential command arguments remain metadata-only and are never copied into connection rows (112.688417ms)
+✔ source and tool disables invalidate old catalog and never reconnect during import (189.185209ms)
+✔ current source revision gets a new connection; successful replay is independent of source and network (184.154ms)
+✔ older scans and context drift cannot overwrite newer current catalog (208.541041ms)
+✔ command credentials and URL/header forms stay metadata only without plaintext in ordinary records (232.1665ms)
+✔ skill enablement, plugin server overrides and CLI allow/deny policy are effective (81.923ms)
+✔ HTTP self aliases normalize independently of server label and protocol identity blocks recursion (136.349625ms)
+✔ close aborts a pending catalog, persists terminal state and rejects subsequent work (83.078125ms)
+✔ catalog deadline covers real SDK tools/list and closes the child transport (512.31525ms)
+✔ SQL capability pages exclude schemas, filter sources/environment and reject stale cursors; benchmark 200/1000 (3130.657041ms)
+ℹ {"discoveryPerformance":[{"capabilities":200,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":7.533957999999984},{"capabilities":1000,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":96.62154199999986}]}
+✔ plugin per-server deny rules and custom Skill/app components preserve installed provenance (96.46775ms)
+✔ App Server effective disabled Skill corrects an already indexed path (107.415416ms)
+✔ concurrent source discovery exposes successful sources before a slow one and scan cancel is durable (87.84725ms)
+✔ HTTP discovery validates the same DTO and decodes false query flags (71.042875ms)
+✔ schema-only and description-only catalog drift create immutable connections with matching contracts (422.693334ms)
+✔ unchanged metadata preserves catalog semantics, real draft capability refs and accepted self-test baseline (824.953375ms)
+✔ explicit null and config_only never run PATH Codex or App Server and remain persisted (50.770208ms)
+✔ launcher adapters support Python, Node, uvx and npx while unknown options are unsupported and secrets stay rejected (373.765125ms)
+✔ Skill and host component capabilities have persisted current source refs after metadata refresh (159.374166ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9060.437166

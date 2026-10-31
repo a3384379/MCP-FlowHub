@@ -1,0 +1,50 @@
+
+> mcp-flowhub@2.0.0-alpha.2 package:local
+> npm run build && node scripts/package.mjs
+
+
+> mcp-flowhub@2.0.0-alpha.2 build
+> npm run build:server && npm run build:web
+
+
+> mcp-flowhub@2.0.0-alpha.2 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 76 management paths.
+
+> mcp-flowhub@2.0.0-alpha.2 build:web
+> tsc -p apps/web/tsconfig.json && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 182 modules transformed.
+rendering chunks...
+computing gzip size...
+web-dist/index.html                   0.45 kB │ gzip:   0.35 kB
+web-dist/assets/index-DGm1dZrY.css   33.10 kB │ gzip:   6.92 kB
+web-dist/assets/index-D_-Ptydl.js   579.09 kB │ gzip: 178.23 kB
+
+[MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   ╭─[ node_modules/@xyflow/react/dist/esm/index.js:1:1 ]
+   │
+ 1 │ "use client"
+   │ ──────┬─────
+   │       ╰─────── module level directive may not be preserved
+   │
+   │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+───╯
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 120ms
+added 95 packages in 1s
+Bundle verified: 5789 files, recoverable source snapshot, 94 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{
+  "bundle": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-10-31T06-56-31-449Z",
+  "archive": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-10-31T06-56-31-449Z.tar.gz",
+  "archiveSha256": "f4486d7df944543b69d394b1d758ae80ae080dcf1cc534b606416a08ae07138f",
+  "components": 95
+}

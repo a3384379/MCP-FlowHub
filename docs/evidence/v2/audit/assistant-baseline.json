@@ -1,0 +1,116 @@
+[
+  {
+    "case": "intent",
+    "actual": [
+      {
+        "text": "保存草稿，不要发布或执行",
+        "actions": [
+          "edit_draft",
+          "run"
+        ]
+      },
+      {
+        "text": "创建试运行流程并保存草稿",
+        "actions": [
+          "edit_draft",
+          "run"
+        ]
+      },
+      {
+        "text": "请解释当前流程的运行原理",
+        "actions": [
+          "edit_draft",
+          "run"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "negated-run-dispatched",
+    "status": "COMPLETED",
+    "tool": "workflow_start",
+    "actualWorkflow": "other",
+    "toolsOffered": [
+      "workflow_search",
+      "workflow_get",
+      "workflow_start",
+      "workflow_advance",
+      "workflow_status",
+      "workflow_cancel",
+      "artifact_read",
+      "capability_search",
+      "capability_get",
+      "workflow_draft_get",
+      "workflow_draft_create",
+      "workflow_draft_patch",
+      "workflow_draft_validate",
+      "workflow_test_status",
+      "project_help_search"
+    ]
+  },
+  {
+    "case": "wrong-workflow-started",
+    "status": "COMPLETED",
+    "selected": "selected",
+    "actualWorkflow": "other"
+  },
+  {
+    "case": "checkpoint-token-leaked",
+    "providerHasToken": true,
+    "ordinaryMessagesHaveToken": true,
+    "sseEventsHaveToken": true
+  },
+  {
+    "case": "delete-session-event-orphan",
+    "taskDeleted": true,
+    "eventsRemain": 2,
+    "deletedTokenStillInEvents": true
+  },
+  {
+    "case": "analysis-idempotent-retry",
+    "firstTask": "COMPLETED",
+    "runState": "SUCCEEDED",
+    "replayError": "HOST_CAPABILITY_UNAVAILABLE"
+  },
+  {
+    "case": "delete-analysis-ledger-orphan",
+    "taskDeleted": true,
+    "toolCallsRemain": 1
+  },
+  {
+    "case": "streamless-profile",
+    "probes": {
+      "text": {
+        "status": "passed",
+        "testedAt": "2026-10-31T04:59:08.069Z"
+      },
+      "tools": {
+        "status": "passed",
+        "testedAt": "2026-10-31T04:59:08.070Z"
+      },
+      "stream": {
+        "status": "failed",
+        "errorCode": "MODEL_REQUEST_FAILED",
+        "testedAt": "2026-10-31T04:59:08.072Z"
+      }
+    },
+    "status": "FAILED",
+    "error": "MODEL_REQUEST_FAILED"
+  },
+  {
+    "case": "timeout-after-headers",
+    "error": {
+      "code": 23,
+      "name": "TimeoutError",
+      "message": "The operation was aborted due to timeout"
+    }
+  },
+  {
+    "case": "citation-hash",
+    "lineRange": [
+      735,
+      786
+    ],
+    "hashMatchesActualRange": false
+  }
+]

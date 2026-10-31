@@ -1,5 +1,18 @@
 # 2.0 验收
 
+## alpha.2 审计修复验收（2026-10-31，当前结果）
+
+本轮详细记录见 [V2_AUDIT.md](V2_AUDIT.md)，证据见 `evidence/v2/audit/`。下方S0–S7结果为alpha.1历史记录。
+
+- `npm run check`、`npm test`（含build）exit0；后台 **338/338**、无skip，120.1秒。
+- `npm run test:ui` exit0；真实浏览器 **35/35**，49.1秒；真实发现→导入→工具/Skill加入画布→刷新持久化，以及Mock成功→编辑→旧结果stale均有实际断言。
+- 真实本机Codex21工具编排/自测/报告、实际旧程序升级与停机回滚均exit0；临时目录，无OAuth复用，无正式库访问。
+- 104项当前矩阵为 **95 PASS / 4 PARTIAL / 5 UNVERIFIED**。PARTIAL为DISC-03、CAP-07、AUTHOR-08、RUN-07的完整复合场景，不能计为通过。5项未验证均保留原生/权限/新机边界。
+- 30条真实目标模型场景全部UNVERIFIED，真实模型调用0。合成HTTP Provider与真实Codex协议调用不替代模型效果。
+- 已复现审计记录均按原场景关闭，原始/复审/关闭证据分开保留。未发现仍开放的已复现P1，不宣称完整正式2.0发布验收完成。
+
+离线包门禁与最终本地提交记录见V2_AUDIT及V2_IMPLEMENTATION；最终包须由最终HEAD重建，build-info.gitSha=HEAD、dirty=false。Windows原生构建/安装器、企业真实MCP权限和Desktop已有会话授权仍独立待验。
+
 设计矩阵见 upgrade-v2/docs/04_测试与验收方案.md。设计包自检不计产品验收。
 所有尚未关联实际产品测试的项目均为未验证；不得根据实现说明推定通过。
 
@@ -13,4 +26,4 @@ S7最终代码：check/build exit 0；后台225/225（78.5秒）、浏览器24/2
 
 macOS arm64离线候选2.0.0-alpha.1：package:local / test:package / verify:release均exit 0；包内Node独立启动、中文帮助、真实持久化编排、modern/legacy两种协议、个人21工具/旧身份7工具均通过。新增助手模块被篡改后完整性检查明确失败。首次包测试发现CLI真实路径入口和薄桥目录权限问题，均已修复并补回归；没有删测试绕过。最终本地提交后再次生成干净源码候选，最终路径与hash从artifacts/latest-package.json读取。
 
-最终104项矩阵为 **72 PASS / 26 PARTIAL / 6 UNVERIFIED**。PASS只对条目列明的合成或本机证据有效，不代表真实模型/企业/Windows验收；PARTIAL仍不可计为通过。30条真实目标模型评测全部UNVERIFIED，0次真实Provider调用。Windows原生构建/安装器/公司策略、真实企业MCP权限、现有Desktop会话授权仍未验证。没有运行会覆盖日常安装的安装器smoke。
+S7当时104项矩阵为 **72 PASS / 26 PARTIAL / 6 UNVERIFIED**。PASS只对条目列明的合成或本机证据有效，不代表真实模型/企业/Windows验收；PARTIAL仍不可计为通过。30条真实目标模型评测全部UNVERIFIED，0次真实Provider调用。Windows原生构建/安装器/公司策略、真实企业MCP权限、现有Desktop会话授权仍未验证。没有运行会覆盖日常安装的安装器smoke。

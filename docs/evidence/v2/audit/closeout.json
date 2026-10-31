@@ -1,0 +1,555 @@
+{
+  "format": "flowhub.v2.audit-closeout/1",
+  "version": "2.0.0-alpha.2",
+  "auditBase": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "implementationCommit": "5c44b686f62988f80daa3add9f287d5f3c9cfdb8",
+  "deliveryCommit": "The local commit containing this evidence; final package build-info must equal that HEAD and dirty=false.",
+  "effort": {
+    "independentAudit": "max",
+    "repair": "xhigh"
+  },
+  "platform": "macOS darwin-arm64",
+  "checks": {
+    "check": {
+      "exit": 0,
+      "log": "check.txt"
+    },
+    "test": {
+      "exit": 0,
+      "passed": 338,
+      "failed": 0,
+      "skipped": 0,
+      "log": "tests.txt"
+    },
+    "ui": {
+      "exit": 0,
+      "passed": 35,
+      "failed": 0,
+      "log": "ui.txt"
+    },
+    "codex": {
+      "exit": 0,
+      "realHost": true,
+      "modelTurns": 0,
+      "log": "codex.txt"
+    },
+    "upgrade": {
+      "exit": 0,
+      "actualOldProgram": "45eed03",
+      "formalDataAccessed": false,
+      "log": "upgrade.txt"
+    },
+    "package": {
+      "exit": 0,
+      "log": "package.txt",
+      "candidate": "pre-evidence-commit synthetic validation; final HEAD rebuilt independently"
+    },
+    "packageSmoke": {
+      "exit": 0,
+      "log": "package-smoke.txt",
+      "coverage": [
+        "bundled runtime and Chinese help",
+        "modern and legacy stdio",
+        "fixed 21 and old 7 tools",
+        "persisted authoring",
+        "tamper rejection"
+      ]
+    },
+    "packageVerify": {
+      "exit": 0,
+      "log": "package-verify.txt",
+      "boundary": "Integrity manifest/SBOM/source only; no signature or enterprise validation."
+    }
+  },
+  "acceptance": {
+    "PASS": 95,
+    "PARTIAL": 4,
+    "UNVERIFIED": 5,
+    "realModelScenarios": {
+      "UNVERIFIED": 30
+    }
+  },
+  "originalAuditRecords": 35,
+  "supplementalRecords": 6,
+  "deduplication": "Records include later repair observations of prior defects; do not count them as distinct vulnerabilities.",
+  "openConfirmedP1": 0,
+  "findings": [
+    {
+      "id": "DISC-A01",
+      "priority": "P1",
+      "title": "源连接变更后新导入仍复用旧地址和旧身份",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A02",
+      "priority": "P1",
+      "title": "同上下文旧扫描能覆盖新扫描并把新能力标失效",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A03",
+      "priority": "P1",
+      "title": "禁用来源后旧能力仍ready且导入会重新启动已禁用MCP",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A04",
+      "priority": "P1",
+      "title": "Codex工具allowlist/denylist被丢弃或未执行",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A05",
+      "priority": "P1",
+      "title": "不匹配有限正则的命令行凭据明文复制入connections",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A06",
+      "priority": "P2",
+      "title": "成功导入的幂等重放仍连接下游并可因停服失败",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A07",
+      "priority": "P1",
+      "title": "目录扫描无总deadline与取消，daemon shutdown可被扫描长期阻塞",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A08",
+      "priority": "P2",
+      "title": "Skill启用覆盖被忽略，显式禁用Skill仍可作为host_reference导入",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-A09",
+      "priority": "P2",
+      "title": "HTTP别名形式的FlowHub来源完全绕过self识别",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-findings.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-R01",
+      "priority": "P1",
+      "title": "Schema漂移后新能力仍复用旧连接目录",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-reaudit.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-R02",
+      "priority": "P2",
+      "title": "元数据刷新无语义变化却失效已发现能力和修订",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-reaudit.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-R03",
+      "priority": "P2",
+      "title": "显式配置模式与手动Codex路径入口缺失",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-reaudit.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "DISC-R04",
+      "priority": "P2",
+      "title": "保守参数策略误把合法模块启动当凭据且无解除路径",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "discovery-reaudit.json",
+      "closureEvidence": "discovery-closeout.json"
+    },
+    {
+      "id": "AUTH-RUN-01",
+      "priority": "P1",
+      "title": "rowLimitArgument overwrites locked resource arguments before dispatch",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-findings.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "AUTH-PUBLISH-02",
+      "priority": "P1",
+      "title": "HTTP v2 publication omits required binding CAS when the field is absent",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-findings.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "AUTH-HOST-03",
+      "priority": "P1",
+      "title": "host_tool can replace the discovered output contract with an incompatible node schema",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-findings.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "TEST-HOST-04",
+      "priority": "P1",
+      "title": "isolated Mock runner does not copy capability revisions, so valid host_tool cases cannot run",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-findings.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "TEST-IDEMPOTENCY-05",
+      "priority": "P2",
+      "title": "test generation/run replays check mutable baselines before the idempotency ledger",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-findings.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "REAUDIT-TEST-01",
+      "priority": "P1",
+      "title": "Regenerating the same suite can revive an obsolete green run as current",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-reaudit.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "REAUDIT-MOCK-02",
+      "priority": "P1",
+      "title": "Text fixtures still change result adaptation and falsely pass a workflow the real connector rejects",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-reaudit.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "REAUDIT-HOST-03",
+      "priority": "P1",
+      "title": "Exact host schema equality plus the restricted agent schema makes ordinary native MCP output contracts unusable",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "authoring-reaudit.json",
+      "closureEvidence": "authoring-closeout.json"
+    },
+    {
+      "id": "ASST-A01",
+      "priority": "P1",
+      "title": "Negated requests and staging nouns grant execution intent",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A02",
+      "priority": "P1",
+      "title": "Selected workflow scope does not restrict workflow_start or workflow_cancel",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A03",
+      "priority": "P1",
+      "title": "Help-mode run context sends an execution credential to the model and permits cleartext persistence",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A04",
+      "priority": "P2",
+      "title": "Deleting a session leaves event copies and analysis-tool ledger orphans",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A05",
+      "priority": "P2",
+      "title": "Successful analysis submission cannot be retried with the same idempotency key",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A06",
+      "priority": "P2",
+      "title": "A usable non-streaming model is unusable through the formal UI",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A07",
+      "priority": "P2",
+      "title": "Timeout and body-read failures escape the Provider error contract",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A08",
+      "priority": "P2",
+      "title": "Analysis UI permanently disables retry and can disable the next analysis checkpoint",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-A09",
+      "priority": "P2",
+      "title": "Tool knowledge citations carry hashes of invented excerpt text rather than the cited file range",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-findings.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-R01",
+      "priority": "P1",
+      "title": "The new server intent envelope still turns common explicit negatives into authorization",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-reaudit.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-R02",
+      "priority": "P2",
+      "title": "Clearing or switching selected run does not remove the previous run's business answer from model history",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-reaudit.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-R03",
+      "priority": "P2",
+      "title": "Fresh assistant-message copies survive cleanup of their expired source run because messages are not linked to taskId",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-reaudit.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-R04",
+      "priority": "P2",
+      "title": "Sending a new message leaves the previous COMPLETED task visible and cancellable until acceptance returns",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-reaudit.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "ASST-R05",
+      "priority": "P2",
+      "title": "Analysis ignores the newly configurable correction-attempt budget",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "originalEvidence": "assistant-reaudit.json",
+      "closureEvidence": "assistant-closeout-addendum.json"
+    },
+    {
+      "id": "DATA-01",
+      "title": "Exact frozen DDL/FTS/backup validation",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/engine/v2-audit-persistence.test.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    },
+    {
+      "id": "DATA-02",
+      "title": "Retention across result copies and legacy messages",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/engine/v2-retention-legacy-messages.test.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    },
+    {
+      "id": "DATA-03",
+      "title": "Atomic v2 Vault rotation",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/engine/v2-audit-persistence.test.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    },
+    {
+      "id": "KB-R01",
+      "title": "Old citation remains stale after rebuild",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/engine/v2-assistant-acceptance.test.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    },
+    {
+      "id": "UI-R01",
+      "title": "Host Skill insertion uses valid report contract",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/ui/v2-capability-acceptance.spec.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    },
+    {
+      "id": "UI-R02",
+      "title": "Terminal self-test evidence displays stale after edit",
+      "status": "CLOSED_FOR_REPORTED_CASE",
+      "regression": "tests/ui/v2-capability-acceptance.spec.ts",
+      "closureEvidence": "tests.txt; ui.txt"
+    }
+  ],
+  "sourceFingerprints": {
+    "apps/daemon/src/cli.ts": "453e7e61d2d580049d5d57683cc3deee47d141d040d20169d87f45fa0670afca",
+    "apps/daemon/src/http.ts": "aaa3e3b27e7c895b8737b7ae4566c8e8fad9003c1d781de03d2762527e10f82d",
+    "apps/daemon/src/index.ts": "0a3812d5f4ddbbbbe861cdc077d6bff8db903ea91ef63f9ebfc409d92bc4cc9c",
+    "apps/daemon/src/local-config.ts": "4159c9259361acf19b664ef3d04d51b6b02895259c2c78e0ac329fb8684ae240",
+    "apps/mcp-bridge/src/index.ts": "11bab9c4a879c6e7d23d8ac94a668ae685b8d086df8dc3b453f45ac16d6c779c",
+    "apps/web/index.html": "af0775e2f150919420ba61dd46a70c4f96c5504900a53162474841eb748da697",
+    "apps/web/src/ConnectionBindingForms.tsx": "6bd13a0c31bc3cc4d017fc44148a05fd3799111dff1ab0a2a2f507dc691ef367",
+    "apps/web/src/SettingsIntegration.tsx": "4239d8e5448390d13ba029af4eb2f2d1f3527b19f3b6f2505fa8ebf4c92e5d10",
+    "apps/web/src/features/assistant/AssistantPanel.tsx": "e519ac4de8ba40c86071164df72b51e9394525dda4c23d3c7478ace53c17fc41",
+    "apps/web/src/features/discovery/DiscoveryPage.tsx": "c381cb7979faedbc85febb04f9ad93a0f185ae6bf6f0aa8029e88af27e6bdf75",
+    "apps/web/src/features/models/ModelsPage.tsx": "b07484b02f4b1cc5821c97ab735c6da136590e586abc2d5cf4c96424ca80dc79",
+    "apps/web/src/features/testing/TestingPanel.tsx": "382d8f64887adcee68e7ef3d4f859a24ea37f1b7953afb4b43e02a6f8cd0062c",
+    "apps/web/src/features/workflows/CapabilityPicker.tsx": "8ae932979e39ab34db88c243bef804bf2edbf5406117484d2ebe1e444fc9f129",
+    "apps/web/src/features/workflows/RunAnalysisControl.tsx": "af786c1d02a88aab77162190548a46d13571ca65b2865a9d20cec9948bf4b6af",
+    "apps/web/src/main.tsx": "85185108042ee0c96e21e086e6fb9fc5cf6feab1a752aeb66f100e0cde7ee37b",
+    "apps/web/src/shared/draft-merge.ts": "6f36cd83fa7a40ac2fbbf0b0c4e7673833bf951dbe9cf382fb91d6f42894f298",
+    "apps/web/src/shared/v2.ts": "f2281181ec1e155c8cb3bccb11e5c2ab54148600dd0684fcbee5f0abf3b3b026",
+    "apps/web/src/style.css": "018946639e3dbf0802717183ead9e5179cee3755e5d8f06bd9f8a4b9ca052bec",
+    "apps/web/tsconfig.json": "5b79c6b4fca25907cde1f8fe91fc8784468ef8e277d823973d1eb3476e8f2451",
+    "contracts/authoring-batch.schema.json": "74c8e9c90d6642360b04e036b344927f37d6e2f378832c512e403ded3e31ea7b",
+    "contracts/mcp-tool-inputs.schema.json": "9f9e5c4d017725e60beba50d93867c9a97a6f8989fc352ba6584df20c4ca00a0",
+    "contracts/mcp-v2-tool-inputs.schema.json": "e7f040424bd48cf11df89af4c75b65ee08699726400a7630dad82027dd3e80b8",
+    "contracts/mock-results.schema.json": "86109153367a066216bdcb854aa190354fa50418e7365f28cc0a9d22392773b5",
+    "contracts/runtime-results.schema.json": "2da5dd1b745bf62acbaf281f07ffe5fa29a4aafc190966b44b3a7e64bf67016e",
+    "contracts/test-suite.schema.json": "ad48712cabe585945af2f0bd98ee4c6e6e381b04e92f4c9d16177d172395fb32",
+    "contracts/workflow-v2.schema.json": "cc3148b4ec5a52856e2559024f711524699bd4b5f4a745dc059003074f1f41ad",
+    "contracts/workflow.schema.json": "a1c7a0d268e729a2fd0bec7b2f07a3fed39096b29bb79a90242c05942f8f3313",
+    "packages/admin-api/src/admin-views.ts": "200b6b57d652b1f85877904c812b99ef7d7200a8d8884d691a13878190db81b2",
+    "packages/admin-api/src/index.ts": "818f46e4c3d923bc3c9a90b8e388dd4fe08ba2051b5eaee4701f3688e29d6a2c",
+    "packages/admin-api/src/local-backups.ts": "f2397e218467d045d74bdf72b343dd5f2a3f33410a83352d2c0f43091de4f638",
+    "packages/admin-api/src/settings-integration.ts": "9ce7e336c7b26d8117de4d43a64d77e7d3badfe17f3e2f3d106ea996119c254a",
+    "packages/admin-api/src/v2.ts": "f15d4edbb99f0141023e1ff3a71f62ed42044cd6ca04f03c26f85af552af930b",
+    "packages/application/src/index.ts": "bbf4db0022faeba8a253804e3875c62efea42059cc4f0f6ea8ff0bb510015286",
+    "packages/assistant-core/src/index.ts": "fc4e1f877e5a1c41b652577fa3de7ed975b0a691b8ccd1821e384c6f958b4635",
+    "packages/capability-registry/src/index.ts": "bdb9afe9949a1c8bdab95fcb00c9d22911082ffdf23721a8e2aa3ab174a2d5ef",
+    "packages/contracts/src/assistant-intent.ts": "cf933f24cc3cb950145c3dc27d80f9181747c41bb6330afe4940aa5501bf69ea",
+    "packages/contracts/src/domain.ts": "bd1358ac2957f08db0b858cb551918078ff26454ae24cca5cf9c20317a064a2a",
+    "packages/contracts/src/index.ts": "d4569a1cf16487f44b1cfa49b3c5f81989bac50ef46bcc046bb48d638a0a1b35",
+    "packages/contracts/src/schema-safety.ts": "7fa07e9e6470c78927be324d5bab5677f15366edd2f59f7a26f080424fdb9b0d",
+    "packages/host-discovery/src/app-server.ts": "d085bce6122f60e46a854a4c692effdd38948fd347d1a8ce6ca4d4d193032686",
+    "packages/host-discovery/src/generated/v2/ConfigReadParams.ts": "3bf81d288ea2d597f8977114d726e5554de97e3a164b56a692b772132efdafad",
+    "packages/host-discovery/src/generated/v2/ListMcpServerStatusParams.ts": "7bd33152950f0bbd4280f05ab15b8c783e5b97fb98429df51a6635d5ea970838",
+    "packages/host-discovery/src/generated/v2/McpServerStatusDetail.ts": "8faec4faebac7fa38696408b4f1386bbf8b07ae721242ce475a2b6d7a894aee0",
+    "packages/host-discovery/src/generated/v2/SkillsListParams.ts": "c7ba20615ea17d426387c5bd53d2dc0e4ab9a3845e21f07b127d459b6b54aa1d",
+    "packages/host-discovery/src/index.ts": "d9051ec44f72bec47c73cb3d5ea0f6e593aa2a2a3dfce5eaac2b784e06e2e42c",
+    "packages/host-discovery/src/runtime.ts": "27798a782a4651227b26c7db57fe6313edfc1ccd6682dec6fd7110f52403a759",
+    "packages/llm-providers/src/index.ts": "0e742dd3c54cf7cbf7512d00338e5693bb74318b4c8940fe41f501199a0c4a71",
+    "packages/mcp-connectors/src/index.ts": "f3db29feb349b1c0899f36156555366d3638eb0152f53c5a1d9398ac10beb48a",
+    "packages/mcp-connectors/src/registry.ts": "5fbd1a830a2021017226cda885844d87cf05fae94219bdf7245a787d17daa724",
+    "packages/mcp-connectors/src/results.ts": "6e29a60050c801b855d98fa35a96a5e89bc081bf63ff0d45d5d08ee94779d355",
+    "packages/mcp-server/src/index.ts": "70031aaa35f8087c3f5975a18a2eccd70fa1aa30c1865d62bd8bf22ab4a430b5",
+    "packages/mock-mcps/src/incident.ts": "6e4954dbeadd681244f8da4876c513af2f3e20b2c0a1f24b859d3269301659fb",
+    "packages/mock-mcps/src/index.ts": "9359862449dc4de3921f312dc734fbbe317abbed4d3b2d14434486e3896b3330",
+    "packages/persistence/src/index.ts": "563c3ff6a41e3bac9961027de5b042ce82e22c060d9bad52234a3f9c9d16c9ab",
+    "packages/persistence/src/maintenance.ts": "53bcc585af4af92af9fa2f721e9b4a165e9176380f4e07bdb26f514d4c529a79",
+    "packages/persistence/src/migrations.ts": "2ebea869eeb20371895239000ac4c2e9ea197b7ea7319f884a3964e94aa8b219",
+    "packages/persistence/src/repository.ts": "13065f3cb3fff6043e3d5a2dd3ee6183e81fcbfd23e3d4b1bd62f983203cc37f",
+    "packages/persistence/src/restore-journal.ts": "a03afb534a0c8fae6d9a22635e40fc0dd33fc5543f5b73b40f5d4a7e22105423",
+    "packages/persistence/src/retention.ts": "33486b34b21e4140306cd8d8e02ad7228c656b9357aee62ed83569082b9a0844",
+    "packages/persistence/src/v1.ts": "2ad9bc7fd10c3340ed3ef220d1670a8d38aecf68bb687cad4491955fd7e6a041",
+    "packages/persistence/src/v2.ts": "27a086fae5ce4278e5bdce8949a658a69e6051176a0ae6fef6154fc665a68da3",
+    "packages/project-knowledge/src/index.ts": "0e7150d9d66788dd4bb7fe86fcd9e5838db4f1693a2ccb87c0ee01496399c5ab",
+    "packages/security/src/diagnostics.ts": "47613ba82c3d87118c15943a32c186b7eae913ac6fbc5f2e8b15d9aa832a14c2",
+    "packages/security/src/index.ts": "bd1a9a1d2fddedbb9850c1249789ca9413780f153cb85ad696fcbd321cdff714",
+    "packages/workflow-authoring/src/index.ts": "a2d2afd3955ccc78aaac5c14709fdf4912658e13dc3faced00d4e352fceb49e4",
+    "packages/workflow-core/src/engine.ts": "c1b2671eff224c702bf3e18dac71a935bc11b9b26ddb937c2bb75468eeb346e8",
+    "packages/workflow-core/src/legacy-migration.ts": "92bdf254c396bab4e4a91dc5f573e61975f54d74b19861d0e9ea5269862f1131",
+    "packages/workflow-core/src/mapping-schema.ts": "fef2d56693aa3f976310027f7fab6a622bba77ab1327d532ddb94b8dc74c5dec",
+    "packages/workflow-core/src/query-scope.ts": "d6a329499347c73bd6bf8c6991027339b109451e3711b1f85b581e79102707ac",
+    "packages/workflow-core/src/report-verification.ts": "9d4a31f4324b6bac39128b09da5aa6775dc9e729f680d4873159b3507cadb156",
+    "packages/workflow-core/src/validate.ts": "f8e4072f02d01c8945a3652b2725ecd41ca91713155f9fea86c246f434d1b094",
+    "packages/workflow-testing/src/index.ts": "8c0b68cf3ce6a9fdb9bbb14e5088dd53cc2a9de75377eb2ef4180f38a78fc195",
+    "playwright.config.ts": "adaeb10533ab7499b6547d55d0bad60eb4b25d2feeba89daa1dfc332b621479e",
+    "scripts/benchmark-v2.mjs": "962aadb29e30e563a4024232e7a6ffa90d5ca624f0f0240288aa8278848b80fc",
+    "scripts/build-windows.ps1": "99cb5797b7a2768ea234ebc69bdd5e7039026bce3a9455339207b452495b9dd8",
+    "scripts/fetch-nsis.mjs": "336fa21cb361600c02b50206fa0267bc948125611cdc888c3abd22dcc04501e9",
+    "scripts/generate-openapi.mjs": "1cb487bdb392be4e40403addf60440b0cdc2610233c5fd9d82e77847e6645f7e",
+    "scripts/package.mjs": "c35d92fe3a5576c5957d64f0e18864dae42dc0fed64ea3a3e49f8be8f32ef84c",
+    "scripts/smoke-codex-v2.mjs": "77e3d0cbc25256fe7863562161164b04baf1dc5bc87e76459466a4c317cea040",
+    "scripts/smoke-package.mjs": "74bcaed02067163c0a31387e86519ee168b8a069a33841e712e975891453093e",
+    "scripts/smoke-v2-upgrade.mjs": "4e2e85d01295ca55b5d34bfde879bb6942a7956706ecea48e165d8100246b471",
+    "scripts/smoke-windows-installer.mjs": "f9e373a43b4df0353c0df223458a7eb99fdd2d0eb73fd1a860d44d73e985f503",
+    "scripts/source-snapshot.mjs": "bd0a3c718417a4ddba1fc805cd734d6de31aa072489e479eec9ef9581aa25e25",
+    "scripts/synthetic-stdio-smoke.mjs": "ccba4557938144d5f19b64383ab4b1ec0eac3b50e71df62e227084fa5e1834b3",
+    "scripts/ui-server.mjs": "c8dedd7aa8fd401361c466011993c0ba28483e90a0860fb8a7924bcd952759e3",
+    "scripts/verify-release.mjs": "c08d3e5b96e6c540bdaf5c1b38a16575abc761c0faed0b279d693ac8aac5c763",
+    "scripts/verify_design.mjs": "69b52b3f3c0ff2a48665122df55d220ac28c35511d32727511335bd9329916f7",
+    "scripts/windows-installer.mjs": "3d225af360b94b8d3ff3850cabddf8b4a818ad17a2ab0ae3394af60d8ef06063",
+    "tests/engine/admin-views.test.ts": "2395ce067de8f81db2d9878b581237752e501fa79859d2aff52a5d4926c49bba",
+    "tests/engine/audit-regressions.test.ts": "fa3c05d0ad48fcc4c9808efc84b7ae6d69bb8ef52639c7599008a6e485f49ffd",
+    "tests/engine/catalog-security.test.ts": "686fe849a48bba4a83881359331995e43502372e416078f278b5ac0c305da6f1",
+    "tests/engine/connection-catalog-reset.test.ts": "5d567cfc2cef6bce582a42d1f18df77f49747775cef9336af52db91be5191304",
+    "tests/engine/legacy-migration.test.ts": "40bac8ef4455bdcd84ba1f5420250961937dfbe3ae47a021b9191e6c7cef2c8c",
+    "tests/engine/legacy-seed-catalog.test.ts": "b7180d6a4307747f8a85cc67aba6aee91fe6071e9dd65e36c97eba0fa157e026",
+    "tests/engine/mapping-boundaries.test.ts": "39f94fc0b4f1abade22d4cad6fa85330a6f97f68ec53f4728747036a410b4f4e",
+    "tests/engine/mock-vault-lock.test.ts": "f550422f86f9ca93cf5734d21b2de5c1443a5fa4fda47b8d3d1a54ab62ef96b3",
+    "tests/engine/output-redaction.test.ts": "d88e8d19517f9a2fa6cbb210669b68d7e19920f956e1583ca0149ffd0df1cdd9",
+    "tests/engine/publish-binding-cas.test.ts": "86e8481062bf7d276ac9b5796278e5d1e0cf3a2725069d2b40d1310286c0299e",
+    "tests/engine/report-evidence.test.ts": "b10840d33ee1813503812dc01c9a0b427a7535e3e7df1bff3ffca0606b45fad2",
+    "tests/engine/retention-copies.test.ts": "3e2d0fc58ef91781fd2fb81510580786220e6710be0e102b8036f628c9b76497",
+    "tests/engine/schema-safety.test.ts": "743fc88ca548278e390e43187562de93112b9deae058c7a71585d1483415edc2",
+    "tests/engine/schema-traversal.test.ts": "3944187b858c1aa030184e91f12d50147bbab2119254343e0c5cfcc944976df9",
+    "tests/engine/settings-integration.test.ts": "00f8b971c6465941bc03b992a9bd213977c41c8b63e48d349c8826560522e49f",
+    "tests/engine/v2-assistant-acceptance.test.ts": "ab2fe1aeb8a3f14b5dd103716409be0d7476cf5517c482e9615cdb59fa7d737d",
+    "tests/engine/v2-assistant-audit-regressions.test.ts": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+    "tests/engine/v2-assistant.test.ts": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+    "tests/engine/v2-audit-persistence.test.ts": "4d1efba29c9bdc8d7e0311ad2c62a656217efd765ef584b0476dc6a188141ca0",
+    "tests/engine/v2-authoring-audit-regressions.test.ts": "93be3c00c4f0654812997232695d2a8ffd7075d69ebc289828daae8cb8c90eb6",
+    "tests/engine/v2-authoring-reaudit.test.ts": "bcf19e78b5b4a682e64ff3f50f8446668d6a27fcb496db1f162caf7ca343baa1",
+    "tests/engine/v2-authoring.test.ts": "36dbbf13c0500be71593cc30621c35f6c60311acd2420e82c11fcdf26e0e93f2",
+    "tests/engine/v2-discovery-acceptance.test.ts": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875",
+    "tests/engine/v2-discovery.test.ts": "5841891af40fcf40bc1b20556e3cfe58fed3b2313a275cc3ba474afd9c578d20",
+    "tests/engine/v2-draft-merge.test.ts": "4c69fe076c1d9bac45d633b4b7b1e1bcdee940e932d80987ebbeee5295b0ab56",
+    "tests/engine/v2-executors.test.ts": "ca1cd3463cf82901504fa022d53034c458f03c29a0d5802c7fecb45ed90aefdc",
+    "tests/engine/v2-mcp-selftest.test.ts": "4a589fddb39402dc21df229e99b8b51f1545d8112eec88a7dca84717d5f1d089",
+    "tests/engine/v2-migrations.test.ts": "411e64c511ae01caf0066f92d32ca5acef793b1ebdee3fe02a4b64cbd3b39b38",
+    "tests/engine/v2-persistence-lifecycle.test.ts": "b30642f7f82ec4b74a761daf28fa71212793fb7d8a29e8a27ab8c4d7eaf1f95e",
+    "tests/engine/v2-results-limits.test.ts": "a3bb7044c71f6b0ce1d0700538120ee3ac8502207c6aa48be076d43d19948e48",
+    "tests/engine/v2-retention-legacy-messages.test.ts": "8b9ea0df34d86b71a6ae70b4ffd6e4cfbd98fe5e08f32907b3d9d491722f7ff9",
+    "tests/engine/v2-testing-audit-regressions.test.ts": "d68c72cdd445a8c8d94952bc12b44762d78a9ddbbf120b21f532d8e5bbb6ce8b",
+    "tests/engine/v2-testing.test.ts": "6308a0aa9565a0143dba0bfd6d47b07cc12c0dcb61c16d7579ae67c4e7a8ae42",
+    "tests/engine/workflow.test.ts": "4f0e7e315edad78cabd7ecae1f0171f96cb9973d9027d560dd7a2257cca4504d",
+    "tests/helpers/discovery-runtime.ts": "02d7973a3210c18db1442d4d332d857a8b605ff86f1cef6e152e11782e3c08ed",
+    "tests/poc/binding-verification-race.test.ts": "87d8e2953602be1061c9f13b28930930c9af3d8434ce556f8c5b52315d9570ed",
+    "tests/poc/contracts.test.ts": "0e9c738fd301474552245ecbba976463b8ca7fbbfa10bf322cf55b47b9531a5e",
+    "tests/poc/http-auth.test.ts": "b29441aa0fd89c9dcd44b8c69f1cb72eb13b81492ba61420cb2e7f8a2880440b",
+    "tests/poc/http-sse-lifecycle.test.ts": "2c2673727accd6a61a5dc90a50ebf84c8d7ac232ca50a34a97d9ef6d3518e564",
+    "tests/poc/mcp-subscription-shutdown.test.ts": "fc20890e149465148b6165a85fa2c286f53492c445033d28c7e606c3ff59b0b2",
+    "tests/poc/nsis-fetch.test.ts": "4c97f74d862e546670277236e49d06f1814b6238fe47517720e9149cc029ad3e",
+    "tests/poc/package-smoke-startup.test.ts": "95d285787d8d418f40fe601b157886d644ce5efc5669d914a5aaeac85ce7f3d6",
+    "tests/poc/protocol.test.ts": "f8498d57ebe8a85dab90c9ff5a7a89deefa75b3cadbb0e548307f1922c073ffb",
+    "tests/poc/restore-interruption.test.ts": "91db4eed2355b52254e024262cdf013db0af6253128f9d9c40fe0c1cc2322faa",
+    "tests/poc/restore-migrations.test.ts": "6416e9a52f608c4186a79d758efa3395b2c989710622349c04149ec1d8dbec18",
+    "tests/poc/runtime.test.ts": "7df0654fc5331ad48a660a72882381e6452b5cc391c4c5be48730df233881505",
+    "tests/poc/source-delivery.test.ts": "ace9045df244ca4f9d884f6d94c502a920b6057b0e27c4f6c8bb71e10624e3f8",
+    "tests/poc/v2-assistant-sse-replay.test.ts": "05014413675ae8993e9f6439b996a2228f299835f4cc4e1ee2294241df75dce7",
+    "tests/poc/windows-installer.test.ts": "d41b0b329db14d825e9e7053015ee053dd2acbf68ce967c6afbd80ff3012c535",
+    "tests/ui/automation.spec.ts": "4cbec2533dae0010e6907d8e5075c75bf1b0e4417b8473e5df1b38159e23a017",
+    "tests/ui/connection-binding-forms.spec.ts": "861b05c8d7e9f9f1c7b8dce9d57faf99464442669b1da30d2d31ff61e368007e",
+    "tests/ui/editor-regressions.spec.ts": "88b34726931e52c04f6a3c8216b1ca9f69fb75dca565435c0bd4fea70fba050b",
+    "tests/ui/management.spec.ts": "55f8e4cbeb40d752a38d2e3dc20db2eeea1afc74f2d63deb7498b9f525a65831",
+    "tests/ui/published-start.spec.ts": "cfd9a65a5f20fc0a5b9945063561aa2ee5ea1fa83fc6f32483c2b359c10aed25",
+    "tests/ui/responsive.spec.ts": "e4f704f650804e4a466b87c456ed963b6ae5d20848d0d6a9bf4123353e9ee27b",
+    "tests/ui/retention.spec.ts": "05a30113a0ba45898ee72f33ee67857e98fc0a5604e08e1c8e0c3383a5f76772",
+    "tests/ui/v2-assistant-audit.spec.ts": "52883f8b109dbad93154ec467027e3dc59426f749f713ef8d7bc413879dbf2f3",
+    "tests/ui/v2-capability-acceptance.spec.ts": "67abfed140ec2029b8027f724699f39d499c19be5b0cbe83ffa7057bdbcc0aa5",
+    "tests/ui/v2-discovery-reaudit.spec.ts": "ee1cddc744afe379cd23767dcd01fc114df524a3c5bdda139f46200b6c19d8b4",
+    "tests/ui/v2-upgrade.spec.ts": "b63b324bd7bcd95bf3255b2fd2d9f280c8e3e3e7b85ed860c8c24e777e98402e"
+  },
+  "boundaries": [
+    "No real model, enterprise MCP permissions, native Windows/WSL or existing Desktop session authorization acceptance.",
+    "No push, merge, Release, daily installer smoke, official database access or automatic cleanup.",
+    "Four partial design scenarios remain explicitly incomplete in acceptance-results.json."
+  ]
+}

@@ -2,11 +2,11 @@
   "format": "flowhub.v2.acceptance/1",
   "assessedAt": "2026-10-31",
   "platform": "darwin-arm64",
-  "method": "Manual evidence mapping; PASS is scoped to the stated evidenceLevel. PARTIAL is not passed.",
+  "method": "Exact test-assertion mapping, current audit logs. PASS is restricted to stated evidenceLevel, not real-model/enterprise/native acceptance. Historical alpha.1 matrix retained in audit/acceptance-before-audit.json.",
   "summary": {
-    "PASS": 72,
-    "PARTIAL": 26,
-    "UNVERIFIED": 6
+    "PASS": 95,
+    "PARTIAL": 4,
+    "UNVERIFIED": 5
   },
   "items": [
     {
@@ -139,7 +139,7 @@
       "evidenceLevel": "synthetic",
       "evidence": "tests/engine/v2-discovery.test.ts",
       "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "limitation": "CLI effective and static partial paths tested; complete home/project/profile override matrix and full provenance order not independently asserted."
     },
     {
       "id": "DISC-04",
@@ -159,11 +159,11 @@
       "title": "不支持JSON选项",
       "setup": "模拟旧CLI help",
       "expected": "不用未知参数，走受支持回退并标精度",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: DISC-03/DISC-05 unsupported JSON options; tests/engine/v2-discovery.test.ts config-only/launchers",
+      "log": "audit/tests.txt",
+      "limitation": "Unsupported CLI JSON flags are never called; fallback reports partial precision. Full project/profile precedence stays separate DISC-03."
     },
     {
       "id": "DISC-06",
@@ -243,11 +243,11 @@
       "title": "宿主专用插件",
       "setup": "无独立endpoint的能力",
       "expected": "codex_host，不伪造连接",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: installed host Skill; tests/ui/v2-capability-acceptance.spec.ts UI-02",
+      "log": "audit/tests.txt; audit/ui.txt",
+      "limitation": "Index and host_reference insertion verified. Actual host execution is not claimed."
     },
     {
       "id": "PLUG-05",
@@ -255,11 +255,11 @@
       "title": "未知Manifest版本",
       "setup": "不受支持格式",
       "expected": "标unsupported，不能猜字段并执行",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: explicit unknown plugin manifest format/layout",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "PLUG-06",
@@ -267,11 +267,11 @@
       "title": "Skill脚本依赖",
       "setup": "Skill含外部脚本及hooks",
       "expected": "建立索引不执行脚本/hooks",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: script and hook marker stays absent",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "PLUG-07",
@@ -279,11 +279,11 @@
       "title": "不稳定RPC",
       "setup": "plugin/list方法不可用",
       "expected": "生产扫描仍完成本地路径，不依赖该方法",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: stable RPC observations exclude plugin/list/read",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "PLUG-08",
@@ -291,11 +291,11 @@
       "title": "Skill内容变化",
       "setup": "修改合成SKILL.md后刷新",
       "expected": "指纹变化可追踪；旧发布快照不变",
-      "status": "UNVERIFIED",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "No dedicated skill-content-change acceptance fixture yet"
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: mtime stable/content revision+immutable published Skill snapshot",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "CAP-01",
@@ -315,11 +315,11 @@
       "title": "同端点不同身份",
       "setup": "同URL不同租户凭据",
       "expected": "保留独立身份和绑定",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery-acceptance.test.ts: identical endpoint with three independent Vault references",
+      "log": "audit/tests.txt",
+      "limitation": "Same secret value with distinct Vault references remains a distinct execution identity."
     },
     {
       "id": "CAP-03",
@@ -377,9 +377,9 @@
       "expected": "修订递增，相关草稿定位问题",
       "status": "PARTIAL",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-discovery.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-discovery.test.ts immutable schema/description drift; tests/engine/v2-discovery-acceptance.test.ts Skill drift with draft CAPABILITY_STALE",
+      "log": "audit/tests.txt",
+      "limitation": "Immutable connection/schema drift verified; exact MCP-tool drift → existing draft node/field issue → repaired publication scenario remains incomplete."
     },
     {
       "id": "CAP-08",
@@ -459,11 +459,11 @@
       "title": "删除有引用节点",
       "setup": "下游仍引用该node",
       "expected": "默认拒绝；显式cascade按契约删除",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-authoring.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-authoring.test.ts: default rejection, atomic rollback, explicit cascade and post-removal publication",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "AUTHOR-07",
@@ -485,9 +485,9 @@
       "expected": "CAS拒绝过期发布，旧版本不变",
       "status": "PARTIAL",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-authoring.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-authoring-audit-regressions.test.ts reviewed binding CAS; v2-authoring-reaudit.test.ts frozen host output contracts",
+      "log": "audit/tests.txt",
+      "limitation": "CAS and old immutable snapshots tested separately; exact combined capability+binding drift during one reviewed publish with a prior version remains incomplete."
     },
     {
       "id": "MCP-01",
@@ -543,11 +543,11 @@
       "title": "新流程归属",
       "setup": "受限编排身份创建新workflow",
       "expected": "可用其新流程；不获得其他流程权限",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts; scripts/smoke-codex-v2.mjs",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-mcp-selftest.test.ts: official SDK empty-allowlist author creates/publishes/runs own flow; other flow denied",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "MCP-06",
@@ -555,11 +555,11 @@
       "title": "非法工具参数",
       "setup": "extra field与错类型请求",
       "expected": "结构化错误，未执行写入",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts; scripts/smoke-codex-v2.mjs",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-mcp-selftest.test.ts: official SDK unknown/type/extra rejection, whole SQLite hash unchanged",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "MCP-07",
@@ -663,11 +663,11 @@
       "title": "多工具结果关联",
       "setup": "一轮返回多个callId",
       "expected": "逐一对应，写工具串行且结果不串线",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: both real loopback HTTP protocols, five mixed calls in one response, async gate and exact callId results",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "LLM-08",
@@ -675,11 +675,11 @@
       "title": "usage缺失",
       "setup": "Provider不返回token计数",
       "expected": "显示未知，不能当作免费或0花费",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: absent/mixed usage durable state; tests/ui/v2-assistant-audit.spec.ts: usage unknown displayed",
+      "log": "audit/tests.txt; audit/ui.txt",
+      "limitation": "Missing usage remains null/partial_or_unknown, not zero cost. No paid target model evaluated."
     },
     {
       "id": "ASST-01",
@@ -699,11 +699,11 @@
       "title": "错参修复",
       "setup": "第一次TYPE_MISMATCH第二次修正",
       "expected": "按错误纠正，原checkpoint不被误消费",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: wrong output type feedback then correction, same checkpoint/revision/token and one successful advance",
+      "log": "audit/tests.txt",
+      "limitation": "Runtime schema error is INPUT_INVALID with count must be number; this does not assert literal TYPE_MISMATCH."
     },
     {
       "id": "ASST-03",
@@ -723,11 +723,11 @@
       "title": "用户取消",
       "setup": "正在生成与等待工具结果分别取消",
       "expected": "停止后续动作，不盲重放已派发调用",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant.test.ts: cancel generation; tests/engine/v2-assistant-acceptance.test.ts: cancel dispatched async write, receipt retained and restart/idempotency no replay",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "ASST-05",
@@ -735,11 +735,11 @@
       "title": "SSE断连",
       "setup": "工具成功后前端断网再连",
       "expected": "恢复事件，不重复执行patch",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/poc/v2-assistant-sse-replay.test.ts: real authenticated SSE disconnect after patch, offline completion and Last-Event-ID reconnect/task filtering",
+      "log": "audit/tests.txt; audit/sse-replay.txt",
+      "limitation": "HTTP SSE and durable no-duplicate semantics verified; browser automatic network recovery is not a real-device claim."
     },
     {
       "id": "ASST-06",
@@ -771,11 +771,11 @@
       "title": "发布意图",
       "setup": "明确创建并发布与只保存对照",
       "expected": "分别执行预期动作，不加人工审批",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-audit-regressions.test.ts: affirmative create/publish/run and negative prohibitions; tests/ui/v2-assistant-audit.spec.ts formal intent UI",
+      "log": "audit/tests.txt; audit/ui.txt",
+      "limitation": null
     },
     {
       "id": "KB-01",
@@ -831,11 +831,11 @@
       "title": "文档升级",
       "setup": "修改帮助文档并重建索引",
       "expected": "hash与行号更新；旧引用可识别过期",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: temporary actual file changes and shifted line/hash after rebuild; tests/ui/v2-assistant-audit.spec.ts old citation range/hash viewer",
+      "log": "audit/tests.txt; audit/ui.txt",
+      "limitation": null
     },
     {
       "id": "KB-06",
@@ -843,11 +843,11 @@
       "title": "大业务输出",
       "setup": "选择超上下文预算的artifact",
       "expected": "分页/截断明确标注，原产物保持完整",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: real large engine report bounded context, paged UTF-8 artifacts and unchanged original hash",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "KB-07",
@@ -855,11 +855,11 @@
       "title": "不默认外发历史",
       "setup": "普通帮助问答",
       "expected": "没有自动附加全部运行数据或Key",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-audit-regressions.test.ts: selection/provider provenance isolation; tests/engine/v2-assistant-acceptance.test.ts ordinary help no unrelated business/Key",
+      "log": "audit/tests.txt; audit/ui.txt",
+      "limitation": null
     },
     {
       "id": "KB-08",
@@ -867,11 +867,11 @@
       "title": "运行所有权",
       "setup": "读取其他owner的run资料",
       "expected": "沿用owner检查，不经检索旁路读取",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-assistant.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-assistant-acceptance.test.ts: owner-scoped context/artifact denial and actual project_help tool cannot bypass run permissions",
+      "log": "audit/tests.txt",
+      "limitation": null
     },
     {
       "id": "UI-01",
@@ -879,11 +879,11 @@
       "title": "发现页面多态",
       "setup": "loading/partial/failed/empty",
       "expected": "文案准确，未知不显示0项已安装",
-      "status": "PARTIAL",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/ui/v2-upgrade.spec.ts",
-      "log": "S6-ui.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "status": "PASS",
+      "evidenceLevel": "synthetic_browser",
+      "evidence": "tests/ui/v2-capability-acceptance.spec.ts: actual loading, complete empty, malformed TOML partial and registration error",
+      "log": "audit/ui.txt",
+      "limitation": null
     },
     {
       "id": "UI-02",
@@ -891,11 +891,11 @@
       "title": "工具加入画布",
       "setup": "选择实际能力和binding",
       "expected": "生成真实节点，刷新后存在",
-      "status": "PARTIAL",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/ui/v2-upgrade.spec.ts",
-      "log": "S6-ui.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "status": "PASS",
+      "evidenceLevel": "synthetic_browser",
+      "evidence": "tests/ui/v2-capability-acceptance.spec.ts: real CLI/SDK discover/import hub_direct and indexed Skill, actual bindings/refs/schemaHash and refreshed canvas",
+      "log": "audit/ui.txt",
+      "limitation": "Direct binding remains UNVERIFIED until independent environment validation; indexed Skill is not real host execution."
     },
     {
       "id": "UI-03",
@@ -951,11 +951,11 @@
       "title": "自测过期",
       "setup": "通过后再修改草稿",
       "expected": "原测试标stale，不继续全绿",
-      "status": "PARTIAL",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/ui/v2-upgrade.spec.ts",
-      "log": "S6-ui.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "status": "PASS",
+      "evidenceLevel": "synthetic_browser",
+      "evidence": "tests/ui/v2-capability-acceptance.spec.ts: real Mock SUCCEEDED then browser edit, backend stale and old receipt expired, button disabled",
+      "log": "audit/ui.txt",
+      "limitation": null
     },
     {
       "id": "UI-08",
@@ -1145,9 +1145,9 @@
       "expected": "网页准确说明需要宿主；Codex实际交接",
       "status": "PARTIAL",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-results-limits.test.ts; tests/engine/workflow.test.ts; tests/engine/v2-executors.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-executors.test.ts frozen host handoff; tests/ui/v2-capability-acceptance.spec.ts host Skill insertion; audit/codex.txt real host authoring",
+      "log": "audit/tests.txt; audit/ui.txt; audit/codex.txt",
+      "limitation": "Host-only handoff, UI explanation and actual Codex authoring verified separately; actual host-only plugin/Skill execution in one real authorized host workflow not performed."
     },
     {
       "id": "RUN-08",
@@ -1253,9 +1253,11 @@
       "expected": "步骤和真实CLI一致，缺项明确",
       "status": "UNVERIFIED",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/poc/runtime.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "S7 final upgrade steps pending"
+      "evidence": "docs/V2_MIGRATION.md; scripts/smoke-v2-upgrade.mjs",
+      "log": "audit/upgrade.txt",
+      "limitation": "Migration tutorial and actual v1→v2→old-program rollback drill updated; fresh-machine tutorial execution and native Windows path remain unverified."
     }
-  ]
+  ],
+  "productVersion": "2.0.0-alpha.2",
+  "auditBase": "5c68e54b17a87d916782191b1e388a7510d020ea"
 }

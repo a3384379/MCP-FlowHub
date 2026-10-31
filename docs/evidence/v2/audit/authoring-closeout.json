@@ -1,0 +1,131 @@
+{
+  "audit": {
+    "round": 3,
+    "purpose": "Scoped independent closure verification of original five findings and second-round three findings",
+    "head": "5c68e54 with the current uncommitted repair set",
+    "decision": "CLOSED_IN_AUDITED_WORKTREE",
+    "newConfirmedP1": [],
+    "repoSourceEditedByAuditor": false,
+    "buildExecutedByAuditor": false,
+    "runtime": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+    "scope": "Authoring/testing/engine contracts and native host output schema closure only; no new feature scope added.",
+    "isolation": "In-memory SQLite, temporary synthetic MCP process/official SDK and synthetic data only. No official DB, actual external service, provider credentials or enterprise content accessed."
+  },
+  "independentValidation": [
+    {
+      "kind": "regressions",
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node --test --test-concurrency=1 dist/tests/engine/v2-authoring-audit-regressions.test.js dist/tests/engine/v2-testing-audit-regressions.test.js dist/tests/engine/v2-authoring-reaudit.test.js dist/tests/engine/v2-draft-merge.test.js",
+      "log": "/tmp/flowhub-authoring-closeout-tests.log",
+      "exitCode": 0,
+      "passed": 44,
+      "failed": 0,
+      "durationMs": 7141
+    },
+    {
+      "kind": "official SDK and frozen executor boundaries",
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node --test --test-concurrency=1 dist/tests/engine/v2-executors.test.js dist/tests/engine/v2-mcp-selftest.test.js",
+      "log": "/tmp/flowhub-authoring-closeout-protocol.log",
+      "exitCode": 0,
+      "passed": 4,
+      "failed": 0,
+      "durationMs": 3632
+    },
+    {
+      "kind": "independent custom reproducer",
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-authoring-closeout.mjs",
+      "script": "/tmp/flowhub-authoring-closeout.mjs",
+      "log": "/tmp/flowhub-authoring-closeout-repro.jsonl",
+      "exitCode": 0,
+      "passedScenarios": 3
+    }
+  ],
+  "repairedFindings": [
+    {
+      "id": "AUTH-RUN-01",
+      "closed": true,
+      "evidence": "Independent regression rejects rowLimitArgument overlap with locked numeric resources at equal, ancestor and descendant JSON Pointer paths before dispatch. Ordinary native limit behavior remains covered by protocol path; no fixed-resource overwrite reproduced."
+    },
+    {
+      "id": "AUTH-PUBLISH-02",
+      "closed": true,
+      "evidence": "Independent authenticated HTTP/service regression rejects absent expectedBindingRevisions, absent expectedCapabilityRevisions, extra fields and wrong types before mutation. Stale binding CAS returns conflict; explicit reviewed revision succeeds; replay returns original immutable version."
+    },
+    {
+      "id": "AUTH-HOST-03",
+      "closed": true,
+      "evidence": "Incompatible node vs real host output schema remains blocked; frozen capability output schema validates advance. Invalid type, missing field and extra-field constraints leave the same checkpoint available. Legitimate native open objects are now handled separately rather than weakening validation."
+    },
+    {
+      "id": "TEST-HOST-04",
+      "closed": true,
+      "evidence": "Mock runner freezes exact capability revision metadata into its accepted isolated snapshot. Valid host fixture reaches success, absent fixture is UNCOVERED/FIXTURE_MISSING, invalid result is rejected, missing revision is typed. Synthetic host result is labelled synthetic_fixture, actual host submission host_reported."
+    },
+    {
+      "id": "TEST-IDEMPOTENCY-05",
+      "closed": true,
+      "evidence": "Independent tests recover original suite/testRun IDs after draft and suite edits, preserve accepted immutable cases, reject different-body same-key conflicts and deny revoked owners. Expired result replay is tombstoned rather than causing a TypeError or fresh run."
+    },
+    {
+      "id": "REAUDIT-TEST-01",
+      "closed": true,
+      "evidence": "Own reproducer: original draft r1 run stays SUCCEEDED but stale=true after inputSchema becomes required amount at r2 and same suite/cases are regenerated with unchanged fixtureHash. Fresh r2 run is FAILED/INPUT_INVALID. Tests also cover same-revision change-and-restore fixtures, capability drift, layout-only freshness and conservative legacy rows.",
+      "location": {
+        "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+        "start": 169,
+        "end": 182
+      }
+    },
+    {
+      "id": "REAUDIT-MOCK-02",
+      "closed": true,
+      "evidence": "Own reproducer: node with no adapter and a text-only fixture now returns FAILED/OUTPUT_ADAPTER_REQUIRED. Independent repository regression compares seven adapter/raw-result scenarios against a real temporary synthetic MCP via the official SDK, including explicit text/json_text, malformed JSON, structured precedence and actual output schema validation.",
+      "location": {
+        "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+        "start": 235,
+        "end": 241
+      }
+    },
+    {
+      "id": "REAUDIT-HOST-03",
+      "closed": true,
+      "evidence": "Own reproducer persists native object schema with omitted additionalProperties and a nonrecursive local $defs/$ref unchanged, runs Mock successfully, publishes exact schema, deletes current source revision, reaches frozen checkpoint, rejects invalid count type without consuming checkpoint, accepts valid payload including extra business field and reaches SUCCEEDED. Independent regressions separately cover omitted/true additionalProperties and root local refs.",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/contracts/workflow-v2.schema.json",
+          "start": 1203,
+          "end": 1205
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/contracts/src/schema-safety.ts",
+          "start": 253,
+          "end": 292
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/validate.ts",
+          "start": 61,
+          "end": 64
+        }
+      ]
+    }
+  ],
+  "safetyAndCompatibility": {
+    "nativeContractPreserved": true,
+    "realFrozenSchemaCheckStillEnabled": true,
+    "v1AndHandAuthoredAnalysisStillStrict": true,
+    "externalAndDynamicRefsRejected": true,
+    "recursiveRefsRejected": true,
+    "referenceTargetsLimitedToSchemaPositions": true,
+    "unsafePatternsRejected": true,
+    "sourceAndExpandedDepthNodeByteBudgetsVerified": true,
+    "officialMcpOldSevenAndFixedTwentyOneVerified": true,
+    "closeInterruptionAndNoPostCloseWritesVerified": true,
+    "noLiveHostOrModelAcceptanceClaim": true
+  },
+  "sourceFingerprints": {
+    "packages/workflow-testing/src/index.ts": "8c0b68cf3ce6a9fdb9bbb14e5088dd53cc2a9de75377eb2ef4180f38a78fc195",
+    "packages/workflow-core/src/engine.ts": "c1b2671eff224c702bf3e18dac71a935bc11b9b26ddb937c2bb75468eeb346e8",
+    "contracts/workflow-v2.schema.json": "cc3148b4ec5a52856e2559024f711524699bd4b5f4a745dc059003074f1f41ad",
+    "packages/contracts/src/schema-safety.ts": "7fa07e9e6470c78927be324d5bab5677f15366edd2f59f7a26f080424fdb9b0d"
+  },
+  "boundary": "Closure applies to these eight findings in the audited worktree. It does not claim Windows, actual host/model, enterprise integration or release acceptance."
+}

@@ -1,0 +1,41 @@
+[WebServer] (node:53165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:53168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/editor-regressions.spec.ts:302:1 › reviewed publication rejects a concurrent edit and offers comparison and a separate unbound draft (1.1s)
+  ✓  2 tests/ui/v2-assistant-audit.spec.ts:89:1 › late analysis status and cancel receipts cannot disable the next checkpoint (2.3s)
+  ✓  3 tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex (1.6s)
+  ✘  4 tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest (6.9s)
+
+
+  1) tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('实际自测状态：SUCCEEDED', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('实际自测状态：SUCCEEDED', { exact: true }) with timeout 5000ms
+      - waiting for getByText('实际自测状态：SUCCEEDED', { exact: true })
+
+
+      36 |     await expect(page.getByRole("heading",{name:"其他会话真实保存",exact:true})).toBeVisible();await expect(page.getByLabel("节点名称",{exact:true})).toHaveValue("用户未保存输入");await expect(page.getByRole("region",{name:"草稿冲突处理"})).toHaveCount(0);
+      37 |     await page.getByRole("button",{name:"保存草稿",exact:true}).click();
+    > 38 |     await page.getByRole("button",{name:"生成用例",exact:true}).click();await page.getByRole("button",{name:"运行 Mock",exact:true}).click();await expect(page.getByText("实际自测状态：SUCCEEDED",{exact:true})).toBeVisible();
+         |                                                                                                                                                                                                      ^
+      39 |     await mkdir("docs/evidence/v2",{recursive:true});await page.screenshot({path:"docs/evidence/v2/S5-ui-1440.png",fullPage:false});
+      40 |     for(const width of [1366,390]){await page.setViewportSize({width,height:900});await page.goto("/assistant");await expect(page.getByRole("heading",{name:"AI 工作台",exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();await page.screenshot({path:"docs/evidence/v2/S5-ui-"+width+".png",fullPage:false});}
+      41 |     expect(errors).toEqual([]);
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-upgrade.spec.ts:38:198
+
+    Error Context: test-results/v2-upgrade-real-UI-model-s-dd52c--conflict-and-Mock-selftest/error-context.md
+
+  1 failed
+    tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest
+  3 passed (13.7s)

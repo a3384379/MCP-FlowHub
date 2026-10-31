@@ -1,10 +1,15 @@
 import { defineConfig } from "@playwright/test";
-import { mkdtempSync, existsSync } from "node:fs";
+import { mkdtempSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const dataDir =
   process.env.FLOWHUB_UI_DATA_DIR ?? mkdtempSync(join(tmpdir(), "flowhub-ui-"));
 process.env.FLOWHUB_UI_DATA_DIR = dataDir;
+// The UI process and its daemon use an empty test home, never the user's Codex config.
+mkdirSync(dataDir,{recursive:true});
+const codexHome=mkdtempSync(join(dataDir,"empty-codex-home-"));
+writeFileSync(join(codexHome,"config.toml"),"");
+process.env.CODEX_HOME=codexHome;
 const executablePath =
   process.env.FLOWHUB_CHROMIUM ??
   (existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined);
@@ -22,10 +27,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command:
-      'node dist/apps/daemon/src/cli.js serve --port 18479 --data-dir "' +
-      dataDir +
-      '"',
+    command: 'node scripts/ui-server.mjs',
     url: "http://127.0.0.1:18479/api/v1/health",
     reuseExistingServer: false,
     timeout: 20000,

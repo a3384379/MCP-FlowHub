@@ -1,0 +1,17 @@
+{
+  "fixture": "isolated in-memory SQLite; synthetic capabilities; no real Codex/MCP",
+  "measurements": [
+    {
+      "capabilities": 200,
+      "schemaBytesPerCapability": 30000,
+      "samples": 40,
+      "p95Ms": 6.436832999999751
+    },
+    {
+      "capabilities": 1000,
+      "schemaBytesPerCapability": 30000,
+      "samples": 40,
+      "p95Ms": 68.95458399999916
+    }
+  ]
+}

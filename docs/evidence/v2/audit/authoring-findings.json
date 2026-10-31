@@ -1,0 +1,336 @@
+{
+  "audit": {
+    "head": "5c68e54",
+    "scope": "workflow-authoring/workflow-testing/application/contracts/MCP bridge/v2 authoring API and v2 execution changes",
+    "mode": "read-only repository audit",
+    "runtime": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+    "reproducer": "/tmp/flowhub-authoring-audit.mjs",
+    "evidence": "/tmp/flowhub-authoring-audit-output.jsonl",
+    "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-authoring-audit.mjs",
+    "exitCode": 0,
+    "isolation": "All scripts use in-memory SQLite, synthetic Vault passwords and schemas. No official data directory, credentials, external MCP, network endpoint or model provider accessed. Repository files were not modified; no build executed.",
+    "migrationConstraint": "Any repair must preserve already-delivered v1 and v2 migration DDL/checksums; use later sequential migrations only if needed."
+  },
+  "findings": [
+    {
+      "id": "AUTH-RUN-01",
+      "priority": "P1",
+      "title": "rowLimitArgument overwrites locked resource arguments before dispatch",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 1173,
+          "end": 1179
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/validate.ts",
+          "start": 313,
+          "end": 321
+        }
+      ],
+      "contract": "Fixed environment/resource binding cannot be overridden by generated workflow parameters; native limits must preserve locked arguments.",
+      "trigger": {
+        "binding": {
+          "environment": "test",
+          "lockedArguments": {
+            "/tenantId": 123
+          },
+          "maxRows": 10
+        },
+        "node": {
+          "type": "mcp_tool",
+          "config": {
+            "argumentsMappings": {},
+            "rowLimitArgument": "/tenantId"
+          }
+        },
+        "toolInput": {
+          "type": "object",
+          "properties": {
+            "tenantId": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "tenantId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "observed": {
+        "patchIssues": [],
+        "published": true,
+        "lockedTenantId": 123,
+        "connectorDispatchedArguments": {
+          "tenantId": 10
+        },
+        "terminal": "SUCCEEDED",
+        "outputMarker": "LOCKED_ROW_LIMIT_OVERWRITE"
+      },
+      "cause": "resolveArguments applies all lockedArguments, then unconditionally writes Math.min(...) to the model-selected rowLimitArgument path. The mapping validator only checks argumentsMappings paths for lock overlap. Before-dispatch recomputation repeats the same overwrite and passes its hash check.",
+      "impact": "An authored workflow can route a call to a different numeric tenant/resource despite a fixed binding; a same-environment binding can still access the wrong locked resource.",
+      "minimalFix": "During publish validation and again before dispatch, reject rowLimitArgument paths equal to, ancestors of, or descendants of any locked argument path, using the same JSON Pointer overlap semantics. A locked limit policy must remain immutable unless a separate explicit contract permits a bounded reduction.",
+      "tests": [
+        "Top-level numeric tenantId locked to 123 and rowLimitArgument=/tenantId must fail before dispatch.",
+        "Nested lock /scope and limit /scope/tenantId, lock /scope/tenantId and parent limit /scope must reject.",
+        "Legitimate independent /limit still clamps to user/workflow/binding limits; zero business calls for overlap failures."
+      ]
+    },
+    {
+      "id": "AUTH-PUBLISH-02",
+      "priority": "P1",
+      "title": "HTTP v2 publication omits required binding CAS when the field is absent",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/admin-api/src/v2.ts",
+          "start": 25,
+          "end": 27
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-authoring/src/index.ts",
+          "start": 220,
+          "end": 232
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 275,
+          "end": 294
+        }
+      ],
+      "contract": "The common Authoring DTO requires expectedBindingRevisions and publication must pin the reviewed draft/capability/binding revisions for Web, MCP and Assistant.",
+      "trigger": {
+        "method": "POST",
+        "path": "/api/v2/workflows/audit/publish",
+        "body": {
+          "expectedRevision": 2,
+          "version": "1.0.0",
+          "idempotencyKey": "pub"
+        },
+        "precondition": "Draft references binding rev1; binding independently changes to rev2 without changing draft revision."
+      },
+      "observed": {
+        "published": true,
+        "snapshottedBindingRevision": 2,
+        "outputMarker": "MISSING_BINDING_CAS",
+        "verificationLevel": "Direct AuthoringService call with the exact body forwarded by the HTTP route; route source confirms no additional DTO validation. No live HTTP request was necessary."
+      },
+      "cause": "Only Application.handle validates the fixed MCP schema. The Web route invokes AuthoringService.publish directly, and publish forwards undefined expectedBindingRevisions to Engine.publish, whose check is conditional.",
+      "impact": "A Web/API request can publish unreviewed binding configuration despite a stable draft revision; Web has weaker publication invariants than MCP.",
+      "minimalFix": "Validate the full common publish DTO at the AuthoringService boundary, require expectedBindingRevisions and expectedCapabilityRevisions on every v2 publication, and reject missing/extra/wrong-typed fields before any mutation. Keep legacy publication compatibility explicitly separate.",
+      "tests": [
+        "Authenticated HTTP v2 publish without expectedBindingRevisions returns INPUT_INVALID/428 and produces no version, no command record and no draft revision increment.",
+        "Review binding rev1, mutate to rev2, publish with expected rev1 must 409; with reviewed rev2 succeeds.",
+        "Same invalid DTO rejected consistently via Web service and official MCP; v1 legacy publication regression remains passing."
+      ]
+    },
+    {
+      "id": "AUTH-HOST-03",
+      "priority": "P1",
+      "title": "host_tool can replace the discovered output contract with an incompatible node schema",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-authoring/src/index.ts",
+          "start": 33,
+          "end": 39
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 735,
+          "end": 742
+        }
+      ],
+      "contract": "Host tool identity, fixed arguments and real output schema are frozen at publish; user-proposed definitions/fixtures cannot replace the actual capability contract.",
+      "trigger": {
+        "capability": {
+          "kind": "mcp_tool",
+          "executor": "codex_host",
+          "revision": 1,
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "node": {
+          "kind": "host_tool",
+          "executorRef": "codex_host",
+          "capabilityRef": {
+            "capabilityId": "host-cap",
+            "revision": 1
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "submission": {
+          "type": "agent_result",
+          "payload": {
+            "count": "invalid-type"
+          }
+        }
+      },
+      "observed": {
+        "publishedActualOutputSchemaCountType": "integer",
+        "published": true,
+        "advanceAccepted": true,
+        "terminal": "SUCCEEDED",
+        "storedOutput": {
+          "count": "invalid-type"
+        },
+        "outputMarker": "HOST_WEAK_SCHEMA"
+      },
+      "cause": "Authoring only checks that a codex_host capability has input/output schemas; it never requires node.outputSchema to match or safely specialize cap.outputSchema. advance validates only node.outputSchema and marks the host result accepted.",
+      "impact": "The published real host contract is informational: incompatible data is accepted and can drive downstream mappings or reports as a successful host result.",
+      "minimalFix": "Derive/fill the host_tool output schema from the exact capability revision when creating nodes or require proven compatible constraints. At checkpoint/advance validate against the frozen capability output schema as well as any additional node schema. Avoid consulting mutable current capability for an existing published run.",
+      "tests": [
+        "Integer capability vs string node schema must reject authoring/publish, or invalid submitted string must fail without consuming checkpoint.",
+        "Missing required fields and extra fields in host reports fail the frozen schema.",
+        "Capability changes after publication do not mutate existing frozen schemas; compatible actual host payload succeeds and remains marked host_reported."
+      ]
+    },
+    {
+      "id": "TEST-HOST-04",
+      "priority": "P1",
+      "title": "isolated Mock runner does not copy capability revisions, so valid host_tool cases cannot run",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 139,
+          "end": 149
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 302,
+          "end": 305
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 1290,
+          "end": 1294
+        }
+      ],
+      "contract": "Deterministic Mock/scripted results must cover host_tool dataflow using isolated metadata; they must clearly separate synthetic execution from actual host execution.",
+      "trigger": {
+        "workflow": "guided input -> host_tool(capabilityRef=host-cap@1) -> end",
+        "suiteCase": {
+          "id": "normal",
+          "inputs": {},
+          "mockResults": [],
+          "agentSubmissions": [
+            {
+              "nodeId": "host",
+              "payload": {
+                "count": 1
+              }
+            }
+          ],
+          "assertions": [
+            {
+              "kind": "terminal_state",
+              "expected": "SUCCEEDED"
+            }
+          ],
+          "expectedValidationErrors": []
+        }
+      },
+      "observed": {
+        "testStatus": "FAILED",
+        "caseStatus": "FAILED",
+        "errorCode": "OUTCOME_UNKNOWN",
+        "outputs": {
+          "input": {}
+        },
+        "trace": [],
+        "gaps": [],
+        "outputMarker": "HOST_MOCK"
+      },
+      "cause": "The test DB gets only connection/binding schemas. Engine.publish resolves capability_revisions in this empty DB and stores undefined (serialized as null) capability snapshot entries; execute's capability lookup throws before a WAITING_AGENT checkpoint can receive the supplied fixture.",
+      "impact": "Every valid host_tool Mock case fails with an unrelated unknown-outcome diagnostic, blocking the required no-Key host-only test path and concealing the actual metadata gap.",
+      "minimalFix": "Snapshot the exact referenced capability revision metadata into the isolated DB before publishing; validate missing revisions explicitly. Carry only contract/Skill metadata needed for simulation and never endpoints or secrets. Publish non-null capability snapshots and distinguish a missing contract from missing case data.",
+      "tests": [
+        "Official MCP test_generate/run/status on a host_tool workflow with a valid agent fixture reaches SUCCEEDED and provenance=synthetic, without external calls.",
+        "Same workflow without host fixture yields UNCOVERED/FIXTURE_MISSING.",
+        "Missing capability revision returns a typed missing/stale contract error, never TypeError/OUTCOME_UNKNOWN.",
+        "Host fixture output must obey the actual frozen schema from TEST-HOST-03 and cannot falsely assert actual host execution."
+      ]
+    },
+    {
+      "id": "TEST-IDEMPOTENCY-05",
+      "priority": "P2",
+      "title": "test generation/run replays check mutable baselines before the idempotency ledger",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 34,
+          "end": 38
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 90,
+          "end": 97
+        }
+      ],
+      "contract": "Same owner + operation + idempotencyKey + request must return the existing accepted result without repeating work, including after a response is lost or another edit occurs.",
+      "trigger": "Call test.generate for draft r1; call test.run; then apply a metadata patch producing r2; repeat the exact original generate/run requests and keys.",
+      "observed": {
+        "generateReplay": "REVISION_CONFLICT instead of original suiteId",
+        "runReplay": "TEST_BASELINE_STALE instead of original testRunId",
+        "outputMarker": "GENERATE_REPLAY_AFTER_EDIT"
+      },
+      "cause": "generate's revision check and run's suite/baseline checks happen before repo.command can read a prior successful command.",
+      "impact": "A retry after a lost response cannot recover the accepted suite/test run once the draft or suite changes. Callers see an edit conflict or may create a new suite/run with a new key instead of recovering the existing operation.",
+      "minimalFix": "Keep current owner authorization and stateless DTO checks outside, but put mutable revision/baseline acceptance checks inside the first-execution command callback. Store/use the accepted immutable suite/case selection so queued job recovery never starts the newest suite on replay.",
+      "tests": [
+        "Replay identical generate/run after draft edit returns original IDs and does not add suite/run records or execute cases again.",
+        "Replay after suite revision changes also recovers the old operation.",
+        "Same key with different body remains IDEMPOTENCY_CONFLICT; revoked/unauthorized owners cannot recover records.",
+        "Fresh new-key request against stale baseline still rejects."
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "id": "PENDING-MOCK-PARITY",
+      "status": "source-only candidate; not promoted to confirmed finding",
+      "detail": "workflow-testing mock adapter returns adaptMcpResult.value but bypasses Connectors.call environment cross-check, rowCount==rows.length check and raw result artifact attachment. A fixture could therefore appear green for output rejected by the runtime connector. Needs a focused repro and a clear simulation provenance policy before final severity.",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 130,
+          "end": 138
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 436,
+          "end": 454
+        }
+      ]
+    },
+    {
+      "id": "PENDING-UNDO-LAYOUT",
+      "status": "source-only candidate; not promoted",
+      "detail": "undo always increments semantic revision, even undo of a move_nodes-only action; node config revert is shallow and rejects unrelated later config field edits. Verify UI expectations and exact conflict granularity before reporting."
+    },
+    {
+      "id": "PENDING-DETERMINISTIC-BRANCHES",
+      "status": "coverage gap; not promoted",
+      "detail": "Generator covers top-level input properties and boolean variants but does not inspect arbitrary/nested conditions or synthesize branch-driving tool/agent fixtures; branchCoverage can show true/false false without recording unreachable reasons. Compare against P0 generation/branch coverage requirements with a nonboolean branch repro."
+    }
+  ]
+}

@@ -1,0 +1,347 @@
+{
+  "audit": "MCP FlowHub 2.0 assistant final bounded independent closeout",
+  "generatedAt": "2026-10-31T06:42:23.452408+00:00",
+  "repo": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "baseHead": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "workingTree": "审计对象为baseHead之上的当前未提交修复，不是已提交交付。",
+  "auditorRepositoryModified": false,
+  "auditorBuildPerformed": false,
+  "scope": "仅复核首轮9项与二轮5项；未扩展新审计面。",
+  "summary": {
+    "closedSyntheticVerified": 12,
+    "sourceFixedBrowserPending": 1,
+    "partiallyClosedNeedsFix": 1,
+    "openP1": 0,
+    "pendingP2": [
+      "ASST-A08"
+    ],
+    "rootBrowserEvidencePending": [
+      "ASST-R04",
+      "ASST-A08"
+    ]
+  },
+  "evidence": {
+    "originalFindings": "/tmp/flowhub-assistant-audit-findings.json",
+    "reauditFindings": "/tmp/flowhub-assistant-reaudit.json",
+    "originalReauditObservationsPreserved": "/tmp/flowhub-assistant-audit/reaudit-observations.json",
+    "closeoutScript": "/tmp/flowhub-assistant-audit/closeout-reproduce.mjs",
+    "closeoutObservations": "/tmp/flowhub-assistant-audit/closeout-observations.json",
+    "reproduce": {
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-assistant-audit/closeout-reproduce.mjs",
+      "exitCode": 0
+    },
+    "regression": {
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node --test dist/tests/engine/v2-assistant-audit-regressions.test.js dist/tests/engine/v2-retention-legacy-messages.test.js",
+      "exitCode": 0,
+      "tests": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 5204.110167
+    },
+    "method": "中央更新的dist；实际HttpModelProvider/Application/Engine/Vault；loopback合成HTTP服务；in-memory SQLite。无ScriptedModelProvider、正式库、真实凭据、付费模型、企业MCP。",
+    "sourceSha256": {
+      "packages/contracts/src/assistant-intent.ts": "cf933f24cc3cb950145c3dc27d80f9181747c41bb6330afe4940aa5501bf69ea",
+      "packages/assistant-core/src/index.ts": "fc4e1f877e5a1c41b652577fa3de7ed975b0a691b8ccd1821e384c6f958b4635",
+      "packages/llm-providers/src/index.ts": "0e742dd3c54cf7cbf7512d00338e5693bb74318b4c8940fe41f501199a0c4a71",
+      "packages/persistence/src/retention.ts": "33486b34b21e4140306cd8d8e02ad7228c656b9357aee62ed83569082b9a0844",
+      "packages/project-knowledge/src/index.ts": "8bd3965a1322656ca991ea942102953ffd07a99fa46633d861c807f9a272e66c",
+      "apps/web/src/features/assistant/AssistantPanel.tsx": "8218dd742c3ebda023ed41430cff4507e28d1d61e8a5c5daff56b9170deb1d33",
+      "apps/web/src/features/workflows/RunAnalysisControl.tsx": "9a2547b6b7e2d815249f9e687fbb048b9ff6c0a0b8af77f58627ca5939a34b6f",
+      "tests/engine/v2-assistant-audit-regressions.test.ts": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+      "tests/engine/v2-retention-legacy-messages.test.ts": "8b9ea0df34d86b71a6ae70b4ffd6e4cfbd98fe5e08f32907b3d9d491722f7ff9",
+      "tests/ui/v2-assistant-audit.spec.ts": "0ec5ed9f7f4ad0b215cfba025a8b630040c141d2c5b81ed1c2309ebc9bddf53a"
+    }
+  },
+  "findings": [
+    {
+      "id": "ASST-A01",
+      "priority": "P1",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/contracts/src/assistant-intent.ts",
+          "lines": "1-35"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "130-132"
+        }
+      ],
+      "observations": [
+        "原否定、试运行名词、解释示例不再授予run；真实HTTP恶意run返回INTENT_NOT_ALLOWED且零run记录。",
+        "R01扩展否定和正向连续创建/发布/执行均已通过定向回归。"
+      ]
+    },
+    {
+      "id": "ASST-A02",
+      "priority": "P1",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "264-274"
+        }
+      ],
+      "observations": [
+        "原wrong-workflow-start复现现为FAILED且无错误目标run。",
+        "定向测试覆盖错误工作流的start/read/validate/test和其他run的status/cancel，均在ledger派发前拒绝；其他run仍WAITING_AGENT。"
+      ]
+    },
+    {
+      "id": "ASST-A03",
+      "priority": "P1",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "9-13"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "227-238"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "290-298"
+        }
+      ],
+      "observations": [
+        "实际HTTP上下文、消息和SSE均不含选中检查点token。",
+        "定向测试验证workflow_status后继续advance仍成功，daemon注入执行凭据；business-token-original保持原值；三轮usage总数21。"
+      ],
+      "limitations": [
+        "没有真实外部模型或公司MCP。"
+      ]
+    },
+    {
+      "id": "ASST-A04",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "94-102"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "209-210"
+        }
+      ],
+      "observations": [
+        "删除真实普通/analysis会话后task事件和analysis ledger均为0；旧无sessionId ledger按taskId清理。",
+        "定向测试验证取消worker未settled时拒绝删除，settled后无延迟复制重建；无关task保留。"
+      ]
+    },
+    {
+      "id": "ASST-A05",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "178-193"
+        }
+      ],
+      "observations": [
+        "真实analysis推进至SUCCEEDED后，同key返回原COMPLETED task，不重新调用provider。",
+        "定向测试覆盖changed profile冲突、失败与取消接受重放、删除后的RESULT_EXPIRED tombstone。"
+      ]
+    },
+    {
+      "id": "ASST-A06",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "42-45"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "250"
+        }
+      ],
+      "observations": [
+        "loopback非流式文本/工具探测passed、stream探测failed；正式assistant自动非流式并COMPLETED。",
+        "定向测试验证model改变后capabilities重置unknown、lastTestAt=null。"
+      ],
+      "limitations": [
+        "正式模型表单配置的本轮浏览器结果由root最终补充。"
+      ]
+    },
+    {
+      "id": "ASST-A07",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts",
+          "lines": "24-46"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts",
+          "lines": "54-112"
+        }
+      ],
+      "observations": [
+        "原headers后stall返回MODEL_TIMEOUT。",
+        "定向测试精确验证SSE stall=MODEL_TIMEOUT、无效JSON=MODEL_OUTPUT_INVALID、4MiB超限=BUDGET_EXCEEDED、用户取消=TASK_CANCELLED、任务deadline=BUDGET_EXCEEDED；均无工具派发。"
+      ]
+    },
+    {
+      "id": "ASST-A08",
+      "priority": "P2",
+      "status": "PARTIALLY_CLOSED_PENDING_EXISTING_UI_RACE_FIX",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/workflows/RunAnalysisControl.tsx",
+          "lines": "7-18"
+        }
+      ],
+      "observations": [
+        "正常失败/取消重试、profile可切换和run/checkpoint重置已实现。",
+        "旧任务SSE状态GET在第8行仍直接.then(setTask)，没有在await之后复核epoch及taskId；取消响应同样直接.then(setTask)。"
+      ],
+      "remaining": "旧分析状态GET响应可在run/checkpoint变化后的第7行reset之后返回，重置为旧COMPLETED任务，从而再次禁用下一检查点。属于原A08同一关闭边界。",
+      "requiredFix": "给SSE/status/cancel异步结果增加epoch及task身份校验，并加入真实浏览器延迟旧响应跨检查点/运行的精确回归。",
+      "verificationBoundary": "本轮只读源码确认，不声称已经独立浏览器复现。已通知root，root安排原fixer修复。"
+    },
+    {
+      "id": "ASST-A09",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/project-knowledge/src/index.ts",
+          "lines": "31-47"
+        }
+      ],
+      "observations": [
+        "原workflow_draft_create引用L740-791的hash等于真实源行范围hash。",
+        "定向测试遍历全部knowledge chunk逐一比对实际内容/hash，并验证源过期检测。"
+      ]
+    },
+    {
+      "id": "ASST-R01",
+      "priority": "P1",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/contracts/src/assistant-intent.ts",
+          "lines": "8-35"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/engine/v2-assistant-audit-regressions.test.ts",
+          "lines": "148-163"
+        }
+      ],
+      "observations": [
+        "请勿运行、我不想运行、不需要发布现actions=[]；原真实HTTP恶意run task为FAILED/INTENT_NOT_ALLOWED/零dispatch。",
+        "定向真实HTTP覆盖不希望、不应、无需、后置不要、算了、协调否定、问句及英文否定，run/publish均未offered；正向创建发布运行仍成功。"
+      ]
+    },
+    {
+      "id": "ASST-R02",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "104-125"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "138-140"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "240-242"
+        }
+      ],
+      "observations": [
+        "原clear context下一请求providerReceivedPriorRunAnswer=false。",
+        "定向真实HTTP验证clear、切换B run、切换provider、新旧模型同run及legacy未知来源历史隔离；再次明确选择A+原provider才包含其历史。"
+      ]
+    },
+    {
+      "id": "ASST-R03",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "112-115"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/persistence/src/retention.ts",
+          "lines": "34-54"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/persistence/src/retention.ts",
+          "lines": "203-220"
+        }
+      ],
+      "observations": [
+        "原实际submit生成的四条消息现在都有taskId，source run到期后fresh messageCopySurvives=false；run与task均标到期。",
+        "独立legacy定向用实际submit产物去除新增provenance模拟旧版，preview明确列出assistantLegacyResultMessages；hash绑定变化，commit清理旧副本，同时保留已标来源的新鲜无关消息和活跃会话。",
+        "未来provider context不含已清理marker。"
+      ]
+    },
+    {
+      "id": "ASST-R04",
+      "priority": "P2",
+      "status": "SOURCE_FIXED_CURRENT_BROWSER_RESULT_PENDING_ROOT",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lines": "8-11"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lines": "28-53"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lines": "69-74"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-audit.spec.ts",
+          "lines": "52-72"
+        }
+      ],
+      "observations": [
+        "新send立即adoptTask(SUBMITTING)并推进generation，不再显示旧COMPLETED或旧工具回执。",
+        "SSE/status/acceptance/history续体复核generation、session、status request和taskId；取消按钮只针对当前已接受active task。",
+        "已有精确延迟POST和旧GET跨发送/会话切换的浏览器回归源码。"
+      ],
+      "verificationBoundary": "本轮未独立启动浏览器；root本轮UI结果尚在运行，须由root将实际结果补入最终交付，不能把源码检查当浏览器通过。"
+    },
+    {
+      "id": "ASST-R05",
+      "priority": "P2",
+      "status": "CLOSED_SYNTHETIC_VERIFIED",
+      "evidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts",
+          "lines": "188-212"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/engine/v2-assistant-audit-regressions.test.ts",
+          "lines": "187-203"
+        }
+      ],
+      "observations": [
+        "原maxCorrectionAttempts=1实际HTTP次数由3降为1，终态INPUT_INVALID，检查点保留。",
+        "定向测试1/2/3分别精确调用1/2/3次，usage累计7/14/21；第二次有效时COMPLETED和usage14；单任务1000ms deadline不随纠正轮次重置。"
+      ]
+    }
+  ],
+  "notExecuted": [
+    "未独立执行完整build/check/engine全套；root中央负责。",
+    "未独立执行本轮浏览器测试，R04及A08须root追加实际UI证据。",
+    "未访问真实外部模型、公司MCP、正式库、真实宿主；Windows原生验收未执行。",
+    "先前未确认为finding的Responses reasoning include与真实提供方协议兼容仍是外部验证边界；合成continuation通过不等于真实模型通过。",
+    "未重新扩展首轮无ID设计缺口与其他pending线索审计；本报告仅关闭原14个ID。"
+  ]
+}

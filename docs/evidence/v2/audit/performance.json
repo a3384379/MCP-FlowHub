@@ -1,0 +1,22 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M4",
+  "node": "24.19.0",
+  "measuredAt": "2026-10-31T06:40:11.402Z",
+  "businessCalls": 0,
+  "validation": {
+    "nodes": 100,
+    "samples": 50,
+    "warmups": 5,
+    "p95Ms": 4.408917000000031,
+    "targetMs": 1000
+  },
+  "metadata": {
+    "components": 500,
+    "samples": 10,
+    "p95Ms": 125.15112499999998,
+    "targetMs": 5000,
+    "source": "temporary synthetic Codex CLI and Skill files"
+  }
+}
