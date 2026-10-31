@@ -1219,3 +1219,16 @@ footer small {
     grid-template-columns: 1fr;
   }
 }
+
+/* 2.0 feature modules share the existing ice-blue workspace. */
+.v2-page,.v2-assistant,.v2-discovery,.v2-testing,.v2-capability-picker{min-width:0;max-width:100%;color:#172b4d}
+.v2-two-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.v2-page h1,.v2-discovery h1{font-size:26px;margin:6px 0 12px}.v2-model-card{border-top:1px solid #dce7f7;padding:12px 0}
+.v2-assistant{background:#fff;border-radius:16px;padding:12px}.v2-assistant .field,.v2-page .field,.v2-discovery .field{min-width:0}
+.v2-assistant select,.v2-page input,.v2-discovery select,.v2-capability-picker input{max-width:100%;width:100%;min-width:0;box-sizing:border-box}
+.v2-assistant pre,.v2-page pre,.v2-discovery pre,.v2-testing pre{overflow:auto;max-height:320px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;font-size:12px;background:#f4f8ff;border-radius:10px;padding:10px}
+.v2-messages{max-height:380px;overflow:auto;overflow-wrap:anywhere}.v2-messages article{border-bottom:1px solid #dce7f7;padding:12px 0}.v2-tool-cards details{border:1px solid #dce7f7;border-radius:10px;padding:10px;margin:8px 0}
+.v2-assistant-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.v2-assistant-controls .field{flex:1;min-width:120px}.v2-testing{margin-top:20px}.v2-capability-picker{border-bottom:1px solid #dce7f7;padding-bottom:16px}.v2-capability-picker button{width:100%;text-align:left;overflow-wrap:anywhere}
+.inspector .v2-assistant{padding:0}.inspector .v2-messages{max-height:260px}.v2-assistant textarea{min-height:90px}
+@media(max-width:1100px){.v2-two-columns{grid-template-columns:1fr}.v2-assistant-controls{align-items:stretch}.v2-assistant{max-width:100%}}
+@media(max-width:680px){.v2-page h1,.v2-discovery h1{font-size:23px}.v2-two-columns{gap:12px}.v2-assistant{padding:8px}.v2-tool-cards details{padding:8px}.v2-messages{max-height:300px}}

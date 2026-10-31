@@ -39,3 +39,10 @@ FIXTURE_MISSING：自测尚无节点合成结果，不代表实际服务为空�
 模型设置明确选择 Responses 或兼容 Chat Completions 协议，填写服务地址与模型名，Key 只在专用输入保存至本机 Vault。无 Key 时仍可用发现、手工画布、Codex 和 Mock 自测。更换 Key 不会回显原值，不使用浏览器 localStorage 保存 Key。
 帮助模式只检索和解释，附当前版本引用；编排模式根据请求选择编辑、自测、发布或运行。工具卡片才是实际动作回执，聊天中的完成声明不是保存证据。
 MODEL_AUTH_FAILED 表示认证失败，MODEL_RATE_LIMITED 表示429；保留会话，不无限重试。MODEL_UNSUPPORTED_TOOLS 表示仅文本模型，仍可问答。取消停止后续动作，已经完成的工具回执会保留。重启的未完成任务为 INTERRUPTED，不自动重放写操作。
+
+## 当前画布与撤销
+
+在画布右侧切换“属性 / AI 助手”，上下文显示 workflowId、revision 和选中节点。AI改图由服务端真实保存，刷新后仍存在。未保存输入和发布审阅候选保持不变；冲突时可以比较、另存或明确丢弃本地修改。
+工具卡片提供撤销/重做，只逆转该动作涉及的字段；后来同字段已修改时返回 REVISION_CONFLICT，其他编辑保持不变。新节点仅局部布局，不重排整张画布。
+自测面板可生成、编辑Fixture、运行Mock并查看expected/actual。通过后修改草稿会提示基线过期。
+运行的 analysis 检查点可选择已配置模型继续，使用独占租约和同一推进接口；host_tool/host_skill 或明确 codex_host 节点须由Codex执行，Key不能替代宿主权限。

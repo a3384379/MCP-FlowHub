@@ -35,6 +35,8 @@ export class AuthoringService {
       if(!cap || cap.stale || cap.revision!==ref.revision ||
         (n.type==="mcp_tool" && (cap.name!==n.config.toolName || cap.tool?.schemaHash!==n.config.toolSchemaHash)))
         issues.push({code:"CAPABILITY_STALE",message:"Capability and node definition differ.",nodeId:n.id});
+      if(n.config.kind==="host_tool"&&(!cap||cap.kind!=="mcp_tool"||cap.executor!=="codex_host"||!cap.inputSchema||!cap.outputSchema))
+        issues.push({code:"HOST_CAPABILITY_UNAVAILABLE",message:"Host tool requires a discovered input/output contract.",nodeId:n.id});
     }
     return issues;
   }
@@ -170,6 +172,47 @@ export class AuthoringService {
       const result=this.engine.publish(workflowId,expectedRevision,changeNote,expectedBindingRevisions);
       this.repo.changed("draft.changed",{workflowId,revision:this.repo.get("workflows",workflowId).revision});
       return result;
+    });
+  }
+  undo(a:Json,owner="admin") {
+    this.authorize(owner,a.workflowId);
+    return this.repo.command(owner,"draft.undo",a.idempotencyKey,a,()=>{
+      const command=this.repo.get("authoring_commands",a.commandId),current=this.get(a.workflowId,owner);
+      ensure(command&&command.workflowId===a.workflowId,"NOT_FOUND","Authoring action missing.",404);
+      ensure(current.revision===a.expectedRevision,"REVISION_CONFLICT","Draft changed before undo.",409);
+      const draft=clone(current.draft),layout=clone(current.layout),inverse:Json[]=[];
+      const same=(left:Json,right:Json)=>hash([left])===hash([right]);
+      const revert=(target:Json,before:Json,after:Json,path:string)=>{
+        for(const key of new Set([...Object.keys(before??{}),...Object.keys(after??{})])) {
+          if(same(before?.[key],after?.[key]))continue;
+          ensure(same(target[key],after?.[key]),"REVISION_CONFLICT","Cannot undo a field changed later: "+path+key,409);
+          inverse.push({path:path+key,before:after?.[key]??null,after:before?.[key]??null});
+          if(Object.hasOwn(before??{},key))target[key]=clone(before[key]);else delete target[key];
+        }
+      };
+      const oldNodes=Object.fromEntries(command.beforeDraft.nodes.map((n:Json)=>[n.id,n])),newNodes=Object.fromEntries(command.afterDraft.nodes.map((n:Json)=>[n.id,n])),liveNodes=Object.fromEntries(draft.nodes.map((n:Json)=>[n.id,n]));
+      for(const key of new Set([...Object.keys(oldNodes),...Object.keys(newNodes)])) {
+        if(same(oldNodes[key],newNodes[key]))continue;
+        if(oldNodes[key]&&newNodes[key]&&liveNodes[key])revert(liveNodes[key],oldNodes[key],newNodes[key],"/nodes/"+key+"/");
+        else {ensure(same(liveNodes[key],newNodes[key]),"REVISION_CONFLICT","Node was modified after the action.",409);if(oldNodes[key])liveNodes[key]=clone(oldNodes[key]);else delete liveNodes[key];}
+      }
+      draft.nodes=Object.values(liveNodes);
+      const edgeKey=(edge:Json)=>JSON.stringify([edge.source,edge.target,edge.port]);
+      const oldEdges=new Map(command.beforeDraft.edges.map((e:Json)=>[edgeKey(e),e])),newEdges=new Map(command.afterDraft.edges.map((e:Json)=>[edgeKey(e),e]));
+      for(const key of new Set([...oldEdges.keys(),...newEdges.keys()]))if(oldEdges.has(key)!==newEdges.has(key)) {
+        const exists=draft.edges.some((e:Json)=>edgeKey(e)===key);ensure(exists===newEdges.has(key),"REVISION_CONFLICT","Edge changed after the action.",409);
+        draft.edges=draft.edges.filter((e:Json)=>edgeKey(e)!==key);if(oldEdges.has(key))draft.edges.push(clone(oldEdges.get(key)));
+      }
+      const metadata=(value:Json)=>Object.fromEntries(Object.entries(value).filter(([k])=>!["nodes","edges","bindings"].includes(k)));
+      revert(draft,metadata(command.beforeDraft),metadata(command.afterDraft),"/");revert(draft.bindings,command.beforeDraft.bindings,command.afterDraft.bindings,"/bindings/");revert(layout,command.beforeLayout,command.afterLayout,"/layout/");
+      validate(workflowSchema,draft);
+      const saved={...current,draft,layout,revision:current.revision+1,layoutRevision:current.layoutRevision+(same(layout,current.layout)?0:1),name:draft.name,updatedAt:now()};
+      delete saved.workflow;delete saved.issues;delete saved.capabilityRefs;
+      this.repo.put("workflows",a.workflowId,saved,current.revision);
+      const undoId=id("authoring");this.repo.insert("authoring_commands",undoId,{id:undoId,owner,operation:"undo",idempotencyKey:a.idempotencyKey,workflowId:a.workflowId,
+        beforeDraft:current.draft,afterDraft:draft,beforeLayout:current.layout,afterLayout:layout,beforeRevision:current.revision,afterRevision:saved.revision,createdAt:now()});
+      this.repo.changed("draft.changed",{workflowId:a.workflowId,revision:saved.revision,changedNodes:draft.nodes.map((n:Json)=>n.id)});
+      return {workflowId:a.workflowId,revision:saved.revision,commandId:undoId,inverse,issues:this.issues(draft)};
     });
   }
   publish(a: Json, owner="admin") {

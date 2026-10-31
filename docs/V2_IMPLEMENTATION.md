@@ -25,7 +25,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S5–S7
+## S6–S7
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
@@ -77,3 +77,16 @@ Responses 与 OpenAI-compatible Chat Completions 两个适配器分别构建消�
 证据：S4-check.txt、S4-tests.txt。官方资料核对：OpenAI function-calling 与 Responses/Chat streaming-events 文档。
 按用户明确要求，缺真实 Key 不阻塞本地代码与合成测试；环境中无 OPENAI_API_KEY，无工作区 env 文件，本阶段真实模型调用 0。真实问答/编排和30场景评测未验证，不能用上述 Scripted/localhost 测试替代。
 S5–S7 尚未完成。
+
+## S5（已完成正式界面与执行器联动）
+
+新增独立 React features：models、assistant、testing、workflows/CapabilityPicker/RunAnalysisControl 和共享 v2 事件客户端，未将新增产品全部塞进 main.tsx。模型专用 Key 输入、会话/真实工具卡片/引用、无Key检索、当前节点上下文、能力加入当前画布、Fixture编辑/Mock结果均连接实际后端。
+画布使用 draft.changed 的修订只读刷新；本地脏字段/焦点JSON和发布审阅候选不会被事件覆盖，显示原有比较/另存冲突入口。新增节点保留旧布局并短暂高亮。AI action 可语义撤销和重做，检查字段是否被后来修改，保留其他字段与发布历史。
+分析执行器使用持久化 checkpoint lease 和原有 advance；并发 Codex 不能同时消费，JSON不合法保留checkpoint。host_tool 冻结身份/参数/输入输出契约，进入 WAITING_AGENT，仅标 host_reported，网页Key不能假调用。原生检查点 Token 仅以加密交付字段进入助手存储；普通业务数据不自动替换。
+可选版本锁定 App Server 目录读取现支持 codex_host Tool 元信息（新会话，不共享 Desktop）；默认只读CLI/静态发现不变。
+接入设置显式支持编排身份（21工具）或仅执行身份（7工具）。
+
+验证：check/build exit 0；authoring/assistant/executor 定向 19/19 exit 0；全量 Playwright 24/24 exit 0；最后分析入口与截图更新后再跑 automation+v2 UI 3/3 exit 0。早期全量 UI 23/24：SSE更新了发布审阅候选，现已保护审阅上下文并使用 REVISION_CONFLICT，未跳过测试。
+浏览器首次缺少锁定版本 Chromium 1248，已安装官方隔离测试浏览器；未操作日常Chrome配置。实际 UI 验证模型由 localhost 合成HTTP提供，持久化改图/刷新/undo/redo/未保存输入保护/Mock自测均通过；截图为1440/1366/390，检查整页无水平溢出。截图已人工式视觉检查（工具查看像素），不以截图替代断言。
+证据：S5-backend.txt、S5-ui-full.txt、S5-ui-final.txt、S5-check.txt 和 S5-ui-*.png。
+未验证：真实模型/真实企业服务/原生Windows。S6全回归与真实宿主、S7打包恢复仍在后续。

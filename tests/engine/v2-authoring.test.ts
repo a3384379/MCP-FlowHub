@@ -53,3 +53,13 @@ test("publish freezes v2 snapshot, respects revision and preserves v1 schema res
   assert.throws(()=>f.authoring.saveRaw(v1,undefined,{}),{code:"INPUT_INVALID"});
   assert.throws(()=>f.patch([{op:"add_node",nodeId:"human",nodeType:"approval",title:"forbidden",config:{}}],3));
 });
+test("semantic undo and redo preserve unrelated later fields and reject same-field conflicts",async t=>{
+  const f=authoringFixture();t.after(f.close);f.create();
+  const ai=f.patch([{op:"set_metadata",changes:{name:"AI edit"}}]);
+  f.patch([{op:"set_metadata",changes:{description:"User retained"}}],2);
+  const undone=f.authoring.undo({workflowId:"authoring-demo",expectedRevision:3,commandId:ai.commandId,idempotencyKey:"undo"});
+  assert.equal(f.authoring.get("authoring-demo").draft.name,"合成流程");assert.equal(f.authoring.get("authoring-demo").draft.description,"User retained");
+  const redo=f.authoring.undo({workflowId:"authoring-demo",expectedRevision:4,commandId:undone.commandId,idempotencyKey:"redo"});assert.equal(redo.revision,5);assert.equal(f.authoring.get("authoring-demo").draft.name,"AI edit");
+  f.patch([{op:"set_metadata",changes:{name:"New user value"}}],5);
+  assert.throws(()=>f.authoring.undo({workflowId:"authoring-demo",expectedRevision:6,commandId:ai.commandId,idempotencyKey:"conflict"}),{code:"REVISION_CONFLICT"});assert.equal(f.authoring.get("authoring-demo").draft.name,"New user value");
+});

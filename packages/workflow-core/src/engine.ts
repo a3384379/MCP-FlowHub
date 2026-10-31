@@ -678,7 +678,7 @@ export class Engine {
       retryOfRunId: r.retryOfRunId,
     };
   }
-  advance(args: Arguments, owner = "execution") {
+  advance(args: Arguments, owner = "execution", claimId?:string) {
     const response = this.repo.command(
       owner,
       "advance",
@@ -693,6 +693,8 @@ export class Engine {
           "No active Agent checkpoint.",
           409,
         );
+        const claim=this.repo.get("settings","checkpoint-claim:"+r.id+":"+cp.id);
+        ensure(!claim||claim.expiresAt<Date.now()||claim.claimId===claimId,"CHECKPOINT_CLAIMED","Another executor is consuming this checkpoint.",409);
         ensure(
           r.revision === args.expectedRevision && cp.id === args.checkpointId,
           "REVISION_CONFLICT",
@@ -736,6 +738,10 @@ export class Engine {
         }
         this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
+        if(n.config.kind==="host_tool") {
+          r.hostReported??={};r.hostReported[n.id]={executor:"codex_host",verification:"host_reported",capabilityRef:n.config.capabilityRef};
+          this.repo.event(r.id,"HOST_TOOL_REPORTED",{nodeId:n.id,verification:"host_reported"});
+        }
         if (n.config.kind === "host_skill")
           this.storeReport(
             r,
@@ -1275,6 +1281,11 @@ export class Engine {
         r.state = "RUNNING";
         r.nodeExecutions++;
         if (n.type === "agent_task") {
+          if(n.config.kind==="host_tool") {
+            const cap=r.snapshot.capabilities?.find((c:Json)=>c.capabilityId===n.config.capabilityRef?.capabilityId);
+            ensure(cap?.executor==="codex_host"&&cap.inputSchema,"HOST_CAPABILITY_UNAVAILABLE","Frozen host tool contract is unavailable.");
+            validate(cap.inputSchema,mappings(n.config.inputMappings,r.inputs,this.operationalOutputs(r)));
+          }
           ensure(
             !this.vault.locked,
             "CREDENTIAL_LOCKED",
@@ -1293,8 +1304,11 @@ export class Engine {
             id: cpId,
             nodeId: n.id,
             kind: n.config.kind,
+            executorRef:n.config.executorRef,
             instruction: n.config.instructions,
             skillRef: n.config.skillRef,
+            ...(n.config.capabilityRef?{capabilityRef:n.config.capabilityRef,capability:r.snapshot.capabilities?.find((c:Json)=>c.capabilityId===n.config.capabilityRef.capabilityId),executorRef:n.config.executorRef,
+              resolvedArguments:mappings(n.config.inputMappings,r.inputs,this.operationalOutputs(r))}:{}),
             reportContract:
               n.config.kind === "host_skill" ? REPORT_HEADINGS : undefined,
             requiredOutputSchema: n.config.outputSchema,

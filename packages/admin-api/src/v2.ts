@@ -23,6 +23,7 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   });
   app.post("/api/v2/workflows/:id/validate",async req=>data(authoring.validate(arg(req))));
   app.post("/api/v2/workflows/:id/publish",async req=>data(authoring.publish(arg(req))));
+  app.post("/api/v2/workflows/:id/undo",async req=>data(authoring.undo(arg(req))));
   if(application) {
     app.get("/api/v2/model-profiles",async()=>data(application.assistant.profiles()));
     app.post("/api/v2/model-profiles",async req=>data(application.assistant.saveProfile(req.body)));
@@ -33,10 +34,22 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     app.post("/api/v2/assistant/sessions",async()=>data(application.assistant.session()));
     app.delete("/api/v2/assistant/sessions/:id",async req=>data(application.assistant.deleteSession((req.params as Json).id)));
     app.get("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.messages((req.params as Json).id)));
+    app.get("/api/v2/assistant/sessions/:id/tasks",async req=>{
+      const sessionId=(req.params as Json).id;application.assistant.messages(sessionId);
+      return data(registry.repo.all("assistant_tasks").filter(t=>t.sessionId===sessionId).map(t=>application.assistant.task(t.id)));
+    });
     app.post("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.submit((req.params as Json).id,req.body)));
     app.get("/api/v2/assistant/tasks/:id",async req=>data(application.assistant.task((req.params as Json).id)));
     app.post("/api/v2/assistant/tasks/:id/cancel",async req=>data(application.assistant.cancel((req.params as Json).id)));
+    app.post("/api/v2/runs/:id/analysis",async req=>{
+      const body=req.body as Json;ensure(typeof body.modelProfileId==="string"&&typeof body.idempotencyKey==="string","INPUT_INVALID","Model profile and idempotency key required.");
+      return data(application.assistant.analyzeCheckpoint((req.params as Json).id,body.modelProfileId,body.idempotencyKey));
+    });
     app.post("/api/v2/workflows/:id/test-suites",async req=>data(application.testing.generate(arg(req))));
+    app.get("/api/v2/workflows/:id/test-suites",async req=>{
+      authoring.get((req.params as Json).id);
+      return data(registry.repo.all("workflow_test_suites").filter(s=>s.workflowId===(req.params as Json).id).map(({cases,...s}:Json)=>s));
+    });
     app.get("/api/v2/test-suites/:id",async req=>data(application.testing.getSuite((req.params as Json).id)));
     app.put("/api/v2/test-suites/:id",async req=>{
       const body=req.body as Json,suite=application.testing.getSuite((req.params as Json).id);

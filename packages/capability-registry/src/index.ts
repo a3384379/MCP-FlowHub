@@ -46,7 +46,7 @@ export class CapabilityRegistry {
     };
     update({status:"READING_SOURCES"});
     try {
-      const scan=await scanHost(context),sourceIds=new Set<string>(),capIds=new Set<string>();
+      const scan=await scanHost(context,depth),sourceIds=new Set<string>(),capIds=new Set<string>();
       const safeComponents=scan.components.map(({content,...c}:Json)=>c);
       update({status:"DISCOVERING_CATALOG",components:safeComponents,resolutionQuality:scan.resolutionQuality,issues:scan.issues});
       for(const source of scan.sources) {
@@ -79,6 +79,12 @@ export class CapabilityRegistry {
         const cap=this.putCapability({id:"cap_"+hash([context.id,component.sourceKey]).slice(0,24),contextId:context.id,kind:"skill",name:component.name,description:component.description,
           executor:"codex_host",availability:component.enabled?"host_only":"disabled",enabled:component.enabled?"enabled":"disabled",installation:"installed",
           sourceRefs:[{sourceId:component.sourceKey,revision:1}],contentHash:component.contentHash,skillContent:component.content??null,provenance:{hostReported:false,path:component.path}});
+        capIds.add(cap.id);
+      }
+      for(const component of scan.components)if(component.kind==="host_tool") {
+        const cap=this.putCapability({id:"cap_"+hash([context.id,component.sourceKey]).slice(0,24),contextId:context.id,kind:"mcp_tool",name:component.name,description:component.description,
+          executor:"codex_host",availability:"host_only",enabled:"enabled",installation:"installed",inputSchema:component.tool.inputSchema,outputSchema:component.tool.outputSchema??null,
+          tool:component.tool,serverName:component.serverName,sourceRefs:[{sourceId:component.sourceKey,revision:1}],provenance:{freshAppServerSession:true,sharedDesktopSession:false}});
         capIds.add(cap.id);
       }
       this.repo.tx(()=>{

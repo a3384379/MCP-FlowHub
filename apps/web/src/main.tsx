@@ -23,6 +23,12 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
+import { AssistantPanel } from "./features/assistant/AssistantPanel";
+import { ModelsPage } from "./features/models/ModelsPage";
+import { TestingPanel } from "./features/testing/TestingPanel";
+import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
+import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
+import { subscribeEvents } from "./shared/v2";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import { SettingsIntegration } from "./SettingsIntegration";
 import {
@@ -443,6 +449,7 @@ function App() {
     [selected, setSelected] = useState<string | null>(null),
     [run, setRun] = useState<J>(null),
     [artifact, setArtifact] = useState<J>(null);
+  const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
   const pathRef = useRef(path),
@@ -460,6 +467,9 @@ function App() {
   const [undoCount, setUndoCount] = useState(0),
     [redoCount, setRedoCount] = useState(0);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [inspectorTab,setInspectorTab]=useState("properties");
+  const savingRef=useRef(false);
+  const [changedByAI,setChangedByAI]=useState<string[]>([]);
   const busyRef = useRef(busy);
   busyRef.current = busy;
   const modalRef = useRef<HTMLElement>(null);
@@ -794,6 +804,24 @@ function App() {
       })),
     );
   };
+  useEffect(()=>{
+    if(!session)return;
+    return subscribeEvents(event=>{
+      if(event.type!=="draft.changed")return;
+      void load();
+      const current=draftRef.current;
+      if(!current||current.id!==event.workflowId||event.revision<=current.revision||savingRef.current)return;
+      if(dirtyRef.current || publishReviewRef.current?.type==="publish" || [...jsonTextCache.current.keys()].some(key=>key.startsWith(current.id+"/"))) {
+        setConflict({workflow:editorRef.current?.draft??current.draft,layout:editorRef.current?.layout??current.layout,revision:current.revision});
+        return;
+      }
+      void api("/api/v2/workflows/"+current.id+"/draft").then(latest=>{
+        if(draftRef.current?.id!==latest.id||dirtyRef.current)return;
+        buildCanvas(latest);setChangedByAI(event.changedNodes??[]);
+      }).catch(e=>setError(e.message));
+    });
+  },[session]);
+  useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
@@ -977,6 +1005,7 @@ function App() {
     assertWorkflowShape(workflow);
     let result: J;
     try {
+      savingRef.current=true;
       result = await api(
         "/workflows/" + draft.id + "/draft",
         "PUT",
@@ -992,7 +1021,7 @@ function App() {
       )
         setConflict({ workflow, layout, revision: draft.revision });
       throw e;
-    }
+    } finally { savingRef.current=false; }
     if (
       pathRef.current === savePath &&
       generation === routeGeneration.current
@@ -1258,8 +1287,12 @@ function App() {
           JSON.stringify(currentWorkflow()) !== JSON.stringify(m.workflow) ||
           draftRef.current?.revision !== m.revision
         )
-          throw new Error("草稿在审阅后发生变化，请重新保存并审阅发布差异");
-        await api("/workflows/" + m.workflow.workflowId + "/publish", "POST", {
+          throw new UiError("REVISION_CONFLICT","草稿在审阅后发生变化，请重新保存并审阅发布差异",409);
+        if(m.workflow.schemaVersion==="flowhub.workflow/v2") await api("/api/v2/workflows/"+m.workflow.workflowId+"/publish","POST",{
+          expectedRevision:m.revision,expectedBindingRevisions:m.expectedBindingRevisions,
+          expectedCapabilityRevisions:Object.fromEntries(m.workflow.nodes.filter((n:J)=>n.config.capabilityRef).map((n:J)=>[n.config.capabilityRef.capabilityId,n.config.capabilityRef.revision])),
+          version:m.workflow.version,idempotencyKey:uid(),
+        }); else await api("/workflows/" + m.workflow.workflowId + "/publish", "POST", {
           expectedRevision: m.revision,
           expectedBindingRevisions: m.expectedBindingRevisions,
           changeNote: m.changeNote ?? "",
@@ -1552,6 +1585,8 @@ function App() {
             ["editor", "流程编排"],
             ["connections", "MCP 工具库"],
             ["discovery", "Codex 发现"],
+            ["assistant", "AI 工作台"],
+            ["models", "模型设置"],
             ["bindings", "环境与权限"],
             ["runs", "运行记录"],
             ["settings", "接入设置"],
@@ -1617,6 +1652,7 @@ function App() {
                   bindings: "环境与权限",
                   runs: "运行记录",
                   settings: "接入设置",
+                  discovery:"Codex 发现",assistant:"AI 工作台",models:"模型设置",
                 } as J
               )[page]
             }
@@ -1648,6 +1684,8 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} />}
+          {page === "models" && <ModelsPage api={api} />}
+          {page === "assistant" && <section className="v2-page"><h1>AI 工作台</h1><AssistantPanel api={api} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /></section>}
           {page === "workflows" && (
             <>
               <PageHead
@@ -1958,7 +1996,9 @@ function App() {
                     ? "绑定未配置"
                     : "固定环境"}
                 </Badge>
-                <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"}</span>
+                <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"} · r{draft.revision}</span>
+                {draft.draft.executionRequirements?.requiresCodex&&<Badge>需要 Codex 宿主</Badge>}
+                <button onClick={()=>{setInspectorCollapsed(false);setInspectorTab("ai");}}>AI 助手</button>
                 <button
                   disabled={!undoCount || busy || jsonInvalid}
                   onClick={() => undoEdit()}
@@ -2163,6 +2203,7 @@ function App() {
               >
                 <aside className="palette">
                   <h3>节点与工具</h3>
+                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
                     <button key={type} onClick={() => addNode(type)}>
@@ -2351,6 +2392,8 @@ function App() {
                   </ReactFlow>
                 </div>
                 <aside className="inspector">
+                  <div className="actions"><button onClick={()=>setInspectorTab("properties")}>属性</button><button onClick={()=>setInspectorTab("ai")}>AI 助手</button></div>
+                  {inspectorTab==="ai" ? <AssistantPanel api={api} context={{workflowId:draft.id,revision:draft.revision,selectedNodeIds:selected?[selected]:[]}} dirty={dirty} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /> : <>
                   <EditorTextContext.Provider
                     value={{
                       cache: jsonTextCache.current,
@@ -2664,8 +2707,10 @@ function App() {
                       <Empty text="选择节点，查看工具、参数映射和输出契约" />
                     )}
                   </EditorTextContext.Provider>
+                </>}
                 </aside>
               </div>
+              <TestingPanel api={api} workflowId={draft.id} revision={draft.revision} />
             </>
           )}
           {page === "connections" && (
@@ -3155,6 +3200,7 @@ function App() {
                         <Badge>WAITING_AGENT · {run.checkpoint.kind}</Badge>
                         <h2>{run.checkpoint.nodeId} · 宿主待办</h2>
                         <p>{run.checkpoint.instruction}</p>
+                        <RunAnalysisControl api={api} run={run}/>
                         <small>
                           等待已连接的 Codex 通过 workflow_status
                           获取交接信息，并通过 workflow_advance 提交结构化结果。

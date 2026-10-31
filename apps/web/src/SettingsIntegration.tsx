@@ -43,6 +43,7 @@ export function SettingsIntegration({
   const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
   const [label, setLabel] = useState("我的 Codex");
+  const [authoring,setAuthoring]=useState(true);
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [format, setFormat] = useState("codex");
   const [backups, setBackups] = useState<Backup[]>([]);
@@ -135,8 +136,9 @@ export function SettingsIntegration({
             disabled={busy}
           />
         </label>
+        <label className="field"><span><input type="checkbox" style={{width:16,height:16}} checked={authoring} onChange={e=>setAuthoring(e.target.checked)} disabled={busy}/>允许 Codex 编排：21 个固定工具，可创建自己的新工作流</span></label>
         <fieldset disabled={busy}>
-          <legend>允许执行的方案（至少选择一项）</legend>
+          <legend>允许执行的已有方案（执行身份至少选择一项）</legend>
           {workflows.length === 0 && <p>尚无方案，请先创建工作流。</p>}
           {workflows.map((workflow) => (
             <label key={workflow.id} style={{ display: "block" }}>
@@ -157,12 +159,13 @@ export function SettingsIntegration({
         </fieldset>
         <div className="actions">
           <button
-            disabled={busy || !label.trim() || allowlist.length === 0}
+            disabled={busy || !label.trim() || (!authoring && allowlist.length === 0)}
             onClick={() =>
               void run(async () => {
                 const created = await api("/clients", "POST", {
                   label: label.trim(),
                   workflowAllowlist: allowlist,
+                  authoring,
                 });
                 setClients(await api("/clients"));
                 setClientId(created.id);

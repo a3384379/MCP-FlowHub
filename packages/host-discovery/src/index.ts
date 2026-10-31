@@ -30,7 +30,7 @@ const safeChild=async(root:string,child:string)=>{
   ensure(!rel.startsWith("..")&&!isAbsolute(rel),"SOURCE_UNREADABLE","Plugin component escaped its installed root.");return path;
 };
 const skillMeta=(text:string)=>({name:text.match(/^name:\s*["']?([^\n"']+)/m)?.[1]?.trim(),description:text.match(/^description:\s*["']?([^\n"']+)/m)?.[1]?.trim()??""});
-export async function scanHost(context:Json) {
+export async function scanHost(context:Json,depth="metadata") {
   const sources:Json[]=[],issues:Json[]=[],components:Json[]=[];let quality="partial";
   const report=(path:string,code:string)=>issues.push({source:path,code});
   let config:Json={};
@@ -113,6 +113,15 @@ export async function scanHost(context:Json) {
     const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true});
     for(const group of response.data??[])for(const skill of group.skills??[]) {
       if(!components.some(c=>c.path===skill.path))components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
+    }
+    if(depth==="catalog") {
+      const catalog=await readAppServer(context,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100});
+      for(const server of catalog.data??[]) {
+        if(/^(?:flowhub|mcp-flowhub)(?:[-_].*)?$/i.test(server.name))continue;
+        if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
+        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,executor:"codex_host",enabled:true});
+      }
+      if(catalog.nextCursor)report(context.id,"HOST_CATALOG_PARTIAL");
     }
   }catch{report(context.id,"APP_SERVER_PARTIAL");}
   return {sources,components,issues,resolutionQuality:quality,coverage:issues.length?"partial":"complete"};

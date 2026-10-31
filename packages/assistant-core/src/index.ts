@@ -104,6 +104,37 @@ export class AssistantCore {
     }
     return TOOL_NAMES.filter(n=>names.has(n)).map(name=>({name,description:inputContract.$defs[name].description,parameters:inputContract.$defs[name]}));
   }
+  analyzeCheckpoint(runId:string,profileId:string,key:string,owner="execution") {
+    const status=this.app.engine.status(runId,owner),run=this.repo.get("runs",runId),node=run.snapshot.workflow.nodes.find((n:Json)=>n.id===run.current);
+    ensure(status.state==="WAITING_AGENT"&&status.checkpoint?.kind==="analysis"&&node.config.executorRef!=="codex_host","HOST_CAPABILITY_UNAVAILABLE","This checkpoint requires Codex, or is not an analysis node.");
+    const accepted=this.repo.command(owner,"assistant.analysis",key,{runId,profileId},()=>{
+      const claimKey="checkpoint-claim:"+runId+":"+status.checkpoint.id,existing=this.repo.get("settings",claimKey);
+      ensure(!existing||existing.expiresAt<Date.now(),"CHECKPOINT_CLAIMED","Another executor owns this checkpoint.",409);
+      const taskId=id("task"),session=this.session(owner),claimId=id("claim");
+      this.repo.put("settings",claimKey,{id:claimKey,claimId,runId,checkpointId:status.checkpoint.id,expiresAt:Date.now()+180000});
+      this.repo.insert("assistant_tasks",taskId,{id:taskId,sessionId:session.id,owner,modelProfileId:profileId,context:{runId},status:"GENERATING",kind:"analysis",claimId,createdAt:now()});
+      return {taskId,status:"GENERATING",claimKey,claimId};
+    });
+    if(!this.jobs.has(accepted.taskId)&&active.has(this.repo.get("assistant_tasks",accepted.taskId).status)) {
+      const controller=new AbortController();this.controllers.set(accepted.taskId,controller);
+      const work=(async()=>{try {
+        const provider=this.provider(this.repo.get("model_profiles",profileId)),messages:Json[]=[{role:"system",content:"Return only a JSON object matching requiredOutputSchema. Analyze only the supplied checkpoint data. Do not invoke host tools."},{role:"user",content:JSON.stringify({instruction:status.checkpoint.instruction,inputs:status.checkpoint.inputs,requiredOutputSchema:status.checkpoint.requiredOutputSchema})}];
+        let payload:Json;let ready=false;
+        for(let attempt=0;attempt<3;attempt++)try {
+          const turn=await provider.complete({messages,tools:[],signal:AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]),stream:false});
+          ensure(!turn.calls.length,"HOST_CAPABILITY_UNAVAILABLE","Analysis cannot dispatch host-only tools.");payload=JSON.parse(turn.text);validate(status.checkpoint.requiredOutputSchema,payload);ready=true;break;
+        }catch(e){if(controller.signal.aborted)throw e;messages.push({role:"user",content:"Output was invalid. Return only JSON conforming to the original schema."});}
+        ensure(ready,"INPUT_INVALID","Model output did not match checkpoint schema; checkpoint retained.");ensure(!controller.signal.aborted,"TASK_CANCELLED","Analysis cancelled.");
+        const lease=this.repo.get("settings",accepted.claimKey);ensure(lease?.claimId===accepted.claimId&&lease.expiresAt>Date.now(),"CHECKPOINT_CLAIMED","Analysis claim expired.",409);
+        const result=this.app.engine.advance({runId,checkpointId:status.checkpoint.id,checkpointToken:status.checkpoint.token,expectedRevision:status.revision,idempotencyKey:key+":advance",submission:{type:"agent_result",payload}},owner,accepted.claimId);
+        this.repo.put("assistant_tool_calls",accepted.taskId+":analysis",{id:accepted.taskId+":analysis",taskId:accepted.taskId,callId:"analysis",name:"workflow_advance",status:"COMPLETED",result});
+        this.repo.put("assistant_tasks",accepted.taskId,{...this.repo.get("assistant_tasks",accepted.taskId),status:"COMPLETED",answer:"Analysis submitted through the existing checkpoint service.",result});this.repo.changed("task.completed",{taskId:accepted.taskId,data:result});
+      }catch(e){const task=this.repo.get("assistant_tasks",accepted.taskId);if(!["CANCELLED","INTERRUPTED"].includes(task.status))this.repo.put("assistant_tasks",accepted.taskId,{...task,status:controller.signal.aborted?"CANCELLED":"FAILED",errorCode:e instanceof HubError?e.code:"MODEL_OUTPUT_INVALID"});}
+      finally{if(this.repo.get("settings",accepted.claimKey)?.claimId===accepted.claimId)this.repo.remove("settings",accepted.claimKey);}})()
+        .finally(()=>{this.controllers.delete(accepted.taskId);this.jobs.delete(accepted.taskId);});this.jobs.set(accepted.taskId,work);
+    }
+    return {taskId:accepted.taskId,status:this.repo.get("assistant_tasks",accepted.taskId).status};
+  }
   private async work(taskId:string,controller:AbortController) {
     let task=this.repo.get("assistant_tasks",taskId);
     const save=(patch:Json)=>this.repo.put("assistant_tasks",taskId,{...this.repo.get("assistant_tasks",taskId),...patch,updatedAt:now()});
@@ -144,19 +175,30 @@ export class AssistantCore {
           const args=JSON.parse(call.arguments);
           if(["workflow_status","artifact_read"].includes(call.name))ensure(args.runId===task.context.runId,"WORKFLOW_NOT_AVAILABLE","Select the run before reading business evidence.",403);
           if(task.context.workflowId&&["workflow_draft_patch","workflow_draft_publish"].includes(call.name))ensure(args.workflowId===task.context.workflowId,"INTENT_NOT_ALLOWED","Edit the selected workflow only.",403);
+          if(call.name==="workflow_advance") {
+            const r=this.repo.get("runs",args.runId),node=r?.snapshot.workflow.nodes.find((n:Json)=>n.id===r.current);
+            ensure(r?.owner===task.owner&&node?.config.kind==="analysis"&&node?.config.executorRef!=="codex_host","HOST_CAPABILITY_UNAVAILABLE","Use Codex for host-only tools and Skills.");
+          }
           // Authoring keys are persisted with the proposal before dispatch. A reconnect never resends them.
           const ledgerId=taskId+":"+call.id,prior=this.repo.get("assistant_tool_calls",ledgerId);
           ensure(!prior||prior.requestHash===hash([call.name,args]),"IDEMPOTENCY_CONFLICT","Tool call ID reused with different arguments.",409);
           let output:Json;
-          if(prior?.status==="COMPLETED")output=prior.result;
+          if(prior?.status==="COMPLETED") {
+            output=structuredClone(prior.result);
+            if(output.checkpoint?.tokenDelivery){output.checkpoint.token=this.app.engine.vault.decrypt(output.checkpoint.tokenDelivery,ledgerId);delete output.checkpoint.tokenDelivery;}
+          }
           else {
             ensure(!prior,"TASK_INTERRUPTED","A dispatched tool has no receipt; it will not be replayed.",409);
-            const started=Date.now();this.repo.insert("assistant_tool_calls",ledgerId,{id:ledgerId,taskId,sessionId:task.sessionId,callId:call.id,name:call.name,arguments:args,requestHash:hash([call.name,args]),status:"DISPATCHED",createdAt:now()});
+            const publicArgs={...args};if(call.name==="workflow_advance"&&publicArgs.checkpointToken)publicArgs.checkpointToken="[execution credential supplied]";
+            const started=Date.now();this.repo.insert("assistant_tool_calls",ledgerId,{id:ledgerId,taskId,sessionId:task.sessionId,callId:call.id,name:call.name,arguments:publicArgs,requestHash:hash([call.name,args]),status:"DISPATCHED",createdAt:now()});
             save({status:"CALLING_TOOL",toolCalls:count});emit("tool.started",{callId:call.id,name:call.name});
             try {
               output=await this.app.handle(call.name as any,args,task.owner);
-              this.repo.put("assistant_tool_calls",ledgerId,{...this.repo.get("assistant_tool_calls",ledgerId),status:"COMPLETED",result:output,durationMs:Date.now()-started});
-              emit("tool.completed",{callId:call.id,name:call.name,result:output});
+              if(call.name==="workflow_start"&&output.runId){task.context.runId=output.runId;save({context:task.context});}
+              const stored=structuredClone(output);
+              if(stored.checkpoint?.token){stored.checkpoint.tokenDelivery=this.app.engine.vault.encrypt(stored.checkpoint.token,ledgerId);delete stored.checkpoint.token;}
+              this.repo.put("assistant_tool_calls",ledgerId,{...this.repo.get("assistant_tool_calls",ledgerId),status:"COMPLETED",result:stored,durationMs:Date.now()-started});
+              emit("tool.completed",{callId:call.id,name:call.name,result:stored});
             }catch(e) {
               const error=e instanceof HubError?e:new HubError("TOOL_FAILED","Tool could not complete.");output={error:{code:error.code,message:error.message,details:error.details}};
               this.repo.put("assistant_tool_calls",ledgerId,{...this.repo.get("assistant_tool_calls",ledgerId),status:"COMPLETED",isError:true,result:output,durationMs:Date.now()-started});emit("tool.failed",{callId:call.id,name:call.name,result:output});
@@ -165,7 +207,7 @@ export class AssistantCore {
           }
           const rawText=JSON.stringify(output),text=Buffer.byteLength(rawText)>64000?JSON.stringify({truncated:true,totalBytes:Buffer.byteLength(rawText),range:"first 16000 characters",content:rawText.slice(0,16000),receiptRef:ledgerId,note:"The complete receipt remains in the task tool ledger."}):rawText;
           messages.push({role:"tool",tool_call_id:call.id,content:text});
-          continuation?.push({type:"function_call_output",call_id:call.id,output:text});save({providerContinuation:continuation??null});
+          continuation?.push({type:"function_call_output",call_id:call.id,output:text});save({providerContinuation:continuation?this.app.engine.vault.encrypt(JSON.stringify(continuation),taskId+":provider"):null});
         }
       }throw new HubError("BUDGET_EXCEEDED","Assistant model round budget exhausted.");}finally{clearTimeout(taskDeadline);}
     }catch(e) {
