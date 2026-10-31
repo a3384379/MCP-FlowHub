@@ -1,0 +1,692 @@
+{
+  "cases": [
+    {
+      "case": "geometry-1440x900-singleline",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 1440,
+        "height": 900,
+        "scale": 1
+      },
+      "layout": {
+        "width": 1440,
+        "height": 900
+      },
+      "panel": {
+        "left": 996,
+        "top": 156,
+        "width": 420,
+        "height": 652,
+        "right": 1416,
+        "bottom": 808,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 1374,
+        "top": 602.078125,
+        "width": 54,
+        "height": 54,
+        "right": 1428,
+        "bottom": 656.078125,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "input": {
+        "left": 1024,
+        "top": 688,
+        "width": 364,
+        "height": 44,
+        "right": 1388,
+        "bottom": 732,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 1359,
+        "top": 737,
+        "width": 29,
+        "height": 29,
+        "right": 1388,
+        "bottom": 766,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "close": {
+        "left": 1367,
+        "top": 174.5,
+        "width": 31,
+        "height": 34,
+        "right": 1398,
+        "bottom": 208.5,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 997,
+        "top": 270,
+        "width": 418,
+        "height": 393,
+        "right": 1415,
+        "bottom": 663,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 997,
+        "top": 663,
+        "width": 418,
+        "height": 144,
+        "right": 1415,
+        "bottom": 807,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "geometry-844x390-singleline",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 844,
+        "height": 390,
+        "scale": 1
+      },
+      "layout": {
+        "width": 844,
+        "height": 390
+      },
+      "panel": {
+        "left": 400,
+        "top": 26,
+        "width": 420,
+        "height": 272,
+        "right": 820,
+        "bottom": 298,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 778,
+        "top": 234.875,
+        "width": 54,
+        "height": 54,
+        "right": 832,
+        "bottom": 288.875,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "input": {
+        "left": 428,
+        "top": 245,
+        "width": 364,
+        "height": 44,
+        "right": 792,
+        "bottom": 289,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 763,
+        "top": 294,
+        "width": 29,
+        "height": 29,
+        "right": 792,
+        "bottom": 323,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "grid"
+      },
+      "close": {
+        "left": 771,
+        "top": 44.5,
+        "width": 31,
+        "height": 34,
+        "right": 802,
+        "bottom": 78.5,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 401,
+        "top": 140,
+        "width": 418,
+        "height": 80,
+        "right": 819,
+        "bottom": 220,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 401,
+        "top": 220,
+        "width": 418,
+        "height": 144,
+        "right": 819,
+        "bottom": 364,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "geometry-844x300-singleline",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 844,
+        "height": 300,
+        "scale": 1
+      },
+      "layout": {
+        "width": 844,
+        "height": 300
+      },
+      "panel": {
+        "left": 400,
+        "top": 26,
+        "width": 420,
+        "height": 182,
+        "right": 820,
+        "bottom": 208,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 778,
+        "top": 170.078125,
+        "width": 54,
+        "height": 54,
+        "right": 832,
+        "bottom": 224.078125,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "input": {
+        "left": 428,
+        "top": 187,
+        "width": 364,
+        "height": 44,
+        "right": 792,
+        "bottom": 231,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "send": {
+        "left": 763,
+        "top": 236,
+        "width": 29,
+        "height": 29,
+        "right": 792,
+        "bottom": 265,
+        "fullyInVisual": true,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "grid"
+      },
+      "close": {
+        "left": 771,
+        "top": -13.5,
+        "width": 31,
+        "height": 34,
+        "right": 802,
+        "bottom": 20.5,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 401,
+        "top": 82,
+        "width": 418,
+        "height": 80,
+        "right": 819,
+        "bottom": 162,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 401,
+        "top": 162,
+        "width": 418,
+        "height": 144,
+        "right": 819,
+        "bottom": 306,
+        "fullyInVisual": false,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "geometry-390x350-multiline",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 390,
+        "height": 350,
+        "scale": 1
+      },
+      "layout": {
+        "width": 390,
+        "height": 350
+      },
+      "panel": {
+        "left": 0,
+        "top": 18,
+        "width": 390,
+        "height": 332,
+        "right": 390,
+        "bottom": 350,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 0,
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "right": 0,
+        "bottom": 0,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "none"
+      },
+      "input": {
+        "left": 28,
+        "top": 232,
+        "width": 334,
+        "height": 140,
+        "right": 362,
+        "bottom": 372,
+        "fullyInVisual": false,
+        "clippedByPanel": true,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 333,
+        "top": 377,
+        "width": 29,
+        "height": 29,
+        "right": 362,
+        "bottom": 406,
+        "fullyInVisual": false,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "grid"
+      },
+      "close": {
+        "left": 339.53125,
+        "top": 31.78125,
+        "width": 32.46875,
+        "height": 38.4375,
+        "right": 372,
+        "bottom": 70.21875,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 1,
+        "top": 127,
+        "width": 388,
+        "height": 80,
+        "right": 389,
+        "bottom": 207,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 1,
+        "top": 207,
+        "width": 388,
+        "height": 229,
+        "right": 389,
+        "bottom": 436,
+        "fullyInVisual": false,
+        "clippedByPanel": true,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "geometry-320x568-multiline",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 320,
+        "height": 568,
+        "scale": 1
+      },
+      "layout": {
+        "width": 320,
+        "height": 568
+      },
+      "panel": {
+        "left": 0,
+        "top": 18,
+        "width": 320,
+        "height": 550,
+        "right": 320,
+        "bottom": 568,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 0,
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "right": 0,
+        "bottom": 0,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "none"
+      },
+      "input": {
+        "left": 28,
+        "top": 364,
+        "width": 264,
+        "height": 140,
+        "right": 292,
+        "bottom": 504,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 263,
+        "top": 509,
+        "width": 29,
+        "height": 29,
+        "right": 292,
+        "bottom": 538,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "close": {
+        "left": 269,
+        "top": 31,
+        "width": 33,
+        "height": 40,
+        "right": 302,
+        "bottom": 71,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 1,
+        "top": 127,
+        "width": 318,
+        "height": 212,
+        "right": 319,
+        "bottom": 339,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 1,
+        "top": 339,
+        "width": 318,
+        "height": 229,
+        "right": 319,
+        "bottom": 568,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "pinch-390x844-2x",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 195,
+        "height": 422,
+        "scale": 2
+      },
+      "layout": {
+        "width": 390,
+        "height": 844
+      },
+      "panel": {
+        "left": 0,
+        "top": 18,
+        "width": 390,
+        "height": 404,
+        "right": 390,
+        "bottom": 422,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 0,
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "right": 0,
+        "bottom": 0,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "none"
+      },
+      "input": {
+        "left": 28,
+        "top": 314,
+        "width": 334,
+        "height": 44,
+        "right": 362,
+        "bottom": 358,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 333,
+        "top": 363,
+        "width": 29,
+        "height": 29,
+        "right": 362,
+        "bottom": 392,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "close": {
+        "left": 339,
+        "top": 31,
+        "width": 33,
+        "height": 40,
+        "right": 372,
+        "bottom": 71,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 1,
+        "top": 127,
+        "width": 388,
+        "height": 162,
+        "right": 389,
+        "bottom": 289,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 1,
+        "top": 289,
+        "width": 388,
+        "height": 133,
+        "right": 389,
+        "bottom": 422,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    },
+    {
+      "case": "pinch-1440x900-2x",
+      "visual": {
+        "left": 0,
+        "top": 0,
+        "width": 720,
+        "height": 450,
+        "scale": 2
+      },
+      "layout": {
+        "width": 1440,
+        "height": 900
+      },
+      "panel": {
+        "left": 996,
+        "top": 156,
+        "width": 420,
+        "height": 652,
+        "right": 1416,
+        "bottom": 808,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "flex"
+      },
+      "launcher": {
+        "left": 654,
+        "top": 278.078125,
+        "width": 54,
+        "height": 54,
+        "right": 708,
+        "bottom": 332.078125,
+        "fullyInVisual": true,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "input": {
+        "left": 1024,
+        "top": 688,
+        "width": 364,
+        "height": 44,
+        "right": 1388,
+        "bottom": 732,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "block"
+      },
+      "send": {
+        "left": 1359,
+        "top": 737,
+        "width": 29,
+        "height": 29,
+        "right": 1388,
+        "bottom": 766,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "close": {
+        "left": 1366.71875,
+        "top": 174.0625,
+        "width": 31.28125,
+        "height": 34.875,
+        "right": 1398,
+        "bottom": 208.9375,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": true,
+        "display": "grid"
+      },
+      "feed": {
+        "left": 997,
+        "top": 270,
+        "width": 418,
+        "height": 393,
+        "right": 1415,
+        "bottom": 663,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      },
+      "composer": {
+        "left": 997,
+        "top": 663,
+        "width": 418,
+        "height": 144,
+        "right": 1415,
+        "bottom": 807,
+        "fullyInVisual": false,
+        "clippedByPanel": false,
+        "centerReceivesInput": false,
+        "display": "block"
+      }
+    }
+  ],
+  "sessionId": "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9",
+  "taskCards": 0
+}

@@ -1,0 +1,12 @@
+✔ max intent: information questions without question marks and Chinese single-quoted examples grant no actions (11.289917ms)
+✔ max intent: unmet future conditions never grant present execution; independent draft creation and current commands remain allowed (0.54925ms)
+✔ max intent: hostile model proposals for information questions never dispatch or create actual runs (238.087125ms)
+✔ max intent: provider-proposed starts after future conditions create zero real runs and a requested draft can still be saved (146.336542ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 649.00875

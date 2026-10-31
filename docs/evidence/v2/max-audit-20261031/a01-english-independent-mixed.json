@@ -1,0 +1,110 @@
+{
+  "scope": "Independent A01 English same-clause edit then future run only; hostile start rejected and authorized edit actually persisted",
+  "sourceSha256": "6a8f7b96fee2a1acec7addca1663ef0b15b98ab72e6400bb5fe99f43672ec16c",
+  "cases": [
+    {
+      "text": "Create a draft now and run the current workflow after I confirm",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Create a draft now and run the current workflow after I confirm",
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "offeredWorkflowStart": false,
+      "taskStatus": "COMPLETED",
+      "actualDraftsCreated": 1,
+      "actualRunsCreated": 0,
+      "toolReceipts": [
+        {
+          "name": "workflow_draft_create",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Create a draft first and then run the current workflow after I confirm",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Create a draft first and then run the current workflow after I confirm",
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "offeredWorkflowStart": false,
+      "taskStatus": "COMPLETED",
+      "actualDraftsCreated": 1,
+      "actualRunsCreated": 0,
+      "toolReceipts": [
+        {
+          "name": "workflow_draft_create",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Create a draft and run the current workflow after the checks pass",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Create a draft and run the current workflow after the checks pass",
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "offeredWorkflowStart": false,
+      "taskStatus": "COMPLETED",
+      "actualDraftsCreated": 1,
+      "actualRunsCreated": 0,
+      "toolReceipts": [
+        {
+          "name": "workflow_draft_create",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": 6,
+  "failed": 0
+}

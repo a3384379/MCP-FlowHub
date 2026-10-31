@@ -1,0 +1,7 @@
+{
+  "case": "D08 reverse automatic and manual secrets activation",
+  "steps": ["Open credentials mode; automatic secrets request 0 waits", "Click Configure connection credentials; manual request 1 waits", "Release request 1", "Select synthetic-ref", "Release request 0"],
+  "before": {"beforeLateResponse": "d08-late-secrets-before.txt", "afterLateResponse": "d08-late-secrets-after.txt", "observed": "selection changed from synthetic-ref to empty", "bundle": "credential-harness-before-dist"},
+  "after": {"afterLateResponse": "d08-late-secrets-after-followup.txt", "observed": "selection remains synthetic-ref", "bundle": "credential-harness-after-dist"},
+  "additionalAfterChecks": {"lateError": "d08-late-secret-error-after-followup.txt", "snapshotDuringInitialLoad": "d08-pending-initial-snapshot-after-followup.txt", "navigation": "d08-navigation-after-followup.txt"}
+}

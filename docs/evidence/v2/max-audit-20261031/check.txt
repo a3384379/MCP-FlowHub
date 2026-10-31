@@ -1,0 +1,112 @@
+
+> mcp-flowhub@2.0.0-alpha.2 check
+> tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json && node scripts/verify_design.mjs
+
+FlowHub design verification
+Root: /Users/sqz/Documents/ChatGPT/mcp管理工具
+自定义静态检查，不是完整 JSON Schema 2020-12 验证；不运行真实 MCP、引擎、数据库或审批。
+[PASS positive] parse all 113 regular JSON artifacts
+[PASS positive] workflow schema uses supported local subset
+[PASS positive] seven-tool schema uses supported local subset
+[PASS positive] mock result schema uses supported local subset
+[PASS positive] Draft 2020-12 declarations
+[PASS positive] exactly seven advertised tool names and branches
+[PASS positive] exactly seven node types
+[PASS positive] incident-production: structure
+[PASS positive] incident-production: input examples
+[PASS positive] incident-production: graph and safety fixture
+[PASS positive] incident-production: agent/report output contracts
+[PASS positive] incident-staging: structure
+[PASS positive] incident-staging: input examples
+[PASS positive] incident-staging: graph and safety fixture
+[PASS positive] incident-staging: agent/report output contracts
+[PASS positive] binding catalog structure
+[PASS positive] binding catalog mock boundaries
+[PASS positive] same graph across environments
+[PASS positive] mock log result structure
+[PASS positive] mock database result structure
+[PASS positive] mock log result registry and effective budget
+[PASS positive] mock DB result registry, environment sentinel and count
+[PASS positive] staging result synthetic in-memory variant
+[PASS positive] workflow_search: input structure
+[PASS positive] workflow_get: input structure
+[PASS positive] workflow_start: input structure
+[PASS positive] workflow_advance: input structure
+[PASS positive] workflow_status: input structure
+[PASS positive] workflow_cancel: input structure
+[PASS positive] artifact_read: input structure
+[PASS positive] workflow_start: dynamic workflow input
+[PASS positive] workflow_advance: dynamic plan output
+[PASS positive] host skill unavailable: fallback=true
+[PASS positive] host skill unavailable: fallback=false
+[PASS positive] workflow_get allows omitted version syntactically
+[PASS positive] report payload contains actual Markdown
+[PASS positive] effective fixture limits are minimum of workflow/binding
+[PASS negative] unknown workflow field -> STRUCTURE
+[PASS negative] unknown MCP config field -> STRUCTURE
+[PASS negative] unknown mapping expression -> STRUCTURE
+[PASS negative] node ref without nodeId -> STRUCTURE
+[PASS negative] non-pointer destination key -> STRUCTURE
+[PASS negative] arbitrary code node -> STRUCTURE
+[PASS negative] unsupported edge port -> STRUCTURE
+[PASS negative] unsupported condition operator -> STRUCTURE
+[PASS negative] invalid version string -> STRUCTURE
+[PASS negative] remote data-schema ref -> STRUCTURE
+[PASS negative] removed approval node rejected -> STRUCTURE
+[PASS negative] invalid environment value -> STRUCTURE
+[PASS negative] duplicate node id -> DUPLICATE_NODE
+[PASS negative] cross-environment binding -> ENVIRONMENT
+[PASS negative] optional DB used as required ref -> REFERENCE_DOMINANCE
+[PASS negative] auto contains agent checkpoint -> MODE
+[PASS negative] tool outside binding allowlist -> TOOL_ALLOWLIST
+[PASS negative] query template is changed -> TEMPLATE_LOCKED
+[PASS negative] environment override mapping -> LOCKED_ARGUMENT
+[PASS negative] prototype destination path -> PROTOTYPE_PATH
+[PASS negative] cycle -> CYCLE
+[PASS negative] parallel branch -> BRANCH_PORTS
+[PASS negative] overlapping parent/child mapping -> OVERLAPPING_MAPPING
+[PASS negative] mock fixtures cannot authorize real publication -> MOCK_REAL_EXECUTION
+[PASS negative] duplicate binding reference -> DUPLICATE_BINDING
+[PASS negative] binding environment lock mismatch -> BINDING_LOCK
+[PASS negative] unauthorized fixture graph drift -> FIXTURE_DRIFT
+[PASS negative] mock output unknown field -> STRUCTURE
+[PASS negative] mock output must be explicitly synthetic -> STRUCTURE
+[PASS negative] result schema does not imply environment correctness -> RESULT_ENVIRONMENT
+[PASS negative] incorrect rowCount -> RESULT_ROW_COUNT
+[PASS negative] wrong environment sentinel -> RESULT_SENTINEL
+[PASS negative] result exceeds stricter workflow rows -> RESULT_ROW_LIMIT
+[PASS negative] multibyte result exceeds byte budget despite string limits -> RESULT_BYTE_LIMIT
+[PASS negative] workflow_search: unknown argument rejected -> STRUCTURE
+[PASS negative] workflow_get: unknown argument rejected -> STRUCTURE
+[PASS negative] workflow_start: unknown argument rejected -> STRUCTURE
+[PASS negative] workflow_advance: unknown argument rejected -> STRUCTURE
+[PASS negative] workflow_status: unknown argument rejected -> STRUCTURE
+[PASS negative] workflow_cancel: unknown argument rejected -> STRUCTURE
+[PASS negative] artifact_read: unknown argument rejected -> STRUCTURE
+[PASS negative] eighth generic tool rejected -> STRUCTURE
+[PASS negative] search limit overflow -> STRUCTURE
+[PASS negative] duplicate search tags -> STRUCTURE
+[PASS negative] start direct environment override -> STRUCTURE
+[PASS negative] start missing version -> STRUCTURE
+[PASS negative] advance missing checkpoint token -> STRUCTURE
+[PASS negative] advance invalid revision -> STRUCTURE
+[PASS negative] advance fake human approval -> STRUCTURE
+[PASS negative] status limit overflow -> STRUCTURE
+[PASS negative] artifact oversized read -> STRUCTURE
+[PASS negative] artifact negative offset -> STRUCTURE
+[PASS negative] artifact arbitrary path field -> STRUCTURE
+[PASS negative] dynamic input environment rejected by second validation -> STRUCTURE
+[PASS negative] reversed input time range -> TIME_ORDER
+[PASS negative] start cannot change published mode -> MODE
+[PASS negative] dynamic Agent payload rejects sql -> STRUCTURE
+[PASS negative] dynamic Agent payload rejects templateId -> STRUCTURE
+[PASS negative] dynamic Agent payload rejects environment -> STRUCTURE
+[PASS negative] dynamic Agent payload rejects approved -> STRUCTURE
+[PASS negative] advance cannot approve WAITING_APPROVAL -> CHECKPOINT_STATE
+[PASS negative] fallback from non-Skill checkpoint -> FALLBACK_CONTEXT
+[PASS negative] undeclared fallback -> FALLBACK_UNDECLARED
+[PASS negative] unsupported validator keyword is not silently ignored -> SCHEMA_AUDIT
+[PASS negative] external schema reference is never fetched -> SCHEMA_AUDIT
+
+Summary: 37 positive passed; 65 negative passed; 0 failed.
+Boundary: custom static subset checks only. No full Draft 2020-12/meta-schema conformance, no real MCP/SDK/engine/CAS/authorization execution, no evidence that production is safe.

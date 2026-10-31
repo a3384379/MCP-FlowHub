@@ -1,0 +1,128 @@
+{
+  "phase": "after",
+  "activeRuns": 0,
+  "activeTasks": 0,
+  "backupFilename": "flowhub-1793460409650-backup_f89b963c-611d-4d70-b5b2-49cb4f16b1b7.sqlite",
+  "backupPreflightPassed": true,
+  "integrity": "ok",
+  "vaultLocked": true,
+  "tables": {
+    "approvals": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "artifacts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "assistant_messages": {
+      "rows": 8,
+      "sha256": "d74068421fc687ebc84475d3c5a8a7e757d76c9dbfb53109ac0cf17d2dcbd00f"
+    },
+    "assistant_sessions": {
+      "rows": 1,
+      "sha256": "a0f009e1f7f284cc5ba9bc9f0c90054f64ddbbb2bd409f5a8be15c9b4c847aa6"
+    },
+    "assistant_tasks": {
+      "rows": 5,
+      "sha256": "ce39bf88afb69af87c8b098f855588e25434d301b5ce737f6d10a266568ada60"
+    },
+    "assistant_tool_calls": {
+      "rows": 3,
+      "sha256": "a54565eb323b2b61c53d294533e7e49975f86114b2b78de7c6182840e7095c8d"
+    },
+    "attempts": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "authoring_commands": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "bindings": {
+      "rows": 4,
+      "sha256": "3fe609787d4d241af49bbfd95e01484d7af61347461f793acac48a8585af6ce3"
+    },
+    "capabilities": {
+      "rows": 62,
+      "sha256": "3d3cba2c99f78e5de583b42f9f5df5dc97541549de3ac78dc0412741d0e8284a"
+    },
+    "capability_revisions": {
+      "rows": 120,
+      "sha256": "b7076118b872355938a12afe4e3437c124f8eeb40860ab5b08c222af6508497c"
+    },
+    "capability_sources": {
+      "rows": 73,
+      "sha256": "f69208f445d92249cd2f8c6155ab19327226184a7193d56e432bbcdd69bee8a5"
+    },
+    "clients": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "connections": {
+      "rows": 1,
+      "sha256": "5eb93e3c01de77db2057dee5204a1dbff9cd8cecfbedf0ce6f6b2e201c109913"
+    },
+    "discovery_jobs": {
+      "rows": 4,
+      "sha256": "c2268578d8b79a050bb08f150a581367b3cdfc58c81860684451b1727465da04"
+    },
+    "host_contexts": {
+      "rows": 1,
+      "sha256": "31414d16f1d84fefbde0deb6186dac6274c2b59dd9d65789a5dfd7dfb3827cfd"
+    },
+    "model_profiles": {
+      "rows": 1,
+      "sha256": "42963162e3e55192235885cd5efa3e7dac69c8e7a9ad7b7b18a877c786339d4b"
+    },
+    "runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "secrets": {
+      "rows": 1,
+      "sha256": "15614467635776b031f29f85d59b618d9760dfa4bbac031275897e0f9f47c13f"
+    },
+    "settings": {
+      "rows": 3,
+      "sha256": "9ea8300a6395935d8ce9cf3cdd344ce6a107259989e7e691069ea88e8eecd008"
+    },
+    "versions": {
+      "rows": 2,
+      "sha256": "58abbc05024fae0ec294d9a71ba4a3b6fe3a2c6062ac48c6bf2134ae5d54dde1"
+    },
+    "workflow_test_runs": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflow_test_suites": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workflows": {
+      "rows": 2,
+      "sha256": "fc87eebaeb0ef0709c49b90bb19ad0d9d434ca23eed0f26d868ad71b25019a29"
+    }
+  },
+  "changedProtectedTables": [],
+  "servedIndexSha256": "662d86c29b90e4a0b7f8a812320ae26171697a504e28e32125ffdda1541f59e1",
+  "servedAssetSha256": "4daf64107da8a19ac2c8c048fd71f04dbd75ea8f239c6a798fd095ada1e3f4bd",
+  "servedFrontendMatchesBuild": true,
+  "sseReadBytes": 65272,
+  "healthAfterSseDisconnect": {
+    "status": "ok",
+    "version": "2.0.0-alpha.2",
+    "phase": "ALPHA",
+    "syntheticOnly": false
+  },
+  "previousPid": 92927,
+  "newPid": 17083,
+  "health": {
+    "status": "ok",
+    "version": "2.0.0-alpha.2",
+    "phase": "ALPHA",
+    "syntheticOnly": false
+  },
+  "sourceCommit": "153202ca9946c34bdadd223c3ff0fd3f460e9f18",
+  "beforeBackupFilename": "flowhub-1793460388988-backup_1c180410-e682-4eaa-9775-24d751193618.sqlite"
+}

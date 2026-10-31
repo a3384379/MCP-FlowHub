@@ -1,0 +1,122 @@
+{
+  "baseline": "61e19ee",
+  "auditEffort": "max",
+  "remediationEffort": "xhigh",
+  "status": "closed",
+  "counts": {
+    "P1": 4,
+    "P2": 13
+  },
+  "findings": [
+    {
+      "id": "A01",
+      "priority": "P1",
+      "title": "Informational questions and quoted text grant operations",
+      "status": "closed"
+    },
+    {
+      "id": "A02",
+      "priority": "P1",
+      "title": "Late receipt clears a newer submission key",
+      "status": "closed"
+    },
+    {
+      "id": "A03",
+      "priority": "P2",
+      "title": "Large inventory removes selected context",
+      "status": "closed"
+    },
+    {
+      "id": "A04",
+      "priority": "P2",
+      "title": "Continue button uses another turn",
+      "status": "closed"
+    },
+    {
+      "id": "A05",
+      "priority": "P2",
+      "title": "Read receipt is misrepresented as saved draft",
+      "status": "closed"
+    },
+    {
+      "id": "A06",
+      "priority": "P1",
+      "title": "Coarse action groups allow opposite or extra tools",
+      "status": "closed"
+    },
+    {
+      "id": "A07",
+      "priority": "P2",
+      "title": "Definitive rejection traps the original pending request",
+      "status": "closed"
+    },
+    {
+      "id": "D01",
+      "priority": "P1",
+      "title": "Context update CAS targets derived identity",
+      "status": "closed"
+    },
+    {
+      "id": "D02",
+      "priority": "P2",
+      "title": "Credential save loses CAS after await",
+      "status": "closed"
+    },
+    {
+      "id": "D03",
+      "priority": "P2",
+      "title": "Credential save accepts obsolete context source",
+      "status": "closed"
+    },
+    {
+      "id": "D04",
+      "priority": "P2",
+      "title": "Authorization header case mapping mismatch",
+      "status": "closed"
+    },
+    {
+      "id": "D05",
+      "priority": "P2",
+      "title": "Late registration changes current selection",
+      "status": "closed"
+    },
+    {
+      "id": "D06",
+      "priority": "P2",
+      "title": "Old description draft inherits fresh CAS baseline",
+      "status": "closed"
+    },
+    {
+      "id": "L01",
+      "priority": "P2",
+      "title": "Short viewport clips sending controls",
+      "status": "closed"
+    },
+    {
+      "id": "L02",
+      "priority": "P2",
+      "title": "Zoom detaches panel from visible viewport",
+      "status": "closed"
+    },
+    {
+      "id": "D07",
+      "priority": "P2",
+      "title": "Cleared Profile and automatic CLI fields silently restore previous values",
+      "status": "closed"
+    },
+    {
+      "id": "D08",
+      "priority": "P2",
+      "title": "Same-entity catalog refresh resets credential form and invalidates pending receipt",
+      "status": "closed"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "title": "SSE paused client blocks daemon shutdown",
+      "result": "Not reproduced with actual 16MiB event and paused client; existing4 lifecycle tests pass."
+    }
+  ],
+  "scope": "Recent discovery and assistant changes plus the previously unremediated assistant audit; not an unsupported claim of all-product absence of bugs.",
+  "closedOnSourceCommit": "153202ca9946c34bdadd223c3ff0fd3f460e9f18"
+}

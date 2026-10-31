@@ -1,0 +1,80 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-assistant-max-audit.spec.ts tests/ui/v2-discovery-races.spec.ts
+
+[WebServer] (node:4560) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:4631) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-assistant-max-audit.spec.ts:133:3 › late A success cannot discard B's key after SSE recovery and a lost B receipt (1.4s)
+  ✓   2 tests/ui/v2-assistant-max-audit.spec.ts:133:3 › late A failure cannot discard B's key after SSE recovery and a lost B receipt (673ms)
+  ✓   3 tests/ui/v2-assistant-max-audit.spec.ts:258:1 › a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input (481ms)
+  ✓   4 tests/ui/v2-assistant-max-audit.spec.ts:315:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C (719ms)
+  ✘   5 tests/ui/v2-assistant-max-audit.spec.ts:461:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does (487ms)
+(node:4702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 tests/ui/v2-assistant-max-audit.spec.ts:643:3 › assistant controls remain visible and clickable on both sides: landscape single line (875ms)
+  ✓   7 tests/ui/v2-assistant-max-audit.spec.ts:643:3 › assistant controls remain visible and clickable on both sides: short mobile multiline (811ms)
+  ✓   8 tests/ui/v2-assistant-max-audit.spec.ts:643:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.3s)
+  ✓   9 tests/ui/v2-assistant-max-audit.spec.ts:643:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.5s)
+  ✓  10 tests/ui/v2-assistant-max-audit.spec.ts:643:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.5s)
+  ✓  11 tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration success cannot change the selected context or show an abandoned error (306ms)
+  ✓  12 tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration error cannot change the selected context or show an abandoned error (305ms)
+  ✓  13 tests/ui/v2-discovery-races.spec.ts:63:1 › registration context-list response cannot revive an old selection after the POST has completed (416ms)
+  ✓  14 tests/ui/v2-discovery-races.spec.ts:81:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (369ms)
+  ✓  15 tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and source change (949ms)
+  ✓  16 tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (950ms)
+  ✓  17 tests/ui/v2-discovery-races.spec.ts:154:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (1.3s)
+  ✘  18 tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending (5.9s)
+
+
+  1) tests/ui/v2-assistant-max-audit.spec.ts:461:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      521 |     expect(
+      522 |       (await api("/api/v2/workflows/" + workflowId + "/draft")).revision,
+    > 523 |     ).toBe(1);
+          |       ^
+      524 |     const task = (
+      525 |       await api(
+      526 |         "/api/v2/assistant/sessions/" + (await sessionId(page)) + "/tasks",
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-max-audit.spec.ts:523:7
+
+    Error Context: test-results/v2-assistant-max-audit-rea-501e9--authoring-patch-still-does/error-context.md
+
+  2) tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog').getByText('凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('dialog').getByText('凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。') with timeout 5000ms
+      - waiting for getByRole('dialog').getByText('凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。')
+
+
+      198 |     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toBeDisabled();
+      199 |     await expect(dialog.getByRole("checkbox", { name: "将来源配置中已有的内联凭据存入本地 Vault" })).toBeDisabled();
+    > 200 |     credentials.release(); await expect(dialog.getByText("凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。")).toBeVisible();
+          |                                                                                             ^
+      201 |   } finally { description.release(); credentials.release(); await f.close(); }
+      202 | });
+      203 |
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:200:93
+
+    Error Context: test-results/v2-discovery-races-descrip-435bb-e-HTTP-requests-are-pending/error-context.md
+
+  2 failed
+    tests/ui/v2-assistant-max-audit.spec.ts:461:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does
+    tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending
+  16 passed (23.1s)

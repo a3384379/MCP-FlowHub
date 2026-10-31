@@ -1,0 +1,66 @@
+[
+  {
+    "case": "header-case",
+    "header": "Authorization",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": true,
+    "catalogAvailability": "ready",
+    "toolCount": 4,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL"
+    ]
+  },
+  {
+    "case": "header-case",
+    "header": "AUTHORIZATION",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": false,
+    "catalogAvailability": "unreachable",
+    "toolCount": 0,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL",
+      "AUTH_REQUIRED"
+    ]
+  },
+  {
+    "case": "header-case",
+    "header": "aUtHoRiZaTiOn",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": false,
+    "catalogAvailability": "unreachable",
+    "toolCount": 0,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL",
+      "AUTH_REQUIRED"
+    ]
+  },
+  {
+    "case": "concurrent-source-CAS",
+    "expectedRevision": 1,
+    "outcomes": [
+      {
+        "status": "fulfilled",
+        "connectionId": "conn_d7160e6bfb962e4d766fa2fd"
+      },
+      {
+        "status": "fulfilled",
+        "connectionId": "conn_2f294813acbf016c541cb7c1"
+      }
+    ],
+    "currentRevision": 2,
+    "persistedConnectionCount": 2,
+    "preparedConnectionId": "conn_2f294813acbf016c541cb7c1"
+  },
+  {
+    "case": "changed-context-credential-save",
+    "oldContextRevision": 1,
+    "currentContextRevision": 2,
+    "requiresScan": true,
+    "oldIssuesStillActionable": true,
+    "saveStatus": "credentials_configured",
+    "sourceContextRevision": 1
+  }
+]

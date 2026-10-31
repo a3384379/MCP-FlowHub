@@ -1,0 +1,328 @@
+{
+  "baselineHead": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "scope": "Independent A01 re-audit of latest source and current built dist; memory databases and ScriptedModelProvider only",
+  "cases": [
+    {
+      "text": "运行当前流程需要满足哪些条件",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "运行当前流程有何风险",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "运行当前流程需要多大权限",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "运行当前流程需要啥权限",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "运行当前流程需要管理员权限",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "他刚才说‘运行当前流程’",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "请先不要运行当前流程，等我确认后再运行当前流程",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "先不要运行当前流程。等我确认。然后再运行当前流程",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "等权限开通，再运行当前流程",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "当我确认时，再运行当前流程",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "在我确认之前不要运行当前流程，之后再运行当前流程",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "先创建草稿，等我确认后再运行当前流程",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "先创建草稿等我确认后再运行当前流程",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "先创建草稿，等权限开通，再运行当前流程",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "现在运行当前流程",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "请现在运行当前流程",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "请运行当前流程，告诉我结果",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "请运行当前流程，然后告诉我需要多久",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "请运行当前流程，然后告诉我是否成功",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "先创建草稿，等我确认后再运行",
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "offeredWorkflowStart": false,
+      "taskStatus": "COMPLETED",
+      "actualDraftsCreated": 1,
+      "actualRunsCreated": 0,
+      "toolReceipts": [
+        {
+          "name": "workflow_draft_create",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": 20,
+  "failed": 0,
+  "sourceSha256": {
+    "packages/contracts/src/assistant-intent.ts": "bf454da5de8ce75edad51963133d946b8ef660a17b58875c48dc2abdb01f41cd"
+  },
+  "targetedRegression": {
+    "command": "node --test --test-concurrency=1 --test-timeout=60000 --test-name-pattern='^max intent:' dist/tests/engine/v2-assistant-max-regressions.test.js",
+    "exitCode": 0,
+    "tests": 4,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/tmp/flowhub-max-reaudit-a01-final-targeted.log"
+  }
+}

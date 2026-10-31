@@ -1,0 +1,32 @@
+[
+  {
+    "text": "run the current workflow after I confirm",
+    "verbs": [],
+    "actions": [],
+    "offeredStart": false,
+    "taskStatus": "FAILED",
+    "errorCode": "INTENT_NOT_ALLOWED",
+    "actualRunsCreated": 0,
+    "receiptCount": 0
+  },
+  {
+    "text": "when I confirm, run the current workflow",
+    "verbs": [],
+    "actions": [],
+    "offeredStart": false,
+    "taskStatus": "FAILED",
+    "errorCode": "INTENT_NOT_ALLOWED",
+    "actualRunsCreated": 0,
+    "receiptCount": 0
+  },
+  {
+    "text": "after the checks pass, run the current workflow",
+    "verbs": [],
+    "actions": [],
+    "offeredStart": false,
+    "taskStatus": "FAILED",
+    "errorCode": "INTENT_NOT_ALLOWED",
+    "actualRunsCreated": 0,
+    "receiptCount": 0
+  }
+]

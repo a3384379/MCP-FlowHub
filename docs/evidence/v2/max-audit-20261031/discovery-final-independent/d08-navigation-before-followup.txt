@@ -1,0 +1,35 @@
+### Result
+{
+  "heading": "synthetic-source-b",
+  "selected": "synthetic-ref",
+  "requests": [
+    true,
+    true
+  ],
+  "calls": [
+    {
+      "path": "/api/v2/discovery/entities/synthetic-source-a",
+      "method": "GET"
+    },
+    {
+      "path": "/secrets",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/discovery/entities/synthetic-source-b",
+      "method": "GET"
+    },
+    {
+      "path": "/secrets",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/discovery/catalog?contextId=synthetic-context&kind=mcp_tool&parentId=synthetic-source-b&limit=20",
+      "method": "GET"
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({heading:document.querySelector("h2").textContent,selected:document.querySelector("select[aria-label=SYNTHETIC_AUTH]").value,requests:window.secretRequests.map(r=>r.done),calls:window.calls}))');
+```

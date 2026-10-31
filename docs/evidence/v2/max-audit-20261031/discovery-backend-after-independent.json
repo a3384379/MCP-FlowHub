@@ -1,0 +1,64 @@
+[
+  {
+    "case": "header-case",
+    "header": "Authorization",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": true,
+    "catalogAvailability": "ready",
+    "toolCount": 4,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL"
+    ]
+  },
+  {
+    "case": "header-case",
+    "header": "AUTHORIZATION",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": true,
+    "catalogAvailability": "ready",
+    "toolCount": 4,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL"
+    ]
+  },
+  {
+    "case": "header-case",
+    "header": "aUtHoRiZaTiOn",
+    "connectionSetup": "references",
+    "saveStatus": "credentials_configured",
+    "hasSecretRef": true,
+    "catalogAvailability": "ready",
+    "toolCount": 4,
+    "codes": [
+      "STATIC_RESOLUTION_PARTIAL"
+    ]
+  },
+  {
+    "case": "concurrent-source-CAS",
+    "expectedRevision": 1,
+    "outcomes": [
+      {
+        "status": "fulfilled",
+        "connectionId": "conn_87ab5988424eac1fdc137225"
+      },
+      {
+        "status": "rejected",
+        "code": "CAPABILITY_STALE"
+      }
+    ],
+    "currentRevision": 2,
+    "persistedConnectionCount": 1,
+    "preparedConnectionId": "conn_87ab5988424eac1fdc137225"
+  },
+  {
+    "case": "changed-context-credential-save",
+    "oldContextRevision": 1,
+    "currentContextRevision": 2,
+    "requiresScan": true,
+    "oldIssuesStillActionable": false,
+    "saveStatus": "CONTEXT_CHANGED",
+    "sourceContextRevision": 1
+  }
+]

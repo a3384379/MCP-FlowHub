@@ -1,0 +1,24 @@
+{
+  "commit": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "case": "definitive_422_keeps_uncertain_pending",
+  "firstHttpStatus": 422,
+  "firstError": "INPUT_INVALID",
+  "correctedComposerText": "解释项目",
+  "secondHttpStatus": 422,
+  "secondError": "INPUT_INVALID",
+  "posts": [
+    {
+      "length": 16001,
+      "text": null,
+      "key": "e18d971b-8bc3-4063-9ffe-460d2a5ad5e5"
+    },
+    {
+      "length": 16001,
+      "text": null,
+      "key": "e18d971b-8bc3-4063-9ffe-460d2a5ad5e5"
+    }
+  ],
+  "taskCount": 0,
+  "modelSelectionDisabled": true,
+  "uncertainNotice": "发送结果尚未确认。重试会恢复同一请求，不会重复执行。×"
+}

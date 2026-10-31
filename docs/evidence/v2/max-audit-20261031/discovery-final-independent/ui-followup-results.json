@@ -1,0 +1,157 @@
+{
+  "config": {
+    "argv": [
+      "/private/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+      "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "reaudit-ui-followup.config.mjs",
+      "--grep",
+      "description and credential fields"
+    ],
+    "configFile": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/reaudit-ui-followup.config.mjs",
+    "rootDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-followup-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "v2-discovery-races.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-followup-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "snapshotDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": "v2-discovery-races.spec.ts",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:56391",
+          "headless": true,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "launchOptions": {
+            "args": [
+              "--no-sandbox"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-followup-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "v2-discovery-races.spec.ts",
+      "file": "v2-discovery-races.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "description and credential fields remain locked while their save HTTP requests are pending",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1868,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T15:16:39.548Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-96478acac543e660adf1",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 237,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-31T15:16:39.350Z",
+    "duration": 2329.153,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

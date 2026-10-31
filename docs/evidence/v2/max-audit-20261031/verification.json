@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "153202ca9946c34bdadd223c3ff0fd3f460e9f18",
+  "auditEffort": "max",
+  "remediationEffort": "xhigh",
+  "confirmedFindings": 17,
+  "closed": 17,
+  "P1": 4,
+  "P2": 13,
+  "gates": {
+    "check": {
+      "exitCode": 0,
+      "log": "check.txt"
+    },
+    "backend": {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 396,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 120682.280375,
+      "log": "backend-final.txt"
+    },
+    "browser": {
+      "command": "npm run test:ui",
+      "exitCode": 0,
+      "passed": 71,
+      "failed": 0,
+      "log": "ui-final.txt"
+    },
+    "codexLocal": {
+      "command": "npm run test:codex-local",
+      "exitCode": 0,
+      "fixedMcpTools": 21,
+      "modelTurns": 0,
+      "businessServiceCalls": 0,
+      "log": "codex-local.txt"
+    }
+  },
+  "independentAudit": {
+    "assistantEnglish": "a01-english-independent-final.json",
+    "assistantChinese": "a01-independent-final.json",
+    "discovery": "discovery-final-independent/independent-verdict.json",
+    "viewport": "launcher-after-independent.json"
+  },
+  "runtimeRecord": "runtime.json",
+  "finalHeadPackageRecord": "artifacts/max-audit-package-verification.json (ignored, generated after final evidence commit)",
+  "originalUntrackedFilesPreserved": 8,
+  "unverified": [
+    "paid-model natural-language acceptance",
+    "enterprise MCP permissions",
+    "native Windows build/installer",
+    "physical phone and software keyboard",
+    "WebKit/Firefox"
+  ],
+  "push": false,
+  "merge": false,
+  "release": false
+}

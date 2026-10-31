@@ -1,0 +1,120 @@
+{
+  "scope": "launcher/viewport/CSS independent max reaudit",
+  "baselineHead": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "workingTreeSnapshot": true,
+  "L01": "PASS",
+  "L02": "PASS",
+  "newFunctionalFindings": [],
+  "uiSourceUnchanged": true,
+  "otherSourceDriftAfterSnapshot": [
+    "packages/contracts/src/assistant-intent.ts"
+  ],
+  "servedAsset": "assets/index-BRKGqjMJ.js",
+  "servedSha256": "9135a2758628005f235740b3578cc8069ec5f46cc007a0599c8b1bb3584c6dcb",
+  "matchesFreshIndependentBuild": true,
+  "viewportCasesPassed": 18,
+  "viewportCasesTotal": 18,
+  "actualSuccessfulClicks": 18,
+  "syntheticModelRequestsInCompletedRun": 18,
+  "requestsEqualActualClicks": true,
+  "interactionPassed": 12,
+  "interactionTotal": 12,
+  "nonzeroOpenPan": {
+    "before": {
+      "visual": {
+        "left": 40,
+        "top": 40,
+        "width": 195,
+        "height": 422,
+        "scale": 2
+      },
+      "panel": {
+        "left": 40,
+        "top": 58,
+        "right": 235,
+        "bottom": 462,
+        "inside": true,
+        "hittable": true
+      },
+      "input": {
+        "left": 60,
+        "top": 356,
+        "right": 215,
+        "bottom": 410,
+        "inside": true,
+        "hittable": true
+      },
+      "send": {
+        "left": 186,
+        "top": 415,
+        "right": 215,
+        "bottom": 444,
+        "inside": true,
+        "hittable": true
+      },
+      "close": {
+        "left": 201,
+        "top": 64.5,
+        "right": 228,
+        "bottom": 104.5,
+        "inside": true,
+        "hittable": true
+      }
+    },
+    "physicalTouchPoint": {
+      "x": 174.5,
+      "y": 44.5
+    },
+    "clickedClose": true,
+    "events": [
+      {
+        "target": "收起聊天窗口",
+        "clientX": 215,
+        "clientY": 85
+      }
+    ],
+    "retained": true,
+    "sameSession": true
+  },
+  "totalSyntheticModelRequestsIncludingAbortedToolAttempts": 34,
+  "paidModelCalls": 0,
+  "enterpriseCalls": 0,
+  "rawToolLimitations": [
+    {
+      "log": "viewport-retest.log",
+      "description": "Initial wider matrix aborted on CDP synthesizeScrollGesture Position out of bounds for short landscape; final geometry run retained this tool error and completed both-side real click checks."
+    },
+    {
+      "log": "open-pan.log",
+      "description": "Playwright locator scrollIntoView changed visual offsets and target interception caused timeout during nonzero mobile pan. Direct CDP physical touch with visible-coordinate conversion subsequently hit the actual close button and retained draft/session; exact event and coordinates in nonzero-pan-final.json."
+    }
+  ],
+  "notExecuted": [
+    "实体手机/真实软键盘",
+    "屏幕阅读器",
+    "Windows原生",
+    "WebKit/Firefox",
+    "全量npm check/test/UI重跑",
+    "助手意图/执行授权全范围复审"
+  ],
+  "cleanup": {
+    "originalFixturePid96354": "already exited before reaudit",
+    "reauditFixturePid": 2233,
+    "matchedExactFixtureCommand": true,
+    "signal": "SIGTERM",
+    "browserSession": "launcher-max",
+    "browserClosed": true,
+    "formalPortsTouched": false,
+    "fixtureExited": true,
+    "65110Released": true
+  },
+  "evidence": [
+    "source-baseline.json",
+    "build.log",
+    "viewport-retest.json",
+    "viewport-retest-final.log",
+    "interactions.json",
+    "nonzero-pan-final.json",
+    "nonzero-pan-final.png"
+  ]
+}

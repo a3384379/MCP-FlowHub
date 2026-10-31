@@ -1,0 +1,73 @@
+{
+  "registerDifferentCli": {
+    "submitted": "/tmp/flowhub-context-identity-Yd9HTi/codex-b.mjs",
+    "returned": "/tmp/flowhub-context-identity-Yd9HTi/codex-a.mjs",
+    "returnedExistingId": true
+  },
+  "updateCurrentAfterChangingCwdToExisting": {
+    "currentA": {
+      "id": "ctx_347b2cc77d55675492bfcbae",
+      "revision": 1,
+      "projectTrusted": true
+    },
+    "unrelatedBefore": {
+      "hostId": "darwin",
+      "executionLocation": "macos",
+      "codexHome": "/private/tmp/flowhub-context-identity-Yd9HTi/home",
+      "canonicalCwd": "/private/tmp/flowhub-context-identity-Yd9HTi/project-b",
+      "profile": null,
+      "codexPath": "/tmp/flowhub-context-identity-Yd9HTi/codex-a.mjs",
+      "codexVersion": "codex-cli synthetic-identical-version",
+      "projectTrusted": false,
+      "useAppServer": true,
+      "discoveryMode": "auto",
+      "revision": 1,
+      "id": "ctx_abbe7c6d2025da1078c43a53"
+    },
+    "result": {
+      "hostId": "darwin",
+      "executionLocation": "macos",
+      "codexHome": "/private/tmp/flowhub-context-identity-Yd9HTi/home",
+      "canonicalCwd": "/private/tmp/flowhub-context-identity-Yd9HTi/project-b",
+      "profile": null,
+      "codexPath": "/tmp/flowhub-context-identity-Yd9HTi/codex-a.mjs",
+      "codexVersion": "codex-cli synthetic-identical-version",
+      "projectTrusted": true,
+      "useAppServer": false,
+      "discoveryMode": "auto",
+      "revision": 2,
+      "id": "ctx_abbe7c6d2025da1078c43a53",
+      "createdAt": "2026-10-31T14:30:17.720Z"
+    },
+    "currentAAfter": {
+      "hostId": "darwin",
+      "executionLocation": "macos",
+      "codexHome": "/private/tmp/flowhub-context-identity-Yd9HTi/home",
+      "canonicalCwd": "/private/tmp/flowhub-context-identity-Yd9HTi/project-a",
+      "profile": null,
+      "codexPath": "/tmp/flowhub-context-identity-Yd9HTi/codex-a.mjs",
+      "codexVersion": "codex-cli synthetic-identical-version",
+      "projectTrusted": true,
+      "useAppServer": false,
+      "discoveryMode": "auto",
+      "revision": 1,
+      "id": "ctx_347b2cc77d55675492bfcbae",
+      "createdAt": "2026-10-31T14:30:17.697Z"
+    },
+    "unrelatedBAfter": {
+      "hostId": "darwin",
+      "executionLocation": "macos",
+      "codexHome": "/private/tmp/flowhub-context-identity-Yd9HTi/home",
+      "canonicalCwd": "/private/tmp/flowhub-context-identity-Yd9HTi/project-b",
+      "profile": null,
+      "codexPath": "/tmp/flowhub-context-identity-Yd9HTi/codex-a.mjs",
+      "codexVersion": "codex-cli synthetic-identical-version",
+      "projectTrusted": true,
+      "useAppServer": false,
+      "discoveryMode": "auto",
+      "revision": 2,
+      "id": "ctx_abbe7c6d2025da1078c43a53",
+      "createdAt": "2026-10-31T14:30:17.720Z"
+    }
+  }
+}

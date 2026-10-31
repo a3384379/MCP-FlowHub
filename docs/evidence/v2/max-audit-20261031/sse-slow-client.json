@@ -1,0 +1,8 @@
+{
+  "case": "paused_sse_client_blocks_shutdown",
+  "largeEventBytes": 16777216,
+  "responseCompleteWhilePaused": false,
+  "daemonCloseFinishedAfter1500ms": true,
+  "closeFinishedAfterDestroy": true,
+  "totalCloseMs": 1502
+}

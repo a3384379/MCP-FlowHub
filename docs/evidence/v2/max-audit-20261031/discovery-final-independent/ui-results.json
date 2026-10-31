@@ -1,0 +1,259 @@
+{
+  "config": {
+    "argv": [
+      "/private/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+      "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "reaudit-ui.config.mjs",
+      "--grep",
+      "clearing|description and credential fields|a credential draft"
+    ],
+    "configFile": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/reaudit-ui.config.mjs",
+    "rootDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "v2-discovery-races.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "snapshotDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": "v2-discovery-races.spec.ts",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:53928",
+          "headless": true,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "launchOptions": {
+            "args": [
+              "--no-sandbox"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/private/tmp/flowhub-discovery-d07-d08-reaudit.3KoGvV/ui-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "v2-discovery-races.spec.ts",
+      "file": "v2-discovery-races.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1358,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T15:07:35.703Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-f1238456601af084208f",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 140,
+          "column": 1
+        },
+        {
+          "title": "clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 656,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T15:07:37.342Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-4a683b9f3c4a5f9b6620",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 172,
+          "column": 1
+        },
+        {
+          "title": "description and credential fields remain locked while their save HTTP requests are pending",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1312,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T15:07:38.005Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-96478acac543e660adf1",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 237,
+          "column": 1
+        },
+        {
+          "title": "a credential draft keeps its original configuration revision through a source-changing snapshot refresh",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1031,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T15:07:39.321Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-a064a4e3bb33b54c3d07",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 281,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-31T15:07:35.494Z",
+    "duration": 4888.723,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
