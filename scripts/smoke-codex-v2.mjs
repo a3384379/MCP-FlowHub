@@ -1,3 +1,4 @@
+import {VERSION} from "../dist/packages/contracts/src/index.js";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -29,7 +30,7 @@ lines.on("line",line=>{try{const message=JSON.parse(line);if(message.id!==undefi
 child.on("error",error=>{for(const wait of pending.values()){clearTimeout(wait.timer);wait.reject(error);}pending.clear();});
 const stages=[];
 try {
-  const initialized=await rpc("initialize",{clientInfo:{name:"flowhub-local-acceptance",version:"2.0.0-alpha.1"},capabilities:{experimentalApi:false}});
+  const initialized=await rpc("initialize",{clientInfo:{name:"flowhub-local-acceptance",version:VERSION},capabilities:{experimentalApi:false}});
   child.stdin.write(JSON.stringify({method:"initialized",params:{}})+"\n");stages.push({stage:"actual_codex_initialize",status:"PASS"});
   const started=await rpc("thread/start",{cwd:resolve("."),ephemeral:true,approvalPolicy:"never",sandbox:"read-only"});const threadId=started.thread.id;
   let inventory;
@@ -44,14 +45,14 @@ try {
     assert.notEqual(result.isError,true,JSON.stringify(result.structuredContent));return result.structuredContent??JSON.parse(result.content[0].text);
   };
   const context=await daemon.application.registry.context({codexHome:home,cwd:resolve("."),codexPath:codex});
-  const scan=await tool("host_scan",{contextId:context.id,depth:"metadata",idempotencyKey:"host-scan"});await daemon.application.registry.close();
+  const scan=await tool("host_scan",{contextId:context.id,depth:"metadata",idempotencyKey:"host-scan"});await daemon.application.registry.idle();
   assert.ok(["SUCCEEDED","PARTIAL"].includes((await tool("host_scan_status",{scanId:scan.scanId})).status));
   const created=await tool("workflow_draft_create",{workflowId:"codex-local-smoke",name:"真实宿主合成闭环",environment:"test",mode:"auto",template:"blank",idempotencyKey:"create"});
   const reportSchema={type:"object",properties:{reportMarkdown:{type:"string"},evidenceRefs:{type:"array",items:{type:"string"}}},required:["reportMarkdown","evidenceRefs"],additionalProperties:false};
   const changed=await tool("workflow_draft_patch",{workflowId:created.workflowId,expectedRevision:created.revision,idempotencyKey:"patch",operations:[{op:"add_node",nodeId:"report",nodeType:"report_template",title:"真实模板报告",config:{templateRef:"incident-markdown/v1",inputMappings:{},outputSchema:reportSchema}},{op:"disconnect",source:"input",target:"end",port:"next"},{op:"connect",source:"input",target:"report",port:"next"},{op:"connect",source:"report",target:"end",port:"next"}]});
   assert.equal((await tool("workflow_draft_validate",{workflowId:created.workflowId,expectedRevision:changed.revision,level:"publish"})).valid,true);
   const suite=await tool("workflow_test_generate",{workflowId:created.workflowId,expectedRevision:changed.revision,strategy:"deterministic",idempotencyKey:"generate"});
-  const testing=await tool("workflow_test_run",{suiteId:suite.suiteId,expectedSuiteRevision:1,mode:"mock",idempotencyKey:"test"});await daemon.application.testing.close();assert.equal((await tool("workflow_test_status",{testRunId:testing.testRunId})).status,"SUCCEEDED");
+  const testing=await tool("workflow_test_run",{suiteId:suite.suiteId,expectedSuiteRevision:1,mode:"mock",idempotencyKey:"test"});await daemon.application.testing.idle();assert.equal((await tool("workflow_test_status",{testRunId:testing.testRunId})).status,"SUCCEEDED");
   await tool("workflow_draft_publish",{workflowId:created.workflowId,expectedRevision:changed.revision,version:"1.0.0",expectedBindingRevisions:{},expectedCapabilityRevisions:{},idempotencyKey:"publish"});
   const run=await tool("workflow_start",{workflowId:created.workflowId,version:"1.0.0",mode:"auto",inputs:{},idempotencyKey:"run"});
   let status;for(let i=0;i<100;i++){status=await tool("workflow_status",{runId:run.runId});if(status.state==="SUCCEEDED")break;await new Promise(r=>setTimeout(r,10));}assert.equal(status.state,"SUCCEEDED");

@@ -1,6 +1,6 @@
 {
   "name": "mcp-flowhub",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "Local MCP workflow hub with visual MCP orchestration, immutable workflows and evidence reports",
@@ -34,7 +34,8 @@
     "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js",
     "test:assistant": "npm run build:server && node --test dist/tests/engine/v2-assistant.test.js",
     "test:codex-local": "npm run build:server && node scripts/smoke-codex-v2.mjs",
-    "test:upgrade-local": "npm run build:server && node scripts/smoke-v2-upgrade.mjs"
+    "test:upgrade-local": "npm run build:server && node scripts/smoke-v2-upgrade.mjs",
+    "benchmark:v2": "npm run build:server && node scripts/benchmark-v2.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

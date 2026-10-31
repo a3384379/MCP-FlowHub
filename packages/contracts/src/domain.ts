@@ -142,6 +142,10 @@ export function parts(pointer: string) {
   );
   return p;
 }
+export function pointersOverlap(left: string, right: string) {
+  const a = parts(left), b = parts(right);
+  return a.slice(0, Math.min(a.length, b.length)).every((part, index) => part === b[index]);
+}
 export function get(value: Json, pointer: string) {
   for (const key of parts(pointer)) {
     ensure(

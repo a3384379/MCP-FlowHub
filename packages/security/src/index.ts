@@ -219,7 +219,17 @@ export class Vault {
           }),
         ),
       }));
-    const oldKey = Buffer.from(this.key!),
+    // Only these documented operational fields contain Vault envelopes. Do not
+    // walk arbitrary business JSON looking for token/password/ciphertext names.
+    // Decrypt every envelope before changing keys or writing any record, so one
+    // corrupt historical receipt fails the whole rotation with the old key live.
+    const continuations = this.repo.all("assistant_tasks")
+      .filter((task) => task.providerContinuation != null)
+      .map((record) => ({record,text:this.decrypt(record.providerContinuation,record.id+":provider")}));
+    const receipts = this.repo.all("assistant_tool_calls")
+      .filter((call) => call.result?.checkpoint?.tokenDelivery !== undefined)
+      .map((record) => ({record,text:this.decrypt(record.result.checkpoint.tokenDelivery,record.id)}));
+    const oldKey = this.key!,
       salt = randomBytes(16).toString("hex");
     this.key = derive(newPassword, salt);
     try {
@@ -241,6 +251,14 @@ export class Vault {
               c.record.id + ":output:" + output.nodeId,
             );
           this.repo.put("runs", c.record.id, c.record);
+        }
+        for (const continuation of continuations) {
+          continuation.record.providerContinuation=this.encrypt(continuation.text,continuation.record.id+":provider");
+          this.repo.put("assistant_tasks",continuation.record.id,continuation.record);
+        }
+        for (const receipt of receipts) {
+          receipt.record.result.checkpoint.tokenDelivery=this.encrypt(receipt.text,receipt.record.id);
+          this.repo.put("assistant_tool_calls",receipt.record.id,receipt.record);
         }
         this.repo.put("settings", "vault", {
           salt,

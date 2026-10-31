@@ -29,6 +29,7 @@ import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { subscribeEvents } from "./shared/v2";
+import { mergeDraft } from "./shared/draft-merge";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import { SettingsIntegration } from "./SettingsIntegration";
 import {
@@ -39,6 +40,8 @@ import {
   bindingProbeDefaults,
 } from "./ConnectionBindingForms";
 type J = any;
+const retentionScopeKeys = ["runs", "resultRuns", "checkpoints", "artifacts", "assistantResultTasks", "assistantResultMessages", "assistantLegacyResultMessages", "assistantResultToolCalls", "assistantResultSessions", "assistantTasks", "assistantMessages", "assistantToolCalls", "assistantSessions", "workflowTestResultRuns", "workflowTestRuns", "applicationResultEvents", "applicationEvents"];
+const retentionPreview = (value: J) => ({...value, ...Object.fromEntries(retentionScopeKeys.map(key=>[key,Array.isArray(value[key])?value[key]:[]]))});
 const editorTextVersions = new WeakMap<
   Map<string, string>,
   Map<string, number>
@@ -452,6 +455,8 @@ function App() {
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
+  const serverDraftBase=useRef<J>(null),conflictRef=useRef<J>(conflict),remoteSyncRequest=useRef(0),pendingRemoteEvent=useRef<J>(null),syncRemoteRef=useRef<(event:J)=>Promise<void>>(async()=>{});
+  conflictRef.current=conflict;
   const pathRef = useRef(path),
     dirtyRef = useRef(dirty),
     draftRef = useRef<J>(draft);
@@ -749,10 +754,11 @@ function App() {
     window.addEventListener("beforeunload", listener);
     return () => window.removeEventListener("beforeunload", listener);
   }, [dirty]);
-  const buildCanvas = (record: J) => {
+  const buildCanvas = (record: J, serverBase=false, preserveSelection=false) => {
     assertWorkflowShape(record.draft);
+    if(serverBase)serverDraftBase.current=structuredClone(record);
     setDraft(record);
-    setSelected(null);
+    if(!preserveSelection)setSelected(null);
     setNodes(
       record.draft.nodes.map((n: J, i: number) => ({
         id: n.id,
@@ -804,22 +810,48 @@ function App() {
       })),
     );
   };
+  const mergeRemoteRecord=(latest:J,changedNodes:string[]=[])=>{
+    const local=editorRef.current,base=serverDraftBase.current;
+    if(!local||!base||base.id!==latest.id)return;
+    const protectedReason=publishReviewRef.current?.type==="publish"?"发布差异仍在审阅，请关闭审阅后重新合并":
+      [...jsonTextCache.current.keys()].some(key=>key.startsWith(local.id+"/"))?"存在未应用的 JSON 文本；完成校验后可重新合并":"";
+    if(protectedReason){setConflict({base,remote:latest,protectedReason,fields:[]});return;}
+    const result=mergeDraft(base,local,latest);
+    if(result.invalidEdges.length&&!result.conflicts.length){setConflict({base,remote:latest,protectedReason:"合并后存在节点删除与连线引用冲突，请比较并调整草稿后重试",fields:[]});return;}
+    buildCanvas(result.record,false,true);setDirty(result.dirty);setChangedByAI(changedNodes);
+    undoStack.current=undoStack.current.map(snapshot=>mergeDraft(base,snapshot,latest).record);
+    redoStack.current=redoStack.current.map(snapshot=>mergeDraft(base,snapshot,latest).record);
+    if(result.conflicts.length)setConflict({base,remote:latest,fields:result.conflicts});
+    else {serverDraftBase.current=structuredClone(latest);setConflict(null);if(result.dirty)setNotice("已合并服务端改图；本地字段仍待保存");}
+  };
+  syncRemoteRef.current=async(event:J)=>{
+    const current=draftRef.current;
+    if(!current||current.id!==event.workflowId||(!event.force&&event.revision<=current.revision&&(event.layoutRevision??0)<=(current.layoutRevision??0)))return;
+    if(savingRef.current){pendingRemoteEvent.current=event;return;}
+    const request=++remoteSyncRequest.current,generation=routeGeneration.current,sourcePath=pathRef.current;
+    const editableStamp=()=>JSON.stringify({draft:editorRef.current?.draft,layout:editorRef.current?.layout,raw:[...jsonTextCache.current]});
+    const original=editableStamp();
+    try{
+      const latest=await api("/api/v2/workflows/"+current.id+"/draft");
+      if(request!==remoteSyncRequest.current||routeGeneration.current!==generation||pathRef.current!==sourcePath||draftRef.current?.id!==latest.id)return;
+      const acknowledged=serverDraftBase.current;
+      if(!event.force&&acknowledged?.id===latest.id&&latest.revision<=acknowledged.revision&&(latest.layoutRevision??0)<=(acknowledged.layoutRevision??0))return;
+      if(editableStamp()!==original){setConflict({base:serverDraftBase.current,remote:latest,fields:[],protectedReason:"读取服务端期间出现新输入，已保留；请重新合并"});return;}
+      mergeRemoteRecord(latest,event.changedNodes??[]);
+    }catch(e){if(request===remoteSyncRequest.current&&generation===routeGeneration.current)setError((e as Error).message);}
+  };
+  const resolveDraftField=(fieldPath:string,choice:"local"|"remote")=>{
+    const current=conflictRef.current;if(!current?.remote||current.protectedReason)return;
+    const choices={...(current.choices??{}),[fieldPath]:choice};
+    const result=mergeDraft(current.base,editorRef.current,current.remote,choices);
+    if(result.invalidEdges.length&&!result.conflicts.length){setError("该选择会留下失效连线，请比较节点删除与连线后再处理");return;}
+    buildCanvas(result.record,false,true);setDirty(result.dirty);
+    if(result.conflicts.length)setConflict({...current,fields:result.conflicts,choices});
+    else {serverDraftBase.current=structuredClone(current.remote);setConflict(null);}
+  };
   useEffect(()=>{
     if(!session)return;
-    return subscribeEvents(event=>{
-      if(event.type!=="draft.changed")return;
-      void load();
-      const current=draftRef.current;
-      if(!current||current.id!==event.workflowId||event.revision<=current.revision||savingRef.current)return;
-      if(dirtyRef.current || publishReviewRef.current?.type==="publish" || [...jsonTextCache.current.keys()].some(key=>key.startsWith(current.id+"/"))) {
-        setConflict({workflow:editorRef.current?.draft??current.draft,layout:editorRef.current?.layout??current.layout,revision:current.revision});
-        return;
-      }
-      void api("/api/v2/workflows/"+current.id+"/draft").then(latest=>{
-        if(draftRef.current?.id!==latest.id||dirtyRef.current)return;
-        buildCanvas(latest);setChangedByAI(event.changedNodes??[]);
-      }).catch(e=>setError(e.message));
-    });
+    return subscribeEvents(event=>{if(event.type!=="draft.changed")return;void load();void syncRemoteRef.current(event);});
   },[session]);
   useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
@@ -851,7 +883,7 @@ function App() {
               generation === routeGeneration.current &&
               pathRef.current === path
             )
-              buildCanvas(record);
+              buildCanvas(record,true);
           } catch (e) {
             if (active) throw e;
           }
@@ -994,6 +1026,7 @@ function App() {
   };
   const save = async () => {
     assertJsonValid();
+    if(conflictRef.current)throw new Error("请先解决草稿字段冲突或重新合并，再保存");
     if (!draft) return;
     if (pathRef.current !== "/workflows/" + draft.id + "/editor")
       throw new Error("当前页面与草稿不一致，请重新打开工作流");
@@ -1005,7 +1038,7 @@ function App() {
     assertWorkflowShape(workflow);
     let result: J;
     try {
-      savingRef.current=true;
+      savingRef.current=true;remoteSyncRequest.current++;
       result = await api(
         "/workflows/" + draft.id + "/draft",
         "PUT",
@@ -1026,6 +1059,7 @@ function App() {
       pathRef.current === savePath &&
       generation === routeGeneration.current
     ) {
+      serverDraftBase.current=structuredClone(result);
       const unchanged =
         JSON.stringify(editorRef.current?.draft) === JSON.stringify(workflow) &&
         JSON.stringify(editorRef.current?.layout) === JSON.stringify(layout) &&
@@ -1041,6 +1075,7 @@ function App() {
       );
       setDirty(!unchanged);
     }
+    if(pendingRemoteEvent.current){const event=pendingRemoteEvent.current;pendingRemoteEvent.current=null;void syncRemoteRef.current(event);}
     await load();
     return result;
   };
@@ -1316,6 +1351,7 @@ function App() {
           ) {
             const unchanged =
               JSON.stringify(currentWorkflow()) === JSON.stringify(m.workflow);
+            serverDraftBase.current=structuredClone(latest);
             if (unchanged) buildCanvas(latest);
             else
               setDraft((local: J) =>
@@ -1430,7 +1466,7 @@ function App() {
           previewHash: m.value.hash,
         });
         setNotice(
-          `清理完成：${result.expiredResultRuns} 个运行的原始结果，${result.deletedArtifacts} 份产物，${result.deletedRuns} 个运行的元数据`,
+          `清理完成：${result.expiredResultRuns} 个运行的原始结果，${result.deletedArtifacts} 份产物，${result.deletedRuns} 个运行的元数据；助手任务 ${result.expiredAssistantTasks??0} 份正文到期、${result.deletedAssistantTasks??0} 条元数据删除，自测 ${result.expiredTestRuns??0} 份结果到期、${result.deletedTestRuns??0} 条元数据删除；历史未归属消息 ${result.expiredLegacyAssistantMessages??0} 条正文到期`,
         );
       }
       if (m.type === "import") {
@@ -2037,8 +2073,11 @@ function App() {
                 >
                   <h2>草稿已被其他会话修改</h2>
                   <p>
-                    本地修改仍保留。先比较或另存，再决定是否丢弃本地修改并加载服务端草稿。
+                    {conflict.fields?.length?"不同字段已合并。本地修改仍保留；同一字段可分别选择保留本地或服务端值。":"本地输入仍保留。处理下方原因后可重新合并，也可比较差异或另存草稿。"}
                   </p>
+                  {conflict.protectedReason&&<p role="status">{conflict.protectedReason}</p>}
+                  {conflict.fields?.map((field:J)=><article key={field.path} className="panel"><strong>{field.path}</strong><div className="v2-two-columns"><div><p>本地值</p><pre>{field.localMissing?"（删除）":pretty(field.local)}</pre><button onClick={()=>resolveDraftField(field.path,"local")}>保留本地：{field.path}</button></div><div><p>服务端值</p><pre>{field.remoteMissing?"（删除）":pretty(field.remote)}</pre><button onClick={()=>resolveDraftField(field.path,"remote")}>使用服务端：{field.path}</button></div></div></article>)}
+                  <button disabled={busy} onClick={()=>void syncRemoteRef.current({workflowId:draft.id,force:true})}>重新尝试合并</button>
                   <div className="actions">
                     <button
                       onClick={() =>
@@ -2110,7 +2149,7 @@ function App() {
                           jsonTextCache.current.clear();
                           invalidJson.current.clear();
                           setJsonInvalid(false);
-                          buildCanvas(latest);
+                          buildCanvas(latest,true);
                           setDirty(false);
                           setConflict(null);
                         }, "已加载服务端草稿")
@@ -3145,6 +3184,7 @@ function App() {
                     <span className="error">{run.waitingReason}</span>
                   )}
                 </div>
+                <details className="panel"><summary>使用助手解释当前运行与选定证据</summary><AssistantPanel api={api} context={{workflowId:run.workflowId,runId:run.runId}} onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")} /></details>
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
@@ -3434,7 +3474,7 @@ function App() {
                         setModal({
                           type: "retention",
                           title: "数据保留与清理预览",
-                          value: await api("/retention/preview", "POST", {}),
+                          value: retentionPreview(await api("/retention/preview", "POST", {})),
                         }),
                       )
                     }
@@ -3784,8 +3824,12 @@ function App() {
             ) : modal.type === "retention" ? (
               <>
                 <p>
-                  原始结果到期后，日志、查询、分析及报告正文和事件备注一并清理。
-                  业务输入与运行元数据保留 30 天。活跃运行不受影响。
+                  原始结果保留 7 天，到期后清理日志、查询、分析、报告和事件备注，
+                  以及助手会话正文、消息、工具收据、自测结果与事件中的业务副本。
+                  业务输入与运行元数据保留 30 天，助手与自测元数据也保留 30 天。
+                  活跃运行和会话、已保存的测试套件配置、发布版本与能力修订不受影响。
+                  会话中存在到期来源时，无法归属任务的历史消息会单独列入正文清理，
+                  即使该消息刚刚创建；新消息按实际任务来源判断。
                 </p>
                 <ul>
                   <li>
@@ -3794,6 +3838,11 @@ function App() {
                   <li>遗留检查点：{modal.value.checkpoints.length} 个运行</li>
                   <li>运行元数据：{modal.value.runs.length} 个运行</li>
                   <li>产物：{modal.value.artifacts.length} 份</li>
+                  <li>助手正文到期：{modal.value.assistantResultTasks.length} 个任务、{modal.value.assistantResultMessages.length} 条消息、{modal.value.assistantResultToolCalls.length} 份工具收据、{modal.value.assistantResultSessions.length} 个会话</li>
+                  <li>来源到期会话中的历史未归属消息正文：{modal.value.assistantLegacyResultMessages.length} 条</li>
+                  <li>助手元数据删除：{modal.value.assistantTasks.length} 个任务、{modal.value.assistantMessages.length} 条消息、{modal.value.assistantToolCalls.length} 份工具收据、{modal.value.assistantSessions.length} 个会话</li>
+                  <li>自测：{modal.value.workflowTestResultRuns.length} 份结果到期、{modal.value.workflowTestRuns.length} 条元数据删除</li>
+                  <li>应用事件：{modal.value.applicationResultEvents.length} 份正文到期、{modal.value.applicationEvents.length} 条元数据删除</li>
                 </ul>
                 <details>
                   <summary>查看清理对象 ID</summary>
@@ -3803,6 +3852,19 @@ function App() {
                       检查点运行: modal.value.checkpoints,
                       元数据运行: modal.value.runs,
                       产物: modal.value.artifacts,
+                      助手正文任务: modal.value.assistantResultTasks,
+                      助手正文消息: modal.value.assistantResultMessages,
+                      历史未归属消息正文: modal.value.assistantLegacyResultMessages,
+                      助手正文收据: modal.value.assistantResultToolCalls,
+                      助手正文会话: modal.value.assistantResultSessions,
+                      助手元数据任务: modal.value.assistantTasks,
+                      助手元数据消息: modal.value.assistantMessages,
+                      助手元数据收据: modal.value.assistantToolCalls,
+                      助手元数据会话: modal.value.assistantSessions,
+                      自测结果: modal.value.workflowTestResultRuns,
+                      自测元数据: modal.value.workflowTestRuns,
+                      应用事件正文: modal.value.applicationResultEvents,
+                      应用事件元数据: modal.value.applicationEvents,
                     })}
                   </pre>
                 </details>
@@ -4070,8 +4132,8 @@ function App() {
                     busy ||
                     jsonInvalid ||
                     (modal.type === "retention" &&
-                      !["runs", "resultRuns", "checkpoints", "artifacts"].some(
-                        (key) => modal.value[key].length,
+                      !retentionScopeKeys.some(
+                        (key) => modal.value[key]?.length,
                       ))
                   }
                   onClick={submitModal}

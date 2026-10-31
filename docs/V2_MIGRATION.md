@@ -25,3 +25,9 @@ S1 的 migration 2 增加能力、编排账本、测试、模型、助手、知�
 `npm run test:upgrade-local` 在临时目录提取并编译基线45eed03的实际旧程序，运行旧v1库、生成报告和备份，然后启动2.0、检查所有旧行、备份预检、拒绝缺失新表、拒绝运行中恢复，最后停机恢复并重启实际旧程序。该脚本不读取正式库，也不运行安装器。macOS成功不代表原生Windows通过。
 
 S7本机演练已通过：实际旧程序→v2→停机恢复→实际旧程序重启，旧业务行/发布hash/报告字节保持不变；记录在 `evidence/v2/S7-upgrade.txt`。原生Windows/企业策略仍未验证。
+
+## alpha.2 审计修复兼容性
+
+迁移1与迁移2的历史DDL/checksum保持原字节。本次加强实际表DDL、约束、虚拟FTS模块和shadow的只读校验；同列普通表替代FTS等损坏库会明确MIGRATION_MISMATCH，不能修历史或重建空库绕过。Vault口令轮换同时事务重包v2 Provider continuation及历史认证交付密文，任一损坏或写失败完整回滚。结果清理范围新增助手、自测和事件副本，必须预览范围/hash再提交；旧无任务归属消息的保守兼容范围见V2_USER_GUIDE。未自动清理用户数据。
+
+本轮再次使用实际45eed03程序完成旧库创建→alpha.2升级→停机恢复→旧程序重启，旧业务行、发布hash和报告字节不变，见evidence/v2/audit/upgrade.txt。Windows与真实用户备份恢复仍属独立验收。

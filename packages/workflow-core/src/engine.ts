@@ -19,16 +19,16 @@ import {
   condition,
   set,
   get,
+  pointersOverlap,
   REPORT_HEADINGS,
   type Json,
-  workflowSchema,
   type Workflow,
   type Node,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
 import type { Vault } from "../../security/src/index.js";
 import type { Connectors } from "../../mcp-connectors/src/registry.js";
-import { validateWorkflow } from "./validate.js";
+import { validateWorkflow, validateWorkflowDocument } from "./validate.js";
 import { queryScopes } from "./query-scope.js";
 import { schemaAt } from "./mapping-schema.js";
 import { MCP_RAW_RESULT } from "../../mcp-connectors/src/results.js";
@@ -51,6 +51,7 @@ export class Engine {
     public repo: Repository,
     public vault: Vault,
     public connectors: Connectors,
+    private readonly simulationOnly = false,
   ) {}
   async seed() {
     if (this.repo.get("settings", "seeded")) return;
@@ -229,7 +230,7 @@ export class Engine {
     }
   }
   saveDraft(w: Workflow, expected: number | undefined, layout: Json) {
-    validate(workflowSchema, w);
+    validateWorkflowDocument(w);
     const old = this.repo.get("workflows", w.workflowId);
     ensure(
       old ? expected === old.revision : expected === undefined,
@@ -254,12 +255,21 @@ export class Engine {
     this.repo.put("workflows", w.workflowId, next, old?.revision);
     return next;
   }
-  validateDraft(w: Workflow) {
-    return validateWorkflow(
+  validateDraft(w: Workflow, capabilities?: Json[]) {
+    const result = validateWorkflow(
       w,
       this.repo.all("bindings"),
       this.repo.all("connections"),
     );
+    for (const n of w.nodes) if (w.schemaVersion === "flowhub.workflow/v2" && n.config.kind === "host_tool") {
+      const ref = n.config.capabilityRef;
+      const cap = ref && (capabilities ? capabilities.find((item:Json)=>item&&item.capabilityId===ref.capabilityId&&(item.capabilityRevision??item.revision)===ref.revision)
+        : this.repo.get("capability_revisions", ref.capabilityId + "@" + ref.revision));
+      ensure(cap && cap.kind === "mcp_tool" && cap.executor === "codex_host" && cap.inputSchema && cap.outputSchema,
+        "HOST_CAPABILITY_UNAVAILABLE", "Host tool requires a frozen discovered input/output contract.");
+      ensure(hash(n.config.outputSchema) === hash(cap.outputSchema), "HOST_CONTRACT_MISMATCH", "Host node output schema must match the discovered capability revision.");
+    }
+    return result;
   }
   publish(
     workflowId: string,
@@ -301,9 +311,14 @@ export class Engine {
         bindings: bindingSnapshot,
         ...(wf.draft.schemaVersion === "flowhub.workflow/v2" ? { capabilities: wf.draft.nodes.flatMap((n: Node) => {
           const ref=n.config.capabilityRef;
-          return ref ? [clone(this.repo.get("capability_revisions",ref.capabilityId+"@"+ref.revision))] : [];
+          if (!ref) return [];
+          const cap = this.repo.get("capability_revisions", ref.capabilityId + "@" + ref.revision);
+          ensure(cap && cap.capabilityId === ref.capabilityId && (cap.capabilityRevision ?? cap.revision) === ref.revision,
+            "CAPABILITY_STALE", "The exact capability revision is unavailable.", 409);
+          return [clone(cap)];
         }) } : {}),
         policyVersion: 1,
+        ...(this.simulationOnly ? { simulationOnly: true } : {}),
         reportContract: REPORT_HEADINGS,
       };
       const version = {
@@ -525,7 +540,7 @@ export class Engine {
         );
         const v = this.version(String(args.workflowId), String(args.version)),
           w: Workflow = v.snapshot.workflow;
-        this.validateDraft(w);
+        this.validateDraft(w,w.schemaVersion==="flowhub.workflow/v2"?v.snapshot.capabilities??[]:undefined);
         this.bindingsReady(v.snapshot);
         ensure(
           args.mode === w.mode,
@@ -734,13 +749,15 @@ export class Engine {
           };
         } else {
           payload = this.validateQueryScope(r, n, submission.payload);
+          if (n.config.kind === "host_tool") validate(this.hostCapability(r.snapshot, n).outputSchema, payload);
           validate(n.config.outputSchema, payload);
         }
         this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
         if(n.config.kind==="host_tool") {
-          r.hostReported??={};r.hostReported[n.id]={executor:"codex_host",verification:"host_reported",capabilityRef:n.config.capabilityRef};
-          this.repo.event(r.id,"HOST_TOOL_REPORTED",{nodeId:n.id,verification:"host_reported"});
+          const verification=r.snapshot.simulationOnly?"synthetic_fixture":"host_reported";
+          r.hostReported??={};r.hostReported[n.id]={executor:"codex_host",verification,capabilityRef:n.config.capabilityRef};
+          this.repo.event(r.id,"HOST_TOOL_REPORTED",{nodeId:n.id,verification});
         }
         if (n.config.kind === "host_skill")
           this.storeReport(
@@ -1173,6 +1190,8 @@ export class Engine {
     for (const [key, v] of Object.entries(b.lockedArguments)) set(args, key, v, arrayAt);
     if(n.config.rowLimitArgument) {
       const pointer=n.config.rowLimitArgument,definition=schemaAt(schema,pointer);let requested;
+      ensure(!Object.keys(b.lockedArguments).some(locked => pointersOverlap(pointer, locked)),
+        "ENVIRONMENT_OVERRIDE_DENIED", "Native row limit overlaps locked resource arguments.");
       try{requested=get(args,pointer);}catch(e){if(!(e instanceof HubError&&e.code==="REFERENCE_MISSING"))throw e;}
       ensure(["integer","number"].includes(definition.type),"LIMIT_UNSUPPORTED","The declared native row-limit argument is not numeric.");
       ensure(requested===undefined||(Number.isSafeInteger(requested)&&requested>0),"INPUT_INVALID","The native row limit must be a positive integer.");
@@ -1185,6 +1204,13 @@ export class Engine {
         "Template changed.",
       );
     return args;
+  }
+  private hostCapability(snapshot: Json, n: Node) {
+    const ref = n.config.capabilityRef;
+    const cap = snapshot.capabilities?.find((c: Json) => c && c.capabilityId === ref?.capabilityId && (c.capabilityRevision ?? c.revision) === ref?.revision);
+    ensure(cap?.kind === "mcp_tool" && cap.executor === "codex_host" && cap.inputSchema && cap.outputSchema,
+      "HOST_CAPABILITY_UNAVAILABLE", "Frozen host tool contract is unavailable.");
+    return cap;
   }
   private next(r: Json, nodeId: string, port = "next") {
     return r.snapshot.workflow.edges.find(
@@ -1289,8 +1315,7 @@ export class Engine {
         r.nodeExecutions++;
         if (n.type === "agent_task") {
           if(n.config.kind==="host_tool") {
-            const cap=r.snapshot.capabilities?.find((c:Json)=>c.capabilityId===n.config.capabilityRef?.capabilityId);
-            ensure(cap?.executor==="codex_host"&&cap.inputSchema,"HOST_CAPABILITY_UNAVAILABLE","Frozen host tool contract is unavailable.");
+            const cap=this.hostCapability(r.snapshot,n);
             validate(cap.inputSchema,mappings(n.config.inputMappings,r.inputs,this.operationalOutputs(r)));
           }
           ensure(
@@ -1314,11 +1339,11 @@ export class Engine {
             executorRef:n.config.executorRef,
             instruction: n.config.instructions,
             skillRef: n.config.skillRef,
-            ...(n.config.capabilityRef?{capabilityRef:n.config.capabilityRef,capability:r.snapshot.capabilities?.find((c:Json)=>c.capabilityId===n.config.capabilityRef.capabilityId),executorRef:n.config.executorRef,
+            ...(n.config.capabilityRef?{capabilityRef:n.config.capabilityRef,capability:r.snapshot.capabilities?.find((c:Json)=>c&&c.capabilityId===n.config.capabilityRef.capabilityId&&(c.capabilityRevision??c.revision)===n.config.capabilityRef.revision),executorRef:n.config.executorRef,
               resolvedArguments:mappings(n.config.inputMappings,r.inputs,this.operationalOutputs(r))}:{}),
             reportContract:
               n.config.kind === "host_skill" ? REPORT_HEADINGS : undefined,
-            requiredOutputSchema: n.config.outputSchema,
+            requiredOutputSchema: n.config.kind === "host_tool" ? this.hostCapability(r.snapshot,n).outputSchema : n.config.outputSchema,
             inputs: mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
             expiresAt: Date.now() + 86400000,
             expectedRevision: r.revision,

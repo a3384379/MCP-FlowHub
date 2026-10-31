@@ -1,4 +1,4 @@
-import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
+import { McpServer, fromJsonSchema, ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import {
   TOOL_NAMES,
   VERSION,
@@ -21,6 +21,17 @@ export function createHubServer(handle: ToolHandler, names:readonly ToolName[]=T
         "Run existing workflows: search → get → start. Author a workflow: capability_search/get → draft_create/patch → validate → test_generate/run/status → publish. Create, publish and run are distinct intents. Codex can propose fixtures without a model Key. Submit only the current checkpoint schema at WAITING_AGENT; host-only tools require actual Codex execution. Environment and resource bindings are immutable.",
     },
   );
+  const call:ToolHandler=async(name,args)=>{
+    const pending:unknown[]=[args];let elements=0;
+    while(pending.length){const value=pending.pop();
+      if(value&&typeof value==="object")for(const child of Object.values(value)){
+        if(++elements>10000)return failure("INPUT_INVALID","Tool arguments exceed the 10000-element budget.");
+        if(child&&typeof child==="object")pending.push(child);
+      }
+    }
+    if(!validArguments(name,args))return failure("INPUT_INVALID","Arguments do not match the fixed tool contract.");
+    return handle(name,args);
+  };
   for (const name of names) {
     server.registerTool(
       name,
@@ -37,15 +48,16 @@ export function createHubServer(handle: ToolHandler, names:readonly ToolName[]=T
           ].includes(name),
         },
       },
-      async (args) => {
-        if (!validArguments(name, args))
-          return failure(
-            "INPUT_INVALID",
-            "Arguments do not match the fixed tool contract.",
-          );
-        return handle(name, args);
-      },
+      async (args) => call(name,args),
     );
   }
+  // McpServer's generic validation error is text-only. The public SDK request
+  // handler keeps the advertised schemas and protocol adaptation while routing
+  // rejected arguments through the same structured business error contract.
+  server.server.setRequestHandler("tools/call",async request=>{
+    const name=request.params.name as ToolName;
+    if(!names.includes(name))throw new ProtocolError(ProtocolErrorCode.InvalidParams,"Tool "+request.params.name+" not found");
+    return server.server.projectCallToolResult(await call(name,request.params.arguments??{}),undefined);
+  });
   return server;
 }

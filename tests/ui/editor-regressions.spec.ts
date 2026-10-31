@@ -322,11 +322,21 @@ test("reviewed publication rejects a concurrent edit and offers comparison and a
     .getByRole("button", { name: "关闭", exact: true })
     .last()
     .click();
-  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
   const recovery = page.getByRole("region", { name: "草稿冲突处理" });
+  // Closing review can safely adopt a remote-only change. A real same-field
+  // conflict below must remain available for comparison and save-as.
+  if (await recovery.isVisible())
+    await recovery.getByRole("button", { name: "重新尝试合并", exact: true }).click();
+  await expect(recovery).toHaveCount(0);
+  await page.locator(".react-flow__node").first().click();
+  await page.getByLabel("节点名称", { exact: true }).fill("本地未保存节点");
+  const latest = await api("/workflows/" + id + "/draft");
+  const changed = structuredClone(latest.draft);
+  changed.nodes[0].title = "远端同字段修改";
+  await api("/workflows/" + id + "/draft", "PUT", {workflow: changed, layout: latest.layout}, latest.revision);
   await expect(recovery).toBeVisible();
   await recovery.getByRole("button", { name: "比较差异", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("另一标签页已修改");
+  await expect(page.getByRole("dialog")).toContainText("远端同字段修改");
   await page.keyboard.press("Escape");
   await recovery.getByRole("button", { name: "另存草稿", exact: true }).click();
   const copy = page.getByRole("dialog", { name: "另存为新工作流" });

@@ -107,5 +107,5 @@ test("streamed JSON waits for completed finish and interrupted arguments never b
 test("provider authentication and 429 failures stay typed and bounded",async t=>{
   let status=401,requests=0;const baseUrl=await mockServer(t,(_req,_body,res)=>{requests++;res.writeHead(status,{"Retry-After":"2"});res.end("private diagnostic not exposed");});
   const provider=new HttpModelProvider({providerKind:"openai_responses",baseUrl,model:"synthetic"},"synthetic-key"),request={messages:[],tools:[],signal:new AbortController().signal,stream:false};
-  await assert.rejects(provider.complete(request),{code:"MODEL_AUTH_FAILED"});status=429;await assert.rejects(provider.complete(request),{code:"MODEL_RATE_LIMITED"});assert.equal(requests,2);
+  await assert.rejects(provider.complete(request),{code:"MODEL_AUTH_FAILED"});status=429;await assert.rejects(provider.complete(request),{code:"MODEL_RATE_LIMITED"});assert.equal(requests,4);
 });

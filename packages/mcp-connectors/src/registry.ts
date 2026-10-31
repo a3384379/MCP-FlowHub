@@ -39,6 +39,8 @@ class RestrictedToolValidator extends AjvJsonSchemaValidator {
   }
 }
 export class Connectors {
+  private discoveryDisposals=new Map<AbortController,Promise<void>>();
+  async closeDiscovery(){for(const controller of this.discoveryDisposals.keys())controller.abort();await Promise.allSettled(this.discoveryDisposals.values());}
   constructor(
     private repo: Repository,
     private vault: Vault,
@@ -187,6 +189,7 @@ export class Connectors {
       { name: "flowhub-connector", version: VERSION },
       {
         jsonSchemaValidator: new RestrictedToolValidator(),
+        ...(probe?{listMaxPages:16}:{}),
         versionNegotiation: {
           mode,
           probe: { timeoutMs: Math.min(5000, timeout), maxRetries: 0 },
@@ -260,16 +263,29 @@ export class Connectors {
   }
   // Discovery performs no persistence, so callers can commit related records
   // together after the external MCP exchange has completed.
-  async discover(c: Json) {
-    const context = this.vault.catalogContext();
-    const client = await this.connect(c, true);
+  async discover(c: Json, control: { signal?: AbortSignal; deadline?: number; timeoutMs?: number } = {}) {
+    const deadline = Math.min(control.deadline ?? Infinity, Date.now() + (control.timeoutMs ?? 10000));
+    const controller = new AbortController();
+    let disposed!:()=>void;
+    this.discoveryDisposals.set(controller,new Promise<void>(resolve=>disposed=resolve));
+    const abort = () => controller.abort(control.signal?.reason);
+    if (control.signal?.aborted) abort(); else control.signal?.addEventListener("abort", abort, { once: true });
+    const remaining = () => {
+      ensure(!controller.signal.aborted && Date.now() < deadline, "DISCOVERY_CANCELLED", "Catalog discovery cancelled or timed out.");
+      return Math.max(1, deadline - Date.now());
+    };
+    const timer = setTimeout(() => controller.abort(), Math.max(1, deadline - Date.now()));
+    let context:ReturnType<Vault["catalogContext"]>;
+    let client: Awaited<ReturnType<Connectors["connect"]>> | undefined;
     let next: Json;
     try {
+      context = this.vault.catalogContext();
+      client = await this.connect(c, true, remaining(), undefined, controller.signal);
       const tools: Json[] = [],
         cursors = new Set<string>();
       let cursor: string | undefined;
       do {
-        const page = await client.listTools(cursor ? { cursor } : undefined);
+        const page = await client.listTools(cursor ? { cursor } : undefined, { timeout: remaining(), signal: controller.signal, cacheMode: "bypass" });
         this.vault.assertCatalogSafe(page, context);
         for (const t of page.tools) {
           ensure(
@@ -319,8 +335,8 @@ export class Connectors {
         verifiedSdk: SDK_VERSION,
         catalogSafetyVersion: 1,
         discovery: discovery
-          ? { kind: "modern", discover: discovery }
-          : { kind: "legacy" },
+          ? { kind: "modern", discover: discovery, serverInfo: client.getServerVersion() }
+          : { kind: "legacy", serverInfo: client.getServerVersion() },
         history: [
           ...(c.history ?? [])
             .slice(-9)
@@ -329,7 +345,9 @@ export class Connectors {
         ],
       };
     } finally {
-      await client.close();
+      clearTimeout(timer);
+      control.signal?.removeEventListener("abort", abort);
+      try {await client?.close();} finally {this.discoveryDisposals.delete(controller);disposed();}
     }
     this.vault.assertCatalogSafe(
       { tools: next.tools, discovery: next.discovery, history: next.history },

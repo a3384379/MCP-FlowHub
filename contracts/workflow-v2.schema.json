@@ -1201,7 +1201,7 @@
           "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
         },
         "outputSchema": {
-          "$ref": "#/$defs/dataSchema"
+          "$ref": "#/$defs/nativeObjectSchema"
         },
         "capabilityRef": {
           "type": "object",
@@ -1237,6 +1237,353 @@
         "executorRef"
       ],
       "additionalProperties": false
+    },
+    "nativeSchema": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "$schema": {
+              "const": "https://json-schema.org/draft/2020-12/schema"
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "object",
+                    "array",
+                    "string",
+                    "boolean",
+                    "integer",
+                    "number",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "object",
+                      "array",
+                      "string",
+                      "boolean",
+                      "integer",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 7,
+                  "uniqueItems": true
+                }
+              ]
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 4000
+            },
+            "properties": {
+              "type": "object",
+              "maxProperties": 128,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/nativeSchema"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "uniqueItems": true,
+              "maxItems": 128
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "items": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "enum": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              },
+              "minItems": 1,
+              "maxItems": 128,
+              "uniqueItems": true
+            },
+            "const": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              },
+              "maxItems": 8
+            },
+            "minLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1048576
+            },
+            "pattern": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "format": {
+              "enum": [
+                "date-time",
+                "date",
+                "time",
+                "duration",
+                "uri",
+                "uri-reference",
+                "uuid",
+                "email",
+                "hostname",
+                "ipv4",
+                "ipv6"
+              ]
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "uniqueItems": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "$comment": {
+              "type": "string",
+              "maxLength": 4000
+            },
+            "$ref": {
+              "type": "string",
+              "maxLength": 512,
+              "pattern": "^#(?:/(?:[^~/]|~[01])*)+$"
+            },
+            "patternProperties": {
+              "type": "object",
+              "maxProperties": 128,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/nativeSchema"
+              }
+            },
+            "$defs": {
+              "type": "object",
+              "maxProperties": 128,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/nativeSchema"
+              }
+            },
+            "definitions": {
+              "type": "object",
+              "maxProperties": 128,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/nativeSchema"
+              }
+            },
+            "dependentSchemas": {
+              "type": "object",
+              "maxProperties": 128,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/nativeSchema"
+              }
+            },
+            "contains": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "propertyNames": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "unevaluatedProperties": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "unevaluatedItems": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "not": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "if": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "then": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "else": {
+              "$ref": "#/$defs/nativeSchema"
+            },
+            "allOf": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nativeSchema"
+              },
+              "minItems": 1,
+              "maxItems": 128
+            },
+            "anyOf": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nativeSchema"
+              },
+              "minItems": 1,
+              "maxItems": 128
+            },
+            "oneOf": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nativeSchema"
+              },
+              "minItems": 1,
+              "maxItems": 128
+            },
+            "prefixItems": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nativeSchema"
+              },
+              "minItems": 1,
+              "maxItems": 128
+            },
+            "default": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "exclusiveMinimum": {
+              "type": "number"
+            },
+            "exclusiveMaximum": {
+              "type": "number"
+            },
+            "multipleOf": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "minProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "maxProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "minContains": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "maxContains": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "readOnly": {
+              "type": "boolean"
+            },
+            "writeOnly": {
+              "type": "boolean"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "dependentRequired": {
+              "type": "object",
+              "maxProperties": 128,
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "uniqueItems": true,
+                "maxItems": 128
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "Bounded native JSON Schema for v2 host_tool only. Preserve discovered semantics; runtime safety validation enforces document and reference-expansion limits, local nonrecursive refs and safe patterns before compilation."
+    },
+    "nativeObjectSchema": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/nativeSchema"
+        },
+        {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "object"
+                }
+              }
+            },
+            {
+              "required": [
+                "$ref"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Native object-root output contract. Root local refs must resolve to an object contract. Unlike analysis dataSchema, omitted or true additionalProperties retain their JSON Schema meaning."
     }
   }
 }

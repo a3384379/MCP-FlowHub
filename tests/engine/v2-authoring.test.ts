@@ -70,3 +70,27 @@ test("undo cannot remove a node referenced by later user edits",async t=>{
   assert.throws(()=>f.authoring.undo({workflowId:"authoring-demo",expectedRevision:3,commandId:added.commandId,idempotencyKey:"referenced"}),{code:"REFERENCE_IN_USE"});
   assert.equal(f.authoring.get("authoring-demo").revision,3);assert.ok(f.authoring.get("authoring-demo").draft.nodes.some((n:any)=>n.id==="ai-node"));
 });
+test("AUTHOR-06 referenced deletion is denied atomically and explicit cascade removes only the dependency closure",async t=>{
+  const f=authoringFixture();t.after(f.close);
+  f.authoring.create({workflowId:"authoring-demo",name:"合成删除链",environment:"test",mode:"guided",template:"blank",idempotencyKey:"create"});
+  const output={type:"object",properties:{summary:{type:"string"}},required:["summary"],additionalProperties:false};
+  const task=(nodeId:string,source?:string)=>({op:"add_node",nodeId,nodeType:"agent_task",title:nodeId,config:{kind:"analysis",instructions:"Synthetic dependency test",inputMappings:source?{"/source":{ref:{source:"node",nodeId:source,pointer:""}}}:{},outputSchema:output}});
+  f.patch([task("source"),task("dependent","source"),task("transitive","dependent"),task("retained"),
+    {op:"disconnect",source:"input",target:"end",port:"next"},
+    ...[["input","source"],["source","dependent"],["dependent","transitive"],["transitive","retained"],["retained","end"]].map(([source,target])=>({op:"connect",source,target,port:"next"}))]);
+  const before=f.authoring.get("authoring-demo"),events=f.repo.changes().length,commands=f.repo.all("authoring_commands").length;
+  assert.deepEqual(before.issues,[]);
+  assert.throws(()=>f.patch([{op:"remove_node",nodeId:"source"}],2,"omitted-cascade"),{code:"INPUT_INVALID"});
+  assert.throws(()=>f.patch([{op:"remove_node",nodeId:"source",cascade:false}],2,"default-delete"),{code:"REFERENCE_IN_USE"});
+  assert.throws(()=>f.patch([{op:"set_metadata",changes:{name:"MUST_ROLL_BACK"}},{op:"remove_node",nodeId:"source",cascade:false}],2,"failed-batch"),{code:"REFERENCE_IN_USE"});
+  assert.deepEqual(f.authoring.get("authoring-demo"),before);assert.equal(f.repo.changes().length,events);assert.equal(f.repo.all("authoring_commands").length,commands);
+  const deleted=f.patch([{op:"remove_node",nodeId:"source",cascade:true},{op:"connect",source:"input",target:"retained",port:"next"}],2,"cascade-delete"),after=f.authoring.get("authoring-demo");
+  assert.equal(deleted.revision,3);assert.deepEqual(deleted.issues,[]);assert.deepEqual(after.draft.nodes.map((node:any)=>node.id),["input","end","retained"]);
+  assert.deepEqual(after.draft.edges,[{source:"retained",target:"end",port:"next"},{source:"input",target:"retained",port:"next"}]);
+  for(const nodeId of ["source","dependent","transitive"])assert.equal(Object.hasOwn(after.layout,nodeId),false);
+  for(const nodeId of ["input","end","retained"])assert.deepEqual(after.draft.nodes.find((node:any)=>node.id===nodeId),before.draft.nodes.find((node:any)=>node.id===nodeId));
+  assert.deepEqual(after.layout.retained,before.layout.retained);assert.ok(!JSON.stringify(after.draft.nodes).includes('"nodeId":"source"'));assert.ok(!JSON.stringify(after.draft.nodes).includes('"nodeId":"dependent"'));
+  assert.equal(f.repo.changes().length,events+1);assert.equal(f.repo.all("authoring_commands").length,commands+1);
+  const published=f.authoring.publish({workflowId:"authoring-demo",expectedRevision:3,version:"1.0.0",expectedBindingRevisions:{},expectedCapabilityRevisions:{},idempotencyKey:"publish-after-cascade"});
+  assert.deepEqual(published.snapshot.workflow.nodes,after.draft.nodes);
+});

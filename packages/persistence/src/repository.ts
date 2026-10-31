@@ -3,7 +3,7 @@ import { chmodSync } from "node:fs";
 import { hash, now, ensure, type Json } from "../../contracts/src/domain.js";
 import { V1_TABLES } from "./v1.js";
 import { V2_TABLES } from "./v2.js";
-import { migrate } from "./migrations.js";
+import { migrate, validateMigrations } from "./migrations.js";
 export { validateMigrations } from "./migrations.js";
 export type Table = (typeof V1_TABLES)[number] | (typeof V2_TABLES)[number];
 export class Repository {
@@ -138,6 +138,7 @@ export class Repository {
       );
   }
   async backup(path: string) {
+    validateMigrations(this.db);
     await this.db.backup(path);
     chmodSync(path, 0o600);
   }

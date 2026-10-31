@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { projectRoot } from "../../contracts/src/index.js";
-import { clone, ensure, hash, id, now, validate, workflowSchema, HubError, type Json, type Workflow } from "../../contracts/src/domain.js";
+import { projectRoot, inputContract } from "../../contracts/src/index.js";
+import { clone, ensure, hash, id, now, validate, HubError, type Json, type Workflow } from "../../contracts/src/domain.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
+import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
 const refs = (w: Workflow): Json[] => w.nodes.flatMap(n => n.config.capabilityRef ? [n.config.capabilityRef] : []);
@@ -145,7 +146,7 @@ export class AuthoringService {
         executors:[...new Set(w.nodes.map(n=>n.type==="mcp_tool"?"hub_direct":n.type==="agent_task"?(n.config.executorRef??"codex_host"):null).filter(Boolean))],
         capabilityRefs:refs(w),
       };
-      validate(workflowSchema,w); // Incomplete graphs may persist; illegal DSL/config never does.
+      validateWorkflowDocument(w); // Incomplete graphs may persist; illegal DSL/config never does.
       const revision=before.revision+(layoutOnly?0:1);
       const record={...before,draft:w,workflow:undefined,issues:undefined,capabilityRefs:undefined,name:w.name,description:w.description,tags:w.tags,layout,layoutRevision,revision,updatedAt:now()};
       delete record.workflow;delete record.issues;delete record.capabilityRefs;
@@ -158,6 +159,7 @@ export class AuthoringService {
     });
   }
   validate(a: Json, owner="admin") {
+    validate(inputContract.$defs.workflow_draft_validate,a);
     const record=this.get(a.workflowId,owner);
     ensure(record.revision===a.expectedRevision,"REVISION_CONFLICT","Draft changed.",409);
     const issues=this.issues(record.draft);
@@ -185,6 +187,10 @@ export class AuthoringService {
       const revert=(target:Json,before:Json,after:Json,path:string)=>{
         for(const key of new Set([...Object.keys(before??{}),...Object.keys(after??{})])) {
           if(same(before?.[key],after?.[key]))continue;
+          const object=(value:Json)=>value!==null&&typeof value==="object"&&!Array.isArray(value);
+          if(object(before?.[key])&&object(after?.[key])&&object(target[key])) {
+            revert(target[key],before[key],after[key],path+key+"/");continue;
+          }
           ensure(same(target[key],after?.[key]),"REVISION_CONFLICT","Cannot undo a field changed later: "+path+key,409);
           inverse.push({path:path+key,before:after?.[key]??null,after:before?.[key]??null});
           if(Object.hasOwn(before??{},key))target[key]=clone(before[key]);else delete target[key];
@@ -207,8 +213,8 @@ export class AuthoringService {
       revert(draft,metadata(command.beforeDraft),metadata(command.afterDraft),"/");revert(draft.bindings,command.beforeDraft.bindings,command.afterDraft.bindings,"/bindings/");revert(layout,command.beforeLayout,command.afterLayout,"/layout/");
       const removed=current.draft.nodes.filter((n:Json)=>!liveNodes[n.id]).map((n:Json)=>n.id);
       ensure(!draft.edges.some((e:Json)=>removed.includes(e.source)||removed.includes(e.target))&&!draft.nodes.some((n:Json)=>removed.some((key:string)=>mentions(n.config,key))),"REFERENCE_IN_USE","Later edits reference a node this undo would remove.",409);
-      validate(workflowSchema,draft);
-      const saved={...current,draft,layout,revision:current.revision+1,layoutRevision:current.layoutRevision+(same(layout,current.layout)?0:1),name:draft.name,updatedAt:now()};
+      validateWorkflowDocument(draft);
+      const saved={...current,draft,layout,revision:current.revision+(same(draft,current.draft)?0:1),layoutRevision:current.layoutRevision+(same(layout,current.layout)?0:1),name:draft.name,updatedAt:now()};
       delete saved.workflow;delete saved.issues;delete saved.capabilityRefs;
       this.repo.put("workflows",a.workflowId,saved,current.revision);
       const undoId=id("authoring");this.repo.insert("authoring_commands",undoId,{id:undoId,owner,operation:"undo",idempotencyKey:a.idempotencyKey,workflowId:a.workflowId,
@@ -218,16 +224,17 @@ export class AuthoringService {
     });
   }
   publish(a: Json, owner="admin") {
+    validate(inputContract.$defs.workflow_draft_publish,a);
     this.authorize(owner,a.workflowId);
     return this.repo.command(owner,"draft.publish",a.idempotencyKey,a,()=> {
       const record=this.get(a.workflowId,owner);
       ensure(record.revision===a.expectedRevision,"REVISION_CONFLICT","Draft changed.",409);
-      const expected=a.expectedCapabilityRevisions ?? {};
+      const expected=a.expectedCapabilityRevisions;
       const current=Object.fromEntries(refs(record.draft).map(ref=>[ref.capabilityId,this.repo.get("capabilities",ref.capabilityId)?.revision]));
       ensure(hash(current)===hash(expected),"CAPABILITY_STALE","Capability revisions must match the reviewed draft.",409);
-      const check=this.validate({...a,level:"publish"},owner);
+      const check=this.validate({workflowId:a.workflowId,expectedRevision:a.expectedRevision,level:"publish"},owner);
       ensure(check.valid,"WORKFLOW_INVALID",JSON.stringify(check.issues));
-      const draft={...record.draft,version:a.version};validate(workflowSchema,draft);
+      const draft={...record.draft,version:a.version};validateWorkflowDocument(draft);
       this.repo.put("workflows",a.workflowId,{...record,draft});
       const result=this.engine.publish(a.workflowId,a.expectedRevision,"v2 authoring",a.expectedBindingRevisions);
       this.repo.changed("draft.changed",{workflowId:a.workflowId,revision:this.repo.get("workflows",a.workflowId).revision});

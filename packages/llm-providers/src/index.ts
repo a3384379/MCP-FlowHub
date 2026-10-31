@@ -33,9 +33,27 @@ async function events(response:Response,onEvent:(event:Json)=>void) {
     }
   }}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
 }
+async function bodyJson(response:Response) {
+  ensure(response.body,"MODEL_OUTPUT_INVALID","Provider returned no JSON body.");
+  const reader=response.body.getReader(),parts:Uint8Array[]=[];let bytes=0;
+  try{while(true){const part=await reader.read();if(part.done)break;bytes+=part.value.length;ensure(bytes<=4*1024*1024,"BUDGET_EXCEEDED","Provider response exceeded 4 MiB.");parts.push(part.value);}}
+  finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+  const result=new Uint8Array(bytes);let offset=0;for(const part of parts){result.set(part,offset);offset+=part.length;}
+  try{return JSON.parse(new TextDecoder().decode(result)) as Json;}catch{throw new HubError("MODEL_OUTPUT_INVALID","Provider returned invalid JSON.");}
+}
+function cancelled(signal:AbortSignal):never {
+  if(signal.reason instanceof HubError)throw signal.reason;
+  throw new HubError("TASK_CANCELLED","Task cancelled.");
+}
+async function retryDelay(ms:number,signal:AbortSignal) {
+  if(signal.aborted)cancelled(signal);
+  await new Promise<void>((resolve,reject)=>{const stop=()=>{clearTimeout(timer);reject(signal.reason instanceof HubError?signal.reason:new HubError("TASK_CANCELLED","Task cancelled."));};const timer=setTimeout(()=>{signal.removeEventListener("abort",stop);resolve();},ms);signal.addEventListener("abort",stop,{once:true});});
+}
 export class HttpModelProvider implements ModelProvider {
   constructor(readonly profile:Json,readonly key:string) {}
   async complete(request:ModelRequest):Promise<ModelTurn> {
+    const timeout=AbortSignal.timeout(this.profile.timeoutMs??180000),signal=AbortSignal.any([request.signal,timeout]);
+    try {
     const responses=this.profile.providerKind==="openai_responses";
     const tools=request.tools.map(t=>responses?{type:"function",name:t.name,description:t.description,parameters:t.parameters,strict:false}:{type:"function",function:{name:t.name,description:t.description,parameters:t.parameters,strict:false}});
     let body:Json;
@@ -44,11 +62,16 @@ export class HttpModelProvider implements ModelProvider {
       body={model:this.profile.model,input,store:false,stream:request.stream,...(tools.length?{tools,parallel_tool_calls:false}:{})};
     }else body={model:this.profile.model,messages:request.messages,stream:request.stream,...(tools.length?{tools,parallel_tool_calls:false}:{})};
     let response:Response;
-    try {response=await fetch(providerUrl(this.profile.baseUrl,this.profile.providerKind),{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+this.key},body:JSON.stringify(body),signal:AbortSignal.any([request.signal,AbortSignal.timeout(this.profile.timeoutMs??180000)]),redirect:"error"});}
-    catch(e){if(request.signal.aborted)throw new HubError("TASK_CANCELLED","Task cancelled.");throw new HubError((e as Error).name==="TimeoutError"?"MODEL_TIMEOUT":"MODEL_CONNECTION_FAILED","Model request did not complete; no write will be replayed.");}
-    if(!response.ok){await response.body?.cancel();throw new HubError(response.status===401||response.status===403?"MODEL_AUTH_FAILED":response.status===429?"MODEL_RATE_LIMITED":"MODEL_REQUEST_FAILED","Model service rejected the request.",422,{status:response.status,retryAfter:response.headers.get("retry-after")});}
+    for(let attempt=0;;attempt++) {
+      response=await fetch(providerUrl(this.profile.baseUrl,this.profile.providerKind),{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+this.key},body:JSON.stringify(body),signal,redirect:"error"});
+      if(response.ok)break;
+      await response.body?.cancel();
+      const raw=response.headers.get("retry-after"),retryMs=raw===null?250:/^\d+(?:\.\d+)?$/.test(raw)?Number(raw)*1000:Math.max(0,Date.parse(raw)-Date.now());
+      if(response.status===429&&attempt<2&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
+      throw new HubError(response.status===401||response.status===403?"MODEL_AUTH_FAILED":response.status===429?"MODEL_RATE_LIMITED":"MODEL_REQUEST_FAILED","Model service rejected the request.",422,{status:response.status,retryAfter:raw,attempts:attempt+1});
+    }
     if(!request.stream) {
-      const data=await response.json() as Json;
+      const data=await bodyJson(response);
       if(responses){const output=data.output??[],calls=output.filter((x:Json)=>x.type==="function_call").map((x:Json)=>({id:x.call_id,name:x.name,arguments:x.arguments}));validateCalls(calls);
         ensure(data.status===undefined||data.status==="completed","MODEL_STREAM_INTERRUPTED","Response did not complete.");
         return {text:output.filter((x:Json)=>x.type==="message").flatMap((m:Json)=>m.content??[]).filter((x:Json)=>x.type==="output_text").map((x:Json)=>x.text).join(""),calls,usage:data.usage??null,continuation:output};
@@ -81,6 +104,12 @@ export class HttpModelProvider implements ModelProvider {
     const finalized=outputCalls?.length?outputCalls:[...calls.values()];validateCalls(finalized);
     if(!text&&continuation)text=continuation.filter(x=>x.type==="message").flatMap(x=>x.content??[]).filter(x=>x.type==="output_text").map(x=>x.text).join("");
     return {text,calls:finalized,usage,...(continuation?{continuation}:{})};
+    }catch(e){
+      if(request.signal.aborted)cancelled(request.signal);
+      if(timeout.aborted)throw new HubError("MODEL_TIMEOUT","Model request timed out before the complete response was received.");
+      if(e instanceof HubError)throw e;
+      throw new HubError(request.stream?"MODEL_STREAM_INTERRUPTED":"MODEL_CONNECTION_FAILED","Model response did not complete; no write will be replayed.");
+    }
   }
 }
 /** Deterministic dependency injection for tests. Never selected by an end-user profile. */

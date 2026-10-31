@@ -8,7 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
 export const projectRoot = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
-export const VERSION = "2.0.0-alpha.1";
+export const VERSION = "2.0.0-alpha.2";
 export const RELEASE_PHASE = "ALPHA";
 export const MODERN_PROTOCOL = "2026-07-28";
 export const SDK_VERSION = "2.4.0";

@@ -19,11 +19,11 @@ import {
   get,
   validate,
   clone,
-  workflowSchema,
   type Json,
   type Workflow,
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
+import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth } from "../../security/src/index.js";
@@ -829,7 +829,7 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Workflow object required.",
     );
-    validate(workflowSchema, w);
+    validateWorkflowDocument(w);
   }
   // Import uses the same runtime schema; graph/binding validation is deferred to publish.
   app.get("/api/v1/legacy-workflows", async () => data({

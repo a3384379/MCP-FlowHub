@@ -639,6 +639,11 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
         }
       },
       "required": [

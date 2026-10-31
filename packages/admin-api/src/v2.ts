@@ -7,13 +7,19 @@ import type { Application } from "../../application/src/index.js";
 export function registerV2(app: FastifyInstance, authoring: AuthoringService, registry: CapabilityRegistry, application?:Application) {
   const data=(value:Json)=>({data:value,requestId:id("req")});
   const arg=(req:Json)=>({...req.body,workflowId:req.params.id});
-  app.get("/api/v2/host-contexts",async()=>data(registry.repo.all("host_contexts")));
+  const query=(raw:Json)=>Object.fromEntries(Object.entries(raw).map(([key,value])=>{
+    if(["includeSchemas","includeSkillContent"].includes(key)){ensure(value==="true"||value==="false","INPUT_INVALID","Boolean query value required.");return [key,value==="true"];}
+    if(["limit","revision"].includes(key)){ensure(typeof value==="string"&&/^\d+$/.test(value),"INPUT_INVALID","Integer query value required.");return [key,Number(value)];}
+    return [key,value];
+  }));
+  app.get("/api/v2/host-contexts",async()=>data(registry.repo.all("host_contexts").map(context=>{const last=registry.repo.db.prepare("SELECT id,json_extract(body,'$.createdAt') AS createdAt FROM discovery_jobs WHERE json_extract(body,'$.contextId')=? ORDER BY json_extract(body,'$.generation') DESC LIMIT 1").get(context.id) as Json;return {...context,lastScanId:last?.id,lastScanAt:last?.createdAt};})));
   app.post("/api/v2/host-contexts",async req=>data(await registry.context(req.body)));
   app.post("/api/v2/host-scans",async req=>data(registry.scan(req.body)));
   app.post("/api/v2/capability-sources/:id/credentials",async req=>data(await registry.configureSource({...req.body as Json,sourceId:(req.params as Json).id})));
   app.get("/api/v2/host-scans/:id",async req=>data(registry.status((req.params as Json).id)));
-  app.get("/api/v2/capabilities",async req=>data(registry.search(req.query)));
-  app.get("/api/v2/capabilities/:id",async req=>data(registry.get({...req.query as Json,capabilityId:(req.params as Json).id})));
+  app.post("/api/v2/host-scans/:id/cancel",async req=>data(registry.cancel((req.params as Json).id)));
+  app.get("/api/v2/capabilities",async req=>data(registry.search(query(req.query))));
+  app.get("/api/v2/capabilities/:id",async req=>data(registry.get({...query(req.query),capabilityId:(req.params as Json).id})));
   app.post("/api/v2/capabilities/:id/import",async req=>data(await registry.import({...req.body as Json,capabilityId:(req.params as Json).id})));
   app.post("/api/v2/workflows",async req=>data(authoring.create(req.body)));
   app.get("/api/v2/workflows/:id/draft",async req=>data(authoring.get((req.params as Json).id)));
@@ -34,7 +40,7 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     app.get("/api/v2/assistant/sessions",async()=>data(application.assistant.sessions()));
     app.post("/api/v2/assistant/sessions",async()=>data(application.assistant.session()));
     app.delete("/api/v2/assistant/sessions/:id",async req=>data(application.assistant.deleteSession((req.params as Json).id)));
-    app.get("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.messages((req.params as Json).id)));
+    app.get("/api/v2/assistant/sessions/:id/messages",async req=>data(application.assistant.messagePage((req.params as Json).id,req.query)));
     app.get("/api/v2/assistant/sessions/:id/tasks",async req=>{
       const sessionId=(req.params as Json).id;application.assistant.messages(sessionId);
       return data(registry.repo.all("assistant_tasks").filter(t=>t.sessionId===sessionId).map(t=>application.assistant.task(t.id)));
@@ -59,6 +65,7 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     });
     app.post("/api/v2/test-suites/:id/runs",async req=>data(application.testing.run({...req.body as Json,suiteId:(req.params as Json).id})));
     app.get("/api/v2/test-runs/:id",async req=>data(application.testing.status((req.params as Json).id)));
+    app.get("/api/v2/help/source",async req=>{const source=application.knowledge.source(req.query);ensure(source,"NOT_FOUND","Knowledge source missing.",404);return data(source);});
     app.get("/api/v2/help/search",async req=>data(application.knowledge.search(req.query)));
   }
 }

@@ -2,10 +2,12 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { delimiter, isAbsolute, join, resolve, relative } from "node:path";
+import { delimiter, basename, dirname, isAbsolute, join, resolve, relative } from "node:path";
 import { parse } from "smol-toml";
 import { ensure, hash, HubError, type Json } from "../../contracts/src/domain.js";
 import { readAppServer } from "./app-server.js";
+import {discoveryCommand,type DiscoveryRuntime} from "./runtime.js";
+export type {DiscoveryRuntime} from "./runtime.js";
 const exec=promisify(execFile);
 export const executionLocation=process.platform==="win32"?"windows_native":process.platform==="darwin"?"macos":process.env.WSL_DISTRO_NAME?"wsl":"linux";
 export async function locateCodex() {
@@ -13,15 +15,57 @@ export async function locateCodex() {
     try {const path=await realpath(join(root,file));if((await stat(path)).isFile()&&!/\.cmd$/i.test(path))return path;}catch{}
   return null;
 }
-const output=async(context:Json,args:string[])=> (await exec(context.codexPath,args,{cwd:context.canonicalCwd,env:{...process.env,CODEX_HOME:context.codexHome},timeout:5000,maxBuffer:4*1024*1024,windowsHide:true})).stdout;
-export async function createContext(a:Json={}) {
+export type DiscoveryControl = { signal?: AbortSignal; deadline?: number };
+const output=async(context:Json,args:string[],control:DiscoveryControl={},runtime:DiscoveryRuntime={})=> {const command=discoveryCommand(context,args,runtime);return (await exec(command.executable,command.args,{cwd:context.canonicalCwd,env:{...process.env,CODEX_HOME:context.codexHome},timeout:Math.max(1,Math.min(5000,(control.deadline??Infinity)-Date.now())),maxBuffer:4*1024*1024,windowsHide:true,killSignal:"SIGKILL",...(control.signal?{signal:control.signal}:{})})).stdout;};
+export function normalizedServer(server:Json):Json {
+  const transport=server.transport??server;
+  return {...transport,enabled:server.enabled!==false && transport.enabled!==false,
+    ...Object.fromEntries(["enabled_tools","disabled_tools","cwd","env_http_headers","http_headers_helper","placement"].filter(k=>server[k]!==undefined).map(k=>[k,server[k]]))};
+}
+export function toolEnabled(config:Json,name:string) {
+  return config.enabled!==false && (!Array.isArray(config.enabled_tools)||config.enabled_tools.includes(name)) && !(config.disabled_tools??[]).includes(name);
+}
+/** Authentication locations only; business payloads never pass through this classifier. */
+export function sourcePolicy(config:Json) {
+  const args=config.args??[],launcher=basename(config.command??"").replace(/\.exe$/i,"").toLowerCase();
+  const genericFlags=/^(?:-y|-q|-v|--yes|--quiet|--verbose|--stdio|--http|--sse|--transport|--port|--host|--config|--directory|--root|--readonly|--read-only|--log-level|--no-color)(?:=|$)/;
+  // Launcher dialects are explicit; unsupported options remain metadata only.
+  // Python -m/-u, uvx --from, and npm exec/npx --package are startup controls,
+  // while -c/--eval and shell dispatch are deliberately outside discovery import.
+  const launcherFlag=(value:string)=>
+    /^python(?:[23](?:\.\d+)*)?$/.test(launcher)?/^(?:-m|-u|-B|-E|-I|-s|-S)$/.test(value):
+    ["node","nodejs"].includes(launcher)?/^(?:--no-warnings|--enable-source-maps|--experimental-strip-types|--experimental-transform-types)$/.test(value):
+    launcher==="uvx"?/^(?:--from|--with|--python|--python-preference|--isolated|--no-cache|--offline)(?:=|$)/.test(value):
+    ["npx","npm"].includes(launcher)?/^(?:--package|-p|--yes|--no|--offline|--prefer-offline|--ignore-scripts)(?:=|$)/.test(value):false;
+  const credentialArgs=args.some((value:Json,index:number)=>typeof value==="string" && (
+    /^--?[a-z0-9_-]*(?:key|token|password|passwd|secret|authorization|credential|cookie)(?:[=_-]|$)/i.test(value) ||
+    /^(?:--header|-H)(?:=|$)/i.test(value) || /^(?:authorization|proxy-authorization|cookie|x-api-key)\s*:/i.test(value) ||
+    /[a-z][a-z0-9+.-]*:\/\/[^\s]*[@?#]/i.test(value) ||
+    (index>0 && /^(?:--header|-H)$/i.test(args[index-1]))));
+  const unsupportedArgs=!credentialArgs&&args.some((value:Json)=>typeof value!=="string" || value.startsWith("-")&&!genericFlags.test(value)&&!launcherFlag(value));
+  let embeddedUrl=false;try {if(config.url){const url=new URL(config.url);embeddedUrl=!!(url.username||url.password||url.search||url.hash);}}catch{embeddedUrl=true;}
+  const unsupported=unsupportedArgs||!!(config.cwd||config.http_headers_helper||config.placement && config.placement!=="local" || config.remote || config.type && !["stdio","http","streamable_http"].includes(config.type));
+  const credentialVariables=[...(config.env_vars??[]),...Object.keys(config.env??{}),...Object.values(config.env_http_headers??{}),...(config.bearer_token_env_var?[config.bearer_token_env_var]:[])];
+  return {credentialArgs,embeddedUrl,unsupportedArgs,unsupported,credentialVariables:[...new Set(credentialVariables)],requiresCredentials:credentialArgs||embeddedUrl||credentialVariables.length>0||Object.keys(config.http_headers??{}).length>0};
+}
+export function selfSource(source:Json,identity:Json={}) {
+  const config=source.config??{},normal=(value:string)=>{try{const u=new URL(value);u.hostname=["localhost","[::1]"].includes(u.hostname)?"127.0.0.1":u.hostname;u.pathname=u.pathname.replace(/\/+$/,"");return u.origin+u.pathname;}catch{return value;}};
+  return /^(?:flowhub|mcp-flowhub)(?:[-_].*)?$/i.test(source.name??"") ||
+    !!config.url&&(identity.endpoints??[]).some((url:string)=>normal(url)===normal(config.url)) ||
+    !!config.instanceId&&config.instanceId===identity.instanceId ||
+    (config.args??[]).some((v:Json)=>typeof v==="string"&&/(?:^|[/\\])apps[/\\]daemon[/\\]src[/\\]cli\.js$/i.test(v)) ||
+    /mcp-flowhub|flowhub(?:\.exe)?$/i.test(config.command??"");
+}
+export async function createContext(a:Json={},runtime:DiscoveryRuntime={}) {
   const codexHome=await realpath(a.codexHome??process.env.CODEX_HOME??join(homedir(),".codex")),canonicalCwd=await realpath(a.cwd??process.cwd());
-  const codexPath=a.codexPath??await locateCodex();
+  ensure(a.discoveryMode===undefined||["auto","config_only"].includes(a.discoveryMode),"INPUT_INVALID","Select auto or config_only discovery.");
+  const configOnly=a.discoveryMode==="config_only"||Object.hasOwn(a,"codexPath")&&a.codexPath===null;
+  const codexPath=configOnly?null:typeof a.codexPath==="string"?a.codexPath:await locateCodex();
   ensure(!codexPath || isAbsolute(codexPath),"INPUT_INVALID","An absolute Codex executable is required.");
   const context:Json={hostId:process.platform,executionLocation,codexHome,canonicalCwd,profile:a.profile??null,codexPath,codexVersion:null,
-    projectTrusted:a.projectTrusted===true,useAppServer:a.useAppServer===true,revision:1};
-  if(codexPath)try{context.codexVersion=(await output(context,["--version"])).trim();}catch{}
-  context.id="ctx_"+hash([context.hostId,executionLocation,codexHome,canonicalCwd,context.profile,context.codexVersion]).slice(0,24);
+    projectTrusted:a.projectTrusted===true,useAppServer:!configOnly&&a.useAppServer===true,discoveryMode:configOnly?"config_only":"auto",revision:1};
+  if(codexPath)try{context.codexVersion=(await output(context,["--version"],{},runtime)).trim();}catch{}
+  context.id="ctx_"+hash([context.hostId,executionLocation,codexHome,canonicalCwd,context.profile,context.codexVersion,...(configOnly?["config_only"]:[])]).slice(0,24);
   return context;
 }
 export async function readConfig(path:string) { return parse(await readFile(path,"utf8")) as Json; }
@@ -30,31 +74,38 @@ const safeChild=async(root:string,child:string)=>{
   ensure(!rel.startsWith("..")&&!isAbsolute(rel),"SOURCE_UNREADABLE","Plugin component escaped its installed root.");return path;
 };
 const skillMeta=(text:string)=>({name:text.match(/^name:\s*["']?([^\n"']+)/m)?.[1]?.trim(),description:text.match(/^description:\s*["']?([^\n"']+)/m)?.[1]?.trim()??""});
-export async function scanHost(context:Json,depth="metadata") {
+export async function scanHost(context:Json,depth="metadata",control:DiscoveryControl={},identity:Json={},runtime:DiscoveryRuntime={}) {
   const sources:Json[]=[],issues:Json[]=[],components:Json[]=[];let quality="partial";
   const report=(path:string,code:string)=>issues.push({source:path,code});
   let config:Json={};
+  const skillOverrides=new Map<string,boolean>();
+  const overrides=(c:Json)=>{for(const value of c.skills?.config??[])if(typeof value.path==="string")skillOverrides.set(resolve(value.path),value.enabled!==false);};
   const userPath=join(context.codexHome,"config.toml"),projectPath=join(context.canonicalCwd,".codex","config.toml");
   try{config=await readConfig(userPath);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(userPath,"CONFIG_PARSE_ERROR");}
-  const addServers=(servers:Json,path:string,locator:Json,enabled=true)=>{
-    for(const [name,config] of Object.entries(servers??{}) as [string,Json][]) sources.push({sourceKey:path+"#"+name,name,kind:"mcp_server",config,locator:{...locator,name,path},enabled:enabled && config.enabled!==false});
+  overrides(config);
+  const addServers=(servers:Json,path:string,locator:Json,enabled=true,serverOverrides:Json={})=>{
+    for(const [name,raw] of Object.entries(servers??{}) as [string,Json][]) {
+      const config={...raw,...serverOverrides[name],enabled:enabled&&raw.enabled!==false&&serverOverrides[name]?.enabled!==false};
+      sources.push({sourceKey:path+"#"+name,name,kind:"mcp_server",config,locator:{...locator,name,path},enabled:config.enabled,sourceChain:[path]});
+    }
   };
   let effective=false;
   if(context.executionLocation!==executionLocation)report(context.id,"EXECUTION_LOCATION_UNSUPPORTED");
-  else if(context.codexPath)try{
-    const help=await output(context,["mcp","list","--help"]);
+  else if(context.codexPath&&context.discoveryMode!=="config_only")try{
+    const help=await output(context,["mcp","list","--help"],control,runtime);
     if(help.includes("--json") && !context.profile) {
-      const servers=JSON.parse(await output(context,["mcp","list","--json"]));
+      const servers=JSON.parse(await output(context,["mcp","list","--json"],control,runtime));
       ensure(Array.isArray(servers),"CONFIG_PARSE_ERROR","CLI server list must be an array.");
       for(const server of servers)sources.push({sourceKey:"effective#"+server.name,name:server.name,kind:"mcp_server",enabled:server.enabled!==false,
-        config:{...(server.transport??server),enabled:server.enabled!==false},locator:{kind:"cli",name:server.name,path:userPath}});
+        config:normalizedServer(server),sourceChain:["host CLI effective configuration"],locator:{kind:"cli",name:server.name,path:userPath}});
       effective=true;quality="host_effective";
     }
   }catch{report(context.codexPath,"SOURCE_UNREADABLE");}
-  else report(context.id,"CODEX_NOT_FOUND");
+  else if(context.discoveryMode!=="config_only")report(context.id,"CODEX_NOT_FOUND");
+  if(context.projectTrusted)try{overrides(await readConfig(projectPath));}catch{}
   if(!effective) {
     addServers(config.mcp_servers,userPath,{kind:"config"});
-    if(context.projectTrusted)try{const project=await readConfig(projectPath);addServers(project.mcp_servers,projectPath,{kind:"config"});}
+    if(context.projectTrusted)try{const project=await readConfig(projectPath);overrides(project);addServers(project.mcp_servers,projectPath,{kind:"config"});}
       catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(projectPath,"CONFIG_PARSE_ERROR");}
     if(context.profile) {
       const profile=config.profiles?.[context.profile];
@@ -65,16 +116,23 @@ export async function scanHost(context:Json,depth="metadata") {
     quality="partial";
   }
   const addSkills=async(root:string,parent?:string)=>{
+    try {
+      const real=await safeChild(root,"SKILL.md"),text=await readFile(real,"utf8");ensure(Buffer.byteLength(text)<=131072,"SCHEMA_LIMIT","Skill exceeds discovery size limit.");const meta=skillMeta(text);
+      components.push({sourceKey:real,name:meta.name??basename(root),description:meta.description,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});return;
+    }catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT"){report(root,"SOURCE_UNREADABLE");return;}}
     let entries;try{entries=await readdir(root,{withFileTypes:true});}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(root,"SOURCE_UNREADABLE");return;}
     for(const entry of entries.slice(0,500))if(entry.isDirectory()&&!entry.name.startsWith(".")) {
       const path=join(root,entry.name,"SKILL.md");
       try{const real=await safeChild(root,entry.name+"/SKILL.md"),text=await readFile(real,"utf8");
         ensure(Buffer.byteLength(text)<=131072,"SCHEMA_LIMIT","Skill exceeds discovery size limit.");
-        const meta=skillMeta(text);components.push({sourceKey:path,name:meta.name??entry.name,description:meta.description,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:true});
+        const meta=skillMeta(text);components.push({sourceKey:path,name:meta.name??entry.name,description:meta.description,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});
       }catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(path,"SOURCE_UNREADABLE");}
     }
   };
   await addSkills(join(context.codexHome,"skills"));
+  await addSkills(join(context.codexHome,"skills",".system"));
+  // The user skill directory is derived from this registered home, never from daemon env.
+  await addSkills(join(dirname(context.codexHome),".agents","skills"));
   if(context.projectTrusted)await addSkills(join(context.canonicalCwd,".agents","skills"));
   // Only installed local packages selected by config or an explicit remote installation marker.
   const cache=join(context.codexHome,"plugins","cache");
@@ -91,6 +149,9 @@ export async function scanHost(context:Json,depth="metadata") {
       for(const version of versions.filter(v=>!v.startsWith(".")).slice(0,50)) {
         const root=join(base,version);try {
           const path=await safeChild(root,".codex-plugin/plugin.json"),manifest=JSON.parse(await readFile(path,"utf8"));
+          // This adapter supports the legacy unversioned format only. A plugin's
+          // release `version` is separate from an explicitly declared format version.
+          ensure(["schemaVersion","schema_version","manifest_version"].every(key=>manifest[key]===undefined),"PLUGIN_MANIFEST_UNSUPPORTED","Plugin manifest format version is unsupported.");
           if(manifest.name===name)candidates.push({root,manifest,version});
         }catch{}
       }
@@ -102,41 +163,54 @@ export async function scanHost(context:Json,depth="metadata") {
       try{
         if(typeof item.manifest.mcpServers==="string") {
           const path=await safeChild(item.root,item.manifest.mcpServers),mcp=JSON.parse(await readFile(path,"utf8"));
-          addServers(mcp.mcpServers,path,{kind:"plugin",plugin:key,root:item.root},enabled);
+          addServers(mcp.mcpServers,path,{kind:"plugin",plugin:key,root:item.root},enabled,config.plugins?.[key]?.mcp_servers??{});
         }
-        await addSkills(join(item.root,"skills"),key);
-        for(const component of components)if(component.parent===key)component.enabled=enabled;
+        const skillRoots=item.manifest.skills===undefined?["skills"]:Array.isArray(item.manifest.skills)?item.manifest.skills:[item.manifest.skills];
+        for(const skillRoot of skillRoots)if(typeof skillRoot==="string")try{await addSkills(await safeChild(item.root,skillRoot),key);}catch(e){if(item.manifest.skills!==undefined||(e as NodeJS.ErrnoException).code!=="ENOENT")report(item.root,"SOURCE_UNREADABLE");}
+        if(typeof item.manifest.apps==="string") {
+          const appPath=await safeChild(item.root,item.manifest.apps),apps=JSON.parse(await readFile(appPath,"utf8"));
+          for(const [appName] of Object.entries(apps.apps??{}))components.push({sourceKey:key+"#app:"+appName,name:appName,kind:"app",parent:key,path:appPath,enabled,executor:"informational",installation:"unknown"});
+        }
+        for(const component of components)if(component.parent===key)component.enabled=enabled&&component.enabled;
       }catch{report(item.root,"PLUGIN_MANIFEST_UNSUPPORTED");}
     }
   }
-  if(context.useAppServer)try{
-    const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true});
+  if(context.useAppServer&&context.codexPath&&context.discoveryMode!=="config_only")try{
+    const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
     for(const group of response.data??[])for(const skill of group.skills??[]) {
-      if(!components.some(c=>c.path===skill.path))components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
+      const existing=components.find(c=>c.path===skill.path||dirname(c.path??"")===skill.path);
+      if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
+      else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
     }
     if(depth==="catalog") {
-      const catalog=await readAppServer(context,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100});
+      const catalog=await readAppServer(context,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
       for(const server of catalog.data??[]) {
-        if(/^(?:flowhub|mcp-flowhub)(?:[-_].*)?$/i.test(server.name))continue;
+        const matches=sources.filter(s=>s.name===server.name),source=matches.length===1?matches[0]:undefined;
+        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
+        if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
         if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
-        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,executor:"codex_host",enabled:true});
+        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
       }
       if(catalog.nextCursor)report(context.id,"HOST_CATALOG_PARTIAL");
     }
   }catch{report(context.id,"APP_SERVER_PARTIAL");}
+  if(!effective)issues.push({source:context.id,code:"STATIC_RESOLUTION_PARTIAL"});
+  if(control.signal?.aborted)throw new HubError("DISCOVERY_CANCELLED","Discovery cancelled.");
   return {sources,components,issues,resolutionQuality:quality,coverage:issues.length?"partial":"complete"};
 }
 
 /** Re-read the selected source only; no credentials are persisted in the public directory. */
-export async function resolveSource(context:Json,locator:Json):Promise<Json> {
+export async function resolveSource(context:Json,locator:Json,control:DiscoveryControl={},runtime:DiscoveryRuntime={}):Promise<Json> {
   if(locator.kind==="cli") {
-    const list=JSON.parse(await output(context,["mcp","list","--json"]));const server=list.find((s:Json)=>s.name===locator.name);
-    ensure(server,"CAPABILITY_STALE","Source disappeared.",409);return {...server.transport,enabled:server.enabled!==false};
+    const list=JSON.parse(await output(context,["mcp","list","--json"],control,runtime));const server=list.find((s:Json)=>s.name===locator.name);
+    ensure(server,"CAPABILITY_STALE","Source disappeared.",409);return normalizedServer(server);
   }
   if(locator.kind==="plugin") {
     const path=await safeChild(locator.root,relative(locator.root,locator.path));
-    return JSON.parse(await readFile(path,"utf8")).mcpServers[locator.name];
+    const config=await readConfig(join(context.codexHome,"config.toml")),plugin=config.plugins?.[locator.plugin],raw=JSON.parse(await readFile(path,"utf8")).mcpServers[locator.name],over=plugin?.mcp_servers?.[locator.name];
+    return {...raw,...over,enabled:plugin?.enabled!==false&&raw?.enabled!==false&&over?.enabled!==false};
   }
   const config=await readConfig(locator.kind==="profile"?join(context.codexHome,"config.toml"):locator.path);
-  return locator.kind==="profile"?config.profiles?.[locator.profile]?.mcp_servers?.[locator.name]:config.mcp_servers?.[locator.name];
+  const raw=locator.kind==="profile"?config.profiles?.[locator.profile]?.mcp_servers?.[locator.name]:config.mcp_servers?.[locator.name];
+  ensure(raw,"CAPABILITY_STALE","Source disappeared.",409);return normalizedServer(raw);
 }

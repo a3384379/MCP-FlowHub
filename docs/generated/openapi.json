@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MCP FlowHub management API",
-    "version": "2.0.0-alpha.1",
+    "version": "2.0.0-alpha.2",
     "description": "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API."
   },
   "servers": [
@@ -3363,6 +3363,61 @@
         }
       }
     },
+    "/api/v2/host-scans/{id}/cancel": {
+      "post": {
+        "summary": "POST /api/v2/host-scans/:id/cancel",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
     "/api/v2/capabilities": {
       "get": {
         "summary": "GET /api/v2/capabilities",
@@ -4778,6 +4833,44 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v2/help/source": {
+      "get": {
+        "summary": "GET /api/v2/help/source",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Success envelope",
