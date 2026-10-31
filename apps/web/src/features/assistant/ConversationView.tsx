@@ -53,7 +53,7 @@ export function ConversationView({
   onSource: (citation: Data) => void;
   onUndo: (tool: Data) => void;
   onOpenWorkflow: (id: string) => void;
-  onContinue: () => void;
+  onContinue: (task: Data) => void;
   undos: Record<string, Data>;
   onSuggest: (text: string) => void;
 }) {
@@ -185,7 +185,13 @@ export function ConversationView({
             tools: Data[] = task?.tools ?? [];
           const writes = tools.filter(
             (t) =>
-              !t.isError && t.status === "COMPLETED" && t.result?.workflowId,
+              ["workflow_draft_create", "workflow_draft_patch"].includes(
+                t.name,
+              ) &&
+              !t.isError &&
+              t.status === "COMPLETED" &&
+              typeof t.result?.workflowId === "string" &&
+              Number.isInteger(t.result?.revision),
           );
           const question =
             user?.resultsExpiredAt || expired
@@ -250,7 +256,7 @@ export function ConversationView({
                   <button
                     className="assistant-continue"
                     disabled={busy}
-                    onClick={onContinue}
+                    onClick={() => onContinue(task)}
                   >
                     继续回复
                   </button>

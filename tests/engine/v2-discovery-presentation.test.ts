@@ -665,7 +665,6 @@ test("cached host tools keep their proven server parent during metadata refresh 
     cwd: join(f.root, "project"),
     codexPath: cli,
     useAppServer: true,
-    expectedRevision: f.context.revision,
   });
   const scan = async (key: string, depth: string) => {
     f.app.registry.scan({ contextId: context.id, depth, idempotencyKey: key });

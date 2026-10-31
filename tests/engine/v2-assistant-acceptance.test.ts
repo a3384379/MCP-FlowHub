@@ -177,7 +177,13 @@ test("KB-06: a real large report is explicitly bounded in model context, artifac
   nextPageOffset = first.nextOffset;
   const accepted = f.send("解释选择的报告并分页读取后续内容", { runId: run.runId, artifactRefs: [artifact.id] }, "help"); await f.app.assistant.settled(); const task = f.app.assistant.task(accepted.taskId);
   assert.equal(task.status, "COMPLETED"); assert.equal(task.contextSummary.truncated, true); assert.ok(task.contextSummary.totalBytes > 64000); assert.deepEqual(task.contextSummary.sources.artifactRefs, [artifact.id]);
-  const context = JSON.parse(f.requests[0].messages.find((m: Json) => m.content?.startsWith?.("Selected context (data): ")).content.slice("Selected context (data): ".length)); assert.equal(context.truncated, true); assert.equal(context.totalBytes, task.contextSummary.totalBytes); assert.match(context.range, /first 64000/); assert.match(context.range, /request.*tool/);
+  const contextText = f.requests[0].messages.find((m: Json) => m.content?.startsWith?.("Selected context (data): ")).content.slice("Selected context (data): ".length);
+  const context = JSON.parse(contextText); assert.equal(context.truncated, true); assert.equal(context.totalBytes, task.contextSummary.totalBytes);
+  assert.ok(Buffer.byteLength(contextText, "utf8") <= 64000); assert.equal(task.contextSummary.includedBytes, Buffer.byteLength(contextText, "utf8"));
+  assert.equal(context.run.runId, run.runId); assert.equal(context.run.revision, run.revision);
+  assert.equal(context.workflow.workflowId, workflowId); assert.equal(context.workflow.version, "1.0.0");
+  assert.equal(context.contextBudget.encoding, "UTF-8"); assert.ok(context.contextBudget.sections.run.truncated || context.contextBudget.sections.workflow.truncated);
+  assert.match(context.range, /UTF-8 bytes/); assert.match(context.range, /request.*tool/);
   assert.ok(f.requests[0].tools.some((x: Json) => x.function.name === "artifact_read" && x.function.parameters.properties.offset && x.function.parameters.properties.maxBytes));
   const result = JSON.parse(f.requests[1].messages.find((m: Json) => m.tool_call_id === "next-page").content); assert.equal(result.offset, nextPageOffset); assert.ok(result.nextOffset > result.offset); assert.equal(result.byteLength, stored.byteLength); assert.equal(result.eof, false); assert.equal(result.sha256, beforeHash);
   let reconstructed = first.content, offset = first.nextOffset;

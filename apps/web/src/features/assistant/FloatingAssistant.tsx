@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Api } from "../../shared/v2";
 import { requestedActions } from "../../shared/v2";
 import { useConversation, activeTask, type Data } from "./useConversation";
 import { ConversationView } from "./ConversationView";
 import { AssistantLauncher } from "./AssistantLauncher";
+import { useAssistantViewport } from "./viewport";
 import "./assistant.css";
 
 function Icon({
@@ -48,6 +49,7 @@ export function FloatingAssistant({
   onOpenWorkflow: (id: string) => void;
 }) {
   const chat = useConversation(api);
+  const viewport = useAssistantViewport();
   const [opened, setOpened] = useState(false),
     [wide, setWide] = useState(false),
     [history, setHistory] = useState(false),
@@ -60,8 +62,7 @@ export function FloatingAssistant({
     [help, setHelp] = useState<Data | null>(null),
     [undos, setUndos] = useState<Record<string, Data>>({});
   const launcher = useRef<HTMLButtonElement>(null),
-    input = useRef<HTMLTextAreaElement>(null),
-    windowRef = useRef<HTMLElement>(null);
+    input = useRef<HTMLTextAreaElement>(null);
   const previousRequest = useRef(openRequest),
     previousScope = useRef(""),
     sourceVersion = useRef(0),
@@ -82,6 +83,31 @@ export function FloatingAssistant({
   const selected = chat.profiles.find((p) => p.id === chat.profileId),
     running = Object.values(chat.entry.tasks).some(activeTask);
   const ready = !!selected?.keyConfigured;
+  const narrow = viewport.width <= 700,
+    panelWidth = narrow
+      ? viewport.width
+      : Math.min(wide ? 760 : 420, viewport.width - 48),
+    bottomGap = narrow ? 0 : viewport.height >= 600 ? 92 : 12,
+    panelHeight = Math.max(
+      0,
+      Math.min(
+        wide || narrow ? Infinity : 652,
+        viewport.height - bottomGap - (narrow ? 18 : 12),
+      ),
+    );
+  const panelStyle = {
+    left:
+      viewport.left +
+      (narrow
+        ? 0
+        : launcherSide === "left"
+          ? 24
+          : viewport.width - panelWidth - 24),
+    top: viewport.top + viewport.height - bottomGap - panelHeight,
+    width: panelWidth,
+    height: panelHeight,
+    "--assistant-panel-height": panelHeight + "px",
+  } as CSSProperties;
   const close = () => {
     setOpened(false);
     setHistory(false);
@@ -139,30 +165,31 @@ export function FloatingAssistant({
       seenTasks.current.set(task.id, task.status);
     }
   }, [chat.entry.tasks]);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const resize = () => {
-      const box = windowRef.current;
-      if (!box) return;
-      box.style.setProperty(
-        "--assistant-viewport-height",
-        (viewport?.height ?? window.innerHeight) + "px",
+  const continueTurn = async (task: Data) => {
+    if (task.modelProfileId !== chat.profileId)
+      throw new Error(
+        "继续此轮需要选择原模型；请先在模型列表中切回该轮使用的模型。",
       );
-      box.style.setProperty(
-        "--assistant-viewport-top",
-        (viewport?.offsetTop ?? 0) + "px",
+    if (task.contextRefs?.schemaVersion !== 1)
+      throw new Error(
+        "此轮缺少完整的来源记录，无法安全续答。请在输入框中重新提问。",
       );
-    };
-    resize();
-    viewport?.addEventListener("resize", resize);
-    viewport?.addEventListener("scroll", resize);
-    window.addEventListener("resize", resize);
-    return () => {
-      viewport?.removeEventListener("resize", resize);
-      viewport?.removeEventListener("scroll", resize);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
+    const refs = task.contextRefs,
+      originalContext = {
+        ...(refs.workflowId ? { workflowId: refs.workflowId } : {}),
+        ...(refs.runId ? { runId: refs.runId } : {}),
+        artifactRefs: [...refs.artifactRefs],
+        selectedNodeIds: [...refs.selectedNodeIds],
+        ...(Number.isInteger(task.context?.revision)
+          ? { revision: task.context.revision }
+          : {}),
+      };
+    await chat.send(
+      originalContext,
+      "请根据所选轮次已保存的正文和工具回执继续回复，只解释结果，不要重复执行操作。",
+      task.id,
+    );
+  };
   const undo = async (tool: Data) => {
     const id = tool.id;
     setUndos((old) => ({ ...old, [id]: { ...old[id], pending: true } }));
@@ -227,16 +254,18 @@ export function FloatingAssistant({
         unread={unread}
         toggle={() => (opened ? close() : open())}
         onSideChange={setLauncherSide}
+        viewport={viewport}
       />
       <section
-        ref={windowRef}
         id="flowhub-assistant-window"
         data-session-id={chat.sessionId}
         className={
           "floating-assistant " +
           (wide ? "assistant-wide " : "") +
+          (narrow ? "assistant-narrow " : "") +
           (launcherSide === "left" ? "assistant-from-left" : "")
         }
+        style={panelStyle}
         aria-label="FlowHub 助手聊天窗口"
         hidden={!opened}
         onKeyDown={(e) => {
@@ -476,14 +505,7 @@ export function FloatingAssistant({
             onSource={(c) => safe(showSource(c))}
             onUndo={(tool) => safe(undo(tool))}
             onOpenWorkflow={onOpenWorkflow}
-            onContinue={() =>
-              safe(
-                chat.send(
-                  effectiveContext,
-                  "请根据上一轮已保存的工具回执继续回复，只解释结果，不要重复执行操作。",
-                ),
-              )
-            }
+            onContinue={(task) => safe(continueTurn(task))}
             onSuggest={(text) => {
               chat.setText(text);
               input.current?.focus();

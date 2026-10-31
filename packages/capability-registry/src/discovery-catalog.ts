@@ -52,7 +52,8 @@ export class DiscoveryCatalog {
     return row ? JSON.parse(row.body) : undefined;
   }
   present(entity: Json): Json {
-    const saved = this.latestPresentation(entity.id);
+    const saved = this.latestPresentation(entity.id),
+      context = this.repo.get("host_contexts", entity.contextId);
     const state = saved
       ? saved.sourceFingerprint !== entity.sourceFingerprint
         ? "stale"
@@ -90,6 +91,7 @@ export class DiscoveryCatalog {
     };
     return {
       ...entity,
+      stale: entity.stale || !context || entity.contextRevision !== context.revision,
       entityId: entity.id,
       pluginDisplayName: pluginDisplayName ?? entity.pluginName ?? null,
       pluginPresentationRevision: pluginText?.revision ?? 0,
@@ -342,9 +344,11 @@ export class DiscoveryCatalog {
         ? null
         : entities.filter((e) => e.entityKind === kind && !e.stale).length ||
           (job.coverage === "complete" ? 0 : null);
-    const issues = job?.issues ?? [],
+    const issues = current ? job?.issues ?? [] : [],
       actionable = entities.filter(
         (e) =>
+          current &&
+          e.contextRevision === context.revision &&
           e.entityKind === "mcp_server" &&
           e.enabled &&
           !e.self &&
@@ -359,9 +363,10 @@ export class DiscoveryCatalog {
       );
     const stale = entities.filter(
       (e) =>
-        e.stale && ["mcp_server", "skill", "plugin"].includes(e.entityKind),
+        (e.stale || !current || e.contextRevision !== context.revision) &&
+        ["mcp_server", "skill", "plugin"].includes(e.entityKind),
     );
-    const represented = new Set(actionable.map((e) => e.id));
+    const represented = new Set([...actionable, ...stale].map((e) => e.id));
     const problems = [
       ...actionable.map((e) => ({
         code:

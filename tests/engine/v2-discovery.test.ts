@@ -98,9 +98,10 @@ test("explicit local credential import seals inline env, preserves source, and e
 });
 test("context trust options use CAS and do not silently mutate an existing registration",async t=>{
   const f=await setup(t),context=await f.context();
-  assert.equal((await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true})).projectTrusted,false);
-  const updated=await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:1});assert.equal(updated.projectTrusted,true);assert.equal(updated.revision,2);
-  await assert.rejects(f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,expectedRevision:1}),{code:"REVISION_CONFLICT"});
+  await assert.rejects(f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true}),{code:"CONTEXT_REGISTRATION_CONFLICT"});
+  assert.equal(f.repo.get("host_contexts",context.id).projectTrusted,false);
+  const updated=await f.registry.context({contextId:context.id,codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:1});assert.equal(updated.projectTrusted,true);assert.equal(updated.revision,2);
+  await assert.rejects(f.registry.context({contextId:context.id,codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,expectedRevision:1}),{code:"REVISION_CONFLICT"});
 });
 test("credential command arguments remain metadata-only and are never copied into connection rows",async t=>{
   const f=await setup(t);await writeFile(join(f.home,"cli.json"),JSON.stringify([{name:"argv-auth",enabled:true,transport:{type:"stdio",command:process.execPath,args:["--api-key=SYNTHETIC_ARG_SECRET"]}}]));
@@ -150,7 +151,7 @@ test("older scans and context drift cannot overwrite newer current catalog",asyn
   while(!["SUCCEEDED","PARTIAL","FAILED"].includes(f.registry.status(newer.scanId).status))await new Promise(r=>setTimeout(r,2));release();await f.registry.idle();
   assert.equal(f.registry.status(old.scanId).status,"PARTIAL");assert.equal(f.registry.status(old.scanId).issues[0].code,"SCAN_SUPERSEDED");assert.deepEqual(f.registry.search().items.map((c:any)=>[c.name,c.stale]),[["newTool",false]]);
   let releaseAgain!:()=>void,startAgain!:()=>void;const beganAgain=new Promise<void>(r=>startAgain=r);f.registry.engine.connectors.discover=async c=>{startAgain();await new Promise<void>(r=>releaseAgain=r);return {...c,tools:[fixtureTool("trustDrift")]};};
-  const drift=f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"drift"});await beganAgain;await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:context.revision});releaseAgain();await f.registry.idle();assert.equal(f.registry.status(drift.scanId).issues[0].code,"CONTEXT_CHANGED");assert.equal(f.registry.search().items[0].name,"newTool");
+  const drift=f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"drift"});await beganAgain;await f.registry.context({contextId:context.id,codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:context.revision});releaseAgain();await f.registry.idle();assert.equal(f.registry.status(drift.scanId).issues[0].code,"CONTEXT_CHANGED");assert.equal(f.registry.search().items[0].name,"newTool");
 });
 
 test("command credentials and URL/header forms stay metadata only without plaintext in ordinary records",async t=>{

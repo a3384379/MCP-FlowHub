@@ -17,7 +17,8 @@ export function useDiscovery(api: Api) {
     [total, setTotal] = useState(0),
     [error, setError] = useState("");
   const [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(false);
+    [loading, setLoading] = useState(false),
+    [registering, setRegistering] = useState(false);
   const [kind, setKind] = useState("mcp_server"),
     [query, setQuery] = useState(""),
     [executor, setExecutor] = useState(""),
@@ -25,6 +26,9 @@ export function useDiscovery(api: Api) {
     [status, setStatus] = useState("");
   const epoch = useRef(0),
     listEpoch = useRef(0),
+    selectionEpoch = useRef(0),
+    registration = useRef(0),
+    registrationPending = useRef(false),
     active = useRef(""),
     live = useRef(true),
     filters = useRef({ kind, query, executor, source, status });
@@ -108,6 +112,10 @@ export function useDiscovery(api: Api) {
     [poll],
   );
   const select = useCallback((id: string) => {
+    selectionEpoch.current++;
+    registration.current++;
+    registrationPending.current = false;
+    setRegistering(false);
     epoch.current++;
     listEpoch.current++;
     active.current = id;
@@ -145,6 +153,9 @@ export function useDiscovery(api: Api) {
       live.current = false;
       epoch.current++;
       listEpoch.current++;
+      selectionEpoch.current++;
+      registration.current++;
+      registrationPending.current = false;
     };
   }, [select]);
   useEffect(() => {
@@ -196,26 +207,42 @@ export function useDiscovery(api: Api) {
     setStatus("");
   };
   const register = async (form: any, update = false) => {
+    if (registrationPending.current) return;
+    const selected = active.current,
+      selection = selectionEpoch.current,
+      token = ++registration.current,
+      current = () => live.current && selectionEpoch.current === selection &&
+        registration.current === token && active.current === selected;
+    registrationPending.current = true;
+    setRegistering(true);
     setError("");
     try {
-      const current = contexts.find((c) => c.id === active.current);
+      const context = contexts.find((c) => c.id === selected);
+      if (update && !context) throw new Error("请先选择要更新的本机上下文。");
       const value = await callRef.current("/host-contexts", "POST", {
         ...form,
         codexHome: form.codexHome || undefined,
         cwd: form.cwd || undefined,
-        profile: form.profile || undefined,
+        profile: form.profile === "" ? null : form.profile,
         codexPath:
           form.discoveryMode === "config_only"
             ? null
-            : form.codexPath || undefined,
-        ...(update ? { expectedRevision: current?.revision } : {}),
+            : form.codexPath,
+        ...(update ? { contextId: context.id, expectedRevision: context.revision } : {}),
       });
+      if (!current()) return;
       const list = await callRef.current("/host-contexts");
+      if (!current()) return;
       setContexts(list);
       if (value.id !== active.current) select(value.id);
       else await refresh("metadata", value.id);
     } catch (e) {
-      setError((e as Error).message);
+      if (current()) setError((e as Error).message);
+    } finally {
+      if (current()) {
+        registrationPending.current = false;
+        setRegistering(false);
+      }
     }
   };
   return {
@@ -232,6 +259,7 @@ export function useDiscovery(api: Api) {
     setError,
     busy,
     loading,
+    registering,
     kind,
     query,
     setQuery,

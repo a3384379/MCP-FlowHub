@@ -165,24 +165,19 @@ test("floating chat sends one question per turn, renders safe Markdown, retains 
       [320, 720],
     ] as const) {
       await page.setViewportSize({ width, height });
-      const metrics = await page
+      // visualViewport resize is delivered asynchronously; wait for the new
+      // visible rectangle while keeping all three original bounds assertions.
+      await expect.poll(async () => page
         .getByRole("region", { name: "FlowHub 助手聊天窗口" })
         .evaluate((el) => {
           const r = el.getBoundingClientRect(),
-            input = el
-              .querySelector(".assistant-composer")!
-              .getBoundingClientRect();
+            input = el.querySelector(".assistant-composer")!.getBoundingClientRect();
           return {
-            width: document.documentElement.scrollWidth,
-            viewport: innerWidth,
-            bottom: r.bottom,
-            composer: input.bottom,
-            height: innerHeight,
+            widthFits: document.documentElement.scrollWidth <= innerWidth + 1,
+            panelFits: r.bottom <= innerHeight + 1,
+            composerFits: input.bottom <= innerHeight + 1,
           };
-        });
-      expect(metrics.width).toBeLessThanOrEqual(metrics.viewport + 1);
-      expect(metrics.bottom).toBeLessThanOrEqual(metrics.height + 1);
-      expect(metrics.composer).toBeLessThanOrEqual(metrics.height + 1);
+        })).toEqual({ widthFits: true, panelFits: true, composerFits: true });
       if (width === 390)
         await page.screenshot({ path: "docs/evidence/v2/chat/mobile.png" });
     }

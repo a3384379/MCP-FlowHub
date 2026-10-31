@@ -6,6 +6,13 @@ import type { Engine } from "../../workflow-core/src/engine.js";
 import { DiscoveryCatalog } from "./discovery-catalog.js";
 const terminal=["SUCCEEDED","PARTIAL","FAILED","CANCELLED"];
 function input(name:ToolName,a:Json){ensure(validArguments(name,a),"INPUT_INVALID","Arguments do not match the fixed tool contract.");}
+/** HTTP field names are case insensitive; ambiguous credential choices must never win by order. */
+function bearerCredentials(config:Json) {
+  const envHeaders=Object.entries(config.env_http_headers??{}),headers=Object.entries(config.http_headers??{});
+  const supported=envHeaders.every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&value.length>0)&&headers.every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+$/i.test(value));
+  const variables=[...new Set([...envHeaders.map(([,value])=>value),...(config.bearer_token_env_var?[config.bearer_token_env_var]:[])])],tokens=[...new Set(headers.map(([,value])=>String(value).replace(/^Bearer /i,"")))];
+  return {supported,conflict:variables.length>1||tokens.length>1||variables.length>0&&tokens.length>0,variable:variables[0],token:tokens[0]};
+}
 function abortable<T>(work:Promise<T>,signal:AbortSignal):Promise<T> {
   return new Promise((resolve,reject)=>{const abort=()=>reject(new HubError("DISCOVERY_CANCELLED","Discovery cancelled or timed out."));
     if(signal.aborted){abort();return;}signal.addEventListener("abort",abort,{once:true});
@@ -28,11 +35,30 @@ export class CapabilityRegistry {
   /** Called by the daemon after its actual listen port is known. */
   setSelfIdentity(identity:Json){this.identity={...identity,endpoints:identity.endpoints??[]};}
   async context(a:Json={}) {
-    validate({type:"object",properties:{codexHome:{type:"string"},cwd:{type:"string"},profile:{type:["string","null"]},codexPath:{type:["string","null"]},discoveryMode:{enum:["auto","config_only"]},projectTrusted:{type:"boolean"},useAppServer:{type:"boolean"},expectedRevision:{type:"integer",minimum:1}},additionalProperties:false},a);
-    const context=await createContext(a,this.options.hostRuntime);const prior=this.repo.get("host_contexts",context.id);
-    if(prior&&a.expectedRevision!==undefined){ensure(prior.revision===a.expectedRevision,"REVISION_CONFLICT","Host context changed.",409);const saved={...context,revision:prior.revision+1,createdAt:prior.createdAt};this.repo.put("host_contexts",context.id,saved,prior.revision);return saved;}
-    if(!prior)this.repo.insert("host_contexts",context.id,{...context,createdAt:now()});
-    return prior??context;
+    validate({type:"object",properties:{contextId:{type:"string",minLength:1},codexHome:{type:"string"},cwd:{type:"string"},profile:{type:["string","null"]},codexPath:{type:["string","null"]},discoveryMode:{enum:["auto","config_only"]},projectTrusted:{type:"boolean"},useAppServer:{type:"boolean"},expectedRevision:{type:"integer",minimum:1}},additionalProperties:false},a);
+    const update=a.expectedRevision!==undefined;
+    ensure(update===!!a.contextId,"INPUT_INVALID","Context updates require the original contextId and expectedRevision.");
+    const target=update?this.repo.get("host_contexts",a.contextId):undefined;
+    if(update){ensure(target,"NOT_FOUND","Host context missing.",404);ensure(target.revision===a.expectedRevision,"REVISION_CONFLICT","Host context changed.",409);}
+    const defaults=target?{codexHome:target.codexHome,cwd:target.canonicalCwd,profile:target.profile,codexPath:target.codexPath,discoveryMode:target.discoveryMode,projectTrusted:target.projectTrusted,useAppServer:target.useAppServer}:{};
+    const selected={...defaults,...a};
+    // Omission retains the target path; an explicit empty auto-mode path asks for fresh PATH lookup.
+    if(a.codexPath==="")delete selected.codexPath;
+    const context=await createContext(selected,this.options.hostRuntime);
+    return this.repo.tx(()=>{
+      if(update) {
+        const prior=this.repo.get("host_contexts",a.contextId);
+        ensure(prior&&prior.revision===a.expectedRevision,"REVISION_CONFLICT","Host context changed.",409);
+        ensure(context.id===prior.id,"CONTEXT_IDENTITY_CHANGED","上下文身份已变化，原上下文保持不变。请使用当前填写的选项登记新上下文。",409);
+        const saved={...prior,...context,revision:prior.revision+1,createdAt:prior.createdAt};
+        this.repo.put("host_contexts",prior.id,saved,prior.revision);return saved;
+      }
+      const prior=this.repo.get("host_contexts",context.id);
+      if(prior)for(const key of ["codexPath","discoveryMode","projectTrusted","useAppServer"])
+        ensure(!Object.hasOwn(a,key)||context[key]===prior[key],"CONTEXT_REGISTRATION_CONFLICT","This context is already registered with different explicit options. Select it and update its reading options with its current revision.",409);
+      if(!prior)this.repo.insert("host_contexts",context.id,{...context,createdAt:now()});
+      return prior??context;
+    });
   }
   private replay(owner:string,operation:string,a:Json) {
     const prior=this.repo.db.prepare("SELECT request_hash,response FROM commands WHERE owner=? AND operation=? AND key=?").get(owner,operation,a.idempotencyKey) as {request_hash:string;response:string}|undefined;
@@ -43,36 +69,46 @@ export class CapabilityRegistry {
   async configureSource(a:Json,owner="admin") {
     ensure(owner==="admin","AUTH_REQUIRED","Use authenticated local connection settings.",403);
     validate({type:"object",properties:{sourceId:{type:"string"},expectedRevision:{type:"integer"},idempotencyKey:{type:"string",minLength:1},importInlineCredentials:{type:"boolean"},secretRefs:{type:"object",additionalProperties:{type:"string"}}},required:["sourceId","expectedRevision","idempotencyKey"],additionalProperties:false},a);
-    const replay=this.replay(owner,"source.configure",a);if(replay)return {...replay,status:"credentials_configured",next:"Rescan the catalog; resource bindings still require independent verification."};
+    const configured=(receipt:Json)=>({...receipt,status:"credentials_configured",next:"Rescan the catalog; resource bindings still require independent verification."});
+    const replay=this.replay(owner,"source.configure",a);if(replay)return configured(replay);
     const source=this.repo.get("capability_sources",a.sourceId);
-    ensure(source&&source.enabled&&!source.self&&!source.stale,"SELF_REFERENCE_DENIED","Select an independent current source.");
-    ensure(source.revision===a.expectedRevision,"CAPABILITY_STALE","Source changed.",409);
-    const context=this.repo.get("host_contexts",source.contextId),config=await resolveSource(context,source.locator,{},this.options.hostRuntime);
+    ensure(source&&!source.self,"SELF_REFERENCE_DENIED","Select an independent current source.");
+    ensure(source.enabled&&!source.stale&&source.revision===a.expectedRevision,"CAPABILITY_STALE","Source changed, disabled or stale.",409);
+    const context=this.repo.get("host_contexts",source.contextId);
+    ensure(context&&source.contextRevision===context.revision,"CONTEXT_CHANGED","Context changed; rescan before configuring credentials.",409);
+    let config:Json;
+    try{config=await resolveSource(context,source.locator,{},this.options.hostRuntime);}
+    catch(e){const replay=this.replay(owner,"source.configure",a);if(replay)return configured(replay);throw e;}
+    const resolvedReplay=this.replay(owner,"source.configure",a);if(resolvedReplay)return configured(resolvedReplay);
     ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source configuration changed.",409);
     const policy=sourcePolicy(config);
     ensure(!policy.credentialArgs&&!policy.embeddedUrl,"CREDENTIAL_IMPORT_UNSUPPORTED","Move command-line credentials to a supported environment/Vault reference in local connection settings.");
     ensure(!policy.unsupported,"SOURCE_CONFIGURATION_UNSUPPORTED","Use the MCP tool library to register a supported connection explicitly.");
     ensure(source.executor==="hub_direct","HOST_ONLY","This source requires the Codex host.");
     const prepared=this.repo.command(owner,"source.configure",a.idempotencyKey,a,()=>{
-      const headers=Object.entries(config.http_headers??{});
-      ensure(Object.keys(config.env_http_headers??{}).every(name=>name.toLowerCase()==="authorization"),"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authorization variables are supported.");
-      ensure(headers.every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+$/i.test(value)),"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authentication is supported; configure other transports separately.");
+      // resolveSource may run a subprocess. Nothing may be written using its old row snapshot.
+      const current=this.repo.get("capability_sources",source.id),currentContext=this.repo.get("host_contexts",context.id);
+      ensure(currentContext?.revision===context.revision,"CONTEXT_CHANGED","Context changed while resolving credentials; rescan first.",409);
+      ensure(current&&current.enabled&&!current.self&&!current.stale&&current.revision===a.expectedRevision&&current.contextRevision===context.revision&&hash(current)===hash(source),"CAPABILITY_STALE","Source changed while resolving credentials; reload before saving.",409);
+      ensure(config.enabled!==false&&!selfSource({name:source.name,config},this.identity),"CAPABILITY_STALE","Source is disabled or refers to FlowHub.",409);
+      const bearer=bearerCredentials(config);
+      ensure(bearer.supported,"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authentication is supported; configure other transports separately.");
+      ensure(!bearer.conflict,"AUTHORIZATION_CONFLICT","Source declares conflicting Bearer authorization credentials.",409);
       const connection=this.connection(config,source.id,a.importInlineCredentials===true),refs={...(a.secretRefs??{})};
       for(const name of [...(config.env_vars??[]),...Object.values(config.env_http_headers??{})])ensure(refs[String(name)],"CREDENTIALS_REQUIRED","Choose a local Vault reference for "+name);
       for(const name of Object.keys(config.env??{}))ensure(a.importInlineCredentials||refs[name],"CREDENTIALS_REQUIRED","Explicitly import inline credentials or choose Vault references.");
       for(const ref of Object.values(refs))this.engine.vault.secret(String(ref));
       connection.envRefs={...connection.envRefs,...refs};
-      if(config.env_http_headers?.Authorization||config.env_http_headers?.authorization){const name=config.env_http_headers.Authorization??config.env_http_headers.authorization;ensure(refs[name],"CREDENTIALS_REQUIRED","Choose the Bearer Vault reference.");connection.secretRef=refs[name];}
-      if(config.bearer_token_env_var){ensure(refs[config.bearer_token_env_var],"CREDENTIALS_REQUIRED","Choose the Bearer Vault reference.");connection.secretRef=refs[config.bearer_token_env_var];}
-      if(headers.length){ensure(a.importInlineCredentials,"CREDENTIALS_REQUIRED","Explicit inline credential import required.");connection.secretRef=this.engine.vault.addSecret("Imported MCP Bearer credential",String(headers[0]![1]).replace(/^Bearer /i,"")).id;}
+      if(bearer.variable){ensure(refs[bearer.variable],"CREDENTIALS_REQUIRED","Choose the Bearer Vault reference.");connection.secretRef=refs[bearer.variable];}
+      if(bearer.token){ensure(a.importInlineCredentials,"CREDENTIALS_REQUIRED","Explicit inline credential import required.");connection.secretRef=this.engine.vault.addSecret("Imported MCP Bearer credential",bearer.token).id;}
       connection.sourceFingerprint=source.sourceFingerprint;
       connection.id="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs,connection.secretRef??null]).slice(0,24);
       const previous=this.repo.get("connections",connection.id);connection.revision=(previous?.revision??0)+1;
       if(!previous)this.repo.insert("connections",connection.id,connection);
-      this.repo.put("capability_sources",source.id,{...source,preparedConnectionId:connection.id,revision:source.revision+1});
+      this.repo.put("capability_sources",source.id,{...current,preparedConnectionId:connection.id,revision:current.revision+1},a.expectedRevision);
       return {connectionId:connection.id};
     });
-    return {...prepared,status:"credentials_configured",next:"Rescan the catalog; resource bindings still require independent verification."};
+    return configured(prepared);
   }
   scan(a:Json,owner="admin") {
     input("host_scan",a);ensure(!this.closing,"SERVICE_CLOSING","Discovery is shutting down.",503);
@@ -125,7 +161,7 @@ export class CapabilityRegistry {
       const worker=async()=>{while(index<scan.sources.length){check();const source=scan.sources[index++]!;
         const sourceId="src_"+hash([context.id,source.sourceKey]).slice(0,24),prior=this.repo.get("capability_sources",sourceId),sourceFingerprint=hash(source.config),self=selfSource(source,this.identity),policy=sourcePolicy(source.config);
         const direct=!self&&!policy.unsupported&&!!(source.config.url||(isAbsolute(source.config.command??"")&&!/\$\{|\{\{/.test(JSON.stringify(source.config))));
-        const referenceCredentials=Object.keys(source.config.env_http_headers??{}).every(name=>name.toLowerCase()==="authorization")&&Object.entries(source.config.http_headers??{}).every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+/i.test(value));
+        const bearer=bearerCredentials(source.config),referenceCredentials=bearer.supported&&!bearer.conflict;
         const value:Json={id:sourceId,contextId:context.id,contextRevision:context.revision,sourceKey:source.sourceKey,name:source.name,kind:source.kind,locator:source.locator,sourceChain:source.sourceChain,
           connectionSetup:policy.credentialArgs||policy.embeddedUrl||policy.unsupported||!referenceCredentials?"manual":direct?"references":"host",
           enabled:source.enabled,sourceFingerprint,revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,

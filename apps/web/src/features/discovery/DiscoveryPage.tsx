@@ -136,6 +136,7 @@ export function DiscoveryPage({
         <label>
           本机上下文
           <select
+            aria-label="本机上下文"
             value={d.contextId}
             onChange={(e) => d.select(e.target.value)}
           >
@@ -176,6 +177,7 @@ export function DiscoveryPage({
       <DiscoverySettings
         context={d.context}
         busy={d.busy}
+        registering={d.registering}
         register={d.register}
         expanded={settingsOpen}
         onToggle={setSettingsOpen}

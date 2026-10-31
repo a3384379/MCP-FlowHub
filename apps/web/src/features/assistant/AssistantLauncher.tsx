@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import type { AssistantViewport } from "./viewport";
 
 type Placement = { side: "left" | "right"; ratio: number; docked: boolean };
 const storageKey = "flowhub.assistant.launcher.v1";
@@ -20,15 +21,6 @@ const initial = (): Placement => {
   }
   return { side: "right", ratio: 0.72, docked: false };
 };
-const bounds = () => {
-  const v = window.visualViewport;
-  return {
-    left: v?.offsetLeft ?? 0,
-    top: v?.offsetTop ?? 0,
-    width: v?.width ?? innerWidth,
-    height: v?.height ?? innerHeight,
-  };
-};
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(Math.max(min, max), value));
 
@@ -38,15 +30,16 @@ export function AssistantLauncher({
   unread,
   toggle,
   onSideChange,
+  viewport,
 }: {
   launcherRef: RefObject<HTMLButtonElement | null>;
   opened: boolean;
   unread: boolean;
   toggle: () => void;
   onSideChange: (side: "left" | "right") => void;
+  viewport: AssistantViewport;
 }) {
   const [placement, setPlacement] = useState(initial),
-    [viewport, setViewport] = useState(bounds),
     [moving, setMoving] = useState<{ left: number; top: number } | null>(null);
   const drag = useRef<{
       id: number;
@@ -67,27 +60,22 @@ export function AssistantLauncher({
   useEffect(() => {
     onSideChange(placement.side);
   }, [placement.side, onSideChange]);
-  useEffect(() => {
-    const update = () => setViewport(bounds());
-    window.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("scroll", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("scroll", update);
-    };
-  }, []);
   const width = placement.docked ? 22 : 54,
     height = placement.docked ? 64 : 54,
     minTop = viewport.top + 16,
     travel = Math.max(0, viewport.height - height - 32),
-    top = moving?.top ?? minTop + travel * placement.ratio,
-    left =
-      moving?.left ??
-      (placement.side === "left"
+    top = moving
+      ? clamp(moving.top, minTop, minTop + travel)
+      : minTop + travel * placement.ratio,
+    left = moving
+      ? clamp(
+          moving.left,
+          viewport.left,
+          viewport.left + viewport.width - width,
+        )
+      : placement.side === "left"
         ? viewport.left + (placement.docked ? 0 : 12)
-        : viewport.left + viewport.width - width - (placement.docked ? 0 : 12));
+        : viewport.left + viewport.width - width - (placement.docked ? 0 : 12);
   const cancelDrag = () => {
     drag.current = null;
     setMoving(null);

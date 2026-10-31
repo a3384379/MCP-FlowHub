@@ -41,6 +41,17 @@ const remember = (key: string, value: string) => {
 const mergeMessages = (first: Data[], second: Data[]) => [
   ...new Map([...first, ...second].map((m) => [m.id, m])).values(),
 ];
+// These responses reject the request before acceptance. A timeout or transport
+// failure may have lost a successful receipt, so it must retain the original key.
+const rejected = (error: unknown) => {
+  const status = (error as { status?: number })?.status;
+  return (
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408
+  );
+};
 
 /** Mounted once by the app shell, independently of window visibility and route. */
 export function useConversation(api: Api) {
@@ -92,7 +103,8 @@ export function useConversation(api: Api) {
       const slot = id + (before ? ":history" : ":latest"),
         version = (versions.current.get(slot) ?? 0) + 1;
       versions.current.set(slot, version);
-      const atStart = serial.current;
+      const atStart = serial.current,
+        proposal = pending.current.get(id);
       const page = await api(
         "/api/v2/assistant/sessions/" +
           id +
@@ -100,11 +112,11 @@ export function useConversation(api: Api) {
           (before ? "?before=" + encodeURIComponent(before) : ""),
       );
       if (!mounted.current || versions.current.get(slot) !== version) return;
-      const proposal = pending.current.get(id);
       const recovered =
         proposal &&
         page.tasks.some((t: Data) => t.idempotencyKey === proposal.key);
-      if (recovered) pending.current.delete(id);
+      if (recovered && pending.current.get(id)?.key === proposal.key)
+        pending.current.delete(id);
       patch(id, (entry) => {
         const tasks = { ...entry.tasks };
         for (const next of page.tasks) {
@@ -124,7 +136,7 @@ export function useConversation(api: Api) {
             : mergeMessages(entry.messages, page.items),
           cursor:
             before || !entry.messages.length ? page.nextCursor : entry.cursor,
-          ...(recovered
+          ...(recovered && entry.submission?.key === proposal.key
             ? {
                 submission: undefined,
                 error: "",
@@ -184,7 +196,7 @@ export function useConversation(api: Api) {
     else await create();
   }, [api, choose, create, loadSessions]);
   const send = useCallback(
-    async (context: Data, textOverride?: string) => {
+    async (context: Data, textOverride?: string, continueTaskId?: string) => {
       const id = current.current,
         entry = entriesRef.current[id] ?? empty();
       if (
@@ -197,7 +209,7 @@ export function useConversation(api: Api) {
       if (!proposal) {
         const text = (textOverride ?? entry.text).trim();
         if (!text || !profileId) return;
-        const actions = requestedActions(text);
+        const actions = continueTaskId ? [] : requestedActions(text);
         proposal = {
           key: crypto.randomUUID(),
           status: "sending",
@@ -207,6 +219,7 @@ export function useConversation(api: Api) {
             requestedActions: actions,
             mode: actions.length ? "compose" : "help",
             modelProfileId: profileId,
+            ...(continueTaskId ? { continueTaskId } : {}),
           },
         };
       }
@@ -221,11 +234,17 @@ export function useConversation(api: Api) {
           { ...request.payload, idempotencyKey: request.key },
         );
         if (!mounted.current) return;
-        pending.current.delete(id);
+        if (pending.current.get(id)?.key === request.key)
+          pending.current.delete(id);
         patch(id, (e) => ({
           ...e,
-          submission: undefined,
-          text: e.text === request.payload.text ? "" : e.text,
+          ...(e.submission?.key === request.key
+            ? {
+                submission: undefined,
+                error: "",
+                text: e.text === request.payload.text ? "" : e.text,
+              }
+            : {}),
           tasks: {
             ...e.tasks,
             [accepted.taskId]: e.tasks[accepted.taskId] ?? {
@@ -238,23 +257,42 @@ export function useConversation(api: Api) {
             },
           },
         }));
-        await refresh(id);
-        await loadSessions();
+        // Reconciliation errors cannot turn an accepted request into a failed
+        // send, or overwrite a later submission's error/input state.
+        void refresh(id).catch(() => {});
+        void loadSessions().catch(() => {});
       } catch (error) {
         if (pending.current.get(id)?.key === request.key) {
+          if (rejected(error)) {
+            pending.current.delete(id);
+            patch(id, (e) =>
+              e.submission?.key === request.key
+                ? {
+                    ...e,
+                    submission: undefined,
+                    error: (error as Error).message,
+                  }
+                : e,
+            );
+            return;
+          }
           const uncertain: Submission = { ...request, status: "uncertain" };
           pending.current.set(id, uncertain);
-          patch(id, (e) => ({
-            ...e,
-            submission: uncertain,
-            error: "发送结果尚未确认。重试会恢复同一请求，不会重复执行。",
-          }));
+          patch(id, (e) =>
+            e.submission?.key === request.key
+              ? {
+                  ...e,
+                  submission: uncertain,
+                  error: "发送结果尚未确认。重试会恢复同一请求，不会重复执行。",
+                }
+              : e,
+          );
           // The server may have accepted the request even when its HTTP receipt was lost.
           void refresh(id).catch(() => {});
-        } else fail(id, error);
+        }
       }
     },
-    [api, fail, loadSessions, patch, profileId, refresh],
+    [api, loadSessions, patch, profileId, refresh],
   );
   const cancel = useCallback(async () => {
     const id = current.current,

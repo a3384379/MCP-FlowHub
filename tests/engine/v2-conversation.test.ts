@@ -35,6 +35,7 @@ async function fixture(t: any, script: any[] = []) {
     text: string,
     context: Json = {},
     modelProfileId = profile.id,
+    continueTaskId?: string,
   ) =>
     app.assistant.submit(session.id, {
       text,
@@ -43,6 +44,7 @@ async function fixture(t: any, script: any[] = []) {
       mode: requestedActions(text).length ? "compose" : "help",
       requestedActions: requestedActions(text),
       idempotencyKey: crypto.randomUUID(),
+      ...(continueTaskId ? { continueTaskId } : {}),
     });
   return { app, repo, provider, profile, session, send };
 }
@@ -239,6 +241,9 @@ test("partial reply survives cancellation and a conversation reload; continuatio
   f.provider.script.push(done);
   const continued = f.send(
     "请根据上一轮已保存的工具回执继续回复，只解释结果，不要重复执行操作。",
+    {},
+    f.profile.id,
+    accepted.taskId,
   );
   await f.app.assistant.settled();
   assert.equal(f.app.assistant.task(continued.taskId).status, "COMPLETED");
@@ -247,6 +252,8 @@ test("partial reply survives cancellation and a conversation reload; continuatio
       request.messages[1]!.content.slice("Selected context (data): ".length),
     );
   assert.equal(context.previousTurnResults[0].partialText, "已经输出的正文");
+  assert.equal(context.previousTurnResults[0].taskId, accepted.taskId);
+  assert.deepEqual(context.previousTurnResults[0].tools, []);
   assert.ok(
     request.tools.every(
       (tool) =>

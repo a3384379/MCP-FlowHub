@@ -19,6 +19,16 @@ type Form = {
   useCases: string;
   inputSummary: string;
   outputSummary: string;
+  baseline: {
+    contextId: string;
+    expectedContextRevision: number;
+    entityId: string;
+    entityKind: string;
+    expectedSourceRevision: number;
+    sourceFingerprint: string;
+    expectedPresentationRevision: number;
+    evidenceRefs: string[];
+  };
 };
 const formFor = (e: Entity): Form => ({
   displayName: e.presentation.displayName ?? e.name,
@@ -27,6 +37,16 @@ const formFor = (e: Entity): Form => ({
   useCases: (e.presentation.useCases ?? []).join("\n"),
   inputSummary: e.presentation.inputSummary ?? "",
   outputSummary: e.presentation.outputSummary ?? "",
+  baseline: {
+    contextId: e.contextId,
+    expectedContextRevision: e.contextRevision,
+    entityId: e.id,
+    entityKind: e.entityKind,
+    expectedSourceRevision: e.revision,
+    sourceFingerprint: e.sourceFingerprint,
+    expectedPresentationRevision: e.presentation.revision,
+    evidenceRefs: e.evidenceRefs.slice(0, 64),
+  },
 });
 export function DiscoveryDetail({
   id,
@@ -69,10 +89,33 @@ export function DiscoveryDetail({
     [credentials, setCredentials] = useState(false),
     [refs, setRefs] = useState<Record<string, string>>({}),
     [secrets, setSecrets] = useState<Entity[]>([]),
-    [importInline, setImportInline] = useState(false);
-  const generation = useRef(0);
+    [importInline, setImportInline] = useState(false),
+    [credentialTarget, setCredentialTarget] = useState<{ sourceId: string; revision: number } | null>(null);
+  const generation = useRef(0),
+    readGeneration = useRef(0),
+    credentialActivation = useRef(0),
+    navigation = useRef(""),
+    activateCredentials = useRef(false);
   const v2 = (path: string, method = "GET", body?: any) =>
     api("/api/v2" + path, method, body);
+  async function activateCredentialForm(value: Entity, current: () => boolean) {
+    const activation = ++credentialActivation.current,
+      target = { sourceId: value.sourceId, revision: value.configurationRevision },
+      ownsActivation = () => current() && activation === credentialActivation.current;
+    try {
+      const values = await api("/secrets");
+      if (!ownsActivation()) return;
+      setSecrets(values);
+      setRefs({});
+      setImportInline(false);
+      setCredentialTarget(target);
+      setNotice("");
+      setEditing(false);
+      setCredentials(true);
+    } catch (e) {
+      if (ownsActivation()) setError((e as Error).message);
+    }
+  }
   async function loadTools(e: Entity, next?: string) {
     const params = new URLSearchParams({
       contextId: e.contextId,
@@ -81,55 +124,68 @@ export function DiscoveryDetail({
       limit: "20",
       ...(next ? { cursor: next } : {}),
     });
-    const token = generation.current,
+    const token = readGeneration.current,
       result = await v2("/discovery/catalog?" + params);
-    if (generation.current !== token) return;
+    if (readGeneration.current !== token) return;
     setTools((previous) =>
       next ? [...previous, ...result.items] : result.items,
     );
     setCursor(result.nextCursor);
   }
   useEffect(() => {
-    const token = ++generation.current;
-    setEntity(null);
-    setTools([]);
-    setCursor(null);
-    setError("");
-    setNotice("");
-    setTab("tools");
-    setImportTarget(null);
-    setCredentials(false);
-    setEditing(!!drafts[id]);
-    setWorking(false);
+    return () => {
+      generation.current++;
+      readGeneration.current++;
+      credentialActivation.current++;
+      navigation.current = "";
+    };
+  }, []);
+  useEffect(() => {
+    const token = ++readGeneration.current,
+      destination = JSON.stringify([id, initialMode]);
+    if (navigation.current !== destination) {
+      navigation.current = destination;
+      generation.current++;
+      credentialActivation.current++;
+      activateCredentials.current = initialMode === "credentials";
+      setEntity(null);
+      setTools([]);
+      setCursor(null);
+      setError("");
+      setNotice("");
+      setTab("tools");
+      setImportTarget(null);
+      setCredentials(false);
+      setCredentialTarget(null);
+      setEditing(!!drafts[id]);
+      setWorking(false);
+    }
+    const actionToken = generation.current;
     void v2("/discovery/entities/" + encodeURIComponent(id))
       .then(async (value) => {
-        if (token !== generation.current) return;
+        if (token !== readGeneration.current) return;
         setEntity(value);
         if (
-          initialMode === "credentials" &&
+          activateCredentials.current &&
           !value.stale &&
           value.connectionSetup !== "manual" &&
           value.executor === "hub_direct"
         ) {
-          const values = await api("/secrets");
-          if (token !== generation.current) return;
-          setSecrets(values);
-          setRefs({});
-          setImportInline(false);
-          setEditing(false);
-          setCredentials(true);
+          activateCredentials.current = false;
+          await activateCredentialForm(value, () => actionToken === generation.current);
+          if (actionToken !== generation.current) return;
         }
         if (value.entityKind === "mcp_server") await loadTools(value);
       })
       .catch((e) => {
-        if (token === generation.current) setError(e.message);
+        if (token === readGeneration.current) setError(e.message);
       });
     return () => {
-      generation.current++;
+      readGeneration.current++;
     };
   }, [id, snapshot, initialMode]);
   const form = drafts[id] ?? (entity ? formFor(entity) : null);
-  const change = (key: keyof Form, value: string) => {
+  const change = (key: Exclude<keyof Form, "baseline">, value: string) => {
     if (form) setDraft(id, { ...form, [key]: value });
   };
   const run = async (work: (current: () => boolean) => Promise<void>) => {
@@ -147,17 +203,17 @@ export function DiscoveryDetail({
   const save = () =>
     run(async (current) => {
       const value = await v2("/discovery/descriptions", "POST", {
-        contextId: entity!.contextId,
-        expectedContextRevision: entity!.contextRevision,
+        contextId: form!.baseline.contextId,
+        expectedContextRevision: form!.baseline.expectedContextRevision,
         action: "submit_descriptions",
         idempotencyKey: crypto.randomUUID(),
         entries: [
           {
-            entityId: entity!.id,
-            entityKind: entity!.entityKind,
-            expectedSourceRevision: entity!.revision,
-            sourceFingerprint: entity!.sourceFingerprint,
-            expectedPresentationRevision: entity!.presentation.revision,
+            entityId: form!.baseline.entityId,
+            entityKind: form!.baseline.entityKind,
+            expectedSourceRevision: form!.baseline.expectedSourceRevision,
+            sourceFingerprint: form!.baseline.sourceFingerprint,
+            expectedPresentationRevision: form!.baseline.expectedPresentationRevision,
             locale: "zh-CN",
             displayName: form!.displayName,
             summary: form!.summary,
@@ -168,7 +224,7 @@ export function DiscoveryDetail({
               .filter(Boolean),
             inputSummary: form!.inputSummary,
             outputSummary: form!.outputSummary,
-            evidenceRefs: entity!.evidenceRefs.slice(0, 64),
+            evidenceRefs: form!.baseline.evidenceRefs,
           },
         ],
       });
@@ -210,11 +266,12 @@ export function DiscoveryDetail({
     });
   const configure = () =>
     run(async (current) => {
-      await v2(
-        "/capability-sources/" + entity!.sourceId + "/credentials",
+      if (!credentialTarget) throw new Error("请重新打开连接凭据配置。");
+      const result = await v2(
+        "/capability-sources/" + credentialTarget.sourceId + "/credentials",
         "POST",
         {
-          expectedRevision: entity!.configurationRevision,
+          expectedRevision: credentialTarget.revision,
           secretRefs: Object.fromEntries(
             Object.entries(refs).filter(([, value]) => value),
           ),
@@ -222,20 +279,14 @@ export function DiscoveryDetail({
           idempotencyKey: crypto.randomUUID(),
         },
       );
+      if (result.status !== "credentials_configured") throw new Error("凭据引用尚未保存。");
       if (!current()) return;
       setCredentials(false);
       setNotice("凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。");
       await onChanged();
     });
   const beginCredentials = () =>
-    run(async (current) => {
-      const values = await api("/secrets");
-      if (!current()) return;
-      setSecrets(values);
-      setRefs({});
-      setImportInline(false);
-      setCredentials(true);
-    });
+    run((current) => activateCredentialForm(entity!, current));
   const canImport = (e: Entity) =>
     !!e.capabilityId &&
     e.enabled &&
@@ -388,6 +439,14 @@ export function DiscoveryDetail({
                 仅修改阅读说明，原始名称、技能内容与 Schema 保持原值。Esc
                 收起后重新打开可继续编辑。
               </p>
+              {(form.baseline.expectedSourceRevision !== entity.revision ||
+                form.baseline.sourceFingerprint !== entity.sourceFingerprint ||
+                form.baseline.expectedContextRevision !== entity.contextRevision ||
+                form.baseline.expectedPresentationRevision !== entity.presentation.revision) && (
+                <p className="d-notice" role="status">
+                  来源或中文说明已更新。当前草稿保留开始编辑时的版本，保存时会校验冲突。请保留草稿并重新核对；取消编辑后可从最新版本重新开始。
+                </p>
+              )}
               {(
                 [
                   ["displayName", "中文显示名称", 120],
@@ -402,12 +461,16 @@ export function DiscoveryDetail({
                   {label}
                   {key === "displayName" ? (
                     <input
+                      aria-label={label}
+                      disabled={working}
                       value={form[key]}
                       maxLength={limit}
                       onChange={(e) => change(key, e.target.value)}
                     />
                   ) : (
                     <textarea
+                      aria-label={label}
+                      disabled={working}
                       rows={key === "description" ? 5 : 2}
                       value={form[key]}
                       maxLength={limit}
@@ -424,10 +487,16 @@ export function DiscoveryDetail({
                 凭据由本地 Vault 加密保存；不会复制 Codex OAuth。Vault
                 锁定时请先到接入设置解锁。
               </p>
+              {credentialTarget && credentialTarget.revision !== entity.configurationRevision && (
+                <p className="d-notice" role="status">
+                  来源配置已更新，当前凭据草稿保留原配置修订。请保留选择并重新核对；返回详情后可重新打开配置。
+                </p>
+              )}
               {(entity.credentialVariables ?? []).map((name: string) => (
                 <label key={name}>
                   {name}
                   <select
+                    disabled={working}
                     aria-label={name}
                     value={refs[name] ?? ""}
                     onChange={(e) =>
@@ -445,6 +514,7 @@ export function DiscoveryDetail({
               ))}
               <label className="d-check">
                 <input
+                  disabled={working}
                   type="checkbox"
                   checked={importInline}
                   onChange={(e) => setImportInline(e.target.checked)}
@@ -453,18 +523,19 @@ export function DiscoveryDetail({
               </label>
               <div className="d-actions">
                 <button
+                  disabled={working}
                   onClick={() => onManage({ type: "vault", name: entity.name })}
                 >
                   添加凭据
                 </button>
-                <button onClick={() => onManage({ type: "unlock" })}>
+                <button disabled={working} onClick={() => onManage({ type: "unlock" })}>
                   解锁凭据库
                 </button>
               </div>
               {!secrets.length && (
                 <p>尚无可选凭据。先添加凭据，再返回此处选择对应引用。</p>
               )}
-              <button onClick={() => setCredentials(false)}>返回详情</button>
+              <button disabled={working} onClick={() => setCredentials(false)}>返回详情</button>
             </div>
           ) : importTarget ? (
             <div className="d-edit-form">
@@ -472,6 +543,7 @@ export function DiscoveryDetail({
               <label>
                 导入固定环境
                 <select
+                  disabled={working}
                   aria-label="导入固定环境"
                   value={environment}
                   onChange={(e) => setEnvironment(e.target.value)}
@@ -486,13 +558,14 @@ export function DiscoveryDetail({
                 <label>
                   锁定参数 JSON
                   <textarea
+                    disabled={working}
                     value={lockedArguments}
                     onChange={(e) => setLockedArguments(e.target.value)}
                   />
                 </label>
               </details>
               <p>导入保存连接和绑定，不执行工具。资源/环境绑定仍需独立验证。</p>
-              <button onClick={() => setImportTarget(null)}>返回详情</button>
+              <button disabled={working} onClick={() => setImportTarget(null)}>返回详情</button>
             </div>
           ) : (
             <>
