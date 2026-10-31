@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { RELEASE_PHASE } from "../../../packages/contracts/src/index.js";
+import { realpathSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -104,7 +106,7 @@ export async function main(args = process.argv.slice(2)) {
           {
             ...protocolEvidence(client, "http"),
             tools: tools.map((t) => t.name),
-            phase: "RC",
+            phase: RELEASE_PHASE,
           },
           null,
           2,
@@ -120,7 +122,7 @@ export async function main(args = process.argv.slice(2)) {
 
 if (
   process.argv[1] &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+  import.meta.url === pathToFileURL(realpathSync(resolve(process.argv[1]))).href
 ) {
   main().catch((error) => {
     // Do not print SDK stacks, headers or tokens.

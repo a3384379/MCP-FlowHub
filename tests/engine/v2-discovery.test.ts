@@ -82,7 +82,7 @@ test("explicit local credential import seals inline env, preserves source, and e
   await writeFile(entry,`import {McpServer,fromJsonSchema} from ${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server"))};import {serveStdio} from ${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server/stdio"))};if(process.env.ACCESS_TOKEN!=='SYNTHETIC_PRIVATE_VALUE')process.exit(2);serveStdio(()=>{const s=new McpServer({name:'credential-fixture',version:'1'},{capabilities:{tools:{}}});s.registerTool('read',{inputSchema:fromJsonSchema({type:'object',additionalProperties:false})},async()=>({content:[{type:'text',text:'ok'}]}));return s;},{legacy:'serve'});`);
   const original=JSON.stringify([{name:"private",enabled:true,transport:{type:"stdio",command:process.execPath,args:[entry],env:{ACCESS_TOKEN:"SYNTHETIC_PRIVATE_VALUE"}}}]);
   await writeFile(join(f.home,"cli.json"),original);
-  const context=await f.context();f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"before"});await f.registry.close();assert.equal(f.registry.search().items.length,0);
+  const context=await f.context();const before=f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"before"});await f.registry.close();assert.equal(f.registry.search().items.length,0);assert.equal(f.registry.status(before.scanId).status,"PARTIAL");assert.ok(f.registry.status(before.scanId).issues.some((i:any)=>i.code==="CREDENTIALS_REQUIRED"));
   const source=f.repo.all("capability_sources")[0],args={sourceId:source.id,expectedRevision:source.revision,idempotencyKey:"configure",importInlineCredentials:true};
   await assert.rejects(f.registry.configureSource(args,"some-mcp-owner"),{code:"AUTH_REQUIRED"});
   const imported=await f.registry.configureSource(args);assert.deepEqual(await f.registry.configureSource(args),imported);
@@ -98,4 +98,10 @@ test("context trust options use CAS and do not silently mutate an existing regis
   assert.equal((await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true})).projectTrusted,false);
   const updated=await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,projectTrusted:true,expectedRevision:1});assert.equal(updated.projectTrusted,true);assert.equal(updated.revision,2);
   await assert.rejects(f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:context.codexPath,expectedRevision:1}),{code:"REVISION_CONFLICT"});
+});
+test("credential command arguments remain metadata-only and are never copied into connection rows",async t=>{
+  const f=await setup(t);await writeFile(join(f.home,"cli.json"),JSON.stringify([{name:"argv-auth",enabled:true,transport:{type:"stdio",command:process.execPath,args:["--api-key=SYNTHETIC_ARG_SECRET"]}}]));
+  const context=await f.context(),job=f.registry.scan({contextId:context.id,depth:"catalog",idempotencyKey:"argv"});await f.registry.close();const source=f.registry.status(job.scanId).sources[0];assert.equal(source.availability,"credentials_required");
+  await assert.rejects(f.registry.configureSource({sourceId:source.id,expectedRevision:source.revision,idempotencyKey:"deny-argv",importInlineCredentials:true}),{code:"CREDENTIAL_IMPORT_UNSUPPORTED"});
+  assert.equal(f.repo.all("connections").length,0);assert.ok(!JSON.stringify(f.repo.all("capability_sources")).includes("SYNTHETIC_ARG_SECRET"));
 });

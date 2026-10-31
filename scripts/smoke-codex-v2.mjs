@@ -7,9 +7,9 @@ import assert from "node:assert/strict";
 import { startDaemon } from "../dist/apps/daemon/src/index.js";
 import { locateCodex } from "../dist/packages/host-discovery/src/index.js";
 import { tomlString } from "../dist/packages/admin-api/src/settings-integration.js";
+const codex=process.env.FLOWHUB_CODEX_PATH??await locateCodex();assert.ok(codex,"Install Codex or specify FLOWHUB_CODEX_PATH.");
 const root=await mkdtemp(join(tmpdir(),"flowhub-real-codex-v2-")),home=join(root,"codex"),dataDir=join(root,"data");
 await mkdir(home);const daemon=await startDaemon({dataDir,port:0}),pending=new Map();let seq=0;
-const codex=process.env.FLOWHUB_CODEX_PATH??await locateCodex();assert.ok(codex,"Install Codex or specify FLOWHUB_CODEX_PATH.");
 await writeFile(join(home,"config.toml"),[
   '[features]','apps = false','[mcp_servers.flowhub_v2]',
   'command = '+tomlString(process.execPath),

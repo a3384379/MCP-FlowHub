@@ -8,6 +8,7 @@ import { startDaemon } from "../../apps/daemon/src/index.js";
 import { readEndpoint } from "../../apps/daemon/src/local-config.js";
 import { createClient,localHttpTransport } from "../../packages/mcp-connectors/src/index.js";
 import type { Json } from "../../packages/contracts/src/domain.js";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 test("official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state",{timeout:30000},async t=>{
   const root=await realpath(await mkdtemp(join(tmpdir(),"flowhub v2 MCP "))),home=join(root,"codex"),dataDir=join(root,"data");await mkdir(home);
@@ -68,4 +69,9 @@ test("official MCP 21-tool discovery/import/author/generate/mock/publish/start/a
   try {await legacy.connect(localHttpTransport(new URL(endpoint.url),(await readFile(scoped.absoluteTokenFile,"utf8")).trim()));
     assert.equal((await legacy.listTools()).tools.length,7);
   }finally{await legacy.close();}
+  const bridged=createClient("modern");
+  try {
+    await bridged.connect(new StdioClientTransport({command:process.execPath,args:[resolve("dist/apps/daemon/src/cli.js"),"mcp","--stdio","--data-dir",dataDir,"--token-file",scoped.absoluteTokenFile],stderr:"pipe"}));
+    assert.deepEqual((await bridged.listTools()).tools.map(t=>t.name),["workflow_search","workflow_get","workflow_start","workflow_advance","workflow_status","workflow_cancel","artifact_read"]);
+  }finally{await bridged.close();}
 });

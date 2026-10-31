@@ -9,6 +9,8 @@ import {
   MODERN_PROTOCOL,
   VERSION,
   failure,
+  TOOL_NAMES,
+  type ToolName,
 } from "../../../packages/contracts/src/index.js";
 import { readEndpoint } from "../../daemon/src/local-config.js";
 
@@ -21,6 +23,7 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
       versionNegotiation: { mode: { pin: MODERN_PROTOCOL } },
     },
   );
+  let advertised:ToolName[]=[];
   try {
     await client.connect(
       new StreamableHTTPClientTransport(new URL(url), {
@@ -31,6 +34,10 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
       }),
       { timeout: 5000 },
     );
+    const upstream=await client.listTools();
+    // The bridge preserves the authenticated daemon's scope and only exposes
+    // names from the fixed contract. It does not invent authoring permission.
+    advertised=TOOL_NAMES.filter(name=>upstream.tools.some(tool=>tool.name===name));
   } catch {
     await client.close();
     throw new Error(
@@ -51,7 +58,7 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
             "The daemon request failed. Verify daemon health before retrying.",
           );
         }
-      }),
+      },advertised),
     {
       legacy: "serve",
       onerror: () =>

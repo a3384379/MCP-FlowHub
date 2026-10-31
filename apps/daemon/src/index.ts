@@ -12,6 +12,7 @@ import { Application } from "../../../packages/application/src/index.js";
 import type { ProviderFactory } from "../../../packages/llm-providers/src/index.js";
 import {
   VERSION,
+  RELEASE_PHASE,
   projectRoot,
   result,
   failure,
@@ -83,7 +84,7 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     app.get("/api/v1/health", async () => ({
       status: "ok",
       version: VERSION,
-      phase: "RC",
+      phase: RELEASE_PHASE,
       syntheticOnly: false,
     }));
     const webRoot = resolve(projectRoot, "web-dist"),

@@ -1,0 +1,17 @@
+
+> mcp-flowhub@2.0.0-alpha.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 74 management paths.
+✔ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (3311.906583ms)
+✔ deterministic generation executes numeric/string boundaries and both boolean branches (1879.196375ms)
+✔ independent assertions reject a proposed success claim (110.056292ms)
+✔ Mock tool results must satisfy the discovered schema instead of trusting proposed fixture shape (106.389458ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3560.6185

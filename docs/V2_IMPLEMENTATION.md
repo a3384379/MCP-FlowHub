@@ -27,7 +27,7 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 ## S6–S7（以下阶段状态以末尾记录为准）
 
-尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
+此处为S0时的阶段占位；S6实际结果及S7后续结果见文末，不以历史占位推断当前状态。
 
 S0 后续修复：macOS 安装器夹具使用 realpath，仍保留拒绝目录链接/路径穿越等负向测试；openStore 在 WAL 设置和 boots 计数写入前校验历史，损坏/未来数据库不产生业务写入。
 
@@ -105,3 +105,39 @@ S5–S7 尚未完成。
 - `node scripts/smoke-codex-v2.mjs` exit 0；真实宿主最小闭环，S6-codex.txt。
 
 104项逐项记录在 `docs/evidence/v2/acceptance-results.json`，S6评估64 PASS（限定合成/宿主证据）、30 PARTIAL（不能视为通过）、10 UNVERIFIED。30项真实模型记录在nl-evaluation-results.json，全部UNVERIFIED，不用Mock代替。原生Windows、企业权限/服务、桌面已有会话工具和真实模型未验证。S7打包/停机恢复尚待完成。
+
+## S7 完成：本地候选、实际旧程序升级回滚（2026-10-31）
+
+版本为 `2.0.0-alpha.1`，运行/包/doctor阶段为ALPHA，OpenAPI从package读取版本。原生Windows、真实目标模型未验，不宣称生产发布就绪。新增模块、v2契约、V2_USER_GUIDE/MIGRATION/ACCEPTANCE进入离线包；运行帮助与source snapshot字节一致，完整性清单覆盖新模块。源码快照包含全部新增源码/契约/脚本与文字证据，二进制截图不是可恢复源码的必要部分。
+
+新增 `test:upgrade-local` 在临时目录提取并编译实际基线45eed03，使用旧程序建立真实v1结构的合成库、创建发布并执行模板报告、登记旧客户端和一致性备份。当前程序升级后workflows/versions/runs/artifacts/clients每行相等；自动pre-v2备份存在；新库备份预检成功，删除assistant_tasks的损坏备份被拒绝，活动daemon期间恢复被拒绝。停机恢复后再次启动实际旧程序，七工具可用，发布hash和报告字节保持一致。旧发布hash为 `sha256:8ad35f7232e3c1f463eba7434aa5ef1b0d949dbc21f403da9fd5d3ab10927491`。未访问正式库。此开发验收脚本依赖当前Git仓库包含45eed03对象及开发依赖，不是目标机启动步骤。
+
+包验收发现并修复：
+- CLI在macOS `/var`别名入口因import.meta真实路径不等而静默退出0；改用realpath比较，并用真实目录别名启动CLI的回归断言。
+- HTTP受限身份目录正确为7，但STDIO薄桥原来无条件列21；现在从已认证daemon目录取固定契约交集，没有增加任意工具透传。真实STDIO及包内modern/legacy旧身份均断言7。
+- 缺认证或宿主专用源被跳过catalog时，明确PARTIAL；命令参数中的常见认证旗标禁止复制为普通连接参数。
+- 确定性用例增加数字/字符串/数组边界、布尔与枚举；复杂约束缺有效样本显示INPUT_SAMPLE_REQUIRED，过大生成显示GENERATION_LIMIT；Mock入参与输出经过发现Schema校验。新增独立断言失败、两条布尔分支、测试过期及非法输出测试。初次新增夹具缺capabilityId，按真实契约补齐后通过，没有放宽Schema。
+
+最终实际命令（项目专用Node24.19/npm11.9；退出码全部0）：
+- `npm run check`；`npm test`（包含build）：225/225，78.5秒，S7-check.txt/S7-tests.txt。
+- `npm run test:ui`：24/24，25.5秒；S7-ui.txt。仅测试自有隔离浏览器。保留S5已查看的截图，未将每次随机ID产生的截图差异作为新UI实现。
+- `node scripts/smoke-codex-v2.mjs`：真实Codex App Server21工具及编排/自测/报告闭环；S7-codex.txt，模型回合0。
+- `node scripts/smoke-v2-upgrade.mjs`：实际旧程序升级/停机恢复/旧程序重启；S7-upgrade.txt。
+- `npm run package:local`、`npm run test:package`、`npm run verify:release`：macOS arm64离线候选及包内Node启动，无外部npm/node；真实编排持久化、中文帮助、21/7目录、modern/legacy合成调用、模块篡改拒绝全部通过。S7-package*.txt/S7-verify.txt；首次CLI失败保留S7-package-first-failure.txt。候选包含可恢复源码、Node许可、SBOM/第三方NOTICE及SHA256清单，哈希不当签名或企业准入证明。
+
+最终交付由本节所在本地提交重新打包，最终build-info.gitSha应等于HEAD、dirty=false；该次归档信息保存在未纳入Git的artifacts/latest-package.json，不再将最终二进制hash写回源码引起自引用。重建后的只读验证日志保存在/tmp/flowhub-v2-delivery-*。
+
+104项实际验收为72 PASS / 26 PARTIAL / 6 UNVERIFIED，详见acceptance-results.json。PARTIAL不当通过。30个真实目标模型场景均UNVERIFIED；无Key不阻断当前发现/手工/Codex/Mock功能。原生Windows/WSL、安装器实机、企业MCP权限、真实模型效果及现有Desktop会话授权未验证；未push、merge、Release，未运行会影响现有安装的安装器smoke。
+
+## 本地阶段提交索引
+
+| 阶段 | 提交 | 主要实现 |
+|---|---|---|
+| S0 | 28995de | 冻结v1与顺序迁移、基线/CI定位 |
+| S1 | 34da82b | 统一Authoring/CAS/operation/v2契约 |
+| S2 | 7c7c16a | Codex发现/能力目录/独立导入 |
+| S3 | 560366a | 固定21工具/产品级生成用例及Mock闭环 |
+| S4 | 9918547 | BYOK双协议/知识检索/持久化助手账本 |
+| S5 | c4fb1f2 | AI真实画布同步/撤销/执行器衔接 |
+| S6 | cbdeeed | 真实本机Codex联调/凭据入口/回归矩阵 |
+| S7 | 本节所在提交，见git log | 本地离线候选/升级回滚/包门禁及最终修复 |

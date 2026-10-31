@@ -1,0 +1,38 @@
+
+> mcp-flowhub@2.0.0-alpha.1 test:ui
+> playwright test
+
+[WebServer] (node:38271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] FlowHub ready on 127.0.0.1:18479 (loopback only).
+
+Running 24 tests using 1 worker
+
+(node:38274) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/automation.spec.ts:64:1 › automatic incident run has no approval controls and a restricted host completes the Web-started chain (3.6s)
+  ✓   2 tests/ui/automation.spec.ts:193:1 › run details distinguish failure and cancellation without obsolete action buttons (596ms)
+  ✓   3 tests/ui/connection-binding-forms.spec.ts:37:1 › labelled STDIO registration, discovery, explicit environment binding and an approved Mock probe need no whole-configuration JSON (2.6s)
+  ✓   4 tests/ui/connection-binding-forms.spec.ts:212:1 › HTTP registration accepts only registered credential references and keeps protocol separate from transport (406ms)
+  ✓   5 tests/ui/editor-regressions.spec.ts:71:1 › blank workflow requires an explicit environment and can save, publish and run without a binding (659ms)
+  ✓   6 tests/ui/editor-regressions.spec.ts:127:1 › incident creation ignores modified source drafts and requires explicit binding and tool choices before publication (529ms)
+  ✓   7 tests/ui/editor-regressions.spec.ts:194:1 › deterministic creation supports production, explicit tools, and selecting then deleting a saved edge (772ms)
+  ✓   8 tests/ui/editor-regressions.spec.ts:302:1 › reviewed publication rejects a concurrent edit and offers comparison and a separate unbound draft (648ms)
+  ✓   9 tests/ui/editor-regressions.spec.ts:354:1 › a slow draft response cannot replace the workflow reached through navigation (560ms)
+  ✓  10 tests/ui/editor-regressions.spec.ts:400:1 › a delayed save preserves newer edits and undo keeps the latest server revision (560ms)
+  ✓  11 tests/ui/editor-regressions.spec.ts:461:1 › a save finishing after navigation cannot replace another workflow (653ms)
+  ✓  12 tests/ui/editor-regressions.spec.ts:511:1 › session expiry retains focused JSON text while a wrong vault password leaves the admin session active (817ms)
+  ✓  13 tests/ui/editor-regressions.spec.ts:583:1 › schema fields, finite conditions and invalid mapping literals preserve the selected node (485ms)
+  ✓  14 tests/ui/editor-regressions.spec.ts:643:1 › invalid JSON cannot submit the previous business inputs or replace the workflow with null (521ms)
+  ✓  15 tests/ui/editor-regressions.spec.ts:682:1 › invalid node JSON and literal text remain blocking after selecting another node (564ms)
+  ✓  16 tests/ui/editor-regressions.spec.ts:744:1 › an earlier node preview cannot consume raw text from a remounted editor (516ms)
+  ✓  17 tests/ui/management.spec.ts:4:1 › bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff (3.3s)
+  ✓  18 tests/ui/management.spec.ts:98:1 › a pending auth-state request never exposes a consumed setup-token field (178ms)
+  ✓  19 tests/ui/published-start.spec.ts:60:1 › unpublished environment, mode and input changes cannot alter a published start (782ms)
+  ✓  20 tests/ui/published-start.spec.ts:136:1 › rollback preview and submission stay bound to the selected immutable version (485ms)
+  ✓  21 tests/ui/published-start.spec.ts:223:1 › missing immutable default fails closed without opening a draft-based preview (336ms)
+  ✓  22 tests/ui/responsive.spec.ts:4:1 › run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes (983ms)
+  ✓  23 tests/ui/retention.spec.ts:4:1 › cleanup preview shows every result-copy scope and submits only the reviewed hash (469ms)
+  ✓  24 tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest (2.8s)
+
+  24 passed (25.5s)

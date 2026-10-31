@@ -11,10 +11,19 @@ import type { AuthoringService } from "../../workflow-authoring/src/index.js";
 import { adaptMcpResult } from "../../mcp-connectors/src/results.js";
 const suiteSchema=JSON.parse(readFileSync(resolve(projectRoot,"contracts/test-suite.schema.json"),"utf8"));
 const terminal=new Set(["SUCCEEDED","FAILED","CANCELLED","OUTCOME_UNKNOWN","BLOCKED"]);
-const sample=(schema:Json):Json=>schema.examples?.[0]??schema.default??schema.const??schema.enum?.[0]??
-  (schema.type==="object"?Object.fromEntries(Object.entries(schema.properties??{}).filter(([k])=>(schema.required??[]).includes(k)).map(([k,v])=>[k,sample(v)])):
-    schema.type==="array"?[]:schema.type==="string"?(schema.format==="date-time"?"2026-10-31T00:00:00Z":"synthetic"):
-      schema.type==="boolean"?false:schema.type==="number"||schema.type==="integer"?schema.minimum??0:null);
+function sample(schema:Json,depth=0,budget={remaining:16384}):Json {
+  if(depth>15||--budget.remaining<0)return null;
+  if(schema.examples?.length)return clone(schema.examples[0]);
+  if(schema.default!==undefined)return clone(schema.default);
+  if(schema.const!==undefined)return clone(schema.const);
+  if(schema.enum?.length)return clone(schema.enum[0]);
+  if(schema.type==="object")return Object.fromEntries(Object.entries(schema.properties??{}).filter(([k])=>(schema.required??[]).includes(k)).map(([k,v])=>[k,sample(v,depth+1,budget)]));
+  if(schema.type==="array")return Array.from({length:Math.min(100,schema.minItems??0)},()=>sample(schema.items??{},depth+1,budget));
+  if(schema.type==="string"){const text=schema.format==="date-time"?"2026-10-31T00:00:00Z":"s".repeat(Math.min(4096,Math.max(0,budget.remaining),schema.minLength??1));budget.remaining-=text.length;return text;}
+  if(schema.type==="boolean")return false;
+  if(schema.type==="number"||schema.type==="integer")return schema.minimum??(schema.exclusiveMinimum!==undefined?schema.exclusiveMinimum+1:Math.min(0,schema.maximum??0));
+  return null;
+}
 export class WorkflowTesting {
   private jobs=new Map<string,Promise<void>>();
   constructor(readonly authoring:AuthoringService) {
@@ -27,17 +36,37 @@ export class WorkflowTesting {
     ensure(record.revision===a.expectedRevision,"REVISION_CONFLICT","Draft changed.",409);
     ensure(a.strategy!=="ai_assisted","MODEL_NOT_CONFIGURED","Use a configured assistant to propose cases, or agent_proposed without a Key.");
     return this.repo.command(owner,"test.generate",a.idempotencyKey,a,()=>{
-      let cases:Json[]=a.proposedCases;
+      let cases:Json[]=a.proposedCases;const generationGaps:Json[]=[];
       if(a.strategy==="agent_proposed")ensure(Array.isArray(cases)&&cases.length,"INPUT_INVALID","Proposed test cases required.");
       else {
         const inputSchema=record.draft.inputSchema,inputs=sample(inputSchema);
         cases=[{id:"normal",name:"正常数据流",inputs,mockResults:[],agentSubmissions:[],assertions:[{kind:"terminal_state",expected:"SUCCEEDED"}],expectedValidationErrors:[]}];
-        for(const key of inputSchema.required??[]) {
+        try{validate(inputSchema,inputs);}catch{generationGaps.push({caseId:"normal",code:"INPUT_SAMPLE_REQUIRED",message:"Provide a valid schema example for constraints the deterministic sampler cannot satisfy."});}
+        if((inputSchema.required?.length??0)>199)generationGaps.push({code:"GENERATION_LIMIT"});
+        for(const key of (inputSchema.required??[]).slice(0,199)) {
           const missing=clone(inputs);delete missing[key];
           cases.push({id:"missing-"+key,name:"缺少必填 "+key,inputs:missing,mockResults:[],agentSubmissions:[],assertions:[{kind:"error_code",expected:"INPUT_INVALID"}],expectedValidationErrors:["INPUT_INVALID"]});
         }
-        for(const key of inputSchema.required??[])if(inputSchema.properties?.[key]?.type==="string") {
-          cases.push({id:"type-"+key,name:"类型错误 "+key,inputs:{...inputs,[key]:42},mockResults:[],agentSubmissions:[],assertions:[{kind:"error_code",expected:"INPUT_INVALID"}],expectedValidationErrors:["INPUT_INVALID"]});
+        const add=(key:string,label:string,value:Json)=>{
+          if(cases.length>=200){if(!generationGaps.some(g=>g.code==="GENERATION_LIMIT"))generationGaps.push({code:"GENERATION_LIMIT",message:"Select fields or propose additional cases; the suite limit is 200."});return;}
+          const candidate={...clone(inputs),[key]:value};let invalid=false;try{validate(inputSchema,candidate);}catch{invalid=true;}
+          cases.push({id:label+"-"+key,name:label+" "+key,inputs:candidate,mockResults:[],agentSubmissions:[],assertions:[invalid?{kind:"error_code",expected:"INPUT_INVALID"}:{kind:"terminal_state",expected:"SUCCEEDED"}],expectedValidationErrors:invalid?["INPUT_INVALID"]:[]});
+        };
+        for(const [key,definition] of Object.entries(inputSchema.properties??{}) as [string,Json][]) {
+          if(definition.type)add(key,"type",definition.type==="string"?42:"wrong-type");
+          for(const [label,value] of [["min",definition.minimum],["max",definition.maximum],["exclusive-min",definition.exclusiveMinimum],["exclusive-max",definition.exclusiveMaximum]] as [string,Json][])if(typeof value==="number"){
+            add(key,label,value);add(key,label+"-outside",value+(label.includes("min")?-1:1));
+          }
+          for(const [constraint,label] of [["minLength","length-min"],["maxLength","length-max"]])if(typeof definition[constraint!]==="number") {
+            const length=definition[constraint!];if(length<=4096){add(key,label!,"s".repeat(length));add(key,label+"-outside","s".repeat(Math.max(0,length+(constraint==="minLength"?-1:1))));}
+            else generationGaps.push({field:key,code:"GENERATION_LIMIT",message:"Large string boundary requires an explicit fixture."});
+          }
+          for(const [constraint,label] of [["minItems","items-min"],["maxItems","items-max"]])if(typeof definition[constraint!]==="number") {
+            const length=definition[constraint!];if(length<=100){add(key,label!,Array.from({length},()=>sample(definition.items??{})));add(key,label+"-outside",Array.from({length:Math.max(0,length+(constraint==="minItems"?-1:1))},()=>sample(definition.items??{})));}
+            else generationGaps.push({field:key,code:"GENERATION_LIMIT",message:"Large array boundary requires an explicit fixture."});
+          }
+          if(definition.type==="boolean"){add(key,"true",true);add(key,"false",false);}
+          for(const [index,value] of (definition.enum??[]).slice(0,10).entries())add(key,"enum-"+index,value);
         }
       }
       const base=a.baseSuiteId?this.repo.get("workflow_test_suites",a.baseSuiteId):null;
@@ -47,7 +76,7 @@ export class WorkflowTesting {
       validate(suiteSchema,suite);
       ensure(new Set(cases.map(c=>c.id)).size===cases.length,"INPUT_INVALID","Duplicate test case IDs.");
       this.repo.put("workflow_test_suites",suiteId,{...suite,owner,revision:suite.suiteRevision,createdAt:base?.createdAt??now(),updatedAt:now()});
-      return {suiteId,suiteRevision:suite.suiteRevision,caseCount:cases.length,gaps:this.gaps(record.draft,cases)};
+      return {suiteId,suiteRevision:suite.suiteRevision,caseCount:cases.length,gaps:[...this.gaps(record.draft,cases),...generationGaps]};
     });
   }
   private gaps(workflow:Json,cases:Json[]) {
@@ -100,11 +129,12 @@ export class WorkflowTesting {
     const trace:Json[]=[];let errorCode:string|null=null;let run:Json;
     const mocks={call:async(_binding:Json,node:Json,args:Json,_timeout:number,beforeDispatch:()=>void)=>{
       const fixture=c.mockResults.find((r:Json)=>r.nodeId===node.id);ensure(fixture,"FIXTURE_MISSING","Provide a synthetic fixture for node "+node.id);
+      const tool=repo.get("connections",_binding.connectionId)?.tools?.find((item:Json)=>item.name===node.config.toolName);ensure(tool,"TOOL_NOT_ALLOWED","Fixture tool schema missing.");validate(tool.inputSchema,args);
       if(node.config.capabilityRef)ensure(fixture.capabilityId===node.config.capabilityRef.capabilityId,"FIXTURE_MISSING","Fixture capability does not match node.");
       beforeDispatch();trace.push({nodeId:node.id,arguments:clone(args),responseMode:fixture.responseMode});
       if(fixture.responseMode==="error"||fixture.responseMode==="timeout")throw new HubError(fixture.responseMode==="error"?"TOOL_FAILED":"TOOL_TIMEOUT","Synthetic failure.",422,{dispatched:true,outcomeKnown:true});
       const raw=fixture.result?.content||fixture.result?.structuredContent?fixture.result:{structuredContent:fixture.result,content:[]};
-      return adaptMcpResult(raw,fixture.responseMode==="text"?node.config.resultAdapterRef??"text":"structured").value;
+      return adaptMcpResult(raw,fixture.responseMode==="text"?node.config.resultAdapterRef??"text":"structured",tool.outputSchema).value;
     }} as unknown as Connectors;
     const engine=new Engine(repo,vault,mocks);
     try {

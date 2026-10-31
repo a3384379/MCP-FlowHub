@@ -2,6 +2,7 @@ import { isAbsolute, resolve } from "node:path";
 import { hash, id, now, ensure, validate, HubError, type Json } from "../../contracts/src/domain.js";
 import { createContext, scanHost, resolveSource } from "../../host-discovery/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
+const credentialArguments=(config:Json)=>(config.args??[]).some((value:Json)=>typeof value==="string"&&/^--?(?:api[-_]key|access[-_]token|token|password|authorization|secret)(?:=|$)/i.test(value));
 
 export class CapabilityRegistry {
   private jobs=new Map<string,Promise<void>>();
@@ -25,6 +26,7 @@ export class CapabilityRegistry {
     ensure(source.revision===a.expectedRevision,"CAPABILITY_STALE","Source changed.",409);
     const context=this.repo.get("host_contexts",source.contextId),config=await resolveSource(context,source.locator);
     ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source configuration changed.",409);
+    ensure(!credentialArguments(config),"CREDENTIAL_IMPORT_UNSUPPORTED","Move command-line credentials to a supported environment/Vault reference in local connection settings.");
     const prepared=this.repo.command(owner,"source.configure",a.idempotencyKey,{...a,sourceFingerprint:source.sourceFingerprint},()=>{
       const headers=Object.entries(config.http_headers??{});
       ensure(headers.every(([name,value])=>name.toLowerCase()==="authorization"&&typeof value==="string"&&/^Bearer .+$/i.test(value)),"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authentication is supported; configure other transports separately.");
@@ -82,7 +84,7 @@ export class CapabilityRegistry {
         const self=/^(?:flowhub|mcp-flowhub)(?:[-_].*)?$/i.test(source.name) ||
           (source.config.args??[]).some((v:Json)=>typeof v==="string" && /(?:^|[/\\])apps[/\\]daemon[/\\]src[/\\]cli\.js$/i.test(v)) ||
           /mcp-flowhub|flowhub(?:\.exe)?$/i.test(source.config.command??"");
-        const unresolved=(source.config.env_vars?.length??0)>0 || source.config.bearer_token_env_var || Object.keys(source.config.env??{}).length>0 || Object.keys(source.config.http_headers??{}).length>0;
+        const unresolved=credentialArguments(source.config)||(source.config.env_vars?.length??0)>0 || source.config.bearer_token_env_var || Object.keys(source.config.env??{}).length>0 || Object.keys(source.config.http_headers??{}).length>0;
         const direct=!self && (source.config.url || (isAbsolute(source.config.command??"")&&!/\$\{|\{\{/.test(JSON.stringify(source.config))));
         const value:Json={id:sourceId,contextId:context.id,sourceKey:source.sourceKey,name:source.name,kind:source.kind,locator:source.locator,
           enabled:source.enabled,sourceFingerprint,revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,
@@ -91,6 +93,7 @@ export class CapabilityRegistry {
         sourceIds.add(sourceId);
         const prepared=this.repo.get("connections","conn_"+hash(sourceId).slice(0,24));
         const configured=prepared?.sourceFingerprint===sourceFingerprint;
+        if(depth==="catalog"&&source.enabled&&!self&&(!direct||(unresolved&&!configured)))scan.issues.push({sourceId,code:direct?"CREDENTIALS_REQUIRED":"HOST_CAPABILITY_UNAVAILABLE"});
         if(depth==="catalog"&&source.enabled&&!self&&direct&&(!unresolved||configured))try {
           const connection=configured?prepared:this.connection(source.config,sourceId,false);
           const discovered=await this.engine.connectors.discover(connection);
@@ -164,6 +167,7 @@ export class CapabilityRegistry {
     ensure(["production","staging","test"].includes(a.environment),"INPUT_INVALID","Explicit environment required.");
     const context=this.repo.get("host_contexts",cap.contextId),config=await resolveSource(context,source.locator);
     ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source configuration changed.",409);
+    ensure(!credentialArguments(config),"CREDENTIAL_IMPORT_UNSUPPORTED","Command-line credentials cannot be copied into ordinary connection records.");
     const prepared=this.repo.get("connections","conn_"+hash(source.id).slice(0,24));
     const configured=prepared?.sourceFingerprint===source.sourceFingerprint;
     if(!configured&&((config.env_vars?.length??0)>0||config.bearer_token_env_var||Object.keys(config.http_headers??{}).length))return {status:"configuration_required",missing:source.credentialVariables};

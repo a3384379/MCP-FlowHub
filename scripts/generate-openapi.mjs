@@ -92,7 +92,7 @@ const document = {
   openapi: "3.1.0",
   info: {
     title: "MCP FlowHub management API",
-    version: "1.0.0-rc.1",
+    version: JSON.parse(await readFile("package.json","utf8")).version,
     description:
       "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API.",
   },

@@ -4,9 +4,9 @@
   "platform": "darwin-arm64",
   "method": "Manual evidence mapping; PASS is scoped to the stated evidenceLevel. PARTIAL is not passed.",
   "summary": {
-    "PASS": 64,
-    "UNVERIFIED": 10,
-    "PARTIAL": 30
+    "PASS": 72,
+    "PARTIAL": 26,
+    "UNVERIFIED": 6
   },
   "items": [
     {
@@ -99,11 +99,11 @@
       "title": "回滚演练",
       "setup": "升级后停止并恢复旧程序及旧备份",
       "expected": "旧实例恢复；不让旧程序直接写v2库",
-      "status": "UNVERIFIED",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-migrations.test.ts; tests/poc/restore-migrations.test.ts; tests/engine/legacy-migration.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "S7 stopped-daemon old-program rollback drill pending"
+      "status": "PASS",
+      "evidenceLevel": "local_actual_v1_program",
+      "evidence": "scripts/smoke-v2-upgrade.mjs",
+      "log": "S7-upgrade.txt",
+      "limitation": null
     },
     {
       "id": "DISC-01",
@@ -497,8 +497,8 @@
       "expected": "旧调用不需新增必填字段",
       "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts; scripts/smoke-codex-v2.mjs",
-      "log": "S6-tests.txt",
+      "evidence": "tests/engine/v2-mcp-selftest.test.ts; scripts/smoke-package.mjs",
+      "log": "S7-package-smoke.txt",
       "limitation": null
     },
     {
@@ -582,7 +582,7 @@
       "status": "PASS",
       "evidenceLevel": "local_codex_app_server",
       "evidence": "tests/engine/v2-mcp-selftest.test.ts; scripts/smoke-codex-v2.mjs",
-      "log": "S6-codex.txt",
+      "log": "S7-codex.txt",
       "limitation": "Fresh isolated host session only; Desktop cached sessions and natural-language model behavior unverified"
     },
     {
@@ -975,11 +975,11 @@
       "title": "确定性生成",
       "setup": "无Key根据Schema生成",
       "expected": "正常/必填/类型/边界用例可运行",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-testing.test.ts",
+      "log": "S7-tests.txt",
+      "limitation": null
     },
     {
       "id": "TEST-02",
@@ -1023,11 +1023,11 @@
       "title": "分支覆盖",
       "setup": "true/false两套fixture",
       "expected": "两个分支分别命中，有独立证据",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-testing.test.ts",
+      "log": "S7-tests.txt",
+      "limitation": null
     },
     {
       "id": "TEST-06",
@@ -1035,11 +1035,11 @@
       "title": "断言独立",
       "setup": "模型声称成功但actual不符",
       "expected": "独立assertion失败，expected/actual可见",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-testing.test.ts",
+      "log": "S7-tests.txt",
+      "limitation": null
     },
     {
       "id": "TEST-07",
@@ -1047,11 +1047,11 @@
       "title": "测试版本绑定",
       "setup": "suite对应revision2后来变3",
       "expected": "提示TEST_BASELINE_STALE",
-      "status": "PARTIAL",
+      "status": "PASS",
       "evidenceLevel": "synthetic",
-      "evidence": "tests/engine/v2-mcp-selftest.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "Implementation and related tests exist; the exact full scenario above was not independently asserted. No acceptance pass inferred from code."
+      "evidence": "tests/engine/v2-testing.test.ts",
+      "log": "S7-tests.txt",
+      "limitation": null
     },
     {
       "id": "TEST-08",
@@ -1167,11 +1167,11 @@
       "title": "离线包完整",
       "setup": "新的packages/docs/contracts",
       "expected": "打包实际包含所有新增模块和帮助索引",
-      "status": "UNVERIFIED",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/poc/runtime.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "S7 bundle verification pending"
+      "status": "PASS",
+      "evidenceLevel": "local_macos_bundle",
+      "evidence": "scripts/package.mjs; scripts/verify-release.mjs",
+      "log": "S7-package.txt",
+      "limitation": null
     },
     {
       "id": "PACK-02",
@@ -1179,11 +1179,11 @@
       "title": "无全局Node运行",
       "setup": "用包内runtime启动",
       "expected": "健康和旧/新MCP工具可用",
-      "status": "UNVERIFIED",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/poc/runtime.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "S7 bundled-runtime smoke pending"
+      "status": "PASS",
+      "evidenceLevel": "local_macos_bundle",
+      "evidence": "scripts/smoke-package.mjs",
+      "log": "S7-package-smoke.txt",
+      "limitation": null
     },
     {
       "id": "PACK-03",
@@ -1227,11 +1227,11 @@
       "title": "包完整性变更",
       "setup": "破坏新增模块文件",
       "expected": "完整性检查发现，不伪通过",
-      "status": "UNVERIFIED",
-      "evidenceLevel": "synthetic",
-      "evidence": "tests/poc/runtime.test.ts",
-      "log": "S6-tests.txt",
-      "limitation": "S7 integrity tamper test pending"
+      "status": "PASS",
+      "evidenceLevel": "local_macos_bundle",
+      "evidence": "scripts/smoke-package.mjs",
+      "log": "S7-package-smoke.txt",
+      "limitation": null
     },
     {
       "id": "PACK-07",

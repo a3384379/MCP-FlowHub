@@ -118,6 +118,12 @@ try {
   assert.equal(folders.length, 1);
   const bundle = join(dir, folders[0]);
   await stage("extracted bundle integrity", () => verifyBundle(bundle));
+  await stage("new assistant module tamper is rejected", async()=>{
+    const file=join(bundle,"dist/packages/assistant-core/src/index.js"),original=await readFile(file);
+    try{await writeFile(file,Buffer.concat([original,Buffer.from("\n// synthetic corruption\n")]));await assert.rejects(verifyBundle(bundle),/Hash mismatch/);}
+    finally{await writeFile(file,original);}
+    await verifyBundle(bundle);
+  });
   const runtime = join(
     bundle,
     "runtime",
@@ -170,7 +176,7 @@ try {
       `http://127.0.0.1:${endpoint.port}/api/v1/health`,
     );
     assert.equal(health.status, 200);
-    assert.equal((await health.json()).phase, "RC");
+    assert.equal((await health.json()).phase, "ALPHA");
     const page = await fetch(`http://127.0.0.1:${endpoint.port}/`);
     assert.match(await page.text(), /assets\/index-/);
     const html = await (
@@ -181,6 +187,14 @@ try {
       (await fetch("http://127.0.0.1:" + endpoint.port + script)).status,
       200,
     );
+  });
+  let legacyTokenFile;
+  await stage("packaged legacy execution identity",async()=>{
+    const base="http://127.0.0.1:"+endpoint.port;
+    const initialized=await fetch(base+"/api/v1/auth/bootstrap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({setupToken:await readFile(join(dataDir,"admin-setup-token"),"utf8"),password:"Synthetic-offline-smoke-password"})});
+    assert.equal(initialized.status,200);const csrf=(await initialized.json()).data.csrf,cookie=initialized.headers.get("set-cookie").split(";")[0];
+    const response=await fetch(base+"/api/v1/clients",{method:"POST",headers:{"Content-Type":"application/json",Cookie:cookie,"X-CSRF-Token":csrf},body:JSON.stringify({label:"Offline legacy scope",workflowAllowlist:["incident-production"]})});
+    assert.equal(response.status,200);legacyTokenFile=(await response.json()).data.absoluteTokenFile;
   });
   for (const mode of [{ pin: "2026-07-28" }, "legacy"]) {
     const era = typeof mode === "string" ? mode : "modern";
@@ -202,9 +216,15 @@ try {
     await stage(`${era} Hub bridge connect`, () =>
       client.connect(hubWire, { timeout: 5000 }),
     );
-    await stage(`${era} Hub bridge seven tools and workflow`, async () => {
+    await stage(`${era} Hub bridge 21 tools and persisted authoring`, async () => {
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 7);
+      assert.equal(tools.length, 21);
+      const created=await client.callTool({name:"workflow_draft_create",arguments:{workflowId:"package-"+era,name:"Offline packaged authoring",environment:"test",mode:"auto",template:"blank",idempotencyKey:"package-create-"+era}});
+      assert.notEqual(created.isError,true);
+      const draft=await client.callTool({name:"workflow_draft_get",arguments:{workflowId:"package-"+era}});
+      assert.equal(draft.structuredContent.revision,1);
+      const help=await client.callTool({name:"project_help_search",arguments:{query:"试运行数据库绑定",limit:3}});
+      assert.ok(help.structuredContent.citations.some(c=>c.sourcePath.endsWith("V2_USER_GUIDE.md")));
       const response = await client.callTool({
         name: "workflow_get",
         arguments: { workflowId: "incident-production" },
@@ -216,6 +236,11 @@ try {
       `Offline archive smoke PASS: ${client.getProtocolEra()} ${client.getNegotiatedProtocolVersion()} × stdio, ${process.platform}, synthetic only.`,
     );
     await stage(`${era} Hub bridge close`, () => client.close());
+    await stage(`${era} old execution identity retains seven tools`,async()=>{
+      const restricted=new Client({name:"packaged-legacy-scope",version:"1"},{versionNegotiation:{mode}});clients.push(restricted);
+      await restricted.connect(new StdioClientTransport({command:runtime,args:[entry,"mcp","--stdio","--data-dir",dataDir,"--token-file",legacyTokenFile],cwd:dir,env,stderr:"pipe"}),{timeout:5000});
+      assert.equal((await restricted.listTools()).tools.length,7);const existing=await restricted.callTool({name:"workflow_get",arguments:{workflowId:"incident-production"}});assert.notEqual(existing.isError,true);await restricted.close();
+    });
     const mock = new Client(
       { name: "independent-package-mock-check", version: "1" },
       { versionNegotiation: { mode } },
