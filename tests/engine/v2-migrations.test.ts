@@ -4,6 +4,12 @@ import Database from "better-sqlite3";
 import { MIGRATIONS, migrate, validateMigrations } from "../../packages/persistence/src/migrations.js";
 import { hash } from "../../packages/contracts/src/domain.js";
 import { V1_REPOSITORY_DDL } from "../../packages/persistence/src/v1.js";
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { openStore } from "../../packages/persistence/src/index.js";
+import { Repository } from "../../packages/persistence/src/repository.js";
+import { inspectBackup, restoreBackup } from "../../packages/persistence/src/maintenance.js";
 
 test("sequential migrations preserve a real v1 layout and immutable snapshot bytes", () => {
   const db = new Database(":memory:");
@@ -42,4 +48,23 @@ test("failed multi-step migration rolls back DDL and history together", () => {
     assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE name='staged'").get(), undefined);
     assert.equal(validateMigrations(db), MIGRATIONS.length);
   } finally { db.close(); }
+});
+
+test("v2 to v3 preserves frozen migration bytes and business snapshots; Chinese descriptions survive backup and restore", async t => {
+  const root = await mkdtemp(join(tmpdir(), "flowhub-v3-preserve-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const path = join(root, "old.sqlite"), old = openStore(path);
+  migrate(old.db, MIGRATIONS.slice(0, 2));
+  const history = old.db.prepare("SELECT * FROM schema_migrations ORDER BY version").all(), original = '{"id":"immutable@1","business":"中文 password=literal","snapshot":{"model":"keep"}}';
+  old.db.prepare("INSERT INTO versions VALUES(?,?,?)").run("immutable@1", 1, original); old.close();
+  const current = openStore(path), repo = new Repository(current.db);
+  assert.deepEqual(current.db.prepare("SELECT * FROM schema_migrations WHERE version<=2 ORDER BY version").all(), history);
+  assert.equal((current.db.prepare("SELECT body FROM versions WHERE id='immutable@1'").get() as any).body, original);
+  repo.put("discovery_entities", "entity", { id: "entity", revision: 1, name: "raw_tool", sourceFingerprint: "raw-hash" });
+  repo.put("discovery_presentations", "localized", { id: "localized", revision: 2, entityId: "entity", displayName: "手工说明", authorship: "manual", sourceFingerprint: "raw-hash" });
+  const backup = join(root, "saved.sqlite"); await repo.backup(backup); assert.equal(inspectBackup(backup).compatible, true); current.close();
+  const target = join(root, "restored"); await mkdir(target); await restoreBackup(target, backup);
+  const restored = openStore(join(target, "flowhub.sqlite")); try {
+    const result = new Repository(restored.db); assert.equal(result.get("discovery_presentations", "localized")?.displayName, "手工说明");
+    assert.equal(result.get("discovery_entities", "entity")?.name, "raw_tool"); assert.equal((restored.db.prepare("SELECT body FROM versions WHERE id='immutable@1'").get() as any).body, original);
+  } finally { restored.close(); }
 });

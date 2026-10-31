@@ -3,16 +3,16 @@ import { resolve } from "node:path";
 import { projectRoot, VERSION, inputContract } from "../../contracts/src/index.js";
 import { ensure, hash, type Json } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
-export function tokens(text:string) {
+export function tokens(text:string,limit=500) {
   const result=new Set(text.toLowerCase().match(/[a-z0-9_]+/g)??[]);
   for(const sequence of text.match(/[\p{Script=Han}]+/gu)??[])for(let i=0;i<sequence.length-1;i++)result.add(sequence.slice(i,i+2));
   for(const [ch,en] of [["试运行","staging"],["生产","production"],["编排","workflow"],["绑定","binding"]])if(text.includes(ch!)||text.toLowerCase().includes(en!)){result.add(en!);for(let i=0;i<ch!.length-1;i++)result.add(ch!.slice(i,i+2));}
-  return [...result].slice(0,500);
+  return [...result].slice(0,limit);
 }
 export class ProjectKnowledge {
   constructor(readonly repo:Repository,readonly root=projectRoot){this.rebuild();}
   rebuild() {
-    const sources=["README.md","docs/HOST_INTEGRATION.md","docs/V2_USER_GUIDE.md"];
+    const sources=["README.md","docs/HOST_INTEGRATION.md","docs/V2_USER_GUIDE.md","docs/DISCOVERY_LOCALIZATION.md"];
     this.repo.tx(()=>{
       this.repo.db.exec("DELETE FROM knowledge_fts; DELETE FROM knowledge_chunks; DELETE FROM knowledge_documents");
       for(const path of sources) {
@@ -25,7 +25,9 @@ export class ProjectKnowledge {
           heading=content.match(/^#{1,4}\s+(.+)/m)?.[1]??heading;
           const chunkId=documentId+":"+index,citation={sourcePath:path,heading,lineStart:offset+1,lineEnd:Math.min(lines.length,offset+24),contentHash:hash(content),productVersion:VERSION,availability:"implemented"};
           this.repo.put("knowledge_chunks",chunkId,{id:chunkId,documentId,chunkIndex:index,content,...citation});
-          this.repo.db.prepare("INSERT INTO knowledge_fts(chunk_id,tokens) VALUES(?,?)").run(chunkId,tokens(content).join(" "));
+          // Index the tail of owned long paragraphs too. Query token and FTS
+          // expression budgets remain unchanged.
+          this.repo.db.prepare("INSERT INTO knowledge_fts(chunk_id,tokens) VALUES(?,?)").run(chunkId,tokens(content,20000).join(" "));
         }
       }
       for(const [name,definition] of Object.entries(inputContract.$defs) as [string,Json][]) {
@@ -36,7 +38,7 @@ export class ProjectKnowledge {
         const lineEnd=sourceLines.findIndex((l,index)=>index>=lineStart&&l.trim().startsWith('"description":')&&l.includes(JSON.stringify(definition.description)))+1;
         const content=sourceLines.slice(lineStart-1,Math.max(lineStart,lineEnd)).join("\n");
         this.repo.put("knowledge_chunks",chunkId,{id:chunkId,documentId:"tools",chunkIndex:name,content,sourcePath:"contracts/mcp-v2-tool-inputs.schema.json",heading:name,lineStart,lineEnd:Math.max(lineStart,lineEnd),contentHash:hash(content),productVersion:VERSION,availability:"implemented"});
-        this.repo.db.prepare("INSERT INTO knowledge_fts VALUES(?,?)").run(chunkId,tokens(content).join(" "));
+        this.repo.db.prepare("INSERT INTO knowledge_fts VALUES(?,?)").run(chunkId,tokens(content,20000).join(" "));
       }
     });
   }

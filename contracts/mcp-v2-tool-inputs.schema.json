@@ -568,15 +568,172 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "action": {
+          "enum": [
+            "scan",
+            "submit_descriptions"
+          ]
+        },
+        "expectedContextRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "entityKind": {
+                "enum": [
+                  "mcp_server",
+                  "mcp_tool",
+                  "skill",
+                  "plugin"
+                ]
+              },
+              "expectedSourceRevision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sourceFingerprint": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expectedPresentationRevision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "locale": {
+                "const": "zh-CN"
+              },
+              "displayName": {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              "summary": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "inputSummary": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "outputSummary": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "useCases": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "evidenceRefs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 300
+                }
+              },
+              "parameterDescriptions": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string",
+                      "pattern": "^/(inputSchema|outputSchema)(/.*)?$",
+                      "maxLength": 500
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": [
+                    "pointer",
+                    "description"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "entityId",
+              "entityKind",
+              "expectedSourceRevision",
+              "sourceFingerprint",
+              "expectedPresentationRevision",
+              "locale",
+              "displayName",
+              "summary",
+              "evidenceRefs"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
         "contextId",
-        "depth",
         "idempotencyKey"
       ],
       "additionalProperties": false,
-      "description": "Read registered local Codex context; metadata never invokes business tools."
+      "description": "Read registered local Codex capabilities (default action=scan). After scanning, translate source-backed names, purposes and descriptions into Chinese and submit with action=submit_descriptions. host_scan_status.catalog supplies entity identities and revisions. Description writes never scan, import or execute tools, change raw names or schemas, or require another model key. Never invent missing source descriptions.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "submit_descriptions"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "expectedContextRevision",
+              "entries"
+            ],
+            "properties": {
+              "depth": false,
+              "entries": true,
+              "expectedContextRevision": true
+            }
+          },
+          "else": {
+            "required": [
+              "depth"
+            ],
+            "properties": {
+              "entries": false,
+              "expectedContextRevision": false,
+              "depth": true
+            }
+          }
+        }
+      ]
     },
     "host_scan_status": {
       "type": "object",
@@ -613,7 +770,9 @@
         "kind": {
           "enum": [
             "mcp_tool",
-            "skill"
+            "skill",
+            "mcp_server",
+            "plugin"
           ]
         },
         "executor": {
@@ -650,7 +809,7 @@
         "query"
       ],
       "additionalProperties": false,
-      "description": "Search discovered capabilities without full schemas; get selected definitions next."
+      "description": "Search tools/Skills or use kind=mcp_server/plugin for services/plugins. Search current Chinese display text, original names and plugin names. Read exact definitions before importing."
     },
     "capability_get": {
       "type": "object",
@@ -1588,6 +1747,114 @@
       ],
       "additionalProperties": false,
       "description": "Search implemented versioned local help with exact source citations."
+    },
+    "discovery_description": {
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "entityKind": {
+          "enum": [
+            "mcp_server",
+            "mcp_tool",
+            "skill",
+            "plugin"
+          ]
+        },
+        "expectedSourceRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceFingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedPresentationRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "locale": {
+          "const": "zh-CN"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "inputSummary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "outputSummary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "useCases": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "parameterDescriptions": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "type": "string",
+                "pattern": "^/(inputSchema|outputSchema)(/.*)?$",
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "pointer",
+              "description"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "entityId",
+        "entityKind",
+        "expectedSourceRevision",
+        "sourceFingerprint",
+        "expectedPresentationRevision",
+        "locale",
+        "displayName",
+        "summary",
+        "evidenceRefs"
+      ],
+      "additionalProperties": false
     }
   }
 }

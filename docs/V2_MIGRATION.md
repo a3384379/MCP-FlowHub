@@ -1,5 +1,7 @@
 # 2.0 迁移与回滚
 
+2026-10-31 发现页增量追加第3号迁移，增加 `discovery_entities` 与 `discovery_presentations`；已交付v1/v2 DDL和checksum不变。旧2.0库启动时先生成兼容旧版本的SQLite备份，再顺序迁移；中文显示数据参与完整备份和恢复。回滚程序时使用升级前备份，不能用旧程序打开含第3号迁移的库。具体存储与使用见[中文说明同步](DISCOVERY_LOCALIZATION.md)。
+
 v1 DDL、表顺序及校验和冻结在 packages/persistence/src/v1.ts。
 后续迁移只能追加，已知历史必须是完整前缀；缺表、列变化、checksum 错误与未来版本拒绝启动，不能清库或修正历史。
 启动、备份预检与恢复共用同一只读历史校验。迁移 DDL 与历史插入在同一事务，失败回滚。

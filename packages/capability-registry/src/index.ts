@@ -3,6 +3,7 @@ import { hash, id, now, ensure, validate, HubError, type Json } from "../../cont
 import { validArguments, type ToolName } from "../../contracts/src/index.js";
 import { createContext, scanHost, resolveSource, selfSource, sourcePolicy, toolEnabled,type DiscoveryRuntime } from "../../host-discovery/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
+import { DiscoveryCatalog } from "./discovery-catalog.js";
 const terminal=["SUCCEEDED","PARTIAL","FAILED","CANCELLED"];
 function input(name:ToolName,a:Json){ensure(validArguments(name,a),"INPUT_INVALID","Arguments do not match the fixed tool contract.");}
 function abortable<T>(work:Promise<T>,signal:AbortSignal):Promise<T> {
@@ -12,12 +13,14 @@ function abortable<T>(work:Promise<T>,signal:AbortSignal):Promise<T> {
   });
 }
 export class CapabilityRegistry {
+  readonly catalog: DiscoveryCatalog;
   private jobs=new Map<string,Promise<void>>();
   private controls=new Map<string,AbortController>();
   private imports=new Map<string,{fingerprint:string;work:Promise<Json>}>();
   private closing=false;
   private identity:Json={endpoints:[]};
   constructor(readonly engine:Engine,readonly options:{scanTimeoutMs?:number;sourceTimeoutMs?:number;concurrency?:number;hostRuntime?:DiscoveryRuntime}={}) {
+    this.catalog=new DiscoveryCatalog(engine.repo);
     for(const job of this.repo.all("discovery_jobs"))if(!terminal.includes(job.status))
       this.repo.put("discovery_jobs",job.id,{...job,status:"PARTIAL",issues:[...(job.issues??[]),{code:"TASK_INTERRUPTED"}]});
   }
@@ -73,6 +76,7 @@ export class CapabilityRegistry {
   }
   scan(a:Json,owner="admin") {
     input("host_scan",a);ensure(!this.closing,"SERVICE_CLOSING","Discovery is shutting down.",503);
+    if(a.action==="submit_descriptions")return this.catalog.submit(a,owner);
     const context=this.repo.get("host_contexts",a.contextId);ensure(context,"NOT_FOUND","Register a local context first.",404);
     const accepted=this.repo.command(owner,"host.scan",a.idempotencyKey,a,()=>{
       const prior=this.repo.db.prepare("SELECT COALESCE(MAX(json_extract(body,'$.generation')),0) AS n FROM discovery_jobs WHERE json_extract(body,'$.contextId')=?").get(a.contextId) as {n:number};
@@ -86,7 +90,9 @@ export class CapabilityRegistry {
     return accepted;
   }
   status(scanId:string,owner="admin") {
-    const job=this.repo.get("discovery_jobs",scanId);ensure(job&&(owner==="admin"||job.owner===owner),"NOT_FOUND","Scan missing.",404);return job;
+    const job=this.repo.get("discovery_jobs",scanId);ensure(job&&(owner==="admin"||job.owner===owner),"NOT_FOUND","Scan missing.",404);
+    const overview=this.catalog.overview(job.contextId);
+    return {...job,catalog:overview.scanId===job.id?{...overview,entities:this.catalog.search({contextId:job.contextId,limit:100}).items,descriptionSubmission:{action:"submit_descriptions",expectedContextRevision:overview.contextRevision,locale:"zh-CN",next:"Use capability_search by kind and cursor for remaining entities; submit only source-backed Chinese descriptions."}}:null};
   }
   cancel(scanId:string,owner="admin") {
     const job=this.status(scanId,owner);this.controls.get(scanId)?.abort();return {...job,status:terminal.includes(job.status)?job.status:"CANCEL_REQUESTED"};
@@ -157,14 +163,20 @@ export class CapabilityRegistry {
       await Promise.all(Array.from({length:Math.min(this.options.concurrency??4,Math.max(1,scan.sources.length))},()=>worker()));check();
       for(const component of scan.components)if(["skill","host_tool"].includes(component.kind)) {
         const skill=component.kind==="skill",enabled=component.enabled!==false;
-        const sourceId="src_"+hash([context.id,component.sourceKey]).slice(0,24),prior=this.repo.get("capability_sources",sourceId),sourceFingerprint=hash({enabled,contentHash:component.contentHash??null,tool:component.tool??null});
+        const serverSource=!skill&&component.serverSourceKey?this.contextSources(context.id).find(source=>source.sourceKey===component.serverSourceKey):undefined;
+        const parentIdentity=serverSource?{serverSourceId:serverSource.id,serverSourceFingerprint:serverSource.sourceFingerprint}:{};
+        const sourceId="src_"+hash([context.id,component.sourceKey]).slice(0,24),prior=this.repo.get("capability_sources",sourceId),sourceFingerprint=hash({enabled,contentHash:component.contentHash??null,...(component.dependencyHash?{dependencyHash:component.dependencyHash}:{}),tool:component.tool??null,...parentIdentity});
         const componentSource={id:sourceId,contextId:context.id,contextRevision:context.revision,sourceKey:component.sourceKey,name:component.name,kind:component.kind,enabled,executor:"codex_host",self:false,stale:false,
           revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,sourceFingerprint,availability:enabled?"host_only":"disabled",discovery:skill?"metadata_only":"schema_discovered",sourceChain:[component.path??component.serverName],discoveredAt:now()};
         this.repo.put("capability_sources",sourceId,componentSource);sourceIds.add(sourceId);
         const cap=this.putCapability({id:"cap_"+hash([context.id,component.sourceKey]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:skill?"skill":"mcp_tool",name:component.name,description:component.description,
           executor:"codex_host",availability:enabled?"host_only":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",
-          ...(skill?{contentHash:component.contentHash,skillContent:component.content??null}:{inputSchema:component.tool.inputSchema,outputSchema:component.tool.outputSchema??null,tool:component.tool,serverName:component.serverName}),
-          sourceRefs:[{sourceId,revision:componentSource.revision}],provenance:{hostReported:component.hostReported??!skill,path:component.path,freshAppServerSession:!skill}});capIds.add(cap.id);
+          ...(skill?{contentHash:component.contentHash,skillContent:component.content??null,...(component.dependencyHash?{dependencyHash:component.dependencyHash}:{})}:{inputSchema:component.tool.inputSchema,outputSchema:component.tool.outputSchema??null,tool:component.tool,serverName:component.serverName}),
+          sourceRefs:[{sourceId,revision:componentSource.revision}],provenance:{hostReported:component.hostReported??!skill,path:component.path,freshAppServerSession:!skill,...parentIdentity}});capIds.add(cap.id);
+      }
+      if(depth==="metadata")for(const cap of this.contextCapabilities(context.id))if(cap.kind==="mcp_tool"&&cap.executor==="codex_host"&&cap.provenance?.serverSourceId&&!capIds.has(cap.id)) {
+        const parent=this.repo.get("capability_sources",cap.provenance.serverSourceId);
+        if(!parent||parent.stale||!parent.enabled||parent.sourceFingerprint!==cap.provenance.serverSourceFingerprint)this.putCapability({...cap,stale:true,...(!parent?.enabled?{enabled:"disabled",availability:"disabled"}:{})});
       }
       this.repo.tx(()=>{check();
         if(scan.issues.length===0) {
@@ -173,6 +185,7 @@ export class CapabilityRegistry {
             (old.kind==="skill"||(old.executor==="codex_host"&&depth==="catalog")||(!sourceIds.has(old.sourceRefs[0]?.sourceId)&&!(depth==="metadata"&&old.executor==="codex_host"&&old.contextRevision===context.revision))||(depth==="catalog"&&this.repo.get("capability_sources",old.sourceRefs[0]?.sourceId)?.discovery==="schema_discovered")))this.putCapability({...old,stale:true});
         }
         update({status:scan.issues.length?"PARTIAL":"SUCCEEDED",coverage:scan.issues.length?"partial":"complete",issues:scan.issues,completedAt:now(),sources:this.contextSources(context.id),components:safeComponents,changes});
+        this.catalog.replace(context,this.repo.get("discovery_jobs",scanId),this.contextSources(context.id),this.contextCapabilities(context.id));
       });
     }catch(e){controller.abort();const code=e instanceof HubError?e.code:"SOURCE_UNREADABLE";update({status:code==="DISCOVERY_CANCELLED"?"CANCELLED":["SCAN_SUPERSEDED","CONTEXT_CHANGED"].includes(code)?"PARTIAL":"FAILED",issues:[{code}],coverage:"partial",completedAt:now()});}
     finally{clearTimeout(timer);}
@@ -192,22 +205,25 @@ export class CapabilityRegistry {
   }
   search(a:Json={}) {
     a={query:"",...a};input("capability_search",a);
+    if(["mcp_server","plugin"].includes(a.kind))return this.catalog.search(a);
     const limit=a.limit??20,fingerprint=hash({...a,cursor:undefined,limit:undefined}).slice(0,16);let after="",cursor:Json;
     if(a.cursor){try{cursor=JSON.parse(Buffer.from(a.cursor,"base64url").toString());ensure(cursor.f===fingerprint&&typeof cursor.a==="string","INPUT_INVALID","Cursor filter changed.");after=cursor.a;}catch{throw new HubError("INPUT_INVALID","Invalid capability cursor.");}}
     const where:string[]=[],params:Json[]=[];
     for(const field of ["contextId","kind","executor"])if(a[field]){where.push("json_extract(body,'$."+field+"')=?");params.push(a[field]);}
     if(a.sourceId){where.push("EXISTS(SELECT 1 FROM json_each(json_extract(body,'$.sourceRefs')) r WHERE json_extract(r.value,'$.sourceId')=?)");params.push(a.sourceId);}
     if(a.environment){where.push("EXISTS(SELECT 1 FROM bindings b WHERE json_extract(b.body,'$.sourceCapabilityId')=capabilities.id AND json_extract(b.body,'$.environment')=?)");params.push(a.environment);}
-    for(const term of String(a.query).toLowerCase().split(/\s+/).filter(Boolean)){where.push("instr(lower(json_extract(body,'$.name')||' '||coalesce(json_extract(body,'$.description'),'')),?)>0");params.push(term);}
+    for(const term of String(a.query).toLowerCase().split(/\s+/).filter(Boolean)){where.push("instr(lower(json_extract(body,'$.name')||' '||coalesce(json_extract(body,'$.description'),'')||' '||coalesce((SELECT json_extract(e.body,'$.searchText') FROM discovery_entities e WHERE e.id=capabilities.id),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'') FROM discovery_entities e JOIN discovery_entities g ON g.id=json_extract(e.body,'$.pluginId') JOIN discovery_presentations p ON json_extract(p.body,'$.entityId')=g.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(g.body,'$.sourceFingerprint') WHERE e.id=capabilities.id ORDER BY p.revision DESC LIMIT 1),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'')||' '||coalesce(json_extract(p.body,'$.description'),'') FROM discovery_presentations p JOIN discovery_entities e ON e.id=capabilities.id WHERE json_extract(p.body,'$.entityId')=capabilities.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(e.body,'$.sourceFingerprint') ORDER BY p.revision DESC LIMIT 1),'')),?)>0");params.push(term);}
     const clause=where.length?" WHERE "+where.join(" AND "):"";
     const snapshotRow=this.repo.db.prepare("SELECT group_concat(id||':'||revision||':'||coalesce(json_extract(body,'$.stale'),0)) AS v FROM (SELECT id,revision,body FROM capabilities"+clause+" ORDER BY id)").get(...params) as {v:string};
-    const snapshot=hash(snapshotRow.v??"").slice(0,16);if(a.cursor)ensure(cursor!.s===snapshot,"CAPABILITY_STALE","Capability cursor snapshot changed.",409);
+    const presentations=this.repo.db.prepare("SELECT group_concat(id||':'||revision) AS v FROM (SELECT p.id,p.revision FROM discovery_presentations p WHERE json_extract(p.body,'$.entityId') IN (SELECT id FROM capabilities"+clause+") ORDER BY p.id)").get(...params) as {v:string};
+    const snapshot=hash([snapshotRow.v??"",presentations.v??""]).slice(0,16);if(a.cursor)ensure(cursor!.s===snapshot,"CAPABILITY_STALE","Capability cursor snapshot changed.",409);
     const rows=this.repo.db.prepare("SELECT json_remove(body,'$.inputSchema','$.outputSchema','$.tool','$.skillContent') AS summary FROM capabilities"+clause+(where.length?" AND ":" WHERE ")+"id>? ORDER BY id LIMIT ?").all(...params,after,limit+1) as {summary:string}[];
-    const items=rows.slice(0,limit).map(r=>JSON.parse(r.summary));
+    const items=rows.slice(0,limit).map(r=>{const value=JSON.parse(r.summary),entity=this.repo.get("discovery_entities",value.id);return entity?{...value,discovery:this.catalog.present(entity)}:value;});
     return {items,nextCursor:rows.length>limit?Buffer.from(JSON.stringify({f:fingerprint,s:snapshot,a:items.at(-1).id})).toString("base64url"):null};
   }
   get(a:Json) {
     input("capability_get",a);const cap=a.revision?this.repo.get("capability_revisions",a.capabilityId+"@"+a.revision):this.repo.get("capabilities",a.capabilityId);
+    if(!cap){const entity=this.repo.get("discovery_entities",a.capabilityId);if(entity&&["mcp_server","plugin"].includes(entity.entityKind)){ensure(!a.revision||a.revision===entity.revision,"CAPABILITY_STALE","Requested discovery revision is not current.",409);return this.catalog.get(a.capabilityId);}}
     ensure(cap,"NOT_FOUND","Capability missing.",404);const {inputSchema,outputSchema,tool,skillContent,...summary}=cap;
     return {...summary,...(a.includeSchemas?{inputSchema,outputSchema,tool}:{}),...(a.includeSkillContent?{skillContent:skillContent?.slice(0,32768),contentTruncated:(skillContent?.length??0)>32768}: {})};
   }

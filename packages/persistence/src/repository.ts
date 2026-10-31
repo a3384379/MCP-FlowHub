@@ -3,9 +3,10 @@ import { chmodSync } from "node:fs";
 import { hash, now, ensure, type Json } from "../../contracts/src/domain.js";
 import { V1_TABLES } from "./v1.js";
 import { V2_TABLES } from "./v2.js";
+import { V3_TABLES } from "./v3.js";
 import { migrate, validateMigrations } from "./migrations.js";
 export { validateMigrations } from "./migrations.js";
-export type Table = (typeof V1_TABLES)[number] | (typeof V2_TABLES)[number];
+export type Table = (typeof V1_TABLES)[number] | (typeof V2_TABLES)[number] | (typeof V3_TABLES)[number];
 export class Repository {
   constructor(public db: Database.Database) {
     migrate(db);

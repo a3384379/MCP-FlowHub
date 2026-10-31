@@ -15,6 +15,15 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   app.get("/api/v2/host-contexts",async()=>data(registry.repo.all("host_contexts").map(context=>{const last=registry.repo.db.prepare("SELECT id,json_extract(body,'$.createdAt') AS createdAt FROM discovery_jobs WHERE json_extract(body,'$.contextId')=? ORDER BY json_extract(body,'$.generation') DESC LIMIT 1").get(context.id) as Json;return {...context,lastScanId:last?.id,lastScanAt:last?.createdAt};})));
   app.post("/api/v2/host-contexts",async req=>data(await registry.context(req.body)));
   app.post("/api/v2/host-scans",async req=>data(registry.scan(req.body)));
+  app.get("/api/v2/discovery/catalog",async req=>{
+    const a=query(req.query);ensure(typeof a.contextId==="string","INPUT_INVALID","Context required.");
+    return data({...registry.catalog.overview(a.contextId),...registry.catalog.search(a)});
+  });
+  app.get("/api/v2/discovery/entities/:id",async req=>{
+    const entity=registry.catalog.get((req.params as Json).id);
+    return data({...entity,...(entity.capabilityId?{capability:registry.get({capabilityId:entity.capabilityId,includeSchemas:true,includeSkillContent:true})}:{})});
+  });
+  app.post("/api/v2/discovery/descriptions",async req=>data(registry.catalog.submit(req.body as Json,"admin","manual")));
   app.post("/api/v2/capability-sources/:id/credentials",async req=>data(await registry.configureSource({...req.body as Json,sourceId:(req.params as Json).id})));
   app.get("/api/v2/host-scans/:id",async req=>data(registry.status((req.params as Json).id)));
   app.post("/api/v2/host-scans/:id/cancel",async req=>data(registry.cancel((req.params as Json).id)));

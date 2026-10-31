@@ -24,6 +24,10 @@ test("official MCP 21-tool discovery/import/author/generate/mock/publish/start/a
   const scan=await tool("host_scan",{contextId:context.id,depth:"catalog",idempotencyKey:"scan"});await daemon.application.registry.idle();
   const scanned=await tool("host_scan_status",{scanId:scan.scanId});assert.ok(["PARTIAL","SUCCEEDED"].includes(scanned.status));
   const caps=await tool("capability_search",{contextId:context.id,query:"Synthetic S0"}),cap=caps.items.find((c:Json)=>c.name==="synthetic_order_lookup");assert.ok(cap);
+  const entity=cap.discovery;assert.ok(entity);const rawCapability=hash(daemon.engine.repo.get("capabilities",cap.id));
+  const localized=await tool("host_scan",{contextId:context.id,action:"submit_descriptions",expectedContextRevision:context.revision,idempotencyKey:"chinese-through-real-sdk",entries:[{entityId:entity.id,entityKind:entity.entityKind,expectedSourceRevision:entity.revision,sourceFingerprint:entity.sourceFingerprint,expectedPresentationRevision:entity.presentation.revision,locale:"zh-CN",displayName:"合成订单查询",summary:"根据订单编号读取合成测试订单，保留原始字段。",evidenceRefs:[entity.evidenceRefs[0]]}]});
+  assert.equal(localized.status,"descriptions_saved");assert.equal(hash(daemon.engine.repo.get("capabilities",cap.id)),rawCapability);
+  const chinese=await tool("capability_search",{contextId:context.id,query:"合成测试订单"});assert.equal(chinese.items[0].id,cap.id);assert.equal(chinese.items[0].name,"synthetic_order_lookup");
   const detail=await tool("capability_get",{capabilityId:cap.id,includeSchemas:true});assert.ok(detail.inputSchema);
   const imported=await tool("capability_import",{capabilityId:cap.id,expectedSourceRevision:cap.revision,target:"hub_direct",environment:"test",lockedArguments:{},idempotencyKey:"import"});
   assert.equal(imported.status,"configuration_required");

@@ -48,3 +48,9 @@ NSIS 3.11，官方归档 `https://prdownloads.sourceforge.net/nsis/nsis-3.11.zip
 ## 2.0 S2 增量
 
 smol-toml 1.4.2（BSD-3-Clause），真实 TOML 解析及静态配置回退；固定版本与 integrity 已写入 lockfile。未升级其他依赖；Codex App Server 请求类型来自本机 0.164.0-alpha.11.1 的 generate-ts，生成后仅将本地模块引用调整为 NodeNext 的 .js 后缀。
+
+## 2026-10-31 发现页增量
+
+- `yaml 2.9.1`（ISC），用于 Skill frontmatter 和 `agents/openai.yaml` 结构化依赖解析；固定版本及 integrity 已写入 lockfile。只解析数据，禁止别名扩展；不加载自定义执行标签，不执行技能指令或依赖中的 URL/命令。
+- `smol-toml` 从 1.4.2 升至 1.9.1（BSD-3-Clause），修复本次 `npm audit` 报告的畸形/大量注释 TOML 导致拒绝服务等漏洞。仅升级解析库，没有运行 `audit fix --force`。安装后审计结果：0 vulnerabilities；后续证据见 `docs/evidence/v2/discovery/`。
+- Node 24.19.0 / npm 11.9.0 保持不变。实际平台为 macOS arm64；Windows 原生验证仍单独记录。

@@ -7,6 +7,7 @@ import { parse } from "smol-toml";
 import { ensure, hash, HubError, type Json } from "../../contracts/src/domain.js";
 import { readAppServer } from "./app-server.js";
 import {discoveryCommand,type DiscoveryRuntime} from "./runtime.js";
+import { skillMetadata } from "./metadata.js";
 export type {DiscoveryRuntime} from "./runtime.js";
 const exec=promisify(execFile);
 export const executionLocation=process.platform==="win32"?"windows_native":process.platform==="darwin"?"macos":process.env.WSL_DISTRO_NAME?"wsl":"linux";
@@ -73,7 +74,6 @@ const safeChild=async(root:string,child:string)=>{
   const path=await realpath(resolve(root,child)),rel=relative(await realpath(root),path);
   ensure(!rel.startsWith("..")&&!isAbsolute(rel),"SOURCE_UNREADABLE","Plugin component escaped its installed root.");return path;
 };
-const skillMeta=(text:string)=>({name:text.match(/^name:\s*["']?([^\n"']+)/m)?.[1]?.trim(),description:text.match(/^description:\s*["']?([^\n"']+)/m)?.[1]?.trim()??""});
 export async function scanHost(context:Json,depth="metadata",control:DiscoveryControl={},identity:Json={},runtime:DiscoveryRuntime={}) {
   const sources:Json[]=[],issues:Json[]=[],components:Json[]=[];let quality="partial";
   const report=(path:string,code:string)=>issues.push({source:path,code});
@@ -117,15 +117,15 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
   }
   const addSkills=async(root:string,parent?:string)=>{
     try {
-      const real=await safeChild(root,"SKILL.md"),text=await readFile(real,"utf8");ensure(Buffer.byteLength(text)<=131072,"SCHEMA_LIMIT","Skill exceeds discovery size limit.");const meta=skillMeta(text);
-      components.push({sourceKey:real,name:meta.name??basename(root),description:meta.description,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});return;
+      const real=await safeChild(root,"SKILL.md"),text=await readFile(real,"utf8");ensure(Buffer.byteLength(text)<=131072,"SCHEMA_LIMIT","Skill exceeds discovery size limit.");const meta=await skillMetadata(real,text,report);
+      components.push({sourceKey:real,...meta,name:meta.name||basename(root),kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});return;
     }catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT"){report(root,"SOURCE_UNREADABLE");return;}}
     let entries;try{entries=await readdir(root,{withFileTypes:true});}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(root,"SOURCE_UNREADABLE");return;}
     for(const entry of entries.slice(0,500))if(entry.isDirectory()&&!entry.name.startsWith(".")) {
       const path=join(root,entry.name,"SKILL.md");
       try{const real=await safeChild(root,entry.name+"/SKILL.md"),text=await readFile(real,"utf8");
         ensure(Buffer.byteLength(text)<=131072,"SCHEMA_LIMIT","Skill exceeds discovery size limit.");
-        const meta=skillMeta(text);components.push({sourceKey:path,name:meta.name??entry.name,description:meta.description,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});
+        const meta=await skillMetadata(real,text,report);components.push({sourceKey:path,...meta,name:meta.name||entry.name,kind:"skill",path:real,parent,contentHash:hash(text),content:text,enabled:skillOverrides.get(resolve(real))??skillOverrides.get(dirname(real))??true});
       }catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(path,"SOURCE_UNREADABLE");}
     }
   };
@@ -159,7 +159,7 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
       const item=selected?candidates.find(c=>c.version===selected):candidates.length===1?candidates[0]:null;
       if(!item){report(base,candidates.length>1?"PLUGIN_VERSION_AMBIGUOUS":"PLUGIN_MANIFEST_UNSUPPORTED");continue;}
       const enabled=config.plugins?.[key]?.enabled!==false;
-      components.push({sourceKey:key,name,kind:"plugin",installed:true,enabled,version:item.version,path:item.root,executor:"informational"});
+      components.push({sourceKey:key,name,description:typeof item.manifest.description==="string"?item.manifest.description.slice(0,8000):"",kind:"plugin",installed:true,enabled,version:item.version,path:item.root,executor:"informational",manifestHash:hash(item.manifest)});
       try{
         if(typeof item.manifest.mcpServers==="string") {
           const path=await safeChild(item.root,item.manifest.mcpServers),mcp=JSON.parse(await readFile(path,"utf8"));
@@ -189,7 +189,7 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
         if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
         if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
-        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
+        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,serverSourceKey:source?.sourceKey??null,ambiguousSource:matches.length>1,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
       }
       if(catalog.nextCursor)report(context.id,"HOST_CATALOG_PARTIAL");
     }
