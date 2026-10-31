@@ -21,6 +21,7 @@ export type Workflow = {
   nodes: Node[];
   edges: { source: string; target: string; port: string }[];
   budgets: Json;
+  executionRequirements?: Json;
 };
 export type Node = { id: string; title: string; type: string; config: Json };
 export class HubError extends Error {
@@ -65,7 +66,7 @@ export const ajv = new Ajv2020({
   validateFormats: true,
 });
 addFormats(ajv);
-export const workflowSchema = JSON.parse(
+export const workflowV1Schema = JSON.parse(
   readFileSync(resolve(projectRoot, "contracts/workflow.schema.json"), "utf8"),
 );
 export const mockSchemas = JSON.parse(
@@ -74,7 +75,10 @@ export const mockSchemas = JSON.parse(
     "utf8",
   ),
 );
-ajv.addSchema(workflowSchema);
+export const workflowV2Schema = JSON.parse(readFileSync(resolve(projectRoot, "contracts/workflow-v2.schema.json"), "utf8"));
+ajv.addSchema(workflowV1Schema);
+ajv.addSchema(workflowV2Schema);
+export const workflowSchema = { anyOf: [{ $ref: workflowV1Schema.$id }, { $ref: workflowV2Schema.$id }] };
 ajv.addSchema(mockSchemas);
 ajv.addSchema(
   JSON.parse(

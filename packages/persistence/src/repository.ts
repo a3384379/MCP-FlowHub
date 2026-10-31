@@ -2,9 +2,10 @@ import Database from "better-sqlite3";
 import { chmodSync } from "node:fs";
 import { hash, now, ensure, type Json } from "../../contracts/src/domain.js";
 import { V1_TABLES } from "./v1.js";
+import { V2_TABLES } from "./v2.js";
 import { migrate } from "./migrations.js";
 export { validateMigrations } from "./migrations.js";
-export type Table = (typeof V1_TABLES)[number];
+export type Table = (typeof V1_TABLES)[number] | (typeof V2_TABLES)[number];
 export class Repository {
   constructor(public db: Database.Database) {
     migrate(db);
@@ -67,6 +68,15 @@ export class Repository {
   }
   tx<T>(fn: () => T): T {
     return this.db.transaction(fn)();
+  }
+  changed(type: string, data: Json = {}) {
+    const event = { type, timestamp: now(), ...data };
+    const row = this.db.prepare("INSERT INTO application_events(body) VALUES(?)").run(JSON.stringify(event));
+    return { ...event, eventId: Number(row.lastInsertRowid) };
+  }
+  changes(after = 0, limit = 100) {
+    return (this.db.prepare("SELECT event_id,body FROM application_events WHERE event_id>? ORDER BY event_id LIMIT ?").all(after, limit) as {event_id:number;body:string}[])
+      .map(r => ({...JSON.parse(r.body),eventId:r.event_id}));
   }
   event(runId: string, type: string, payload: Json = {}) {
     const row = this.db

@@ -1,0 +1,1236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/flowhub/schemas/workflow/v2",
+  "title": "FlowHub workflow v2",
+  "description": "FlowHub constrained workflow schema. Graph semantics, references, schema hashes and environment bindings require domain validation.",
+  "$comment": "The examples are MOCK ONLY. Unknown DSL/config keys are forbidden. Dictionary keys and literal JSON values are data. No remote schema retrieval is allowed.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "flowhub.workflow/v2"
+    },
+    "workflowId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "environment": {
+      "enum": [
+        "production",
+        "staging",
+        "test"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "guided",
+        "auto"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      }
+    },
+    "inputSchema": {
+      "$ref": "#/$defs/dataSchema"
+    },
+    "bindings": {
+      "type": "object",
+      "minProperties": 0,
+      "maxProperties": 64,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+      },
+      "description": "Role-to-bindingRef dictionary. Example roles are log and db; every role referenced by a node must exist here."
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "budgets": {
+      "$ref": "#/$defs/budgets"
+    },
+    "executionRequirements": {
+      "type": "object",
+      "properties": {
+        "requiresCodex": {
+          "type": "boolean"
+        },
+        "executors": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "hub_direct",
+              "codex_host",
+              "assistant_local"
+            ]
+          }
+        },
+        "capabilityRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "capabilityId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "capabilityId",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "workflowId",
+    "name",
+    "description",
+    "version",
+    "environment",
+    "mode",
+    "tags",
+    "inputSchema",
+    "bindings",
+    "nodes",
+    "edges",
+    "budgets"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "jsonValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ],
+      "description": "Arbitrary JSON literal data, not executable configuration."
+    },
+    "dataSchema": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "const": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "type": {
+          "enum": [
+            "object",
+            "array",
+            "string",
+            "boolean",
+            "integer",
+            "number",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "properties": {
+          "type": "object",
+          "maxProperties": 128,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/dataSchema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true,
+          "maxItems": 128
+        },
+        "additionalProperties": {
+          "const": false
+        },
+        "items": {
+          "$ref": "#/$defs/dataSchema"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          },
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "const": {
+          "$ref": "#/$defs/jsonValue"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          },
+          "maxItems": 8
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        },
+        "pattern": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "format": {
+          "enum": [
+            "date-time",
+            "date",
+            "uri",
+            "uuid"
+          ]
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "description": "Deliberately restricted JSON Schema subset for workflow input and agent output. External $ref, code, and arbitrary keywords are not accepted. Values under properties are schemas; values under const/examples are inert data.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "properties",
+              "additionalProperties"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "array"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "items"
+            ]
+          }
+        }
+      ]
+    },
+    "mapping": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "const": "input"
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "pointer"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "const": "node"
+                    },
+                    "nodeId": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "nodeId",
+                    "pointer"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "eq"
+            },
+            "left": {
+              "$ref": "#/$defs/mapping"
+            },
+            "right": {
+              "$ref": "#/$defs/mapping"
+            }
+          },
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "exists"
+            },
+            "value": {
+              "$ref": "#/$defs/mapping"
+            }
+          },
+          "required": [
+            "op",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "enum": [
+                "and",
+                "or"
+              ]
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          },
+          "required": [
+            "op",
+            "args"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Typed, side-effect-free finite AST. The runtime caps depth and operation count; there is no eval, JavaScript, SQL, network access, or interpolation."
+    },
+    "inputConfig": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "mcpToolConfig": {
+      "type": "object",
+      "properties": {
+        "bindingKey": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "toolName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "toolSchemaHash": {
+          "type": "string",
+          "pattern": "^(?:sha256:[0-9a-f]{64}|placeholder:[a-z0-9._-]{1,128})$",
+          "description": "placeholder is intentionally permitted for design fixtures only. Domain validation MUST forbid real execution/publication when a placeholder remains."
+        },
+        "argumentsMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchemaRef": {
+          "type": "string",
+          "pattern": "^flowhub://schemas/[a-z0-9/._-]+$",
+          "maxLength": 256,
+          "description": "Built-in schema registry reference only; never fetch this URI over the network."
+        },
+        "capabilityRef": {
+          "type": "object",
+          "properties": {
+            "capabilityId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "capabilityId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "resultAdapterRef": {
+          "enum": [
+            "structured",
+            "text",
+            "json_text"
+          ]
+        }
+      },
+      "required": [
+        "bindingKey",
+        "toolName",
+        "toolSchemaHash",
+        "argumentsMappings"
+      ],
+      "additionalProperties": false
+    },
+    "analysisConfig": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "analysis"
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "inputMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/dataSchema"
+        },
+        "capabilityRef": {
+          "type": "object",
+          "properties": {
+            "capabilityId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "capabilityId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "executorRef": {
+          "enum": [
+            "codex_host",
+            "assistant_local"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "instructions",
+        "inputMappings",
+        "outputSchema"
+      ],
+      "additionalProperties": false
+    },
+    "hostSkillConfig": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "host_skill"
+        },
+        "skillRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "inputMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/dataSchema"
+        },
+        "reportContractRef": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]+/v[1-9][0-9]*$",
+          "maxLength": 128
+        },
+        "fallbackTemplateRef": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]+/v[1-9][0-9]*$",
+          "maxLength": 128,
+          "description": "A predeclared fallback, not implicit permission. The caller must explicitly request fallback and the engine must record it."
+        },
+        "capabilityRef": {
+          "type": "object",
+          "properties": {
+            "capabilityId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "capabilityId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "executorRef": {
+          "enum": [
+            "codex_host",
+            "assistant_local"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "skillRef",
+        "instructions",
+        "inputMappings",
+        "outputSchema",
+        "reportContractRef"
+      ],
+      "additionalProperties": false
+    },
+    "agentTaskConfig": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/analysisConfig"
+        },
+        {
+          "$ref": "#/$defs/hostSkillConfig"
+        },
+        {
+          "$ref": "#/$defs/hostToolConfig"
+        }
+      ]
+    },
+    "conditionConfig": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "$ref": "#/$defs/condition"
+        }
+      },
+      "required": [
+        "expression"
+      ],
+      "additionalProperties": false
+    },
+    "reportTemplateConfig": {
+      "type": "object",
+      "properties": {
+        "templateRef": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]+/v[1-9][0-9]*$",
+          "maxLength": 128
+        },
+        "inputMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/dataSchema"
+        }
+      },
+      "required": [
+        "templateRef",
+        "inputMappings",
+        "outputSchema"
+      ],
+      "additionalProperties": false
+    },
+    "endConfig": {
+      "type": "object",
+      "properties": {
+        "resultRef": {
+          "$ref": "#/$defs/mapping"
+        }
+      },
+      "required": [
+        "resultRef"
+      ],
+      "additionalProperties": false
+    },
+    "node": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "input"
+            },
+            "config": {
+              "$ref": "#/$defs/inputConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "mcp_tool"
+            },
+            "config": {
+              "$ref": "#/$defs/mcpToolConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "agent_task"
+            },
+            "config": {
+              "$ref": "#/$defs/agentTaskConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "condition"
+            },
+            "config": {
+              "$ref": "#/$defs/conditionConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "report_template"
+            },
+            "config": {
+              "$ref": "#/$defs/reportTemplateConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "type": {
+              "const": "end"
+            },
+            "config": {
+              "$ref": "#/$defs/endConfig"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "type",
+            "config"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "edge": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "port": {
+          "enum": [
+            "next",
+            "true",
+            "false"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "port"
+      ],
+      "additionalProperties": false
+    },
+    "budgets": {
+      "type": "object",
+      "properties": {
+        "maxRunSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400,
+          "description": "Active execution budget; waiting for human or agent input is accounted separately under the server checkpoint-expiry policy."
+        },
+        "maxToolCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "maxNodeExecutions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "maxAgentCheckpoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maxOutputBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 104857600
+        },
+        "maxRows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "maxToolSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "maxRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      },
+      "required": [
+        "maxRunSeconds",
+        "maxToolCalls",
+        "maxNodeExecutions",
+        "maxAgentCheckpoints",
+        "maxOutputBytes",
+        "maxRows",
+        "maxToolSeconds",
+        "maxRetries"
+      ],
+      "additionalProperties": false
+    },
+    "mockBinding": {
+      "type": "object",
+      "properties": {
+        "bindingRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "environment": {
+          "enum": [
+            "production",
+            "staging",
+            "test"
+          ]
+        },
+        "validationStatus": {
+          "const": "MOCK_VERIFIED"
+        },
+        "simulationOnly": {
+          "const": true
+        },
+        "realExecutionAllowed": {
+          "const": false
+        },
+        "transport": {
+          "const": "streamable_http"
+        },
+        "endpoint": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9.-]+\\.example\\.invalid/mcp$",
+          "maxLength": 256
+        },
+        "endpointAllowlist": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9.-]+\\.example\\.invalid$"
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "serverImplementationRef": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "protocolEra": {
+          "enum": [
+            "legacy",
+            "modern"
+          ]
+        },
+        "credentialRef": {
+          "type": "string",
+          "pattern": "^secret://demo/[a-z0-9/_-]+$",
+          "maxLength": 256
+        },
+        "allowedTools": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+          }
+        },
+        "lockedArguments": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        "allowedQueryTemplates": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9._-]+$"
+          }
+        },
+        "environmentEnforcement": {
+          "const": "MOCK_ADAPTER_ONLY"
+        },
+        "readOnlyEnforcement": {
+          "const": "MOCK_ADAPTER_ONLY"
+        },
+        "maxRows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "bindingRef",
+        "displayName",
+        "environment",
+        "validationStatus",
+        "simulationOnly",
+        "realExecutionAllowed",
+        "transport",
+        "endpoint",
+        "endpointAllowlist",
+        "serverImplementationRef",
+        "protocolEra",
+        "credentialRef",
+        "allowedTools",
+        "lockedArguments",
+        "allowedQueryTemplates",
+        "environmentEnforcement",
+        "readOnlyEnforcement",
+        "maxRows",
+        "timeoutSeconds",
+        "notes"
+      ],
+      "additionalProperties": false,
+      "description": "This sub-schema deliberately describes synthetic example bindings only, not the complete future production registry contract."
+    },
+    "bindingCatalog": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "flowhub.bindings/v1"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "simulationOnly": {
+          "const": true
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/mockBinding"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "description",
+        "simulationOnly",
+        "bindings"
+      ],
+      "additionalProperties": false,
+      "description": "Validation entry point for examples/bindings.example.json. Resolve local $defs from this document; never fetch external schemas."
+    },
+    "hostToolConfig": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "host_tool"
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "inputMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/dataSchema"
+        },
+        "capabilityRef": {
+          "type": "object",
+          "properties": {
+            "capabilityId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "capabilityId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "executorRef": {
+          "enum": [
+            "codex_host",
+            "assistant_local"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "instructions",
+        "inputMappings",
+        "outputSchema",
+        "capabilityRef",
+        "executorRef"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

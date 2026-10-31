@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 // This reads only our route declarations. It does not evaluate application code.
-const source = await readFile("packages/admin-api/src/index.ts", "utf8");
+const source = (await Promise.all(["packages/admin-api/src/index.ts", "packages/admin-api/src/v2.ts"].map(p=>readFile(p,"utf8")))).join("\n");
 const declarations = [
   ...source.matchAll(/app\.(get|post|put|patch|delete)\(\s*["']([^"']+)["']/g),
 ];
@@ -9,7 +9,7 @@ for (let i = 0; i < declarations.length; i++) {
   const match = declarations[i],
     method = match[1],
     route = match[2];
-  if (!route.startsWith("/api/v1/")) continue;
+  if (!/^\/api\/v[12]\//.test(route)) continue;
   const code = source.slice(
       match.index,
       declarations[i + 1]?.index ?? source.length,

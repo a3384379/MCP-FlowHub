@@ -1,6 +1,7 @@
 import { readFile, writeFile, unlink, readdir } from "node:fs/promises";
 import { join, resolve, extname } from "node:path";
 import { openStore } from "../../../packages/persistence/src/index.js";
+import { MIGRATIONS, validateMigrations } from "../../../packages/persistence/src/migrations.js";
 import { Repository } from "../../../packages/persistence/src/repository.js";
 import { Vault } from "../../../packages/security/src/index.js";
 import { Connectors } from "../../../packages/mcp-connectors/src/registry.js";
@@ -30,6 +31,11 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
   try {
     const token = await loadOrCreateToken(dataDir);
     store = openStore(join(dataDir, "flowhub.sqlite"));
+    const applied=validateMigrations(store.db,true);
+    if(applied>0 && applied<MIGRATIONS.length) {
+      const { backupDirectory } = await import("../../../packages/admin-api/src/local-backups.js");
+      await store.db.backup(join(await backupDirectory(dataDir,true), "pre-v2-"+Date.now()+".sqlite"));
+    }
     const instanceId = store.instanceId,
       repo = new Repository(store.db),
       vault = new Vault(repo);

@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { hash, now, ensure } from "../../contracts/src/domain.js";
 import { V1_TABLES, V1_REPOSITORY_DDL, V1_JOURNAL_DDL } from "./v1.js";
+import { V2_MIGRATION } from "./v2.js";
 
 export const MIGRATION_DDL = "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL,applied_at TEXT NOT NULL)";
 export type Migration = { version: number; ddl: string; checksum: string; tables: readonly string[] };
@@ -8,7 +9,7 @@ export const MIGRATIONS: readonly Migration[] = [{
   version: 1, ddl: V1_REPOSITORY_DDL + ";" + V1_JOURNAL_DDL,
   checksum: hash(V1_REPOSITORY_DDL),
   tables: [...V1_TABLES, "commands", "run_events", "audit_events"],
-}];
+}, V2_MIGRATION];
 
 /** Read-only validation accepts only a complete known prefix; never repairs history. */
 export function validateMigrations(db: Database.Database, allowUninitialized = false, registry = MIGRATIONS) {
@@ -39,6 +40,11 @@ export function validateMigrations(db: Database.Database, allowUninitialized = f
     }
     for (const m of registry.slice(history.length)) for (const table of m.tables)
       ensure(!existing.has(table), "MIGRATION_MISMATCH", "Unrecorded migration table: " + table, 500);
+    const indexes=reference.prepare("SELECT name,sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL").all() as {name:string;sql:string}[];
+    for(const index of indexes) {
+      const actual=db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND name=?").get(index.name) as {sql:string}|undefined;
+      ensure(actual?.sql===index.sql,"MIGRATION_MISMATCH","Required migration index differs: "+index.name,500);
+    }
     return history.length;
   } finally { reference.close(); }
 }

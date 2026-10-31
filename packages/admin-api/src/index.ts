@@ -27,6 +27,8 @@ import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js"
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth } from "../../security/src/index.js";
+import { AuthoringService } from "../../workflow-authoring/src/index.js";
+import { registerV2 } from "./v2.js";
 import {
   previewRetention,
   commitRetention,
@@ -44,6 +46,7 @@ export async function registerAdmin(
   app: FastifyInstance,
   engine: Engine,
   dataDir: string,
+  authoring = new AuthoringService(engine),
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -131,7 +134,7 @@ export async function registerAdmin(
   app.addHook("onRequest", async (req) => {
     // Use Fastify's matched route template; the raw URL may be absolute or encoded.
     const path = req.routeOptions.url;
-    if (!path?.startsWith("/api/v1/")) return;
+    if (!path?.startsWith("/api/v1/") && !path?.startsWith("/api/v2/")) return;
     if (
       (["GET", "HEAD"].includes(req.method) &&
         ["/api/v1/health", "/api/v1/auth/state"].includes(path)) ||
@@ -701,7 +704,7 @@ export async function registerAdmin(
   app.get("/api/v1/workflows", async () => data(repo.all("workflows")));
   app.post("/api/v1/workflows", async (req) => {
     const b = body(req, ["workflow"], ["layout"]);
-    return data(engine.saveDraft(b.workflow, undefined, b.layout ?? {}));
+    return data(authoring.saveRaw(b.workflow, undefined, b.layout ?? {}));
   });
   app.get("/api/v1/workflows/:id/draft", async (req) => {
     const w = repo.get("workflows", param(req));
@@ -721,7 +724,7 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Workflow ID is immutable.",
     );
-    return data(engine.saveDraft(b.workflow, revision(req), b.layout));
+    return data(authoring.saveRaw(b.workflow, revision(req), b.layout));
   });
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
@@ -756,7 +759,7 @@ export async function registerAdmin(
       "Change note must contain at most 2000 characters.",
     );
     return data(
-      engine.publish(
+      authoring.publishLegacy(
         param(req),
         b.expectedRevision,
         b.changeNote,
@@ -812,7 +815,7 @@ export async function registerAdmin(
   });
   app.post("/api/v1/workflow-imports/commit", async (req) => {
     const b = body(req, ["workflow"]);
-    const w = engine.saveDraft(b.workflow, undefined, {});
+    const w = authoring.saveRaw(b.workflow, undefined, {});
     repo.put("workflows", w.id, { ...w, enabled: false });
     return data({ ...w, enabled: false });
   });
@@ -853,7 +856,7 @@ export async function registerAdmin(
     return data(repo.tx(() => {
       ensure(repo.get("workflows", source.id)?.revision === b.expectedRevision,
         "REVISION_CONFLICT", "Source changed during backup.", 409);
-      const draft = engine.saveDraft(workflow, undefined, {});
+      const draft = authoring.saveRaw(workflow, undefined, {});
       repo.audit("admin", "legacy-workflow-copy", source.id);
       return { draft, backup, published: false };
     }));
@@ -1050,6 +1053,7 @@ export async function registerAdmin(
     const b = body(req, ["previewHash"]);
     return data(commitRetention(repo, b.previewHash));
   });
+  registerV2(app, authoring);
   // preClose runs before Fastify waits for hijacked HTTP connections to finish.
   app.addHook("preClose", async () => {
     streamsClosing = true;

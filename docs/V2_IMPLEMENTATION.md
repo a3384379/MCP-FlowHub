@@ -25,8 +25,19 @@ S0 冻结 v1 DDL、顺序迁移、基线与 Windows 失败定位；S1 统一 Aut
 
 未验证：原生 Windows、真实模型、真实 Codex MCP 会话、企业 MCP；没有实际模型调用。
 
-## S1–S7
+## S2–S7
 
 尚未实施，不计通过。后续每阶段继续补实际修改、命令、退出码、证据和本地提交。
 
 S0 后续修复：macOS 安装器夹具使用 realpath，仍保留拒绝目录链接/路径穿越等负向测试；openStore 在 WAL 设置和 boots 计数写入前校验历史，损坏/未来数据库不产生业务写入。
+
+## S1（已完成本机验证）
+
+统一 AuthoringService 已接管 Web 的草稿保存与兼容发布；新增 /api/v2 草稿/operation/校验/发布接口沿用管理员会话与 CSRF。原子 operation batch、owner 范围、幂等账本、独立 layoutRevision、能力漂移检查、不可变快照与变更事件已经落库；非法中间图可存为草稿并返回 issues，发布仍严格验证。记录 before/after 用于后续局部撤销。
+
+新增 v2 DSL，v1 schema 保持原样；新增能力引用、执行器和原生结果适配声明。旧 v1 发布保留原 hash 语义；v2 发布冻结能力快照，不能从旧发布接口绕过能力修订核对。
+迁移 2 建立后续能力/会话/自测逻辑表、索引、FTS 和统一事件表；旧库升级前 startup 一致性备份。新增表和索引校验同时用于恢复预检。
+
+验证：npm run check exit 0；build:server exit 0；Authoring/迁移/恢复/既有发布CAS 共 16 项 exit 0。早期一次测试暴露“草稿断开全部边被Schema拒绝”，已只在 v2 Schema 放宽零边中间草稿，发布图检查不放宽。先前恢复负例的未知版本改为 999，避免与正式 migration 2 冲突。
+证据：docs/evidence/v2/S1-tests.txt、S1-check.txt。脚本 test:authoring 已真实加入 package.json。
+未验证：原生 Windows、真实 MCP/模型；S2–S7 仍待实施。

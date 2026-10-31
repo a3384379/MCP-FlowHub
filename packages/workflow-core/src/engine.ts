@@ -21,6 +21,7 @@ import {
   get,
   REPORT_HEADINGS,
   type Json,
+  workflowSchema,
   type Workflow,
   type Node,
 } from "../../contracts/src/domain.js";
@@ -227,15 +228,7 @@ export class Engine {
     }
   }
   saveDraft(w: Workflow, expected: number | undefined, layout: Json) {
-    validate(
-      JSON.parse(
-        readFileSync(
-          resolve(projectRoot, "contracts/workflow.schema.json"),
-          "utf8",
-        ),
-      ),
-      w,
-    );
+    validate(workflowSchema, w);
     const old = this.repo.get("workflows", w.workflowId);
     ensure(
       old ? expected === old.revision : expected === undefined,
@@ -305,6 +298,10 @@ export class Engine {
       const snapshot = {
         workflow: clone(wf.draft),
         bindings: bindingSnapshot,
+        ...(wf.draft.schemaVersion === "flowhub.workflow/v2" ? { capabilities: wf.draft.nodes.flatMap((n: Node) => {
+          const ref=n.config.capabilityRef;
+          return ref ? [clone(this.repo.get("capability_revisions",ref.capabilityId+"@"+ref.revision))] : [];
+        }) } : {}),
         policyVersion: 1,
         reportContract: REPORT_HEADINGS,
       };

@@ -28,7 +28,8 @@
     "build:server": "node scripts/generate-openapi.mjs && tsc -p tsconfig.json",
     "build:web": "tsc -p apps/web/tsconfig.json && vite build",
     "dev:web": "vite --host 127.0.0.1",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

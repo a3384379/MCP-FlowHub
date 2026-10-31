@@ -21,7 +21,7 @@ const corruptions: [string, (db: Database.Database) => void][] = [
   [
     "unsupported migration",
     (db) => {
-      db.prepare("INSERT INTO schema_migrations VALUES(2,?,?)").run(
+      db.prepare("INSERT INTO schema_migrations VALUES(999,?,?)").run(
         "synthetic",
         new Date().toISOString(),
       );
