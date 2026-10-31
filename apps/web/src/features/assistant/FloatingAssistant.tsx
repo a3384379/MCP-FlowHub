@@ -3,6 +3,7 @@ import type { Api } from "../../shared/v2";
 import { requestedActions } from "../../shared/v2";
 import { useConversation, activeTask, type Data } from "./useConversation";
 import { ConversationView } from "./ConversationView";
+import { AssistantLauncher } from "./AssistantLauncher";
 import "./assistant.css";
 
 function Icon({
@@ -52,6 +53,7 @@ export function FloatingAssistant({
     [history, setHistory] = useState(false),
     [details, setDetails] = useState(false),
     [unread, setUnread] = useState(false);
+  const [launcherSide, setLauncherSide] = useState<"left" | "right">("right");
   const [override, setOverride] = useState<Data | null>(null),
     [detached, setDetached] = useState(false),
     [source, setSource] = useState<Data | null>(null),
@@ -219,24 +221,22 @@ export function FloatingAssistant({
   const safe = (work: Promise<unknown>) => void work.catch(chat.reportError);
   return (
     <>
-      <button
-        ref={launcher}
-        className="assistant-launcher"
-        aria-label={opened ? "收起 FlowHub 助手" : "打开 FlowHub 助手"}
-        aria-expanded={opened}
-        aria-controls="flowhub-assistant-window"
-        onClick={() => (opened ? close() : open())}
-      >
-        <Icon name="spark" />
-        {unread && !opened && (
-          <span className="assistant-unread" aria-label="有新回复" />
-        )}
-      </button>
+      <AssistantLauncher
+        launcherRef={launcher}
+        opened={opened}
+        unread={unread}
+        toggle={() => (opened ? close() : open())}
+        onSideChange={setLauncherSide}
+      />
       <section
         ref={windowRef}
         id="flowhub-assistant-window"
         data-session-id={chat.sessionId}
-        className={"floating-assistant " + (wide ? "assistant-wide" : "")}
+        className={
+          "floating-assistant " +
+          (wide ? "assistant-wide " : "") +
+          (launcherSide === "left" ? "assistant-from-left" : "")
+        }
         aria-label="FlowHub 助手聊天窗口"
         hidden={!opened}
         onKeyDown={(e) => {

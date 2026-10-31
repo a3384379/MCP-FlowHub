@@ -916,18 +916,20 @@ export async function registerAdmin(
   });
   const streamEvents = (req: FastifyRequest, reply: Json, initial: number, read: (after: number) => Json[], cursor: (event: Json) => number, intervalMs = 2000) => {
     ensure(!streamsClosing, "SERVICE_STOPPING", "The daemon is stopping.", 503);
-    let after=initial;
+    let after=initial,closed=false;
     reply.hijack();reply.raw.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"});
     let interval: ReturnType<typeof setInterval>|undefined;
-    const cleanup=()=>{clearInterval(interval);eventStreams.delete(close);};
-    const close=()=>{cleanup();reply.raw.end();};
-    eventStreams.set(close,req.headers.cookie);reply.raw.on("close",cleanup);
-    const send=()=>{auth.check(req.headers.cookie);for(const event of read(after)) {
-      if(reply.raw.writableLength>1048576){close();return;}
+    const cleanup=()=>{closed=true;clearInterval(interval);eventStreams.delete(close);};
+    const writable=()=>!closed&&!reply.raw.destroyed&&!reply.raw.writableEnded;
+    const close=()=>{if(closed)return;cleanup();if(!reply.raw.destroyed&&!reply.raw.writableEnded)reply.raw.end();};
+    eventStreams.set(close,req.headers.cookie);reply.raw.on("close",cleanup);reply.raw.on("error",cleanup);
+    const send=()=>{if(!writable()){cleanup();return false;}auth.check(req.headers.cookie);for(const event of read(after)) {
+      if(!writable())return false;
+      if(reply.raw.writableLength>1048576){close();return false;}
       reply.raw.write("id: "+cursor(event)+"\ndata: "+JSON.stringify(event)+"\n\n");after=cursor(event);
-    }};
-    try{send();}catch{close();return;}
-    interval=setInterval(()=>{try{send();reply.raw.write(": keepalive\n\n");}catch{close();}},intervalMs);
+    }return writable();};
+    try{if(!send())return;}catch{close();return;}
+    interval=setInterval(()=>{try{if(send()&&writable())reply.raw.write(": keepalive\n\n");}catch{close();}},intervalMs);
   };
   app.get("/api/v1/runs/:id/events", async (req, reply) => {
     const runId=param(req);engine.status(runId,owner(runId));

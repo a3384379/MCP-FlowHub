@@ -379,3 +379,134 @@ test("missing-model chat retains local help and does not send a fabricated answe
     await f.close();
   }
 });
+
+test("assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation", async ({
+  page,
+}) => {
+  const f = await fixture(page, (_body, res) =>
+    textResponse(res, "No model call expected."),
+  );
+  try {
+    const window = page.getByRole("region", { name: "FlowHub 助手聊天窗口" }),
+      root = page.locator(".assistant-launcher-position"),
+      launcher = page.getByRole("button", {
+        name: "打开 FlowHub 助手",
+        exact: true,
+      });
+    const session = await window.getAttribute("data-session-id");
+    await page
+      .getByRole("button", { name: "收起聊天窗口", exact: true })
+      .click();
+    const dragTo = async (x: number, y: number) => {
+      const r = (await launcher.boundingBox())!;
+      await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(x, y, { steps: 8 });
+      await page.mouse.up();
+    };
+    await dragTo(30, 220);
+    await expect(root).toHaveAttribute("data-side", "left");
+    await expect(window).toBeHidden();
+    const moved = (await root.boundingBox())!;
+    expect(moved.y).toBeGreaterThan(150);
+    expect(moved.y).toBeLessThan(250);
+    await page
+      .getByRole("button", { name: "将助手图标贴边收起", exact: true })
+      .click();
+    expect((await root.boundingBox())!.width).toBeLessThanOrEqual(24);
+    expect((await root.boundingBox())!.x).toBe(0);
+    await dragTo(1430, 450);
+    await expect(root).toHaveAttribute("data-side", "right");
+    await expect(root).toHaveClass(/is-docked/);
+    await expect(window).toBeHidden();
+    await mkdir("output/playwright/assistant-launcher", { recursive: true });
+    await page.screenshot({
+      path: "output/playwright/assistant-launcher/desktop-docked.png",
+    });
+    await page.reload();
+    await expect(root).toHaveAttribute("data-side", "right");
+    await expect(root).toHaveClass(/is-docked/);
+    const before = (await root.boundingBox())!.y;
+    await launcher.focus();
+    await page.keyboard.press("ArrowUp");
+    expect((await root.boundingBox())!.y).toBeLessThan(before);
+    await page.keyboard.press("ArrowLeft");
+    await expect(root).toHaveAttribute("data-side", "left");
+    await launcher.click();
+    await expect(window).toHaveAttribute("data-session-id", session!);
+    expect((await window.boundingBox())!.x).toBeLessThan(50);
+    await page
+      .getByRole("button", { name: "收起聊天窗口", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "展开助手图标", exact: true })
+      .click();
+    expect((await root.boundingBox())!.width).toBeGreaterThan(40);
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page
+      .getByRole("button", { name: "将助手图标贴边收起", exact: true })
+      .click();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    const r = (await launcher.boundingBox())!,
+      touch = { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [touch],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 306, y: 300 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect(root).toHaveAttribute("data-side", "right");
+    await expect(window).toBeHidden();
+    const saved = await page.evaluate(() =>
+      localStorage.getItem("flowhub.assistant.launcher.v1"),
+    );
+    const final = (await launcher.boundingBox())!;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: final.x + 10, y: final.y + 10 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 20, y: 150 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await expect(root).toHaveAttribute("data-side", "right");
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("flowhub.assistant.launcher.v1"),
+      ),
+    ).toBe(saved);
+    await cdp.detach();
+    const box = (await root.boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(320);
+    expect(box.y + box.height).toBeLessThanOrEqual(568);
+    await page.screenshot({
+      path: "output/playwright/assistant-launcher/mobile-docked.png",
+    });
+    await page.setViewportSize({ width: 320, height: 300 });
+    await expect
+      .poll(async () => {
+        const resized = (await root.boundingBox())!;
+        return resized.y >= 0 && resized.y + resized.height <= 300;
+      })
+      .toBe(true);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    expect(f.requests).toHaveLength(0);
+  } finally {
+    await f.close();
+  }
+});

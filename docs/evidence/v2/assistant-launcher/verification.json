@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-31",
+  "baseline": "3b91849",
+  "scope": [
+    "Mouse/touch draggable launcher",
+    "Left/right snap and edge-collapse/restore",
+    "Persistent placement and viewport clamping",
+    "Existing conversation and unread state preserved",
+    "SSE backpressure/closed-response crash fix"
+  ],
+  "checks": [
+    {
+      "command": "npm run check",
+      "exitCode": 0
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 365,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "npm run test:ui",
+      "exitCode": 0,
+      "passed": 50,
+      "failed": 0
+    },
+    {
+      "command": "node --test --test-timeout=10000 dist/tests/poc/http-sse-lifecycle.test.js",
+      "exitCode": 0,
+      "passed": 4
+    }
+  ],
+  "firstRuns": {
+    "targetedBrowser": "5/5 passed",
+    "firstFullBrowser": "48/50; awaited real resize/initialization and assert actual configuration payload, then full50/50",
+    "sseBeforeFix": "Stable ERR_STREAM_WRITE_AFTER_END with actual HTTP SSE and 2MiB synthetic backlog, exit1"
+  },
+  "evidence": {
+    "runtime": "runtime.json",
+    "desktop": "desktop-docked.png",
+    "mobile": "mobile-docked.png"
+  },
+  "limitations": [
+    "Physical phone not exercised; Chromium touch input protocol verified",
+    "Windows native acceptance not run",
+    "No paid model or company MCP business calls"
+  ],
+  "delivery": {
+    "push": false,
+    "merge": false,
+    "release": false
+  }
+}

@@ -1,0 +1,12 @@
+✔ daemon shutdown ends active authenticated SSE and removes endpoint and lock without client disconnect (1061.100209ms)
+✔ administrator logout immediately closes its SSE and preserves another live session (1578.909208ms)
+✔ an expired administrator session stops receiving SSE on the next heartbeat (2750.287042ms)
+✔ SSE backpressure closes without a later heartbeat writing after end, and disconnected clients leave the daemon healthy (2329.442666ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7992.772041

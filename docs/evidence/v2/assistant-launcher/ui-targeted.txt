@@ -1,0 +1,18 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-floating-chat.spec.ts
+
+[WebServer] (node:92024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:92046) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/v2-floating-chat.spec.ts:100:1 › floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up (1.2s)
+  ✓  2 tests/ui/v2-floating-chat.spec.ts:198:1 › minimizing leaves a real streaming request active; stop and refresh preserve partial answer (667ms)
+  ✓  3 tests/ui/v2-floating-chat.spec.ts:263:1 › lost acceptance retries the original idempotency key without a second draft write or model loop (487ms)
+  ✓  4 tests/ui/v2-floating-chat.spec.ts:353:1 › missing-model chat retains local help and does not send a fabricated answer (514ms)
+  ✓  5 tests/ui/v2-floating-chat.spec.ts:383:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (1.3s)
+
+  5 passed (5.8s)
