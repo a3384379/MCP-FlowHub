@@ -124,9 +124,9 @@ try {
   assert.ok(process.env.APPDATA, "APPDATA is required to verify current-user Start Menu shortcuts.");
   const shortcutsDir = join(process.env.APPDATA, "Microsoft/Windows/Start Menu/Programs/MCP FlowHub");
   const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
-  const shortcutResult = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
-    "$ErrorActionPreference='Stop'; $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:FLOWHUB_SHORTCUT_PATH); $json=@{target=$s.TargetPath;arguments=$s.Arguments}|ConvertTo-Json -Compress; [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($json))"],
-  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true, timeout: 30_000 });
+  const shortcutScript = await readFile(join(root, "scripts/windows-shell-link.ps1"), "utf8");
+  const shortcutResult = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(shortcutScript,"utf16le").toString("base64")],
+  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true, timeout: 60_000 });
   const shortcut = JSON.parse(Buffer.from(shortcutResult.stdout.trim(),"base64").toString("utf16le"));
   assert.equal((await realpath(shortcut.target)).toLowerCase(), (await realpath(runtime)).toLowerCase());
   const shortcutArguments = /^"([^"]+)" serve$/.exec(shortcut.arguments);

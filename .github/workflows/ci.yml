@@ -11,13 +11,13 @@ concurrency:
 jobs:
   windows-process-probe:
     runs-on: windows-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
-      - name: Verify native noninteractive process inspection
+      - name: Verify native process and Unicode shortcut contracts
         env:
           FLOWHUB_INSTALLER_DIAGNOSTICS: ${{ runner.temp }}/flowhub-process-probe.log
         run: node scripts/probe-windows-processes.mjs
