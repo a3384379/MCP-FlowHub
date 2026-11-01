@@ -9,6 +9,31 @@ concurrency:
   group: flowhub-rc-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  windows-process-probe:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Verify native noninteractive process inspection
+        env:
+          FLOWHUB_INSTALLER_DIAGNOSTICS: ${{ runner.temp }}/flowhub-process-probe.log
+        run: >-
+          node --input-type=module -e
+          "import assert from 'node:assert/strict';
+          import {inspectWindowsProcesses} from './installer/windows/install-helper.mjs';
+          const records=await inspectWindowsProcesses();
+          assert.ok(records.some(record=>record.ProcessId===process.pid));
+          console.log(JSON.stringify({nativeProcessInspection:'PASS',count:records.length}));"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && !cancelled()
+        with:
+          name: windows-process-probe
+          path: ${{ runner.temp }}/flowhub-process-probe.log.node.log
+          if-no-files-found: warn
+          retention-days: 14
   poc:
     strategy:
       fail-fast: false

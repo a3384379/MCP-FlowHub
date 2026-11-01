@@ -84,7 +84,7 @@ export async function inspectWindowsProcesses() {
   const started = Date.now();
   await diagnostic("process-inspection-start");
   try {
-    const { stdout } = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+    const { stdout } = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-InputFormat", "None", "-OutputFormat", "Text", "-Command",
       "$ErrorActionPreference='Stop'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); @(Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress"],
     { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
     const records = JSON.parse(stdout);
