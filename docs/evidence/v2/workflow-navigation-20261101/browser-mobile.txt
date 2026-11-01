@@ -1,0 +1,6 @@
+### Result
+"{\"width\":320,\"documentWidth\":320,\"breadcrumbBottom\":176.5,\"headerBottom\":185,\"returnLinkVisible\":true}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (JSON.stringify({width:innerWidth,documentWidth:document.documentElement.scrollWidth,breadcrumbBottom:document.querySelector(".breadcrumbs").getBoundingClientRect().bottom,headerBottom:document.querySelector(".topbar").getBoundingClientRect().bottom,returnLinkVisible:document.querySelector(".breadcrumbs a").getBoundingClientRect().right<=innerWidth}))');
+```

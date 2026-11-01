@@ -1,0 +1,6 @@
+### Result
+"{\"path\":\"/workflows/incident-staging/editor\",\"draftVersion\":\"1.0.1\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (JSON.stringify({path:location.pathname,draftVersion:document.querySelector("input[aria-label=草稿版本]")?.value}))');
+```

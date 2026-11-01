@@ -1,0 +1,32 @@
+{
+  "baseCommit": "9a45b8ed08866ff43663f925469c42fe727e1a21",
+  "sourceSha256": {
+    "apps/web/src/main.tsx": "aefb6e5b389bc0b0f1fc03b55a832bf2884902892f1a0908102a5b1a508a8027",
+    "apps/web/src/style.css": "4688f21a079b845ab644df4af068cb128265577a435557e779d9f2625fb80690",
+    "docs/V2_USER_GUIDE.md": "e52e526b611dfd0ce28c20ec6efb7945b5942af9412068a8d30ec19323c240a1"
+  },
+  "backend": {
+    "passed": 396,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "passed": 14,
+    "failed": 0
+  },
+  "checkExitCode": 0,
+  "cliCases": [
+    "specific-workflow entry",
+    "sidebar hierarchy",
+    "breadcrumb return",
+    "dirty cancel preserves input",
+    "dirty accept returns list",
+    "bare-editor redirects",
+    "specific editor bookmark",
+    "320px bounds"
+  ],
+  "runtime": "runtime.json",
+  "push": false,
+  "merge": false,
+  "release": false
+}

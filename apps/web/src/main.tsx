@@ -476,10 +476,10 @@ function App() {
   const [assistantOpenRequest,setAssistantOpenRequest]=useState(0);
   const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
   useEffect(() => {
-    if (path !== "/assistant" || !session) return;
+    if (!["/assistant", "/editor"].includes(path) || !session) return;
     history.replaceState(history.state, "", "/workflows");
     setPath("/workflows");
-    setAssistantOpenRequest(value => value + 1);
+    if (path === "/assistant") setAssistantOpenRequest(value => value + 1);
   }, [path, session]);
   const savingRef=useRef(false);
   const [changedByAI,setChangedByAI]=useState<string[]>([]);
@@ -1629,7 +1629,6 @@ function App() {
         <nav>
           {[
             ["workflows", "工作流库"],
-            ["editor", "流程编排"],
             ["connections", "MCP 工具库"],
             ["discovery", "Codex 发现"],
             ["models", "模型设置"],
@@ -1640,12 +1639,12 @@ function App() {
             <button
               aria-label={label}
               key={key}
-              className={"nav-item " + (page === key ? "active" : "")}
-              onClick={() =>
-                key === "editor"
-                  ? workflows[0] && chooseWorkflow(workflows[0])
-                  : navigate("/" + key)
+              className={"nav-item " +
+                ((page === "editor" ? "workflows" : page) === key ? "active" : "")}
+              aria-current={
+                (page === "editor" ? "workflows" : page) === key ? "page" : undefined
               }
+              onClick={() => navigate("/" + key)}
             >
               <i>{glyph[key]}</i>
               {label}
@@ -1687,9 +1686,18 @@ function App() {
       </aside>
       <main>
         <header className="topbar">
-          <span>
+          <span className="breadcrumbs">
             工作空间 <b>/</b>{" "}
-            {
+            {page === "editor" ? (
+              <>
+                <a href="/workflows" onClick={event => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  navigate("/workflows");
+                }}>工作流库</a>
+                <b>/</b><span aria-current="page">流程编排</span>
+              </>
+            ) : (
               (
                 {
                   workflows: "工作流库",
@@ -1701,7 +1709,7 @@ function App() {
                   discovery:"Codex 发现",models:"模型设置",
                 } as J
               )[page]
-            }
+            )}
           </span>
           <div>
             <Badge tone="gray">LOCAL FIRST</Badge>
