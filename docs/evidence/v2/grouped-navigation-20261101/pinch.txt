@@ -1,0 +1,16 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-assistant-max-audit.spec.ts --grep real pinch
+
+[WebServer] (node:47851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:47854) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.7s)
+  ✓  2 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.4s)
+  ✓  3 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.5s)
+
+  3 passed (5.8s)

@@ -99,7 +99,7 @@ test("a newer registration after selecting another context owns the UI and navig
     await page.getByLabel("本机上下文", { exact: true }).selectOption("B");
     await page.getByRole("button", { name: "登记上下文", exact: true }).click();
     await expect(page.getByLabel("本机上下文", { exact: true })).toHaveValue("C");
-    await page.getByRole("button", { name: "工作流库", exact: true }).click();
+    await page.getByRole("button", { name: "工作流", exact: true }).click();
     const response = page.waitForResponse(r => r.url().endsWith("/api/v2/host-contexts") && r.request().method() === "POST");
     gate.release(); await response;
     expect(await page.evaluate(() => localStorage.getItem("flowhub.discovery.context"))).toBe("C");

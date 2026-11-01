@@ -105,7 +105,7 @@ test("blank workflow requires an explicit environment and can save, publish and 
     bindings: {},
   });
   expect(version.snapshot.bindings).toEqual([]);
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page
     .locator("article")
     .filter({
@@ -382,7 +382,7 @@ test("a slow draft response cannot replace the workflow reached through navigati
       waitUntil: "domcontentloaded",
     });
     await requested.promise;
-    await page.getByRole("button", { name: "工作流库", exact: true }).click();
+    await page.getByRole("button", { name: "工作流", exact: true }).click();
     await page
       .locator("article")
       .filter({ hasText: second })
@@ -495,7 +495,7 @@ test("a save finishing after navigation cannot replace another workflow", async 
     await page.getByRole("button", { name: "保存草稿", exact: true }).click();
     await stored.promise;
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "工作流库", exact: true }).click();
+    await page.getByRole("button", { name: "工作流", exact: true }).click();
     await page
       .locator("article")
       .filter({ hasText: second })
@@ -570,14 +570,14 @@ test("session expiry retains focused JSON text while a wrong vault password leav
       .click();
     await expect(page.getByLabel("节点配置（映射 / Schema）")).toHaveValue(raw);
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "接入设置", exact: true }).click();
+    await page.getByRole("button", { name: "系统设置", exact: true }).click();
     await page.getByRole("button", { name: "解锁", exact: true }).click();
     const unlock = page.getByRole("dialog", { name: "解锁凭据库" });
     await unlock.getByLabel("凭据库口令").fill("Wrong-synthetic-password");
     await unlock.getByRole("button", { name: "确认", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("AUTH_REQUIRED");
     await expect(
-      page.getByRole("heading", { name: "接入设置", exact: true }),
+      page.getByRole("heading", { name: "系统设置", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "登录管理中心", exact: true }),
@@ -669,7 +669,7 @@ test("invalid JSON cannot submit the previous business inputs or replace the wor
   await expect(page.locator(".react-flow__node")).toHaveCount(2);
   await publish(page);
   await expect(page.getByRole("status")).toContainText("不可变版本已发布");
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page
     .locator("article")
     .filter({ hasText: id })

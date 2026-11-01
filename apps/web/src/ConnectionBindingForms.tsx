@@ -516,7 +516,7 @@ export function ConnectionForm({
             onChange={(next) => change("secretRef", next)}
           />
           <p>
-            此运行器支持无认证或 Bearer 凭据引用；先在接入设置登记凭据。URL
+            此运行器支持无认证或 Bearer 凭据引用；先在系统设置登记凭据。URL
             不填写令牌，表单只读取凭据标签和引用。
           </p>
           <section className="info">
@@ -716,7 +716,7 @@ export function BindingForm({
       <fieldset>
         <legend>允许工具</legend>
         {!available.length && (
-          <p>尚无已同步工具。请先到 MCP 工具库执行“检测与同步”。</p>
+          <p>尚无已同步工具。请先到 MCP 服务执行“检测与同步”。</p>
         )}
         {available.map((tool) => (
           <label className="field" key={tool.name}>

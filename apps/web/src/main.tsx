@@ -34,6 +34,8 @@ import { mergeDraft } from "./shared/draft-merge";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
+import { AppSidebar, NavigationIcon } from "./features/navigation/AppSidebar";
+import { navigationForPage, navigationLabel } from "./features/navigation/navigation";
 import {
   ConnectionForm,
   BindingForm,
@@ -425,6 +427,7 @@ function JsonEditor({
   );
 }
 function App() {
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [path, setPath] = useState(
       location.pathname === "/" ? "/workflows" : location.pathname,
     ),
@@ -435,6 +438,7 @@ function App() {
     [busy, setBusy] = useState(false),
     [password, setPassword] = useState(""),
     [username, setUsername] = useState("admin");
+  useEffect(() => { setNavigationOpen(false); }, [path]);
   const [workflows, setWorkflows] = useState<J[]>([]),
     [connections, setConnections] = useState<J[]>([]),
     [bindings, setBindings] = useState<J[]>([]),
@@ -635,7 +639,7 @@ function App() {
     setTools(t);
   }, []);
   const navigate = (next: string, skipDirty = false) => {
-    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return;
+    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return false;
     setDirty(false);
     jsonTextCache.current.clear();
     historyIndex.current++;
@@ -643,13 +647,14 @@ function App() {
     setPath(next);
     setModal(null);
     setArtifact(null);
+    return true;
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
     const name = destination.name || "新连接";
     if (destination.type === "connection") {
       navigate("/connections");
       setModal({ type: "connection", title: "手动连接 · " + name,
-        sourceNotice: "来自 Codex 发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
+        sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
         payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
       });
     } else if (destination.type === "library") {
@@ -1532,7 +1537,7 @@ function App() {
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
   const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
   const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
-  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+({editor:"流程编排",workflows:"工作流库",connections:"MCP 工具库",discovery:"Codex 发现",models:"模型设置",runs:"运行记录",settings:"接入设置",bindings:"环境与权限"} as J)[page];
+  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
   if (!auth)
     return (
       <div className="login">
@@ -1637,104 +1642,35 @@ function App() {
     );
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <b>F</b>FlowHub
-        </div>
-        <div className="workspace-card">
-          <span>◈</span>
-          <div>
-            <strong>本机工作空间</strong>
-            <small>单用户 · Local workspace</small>
-          </div>
-        </div>
-        <small className="nav-caption">WORKSPACE</small>
-        <nav>
-          {[
-            ["workflows", "工作流库"],
-            ["connections", "MCP 工具库"],
-            ["discovery", "Codex 发现"],
-            ["models", "模型设置"],
-            ["bindings", "环境与权限"],
-            ["runs", "运行记录"],
-            ["settings", "接入设置"],
-          ].map(([key, label]) => (
-            <button
-              aria-label={label}
-              key={key}
-              className={"nav-item " +
-                ((page === "editor" ? "workflows" : page) === key ? "active" : "")}
-              aria-current={
-                (page === "editor" ? "workflows" : page) === key ? "page" : undefined
-              }
-              onClick={() => navigate("/" + key)}
-            >
-              <i>{glyph[key]}</i>
-              {label}
-              {key === "workflows" && <small>{workflows.length}</small>}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="gateway">
-            <strong>
-              <span className="dot" /> Gateway MCP
-            </strong>
-            <p>1 个入口 · 固定 21 个工具</p>
-            <div className="meter" />
-          </div>
-          <div className="profile">
-            <span>AD</span>
-            <div>
-              <strong>本机管理员</strong>
-              <small>独立管理会话</small>
-            </div>
-            <button
-              aria-label="退出登录"
-              onClick={() =>
-                act(async () => {
-                  try {
-                    await api("/auth/session", "DELETE");
-                  } finally {
-                    csrf = "";
-                    setSession(null);
-                  }
-                })
-              }
-            >
-              ↪
-            </button>
-          </div>
-        </div>
-      </aside>
+      <AppSidebar
+        page={page}
+        open={navigationOpen}
+        close={() => setNavigationOpen(false)}
+        navigate={navigate}
+        busy={busy}
+        logout={() => act(async () => {
+          try { await api("/auth/session", "DELETE"); }
+          finally { csrf = ""; setSession(null); setNavigationOpen(false); }
+        })}
+      />
       <main>
         <header className="topbar">
-          <span className="breadcrumbs">
-            工作空间 <b>/</b>{" "}
-            {page === "editor" ? (
-              <>
+          <div className="topbar-navigation">
+            <button className="navigation-toggle" aria-label="打开导航" aria-haspopup="dialog" aria-controls={navigationOpen ? "mobile-navigation" : undefined} aria-expanded={navigationOpen} onClick={() => setNavigationOpen(true)}>
+              <NavigationIcon name="menu" />
+            </button>
+            <span className="breadcrumbs" aria-label="当前位置">
+              <span>{navigationForPage(page)?.group ?? "工作空间"}</span><b>/</b>
+              {page === "editor" ? <>
                 <a href="/workflows" onClick={event => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                  event.preventDefault();
-                  navigate("/workflows");
-                }}>工作流库</a>
+                  event.preventDefault(); navigate("/workflows");
+                }}>{navigationLabel("workflows")}</a>
                 <b>/</b><span aria-current="page">流程编排</span>
-              </>
-            ) : (
-              (
-                {
-                  workflows: "工作流库",
-                  editor: "流程编排",
-                  connections: "MCP 工具库",
-                  bindings: "环境与权限",
-                  runs: "运行记录",
-                  settings: "接入设置",
-                  discovery:"Codex 发现",models:"模型设置",
-                } as J
-              )[page]
-            )}
-          </span>
-          <div>
+              </> : <span aria-current="page">{navigationLabel(page)}</span>}
+            </span>
+          </div>
+          <div className="topbar-actions">
             <Badge tone="gray">LOCAL FIRST</Badge>
             <button
               onClick={() =>
@@ -1766,7 +1702,7 @@ function App() {
             <>
               <PageHead
                 eyebrow="YOUR WORKFLOW LIBRARY"
-                title="工作流"
+                title={navigationLabel("workflows")}
                 text="把排查经验沉淀为可发现、可验证、可追踪的执行方案。"
               >
                 <button
@@ -2796,7 +2732,7 @@ function App() {
             <>
               <PageHead
                 eyebrow="CONNECTED CAPABILITIES"
-                title="MCP 工具库"
+                title={navigationLabel("connections")}
                 text="登记独立连接，读取实际工具目录及 Schema 指纹。认证失败不会触发降级。"
               >
                 <button
@@ -2957,7 +2893,7 @@ function App() {
             <>
               <PageHead
                 eyebrow="ENVIRONMENT & POLICY"
-                title="环境与权限"
+                title={navigationLabel("bindings")}
                 text="将环境、资源、凭证引用及查询模板固定为可验证的绑定档案。"
               >
                 <button
@@ -3175,7 +3111,7 @@ function App() {
                   </tbody>
                 </table>
                 {!runs.length && (
-                  <Empty text="暂无运行，从工作流库启动一次合成排查" />
+                  <Empty text="暂无运行，从工作流启动一次合成排查" />
                 )}
                 {runsMeta?.hasMore && (
                   <button
@@ -3492,7 +3428,7 @@ function App() {
             <>
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
-                title="接入设置"
+                title={navigationLabel("settings")}
                 text="配置唯一 MCP 入口、独立管理权限与本机配置和凭据库。"
               />
               <div className="settings-grid">

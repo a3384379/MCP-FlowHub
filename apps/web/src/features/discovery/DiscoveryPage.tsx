@@ -468,7 +468,7 @@ export function DiscoveryPage({
                   : "确认服务或插件已启用，来源路径可读，服务地址或启动方式仍有效。"}
             </li>
             <li>
-              需要 FlowHub 独立调用时，在 MCP 工具库登记独立连接；仅 Codex
+              需要 FlowHub 独立调用时，在 MCP 服务登记独立连接；仅 Codex
               提供的能力使用宿主执行。
             </li>
             <li>

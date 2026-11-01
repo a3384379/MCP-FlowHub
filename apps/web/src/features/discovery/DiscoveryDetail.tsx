@@ -257,7 +257,7 @@ export function DiscoveryDetail({
         result.hostReference
           ? "Codex 宿主能力引用已登记。执行仍由 Codex 完成，可在编排画布中选择此技能。"
           : result.connectionId
-            ? "连接与环境绑定已导入，资源绑定尚未验证。请前往 MCP 工具库和环境与权限完成验证。"
+            ? "连接与环境绑定已导入，资源绑定尚未验证。请前往 MCP 服务和环境与资源完成验证。"
             : "仍需要连接配置：" + (result.missing ?? []).join("、"),
       );
     });
@@ -397,8 +397,8 @@ export function DiscoveryDetail({
             <div className="d-notice" role="status">
               {notice}
               <div>
-                <a href="/connections">前往 MCP 工具库</a> ·{" "}
-                <a href="/bindings">环境与权限</a>
+                <a href="/connections">前往 MCP 服务</a> ·{" "}
+                <a href="/bindings">环境与资源</a>
               </div>
             </div>
           )}
