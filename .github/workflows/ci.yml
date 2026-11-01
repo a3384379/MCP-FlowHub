@@ -20,13 +20,7 @@ jobs:
       - name: Verify native noninteractive process inspection
         env:
           FLOWHUB_INSTALLER_DIAGNOSTICS: ${{ runner.temp }}/flowhub-process-probe.log
-        run: >-
-          node --input-type=module -e
-          "import assert from 'node:assert/strict';
-          import {inspectWindowsProcesses} from './installer/windows/install-helper.mjs';
-          const records=await inspectWindowsProcesses();
-          assert.ok(records.some(record=>record.ProcessId===process.pid));
-          console.log(JSON.stringify({nativeProcessInspection:'PASS',count:records.length}));"
+        run: node scripts/probe-windows-processes.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && !cancelled()
         with:

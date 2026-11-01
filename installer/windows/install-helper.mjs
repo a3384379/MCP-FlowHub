@@ -80,13 +80,23 @@ async function stateAt(installDir) {
 }
 
 export async function inspectWindowsProcesses() {
-  const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+  const system32 = join(systemRoot, "System32");
+  const powershellHome = join(system32, "WindowsPowerShell", "v1.0");
+  const powershell = join(powershellHome, "powershell.exe");
+  const probeEnv = Object.fromEntries(Object.entries(process.env)
+    .filter(([key]) => !["PATH", "PSMODULEPATH"].includes(key.toUpperCase())));
+  probeEnv.PATH = [system32, systemRoot, powershellHome].join(";");
+  probeEnv.PSModulePath = join(powershellHome, "Modules");
   const started = Date.now();
   await diagnostic("process-inspection-start");
   try {
     const { stdout } = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-InputFormat", "None", "-OutputFormat", "Text", "-Command",
       "$ErrorActionPreference='Stop'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); @(Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress"],
-    { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
+    { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024,
+      // Installer smoke deliberately removes global Node/npm from PATH. Give
+      // only this OS probe the Windows utilities and built-in CIM module path.
+      env: probeEnv });
     const records = JSON.parse(stdout);
     const result = records === null ? [] : Array.isArray(records) ? records : [records];
     if (result.some((p) => !Number.isInteger(p.ProcessId))) throw new Error("Invalid process inventory");

@@ -1,0 +1,19 @@
+✔ noninteractive installer probes receive EOF and preserve Unicode output and process failures (40.751333ms)
+✔ installer ownership preserves data and extra files across upgrade and uninstall (11.400209ms)
+✔ install refuses unrelated directories, changed payloads, and extra-file collisions before replacing files (6.115334ms)
+✔ daemon locks and process-inspection failures block every destructive installer operation (4.678708ms)
+✔ Unicode bridge paths, external Node CLI references and options before serve all block replacement (1.692042ms)
+✔ Windows program paths reject drive roots, UNC and program/data overlap (0.335792ms)
+✔ uninstall rejects marker traversal and directory-link replacements without deleting data (5.584833ms)
+✔ uninstaller does not claim or remove an unowned directory (1.448417ms)
+✔ compiler archive hash and native PE headers reject substitutes (1.347125ms)
+✔ native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds (2.510416ms)
+✔ Linux invocation cannot generate a Windows installer (26.006166ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 135.510042
