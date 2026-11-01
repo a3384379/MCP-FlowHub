@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 import { assertWindowsBuild } from "./windows-installer.mjs";
 import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { windowsTestEnvironment } from "./windows-test-environment.mjs";
 
 assertWindowsBuild();
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -33,10 +34,8 @@ const checks = [];
 const children = new Set();
 let success = false;
 let installed = false;
-const env = Object.fromEntries(["SystemRoot", "WINDIR", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA"]
-  .flatMap((key) => process.env[key] ? [[key, process.env[key]]] : []));
 // Installed applications do not get access to a global npm/node executable.
-env.PATH = join(installDir, "app/runtime");
+const env = windowsTestEnvironment(join(installDir, "app/runtime"));
 const helperDiagnostics = join(root, "artifacts/windows-installer-helper.log");
 env.FLOWHUB_INSTALLER_DIAGNOSTICS = helperDiagnostics;
 

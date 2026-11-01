@@ -12,7 +12,22 @@ const { installApplication, uninstallApplication, preflight, validateWindowsPath
   await import(pathToFileURL(resolve("installer/windows/install-helper.mjs")).href);
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
+const { windowsTestEnvironment } = await import(pathToFileURL(resolve("scripts/windows-test-environment.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+
+test("offline Windows processes retain OS identity without global tools, credentials or Node injection", () => {
+  const environment = windowsTestEnvironment("C:\\isolated\\runtime", {
+    SYSTEMROOT: "C:\\Windows", SYSTEMDRIVE: "C:", ComSpec: "C:\\Windows\\System32\\cmd.exe", USERNAME: "synthetic",
+    Path: "C:\\global-node;C:\\global-npm", OPENAI_API_KEY: "must-not-propagate", GITHUB_TOKEN: "must-not-propagate",
+    NODE_OPTIONS: "--require untrusted", PSModulePath: "untrusted-modules",
+  });
+  assert.equal(environment.SystemRoot, "C:\\Windows");
+  assert.equal(environment.SystemDrive, "C:");
+  assert.equal(environment.ComSpec, "C:\\Windows\\System32\\cmd.exe");
+  assert.equal(environment.USERNAME, "synthetic");
+  assert.equal(environment.PATH, "C:\\isolated\\runtime");
+  for (const key of ["OPENAI_API_KEY", "GITHUB_TOKEN", "NODE_OPTIONS", "PSModulePath", "Path"]) assert.equal(environment[key], undefined);
+});
 
 test("noninteractive installer probes receive EOF and preserve Unicode output and process failures", async () => {
   const script = "process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({target:'C:\\\\用户\\\\程序 files\\\\node.exe'})));";
