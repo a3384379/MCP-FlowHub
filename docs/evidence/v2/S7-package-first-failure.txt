@@ -1,0 +1,31 @@
+
+> mcp-flowhub@2.0.0-alpha.1 test:package
+> node scripts/smoke-package.mjs
+
+{"packageSmokeStage":"archive extraction","event":"start"}
+{"packageSmokeStage":"archive extraction","event":"pass","durationMs":2485}
+{"packageSmokeStage":"extracted bundle integrity","event":"start"}
+Bundle verified: 5718 files, recoverable source snapshot, 94 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{"packageSmokeStage":"extracted bundle integrity","event":"pass","durationMs":537}
+{"packageSmokeStage":"new assistant module tamper is rejected","event":"start"}
+Bundle verified: 5718 files, recoverable source snapshot, 94 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{"packageSmokeStage":"new assistant module tamper is rejected","event":"pass","durationMs":518}
+{"packageSmokeStage":"packaged daemon startup","event":"start"}
+{"packageSmokeStage":"packaged daemon startup","event":"fail","durationMs":1316}
+{
+  "packageSmokeFailure": {
+    "message": "Packaged daemon exited 0: ",
+    "code": "Error"
+  },
+  "processes": []
+}
+file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/scripts/smoke-package.mjs:311
+  throw Object.assign(new Error(diagnostics.failure.message), {
+                      ^
+
+Error: Packaged daemon exited 0: 
+    at file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/scripts/smoke-package.mjs:311:23 {
+  code: 'Error'
+}
+
+Node.js v24.19.0

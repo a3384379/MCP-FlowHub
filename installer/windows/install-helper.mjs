@@ -2,11 +2,18 @@ import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
-import { lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { appendFile, lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const exec = promisify(execFile);
+export function execWithoutInput(executable, args, options) {
+  const execution = exec(executable, args, options);
+  // No installer probe consumes input. An open pipe can leave Windows
+  // PowerShell waiting for EOF even with -NonInteractive and -Command.
+  execution.child.stdin?.end();
+  return execution;
+}
 const product = "MCP-FlowHub";
 const markerName = ".flowhub-install.json";
 const ownedRootFiles = ["flowhub.cmd", "installer-helper.mjs", "NSIS-COPYING.txt", "NSIS-NOTICE.txt"];
@@ -18,6 +25,12 @@ const contains = (parent, child) => {
 };
 function fail(code, detail) {
   throw new Error(`${code}: ${detail}`);
+}
+async function diagnostic(event, detail = {}) {
+  const path = process.env.FLOWHUB_INSTALLER_DIAGNOSTICS;
+  if (!path) return;
+  // Only explicit phase/status fields, never process command lines or inventory.
+  await appendFile(`${path}.node.log`, JSON.stringify({ at: new Date().toISOString(), event, ...detail }) + "\n").catch(() => {});
 }
 function safeRelative(path) {
   return typeof path === "string" && path.length > 0 &&
@@ -67,16 +80,32 @@ async function stateAt(installDir) {
 }
 
 export async function inspectWindowsProcesses() {
-  const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+  const system32 = join(systemRoot, "System32");
+  const powershellHome = join(system32, "WindowsPowerShell", "v1.0");
+  const powershell = join(powershellHome, "powershell.exe");
+  const probeEnv = Object.fromEntries(Object.entries(process.env)
+    .filter(([key]) => !["PATH", "PSMODULEPATH"].includes(key.toUpperCase())));
+  probeEnv.PATH = [system32, systemRoot, powershellHome].join(";");
+  probeEnv.PSModulePath = join(powershellHome, "Modules");
+  const started = Date.now();
+  await diagnostic("process-inspection-start");
   try {
-    const { stdout } = await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
-      "$ErrorActionPreference='Stop'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); @(Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress"],
-    { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
+    const command = "$ErrorActionPreference='Stop'; function Write-Phase($phase) { if($env:FLOWHUB_INSTALLER_DIAGNOSTICS) { try { [IO.File]::AppendAllText($env:FLOWHUB_INSTALLER_DIAGNOSTICS+'.powershell.log',[DateTime]::UtcNow.ToString('o')+' '+$phase+[Environment]::NewLine) } catch {} } }; Write-Phase 'started'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); Write-Phase 'query-start'; $records=@(Get-CimInstance -Query 'SELECT ProcessId,ExecutablePath,CommandLine FROM Win32_Process' -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine); Write-Phase 'query-complete'; $records | ConvertTo-Json -Compress; Write-Phase 'output-complete'";
+    const execution = execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-InputFormat", "None", "-OutputFormat", "Text", "-Command", command],
+    { windowsHide: true, timeout: 60_000, maxBuffer: 16 * 1024 * 1024,
+      // Installer smoke deliberately removes global Node/npm from PATH. Give
+      // only this OS probe the Windows utilities and built-in CIM module path.
+      env: probeEnv });
+    execution.child.once("exit", (code, signal) => { void diagnostic("process-inspection-exit", { code, signal, elapsedMs: Date.now() - started }); });
+    const { stdout } = await execution;
     const records = JSON.parse(stdout);
     const result = records === null ? [] : Array.isArray(records) ? records : [records];
     if (result.some((p) => !Number.isInteger(p.ProcessId))) throw new Error("Invalid process inventory");
+    await diagnostic("process-inspection-complete", { count: result.length, elapsedMs: Date.now() - started });
     return result;
-  } catch {
+  } catch (error) {
+    await diagnostic("process-inspection-failed", { elapsedMs: Date.now() - started, code: typeof error.code === "number" ? error.code : /^[A-Z_]+$/.test(error.code ?? "") ? error.code : "INVALID_OUTPUT", signal: error.signal ?? null, killed: error.killed === true, stdoutBytes: Buffer.byteLength(error.stdout ?? ""), stderrBytes: Buffer.byteLength(error.stderr ?? "") });
     fail("INSTALL_PROCESS_CHECK_FAILED", "Windows process inspection failed. No files were replaced; allow the approved local PowerShell/CIM check and retry.");
   }
 }
@@ -224,6 +253,7 @@ async function main(args) {
     "install-dir": { type: "string" }, "data-dir": { type: "string" }, "payload-dir": { type: "string" },
     "payload-manifest": { type: "string" }, version: { type: "string" },
   } });
+  await diagnostic("operation-start", { operation: ["preflight", "install", "uninstall"].includes(positionals[0]) ? positionals[0] : "invalid" });
   if (positionals.length !== 1 || !values["install-dir"] || !values["data-dir"])
     fail("INSTALL_INPUT_INVALID", "Expected one installer operation and explicit program/data directories.");
   const options = { installDir: values["install-dir"], dataDir: values["data-dir"] };
@@ -238,7 +268,8 @@ async function main(args) {
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url)
-  main(process.argv.slice(2)).catch((error) => {
+  main(process.argv.slice(2)).catch(async (error) => {
+    await diagnostic("operation-failed", { code: /^(INSTALL|WINDOWS)_[A-Z_]+:/.exec(error.message ?? "")?.[0].slice(0, -1) ?? "INSTALL_FAILED" });
     console.error(error.message?.startsWith("INSTALL_") || error.message?.startsWith("WINDOWS_") ? error.message : "INSTALL_FAILED: Preserve the program/data directories and retry a reviewed installer; no daemon was terminated.");
     process.exitCode = /INSTALL_(?:BUSY|DAEMON_LOCKED)/.test(error.message) ? 20 : 21;
   });

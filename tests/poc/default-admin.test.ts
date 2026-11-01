@@ -1,0 +1,51 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, access } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { startDaemon } from "../../apps/daemon/src/index.js";
+import { passwordHash } from "../../packages/security/src/index.js";
+
+test("default admin/admin initializes once without a setup code and survives restart with its encrypted data", async t => {
+  const dataDir = await mkdtemp(join(tmpdir(), "flowhub-default-admin-"));
+  let daemon = await startDaemon({dataDir,port:0});
+  t.after(async()=>{await daemon.close();await rm(dataDir,{recursive:true,force:true});});
+  const login = (username:string,password:string) => fetch(`http://127.0.0.1:${daemon.port}/api/v1/auth/session`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
+  assert.equal((await login("other","admin")).status,401);
+  assert.equal((await login("admin","wrong")).status,401);
+  assert.equal(daemon.application!.engine.repo.get("settings","admin"),undefined);
+  assert.equal(daemon.engine.vault.initialized,false);
+  const accepted=await login("admin","admin");assert.equal(accepted.status,200);
+  const cookie=accepted.headers.get("set-cookie")!.split(";")[0]!;
+  const csrf=((await accepted.json()) as any).data.csrf;
+  const state=await fetch(`http://127.0.0.1:${daemon.port}/api/v1/auth/state`);
+  assert.deepEqual(((await state.json()) as any).data.vaultInitialized,true);
+  assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/workflows`)).status,401);
+  assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/workflows`,{headers:{Cookie:cookie}})).status,200);
+  assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/vault/lock`,{method:"POST",headers:{Cookie:cookie}})).status,403);
+  const secret=daemon.engine.vault.addSecret("synthetic restart check","synthetic-secret-default-login");
+  const adminRecord=structuredClone(daemon.engine.repo.get("settings","admin"));
+  assert.ok(!JSON.stringify(adminRecord).includes('"admin"'));
+  await assert.rejects(access(join(dataDir,"admin-setup-token")),{code:"ENOENT"});
+  await fetch(`http://127.0.0.1:${daemon.port}/api/v1/auth/session`,{method:"DELETE",headers:{Cookie:cookie,"X-CSRF-Token":csrf}});
+  await daemon.close();daemon=await startDaemon({dataDir,port:0});
+  assert.equal((await login("admin","admin")).status,200);
+  assert.deepEqual(daemon.engine.repo.get("settings","admin"),adminRecord);
+  daemon.engine.vault.unlock("admin");assert.equal(daemon.engine.vault.secret(secret.id),"synthetic-secret-default-login");
+  assert.throws(()=>passwordHash("admin"),{code:"PASSWORD_WEAK"});
+});
+
+test("default login never replaces an existing custom administrator or vault", async t => {
+  const dataDir=await mkdtemp(join(tmpdir(),"flowhub-existing-admin-"));
+  const daemon=await startDaemon({dataDir,port:0});
+  t.after(async()=>{await daemon.close();await rm(dataDir,{recursive:true,force:true});});
+  const base=`http://127.0.0.1:${daemon.port}/api/v1/auth`,password="Synthetic-existing-password-173";
+  const boot=await fetch(base+"/bootstrap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({setupToken:await readFile(join(dataDir,"admin-setup-token"),"utf8"),password})});assert.equal(boot.status,200);
+  const before=structuredClone(daemon.engine.repo.get("settings","admin"));
+  const login=(body:object)=>fetch(base+"/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  assert.equal((await login({username:"admin",password:"admin"})).status,401);
+  assert.equal((await login({username:"other",password})).status,401);
+  assert.equal((await login({username:"admin",password})).status,200);
+  assert.equal((await login({password})).status,200);
+  assert.deepEqual(daemon.engine.repo.get("settings","admin"),before);
+});

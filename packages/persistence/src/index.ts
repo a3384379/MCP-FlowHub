@@ -2,12 +2,15 @@ import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { chmodSync } from "node:fs";
 import { assertRestoreComplete } from "./restore-journal.js";
+import { validateMigrations } from "./migrations.js";
 
 /** S0 validates native SQLite/WAL and restart durability; no workflow engine yet. */
 export function openStore(path: string) {
   assertRestoreComplete(path);
   const db = new Database(path);
   try {
+    // Refuse damaged/future stores before WAL setup or incrementing boot metadata.
+    validateMigrations(db, true);
     chmodSync(path, 0o600);
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");

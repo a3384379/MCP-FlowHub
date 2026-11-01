@@ -1,0 +1,24 @@
+✔ publication binds the reviewed binding revisions and preserves previous immutable versions (212.592542ms)
+✔ authoring creates real drafts, retains idempotency and restricts creation ownership (49.185583ms)
+✔ patch transaction rolls back all mutations and events, CAS and command replay are exact (13.206583ms)
+✔ layout CAS is independent from semantic edits and incomplete legal drafts retain issues (4.339416ms)
+✔ publish freezes v2 snapshot, respects revision and preserves v1 schema restrictions (3.81675ms)
+✔ sequential migrations preserve a real v1 layout and immutable snapshot bytes (17.998708ms)
+✔ damaged history, missing columns, gaps and future versions never rebuild stores (15.94625ms)
+✔ failed multi-step migration rolls back DDL and history together (9.238541ms)
+✔ restore rejects changed checksum before replacement and the original daemon can restart (407.488166ms)
+✔ restore rejects unsupported migration before replacement and the original daemon can restart (352.492084ms)
+✔ restore rejects missing migration before replacement and the original daemon can restart (313.924167ms)
+✔ restore rejects missing managed table before replacement and the original daemon can restart (312.812166ms)
+✔ restore rejects incomplete table before replacement and the original daemon can restart (313.865625ms)
+✔ restore rejects missing primary key before replacement and the original daemon can restart (311.98725ms)
+✔ restore rejects missing null constraint before replacement and the original daemon can restart (316.751458ms)
+✔ a compatible backup restores and preserves a usable copy of the replaced database (77.362917ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2626.621542

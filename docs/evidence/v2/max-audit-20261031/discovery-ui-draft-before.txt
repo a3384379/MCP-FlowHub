@@ -1,0 +1,36 @@
+### Result
+{
+  "sourceRevision": 2,
+  "sourceFingerprint": "fingerprint-2",
+  "sent": [
+    {
+      "contextId": "A",
+      "expectedContextRevision": 1,
+      "action": "submit_descriptions",
+      "idempotencyKey": "afc8b898-9d34-4fb6-8b6d-3def29cec5e5",
+      "entries": [
+        {
+          "entityId": "skill-one",
+          "entityKind": "skill",
+          "expectedSourceRevision": 2,
+          "sourceFingerprint": "fingerprint-2",
+          "expectedPresentationRevision": 2,
+          "locale": "zh-CN",
+          "displayName": "中文 r1",
+          "summary": "Edited while reviewing version one",
+          "description": "",
+          "useCases": [],
+          "inputSummary": "",
+          "outputSummary": "",
+          "evidenceRefs": [
+            "skill:SKILL.md"
+          ]
+        }
+      ]
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({sourceRevision:window.currentEntity.revision, sourceFingerprint:window.currentEntity.sourceFingerprint, sent:window.submissions}))');
+```

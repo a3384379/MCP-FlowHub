@@ -1,0 +1,51 @@
+### Result
+{
+  "chosen": "B",
+  "selected": "B",
+  "requests": [
+    {
+      "path": "/api/v2/host-contexts",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/discovery/catalog?contextId=A&kind=mcp_server&query=&limit=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/host-contexts",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/discovery/catalog?contextId=A&kind=mcp_server&query=&limit=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/host-contexts",
+      "method": "POST",
+      "body": {
+        "codexHome": "/tmp/synthetic-a",
+        "cwd": "/tmp/project-a",
+        "discoveryMode": "config_only",
+        "codexPath": null,
+        "contextId": "A",
+        "expectedRevision": 1
+      }
+    },
+    {
+      "path": "/api/v2/discovery/catalog?contextId=B&kind=mcp_server&query=&limit=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/host-contexts",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v2/discovery/catalog?contextId=B&kind=mcp_server&query=&limit=20",
+      "method": "GET"
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({chosen: document.querySelector("#chosen").textContent, selected: window.d.contextId, requests: window.calls}))');
+```

@@ -85,9 +85,12 @@ export async function verifyBundle(bundle) {
   const build = JSON.parse(
     await readFile(join(bundle, "build-info.json"), "utf8"),
   );
-  assert.equal(build.phase, "RC");
+  assert.equal(build.phase, build.version.includes("-alpha.") ? "ALPHA" : "RC");
+  for(const file of ["docs/V2_USER_GUIDE.md","docs/V2_MIGRATION.md","dist/packages/workflow-authoring/src/index.js","dist/packages/host-discovery/src/index.js","dist/packages/assistant-core/src/index.js","dist/packages/workflow-testing/src/index.js"])assert.ok(actual.includes(file),"Required v2 runtime file missing: "+file);
   assert.equal(build.syntheticOnly, false);
   await verifySourceSnapshot(bundle, build);
+  for(const file of ["README.md","docs/HOST_INTEGRATION.md","docs/V2_USER_GUIDE.md","docs/V2_MIGRATION.md"])
+    assert.equal(manifest[file],manifest["source/"+file],"Runtime help differs from source snapshot: "+file);
   const sourcePackage = JSON.parse(
     await readFile(join(bundle, "source/package.json"), "utf8"),
   );

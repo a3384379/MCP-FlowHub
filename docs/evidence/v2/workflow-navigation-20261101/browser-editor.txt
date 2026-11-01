@@ -1,0 +1,6 @@
+### Result
+"{\"path\":\"/workflows/incident-staging/editor\",\"sidebarEditor\":0,\"activeParent\":\"工作流库\",\"breadcrumb\":\"工作空间 / 工作流库/流程编排\",\"nodes\":8}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (JSON.stringify({path:location.pathname,sidebarEditor:document.querySelectorAll(".sidebar button[aria-label=流程编排]").length,activeParent:document.querySelector(".sidebar .nav-item.active")?.getAttribute("aria-label"),breadcrumb:document.querySelector(".breadcrumbs")?.textContent,nodes:document.querySelectorAll(".react-flow__node").length}))');
+```

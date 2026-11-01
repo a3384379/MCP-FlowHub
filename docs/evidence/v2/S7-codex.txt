@@ -1,0 +1,31 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "codexUserAgent": "Codex Desktop/0.164.0-alpha.11.1 (Mac OS 26.6.2; arm64) dumb (flowhub-local-acceptance; 2.0.0-alpha.1)",
+  "stages": [
+    {
+      "stage": "actual_codex_initialize",
+      "status": "PASS"
+    },
+    {
+      "stage": "codex_discovers_21_mcp_tools",
+      "status": "PASS"
+    },
+    {
+      "stage": "codex_mcp_author_test_publish_execute_report",
+      "status": "PASS",
+      "workflowId": "codex-local-smoke",
+      "draftRevision": 2,
+      "suiteId": "suite_87ca2cd2-e20b-4905-ba48-19db118d77c2",
+      "testRunId": "test_8e52d3d0-63c6-4201-9da8-4cc6265fde32",
+      "runId": "run_5be60078-f214-4f79-8ae3-8115c9c6abf6",
+      "reportBytes": 1094
+    }
+  ],
+  "modelTurns": 0,
+  "businessServiceCalls": 0,
+  "persistentCodexConfigModified": false,
+  "privateCredentialsCopied": false,
+  "naturalLanguageModelAcceptance": "UNVERIFIED"
+}

@@ -1,0 +1,137 @@
+[
+  {
+    "case": "intent",
+    "actual": [
+      {
+        "text": "保存草稿，不要发布或执行",
+        "actions": [
+          "edit_draft"
+        ]
+      },
+      {
+        "text": "创建试运行流程并保存草稿",
+        "actions": [
+          "edit_draft"
+        ]
+      },
+      {
+        "text": "请解释当前流程的运行原理",
+        "actions": []
+      },
+      {
+        "text": "请勿运行当前流程",
+        "actions": [
+          "run"
+        ]
+      },
+      {
+        "text": "我不想运行当前流程",
+        "actions": [
+          "run"
+        ]
+      },
+      {
+        "text": "不需要发布当前流程",
+        "actions": [
+          "publish"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "negated-run-dispatched",
+    "status": "FAILED"
+  },
+  {
+    "case": "wrong-workflow-started",
+    "status": "FAILED",
+    "selected": "selected"
+  },
+  {
+    "case": "remaining-common-negation",
+    "status": "COMPLETED",
+    "dispatched": [
+      "workflow_start"
+    ]
+  },
+  {
+    "case": "checkpoint-token-leaked",
+    "providerHasToken": false,
+    "ordinaryMessagesHaveToken": false,
+    "sseEventsHaveToken": false
+  },
+  {
+    "case": "delete-session-event-orphan",
+    "taskDeleted": true,
+    "eventsRemain": 0,
+    "deletedTokenStillInEvents": false
+  },
+  {
+    "case": "analysis-idempotent-retry",
+    "firstTask": "COMPLETED",
+    "runState": "SUCCEEDED"
+  },
+  {
+    "case": "delete-analysis-ledger-orphan",
+    "taskDeleted": true,
+    "toolCallsRemain": 0
+  },
+  {
+    "case": "streamless-profile",
+    "probes": {
+      "text": {
+        "status": "passed",
+        "testedAt": "2026-10-31T05:27:29.134Z"
+      },
+      "tools": {
+        "status": "passed",
+        "testedAt": "2026-10-31T05:27:29.135Z"
+      },
+      "stream": {
+        "status": "failed",
+        "errorCode": "MODEL_REQUEST_FAILED",
+        "testedAt": "2026-10-31T05:27:29.136Z"
+      }
+    },
+    "status": "COMPLETED"
+  },
+  {
+    "case": "timeout-after-headers",
+    "error": {
+      "code": "MODEL_TIMEOUT",
+      "name": "Error",
+      "message": "Model request timed out before the complete response was received."
+    }
+  },
+  {
+    "case": "citation-hash",
+    "lineRange": [
+      740,
+      791
+    ],
+    "hashMatchesActualRange": true
+  },
+  {
+    "case": "cleared-context-history",
+    "selectedRun": null,
+    "providerReceivedPriorRunAnswer": true
+  },
+  {
+    "case": "expired-run-fresh-message-copy",
+    "originalRunExpired": true,
+    "firstTaskExpired": true,
+    "messagesHaveTaskIds": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "messageCopySurvives": true
+  },
+  {
+    "case": "analysis-correction-budget",
+    "configuredMaxCorrectionAttempts": 1,
+    "actualProviderCalls": 3,
+    "error": "INPUT_INVALID"
+  }
+]

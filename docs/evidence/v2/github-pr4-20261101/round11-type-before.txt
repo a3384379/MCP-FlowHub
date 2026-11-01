@@ -1,0 +1,51 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-discovery-races.spec.ts --grep changing capability type
+
+[WebServer] (node:76329) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:76333) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/ui/v2-discovery-races.spec.ts:212:1 › changing capability type hides old rows and rejects a late response from the previous type (6.5s)
+
+
+  1) tests/ui/v2-discovery-races.spec.ts:212:1 › changing capability type hides old rows and rejects a late response from the previous type 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.d-cap-row')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" locator('.d-cap-row') with timeout 5000ms
+      - waiting for locator('.d-cap-row')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      222 |     await page.getByRole("tab", {name:/MCP 服务/}).click();
+      223 |     await expect.poll(() => mcpWaiting).toBe(true);
+    > 224 |     await expect(page.locator(".d-cap-row")).toHaveCount(0);
+          |                                              ^
+      225 |     await page.getByRole("tab", {name:/Skills 技能/}).click();
+      226 |     await expect.poll(() => skillWaiting).toBe(true);
+      227 |     const finished = page.waitForResponse(r => r.url().includes("/discovery/catalog?") && new URL(r.url()).searchParams.get("kind") === "mcp_server");
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:224:46
+
+    Error Context: test-results/v2-discovery-races-changin-1b0bb-onse-from-the-previous-type/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/v2-discovery-races-changin-1b0bb-onse-from-the-previous-type/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/v2-discovery-races-changin-1b0bb-onse-from-the-previous-type/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/ui/v2-discovery-races.spec.ts:212:1 › changing capability type hides old rows and rejects a late response from the previous type 

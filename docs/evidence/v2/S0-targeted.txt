@@ -1,0 +1,16 @@
+✔ sequential migrations preserve a real v1 layout and immutable snapshot bytes (5.692042ms)
+✔ damaged history, missing columns, gaps and future versions never rebuild stores (3.86425ms)
+✔ failed multi-step migration rolls back DDL and history together (2.142583ms)
+✔ ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate daemon rejected (379.68825ms)
+✔ ENV-03/04: port conflict is actionable; failed startup releases its lock; loopback only (654.018875ms)
+✔ SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial (350.79475ms)
+✔ ENV-08: bridge without daemon fails without creating data or polluting stdout (110.207875ms)
+✔ CLI rejects unknown options, unknown commands and unsafe port inputs (110.404583ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1759.454625

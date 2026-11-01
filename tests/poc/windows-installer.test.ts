@@ -3,23 +3,45 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped } =
+const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped, execWithoutInput } =
   await import(pathToFileURL(resolve("installer/windows/install-helper.mjs")).href);
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
+const { windowsTestEnvironment } = await import(pathToFileURL(resolve("scripts/windows-test-environment.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+
+test("offline Windows processes retain OS identity without global tools, credentials or Node injection", () => {
+  const environment = windowsTestEnvironment("C:\\isolated\\runtime", {
+    SYSTEMROOT: "C:\\Windows", SYSTEMDRIVE: "C:", ComSpec: "C:\\Windows\\System32\\cmd.exe", USERNAME: "synthetic",
+    Path: "C:\\global-node;C:\\global-npm", OPENAI_API_KEY: "must-not-propagate", GITHUB_TOKEN: "must-not-propagate",
+    NODE_OPTIONS: "--require untrusted", PSModulePath: "untrusted-modules",
+  });
+  assert.equal(environment.SystemRoot, "C:\\Windows");
+  assert.equal(environment.SystemDrive, "C:");
+  assert.equal(environment.ComSpec, "C:\\Windows\\System32\\cmd.exe");
+  assert.equal(environment.USERNAME, "synthetic");
+  assert.equal(environment.PATH, "C:\\isolated\\runtime");
+  for (const key of ["OPENAI_API_KEY", "GITHUB_TOKEN", "NODE_OPTIONS", "PSModulePath", "Path"]) assert.equal(environment[key], undefined);
+});
+
+test("noninteractive installer probes receive EOF and preserve Unicode output and process failures", async () => {
+  const script = "process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({target:'C:\\\\用户\\\\程序 files\\\\node.exe'})));";
+  const result = await execWithoutInput(process.execPath, ["-e", script], { timeout: 5000 });
+  assert.deepEqual(JSON.parse(result.stdout), { target: "C:\\用户\\程序 files\\node.exe" });
+  await assert.rejects(execWithoutInput(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>process.exit(7));"], { timeout: 5000 }), { code: 7 });
+});
 
 async function put(root: string, name: string, content: string) {
   await mkdir(dirname(join(root, name)), { recursive: true });
   await writeFile(join(root, name), content);
 }
 async function fixture(t: TestContext) {
-  const root = await mkdtemp(join(tmpdir(), "FlowHub 安装 helper "));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "FlowHub 安装 helper ")));
   t.after(() => rm(root, { recursive: true, force: true }));
   const installDir = join(root, "程序 files");
   const dataDir = join(root, "用户 data");

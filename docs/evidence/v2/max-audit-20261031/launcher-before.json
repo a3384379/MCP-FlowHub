@@ -1,0 +1,297 @@
+{
+  "head": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "readOnlyRepository": true,
+  "sourceUnchangedAtCloseout": true,
+  "scope": "AssistantLauncher/FloatingAssistant/CSS、legacy assistant route、input/session link",
+  "findings": [
+    {
+      "id": "LAUNCHER-MAX-01",
+      "priority": "P2",
+      "title": "横屏或低可视高度时聊天窗裁掉发送区",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+      "lineStart": 301,
+      "lineEnd": 305,
+      "related": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+          "lineStart": 125,
+          "lineEnd": 140
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+          "lineStart": 577,
+          "lineEnd": 580
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+          "lineStart": 733,
+          "lineEnd": 744
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/FloatingAssistant.tsx",
+          "lineStart": 117,
+          "lineEnd": 123
+        }
+      ],
+      "trigger": "打开已配置合成模型的聊天窗；设 viewport=844x390，输入一行。或390x350输入十行使textarea长到140px。无需模型请求。",
+      "observed": {
+        "844x390": {
+          "panelBottom": 298,
+          "sendTop": 294,
+          "sendBottom": 323,
+          "sendCenterReceivesInput": false
+        },
+        "390x350_multiline": {
+          "panelBottom": 350,
+          "textareaTop": 232,
+          "textareaBottom": 372,
+          "sendTop": 377,
+          "sendBottom": 406,
+          "sendCenterReceivesInput": false
+        }
+      },
+      "cause": "panel按dvh减118px并固定预留92px底部；feed-wrap min-height80、header/context下限与不能缩的composer相加超过面板高度。父级overflow:hidden截掉控制区。textarea根据内容能增长到140px，未按剩余可视高度限位。",
+      "impact": "常见手机横屏只留下发送按钮顶部4px，中心点击落到其他区域；较短可视高度或多行输入时发送按钮完全不可见。输入聚焦引起的scrollIntoView还可能滚动隐藏父容器，使标题/收起控制被卷出面板。",
+      "minimumFix": "消息容器min-height改为0并只让消息区滚动；在短可视高度使用实际剩余空间重新分配panel高度/边距、上下文与textarea上限，确保header、输入、发送能同时保留可点击区域。仅增加面板min-height或禁止缩放不能解决。",
+      "regression": "真实浏览器覆盖844x390单行、390x350十行、320x300；依次展开上下文/显示错误/未配模型状态。断言输入、发送、收起的完整rect均在可见面板与visualViewport交集中，并在真实可点击位置发送一次合成请求。不要仅断言panel.bottom或toBeVisible。",
+      "evidence": [
+        "geometry.json",
+        "final-geometry.log",
+        "probe-final.js",
+        "final-844x390.png",
+        "final-390x350-multiline.png",
+        "final-844x300.png"
+      ]
+    },
+    {
+      "id": "LAUNCHER-MAX-02",
+      "priority": "P2",
+      "title": "双指缩放后入口仍可见，打开的聊天窗却在可视区外",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/FloatingAssistant.tsx",
+      "lineStart": 143,
+      "lineEnd": 154,
+      "related": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+          "lineStart": 125,
+          "lineEnd": 130
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/assistant.css",
+          "lineStart": 733,
+          "lineEnd": 744
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantLauncher.tsx",
+          "lineStart": 23,
+          "lineEnd": 30
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantLauncher.tsx",
+          "lineStart": 81,
+          "lineEnd": 90
+        }
+      ],
+      "trigger": "保持默认右侧入口；使用Chromium CDP Emulation.setPageScaleFactor(pageScaleFactor:2)产生实际visualViewport缩放。基准布局1440x900或390x844。",
+      "observed": {
+        "1440x900_at_2x": {
+          "visualWidth": 720,
+          "visualHeight": 450,
+          "panelLeft": 996,
+          "panelRight": 1416,
+          "panelTop": 156,
+          "panelBottom": 808,
+          "launcherLeft": 654,
+          "launcherRight": 708
+        },
+        "390x844_at_2x": {
+          "visualWidth": 195,
+          "visualHeight": 422,
+          "panelWidth": 390,
+          "panelBottom": 422,
+          "sendLeft": 333,
+          "closeLeft": 339
+        }
+      },
+      "cause": "入口使用visualViewport宽、高、offsetLeft、offsetTop，而FloatingAssistant只设置height/top变量；桌面窗仍按layout viewport的right:24px/bottom:92px/dvh定位，手机仍width:100%且left:0。缩放后两者坐标空间脱节。",
+      "impact": "默认右侧桌面入口可见但整个聊天窗在屏幕右方；手机聊天窗只有左半边可见，发送和收起按钮在可视区外。必须先平移或缩小页面才能恢复正常操作。",
+      "minimumFix": "共享同一visualViewport矩形，将width、height、offsetLeft、offsetTop应用到面板的最大宽高、左右锚点和上下限位；根据实际可视宽度收紧布局，不只依赖layout viewport媒体查询。保留用户放大能力。",
+      "regression": "使用真实CDP pageScaleFactor2/3（不是改window属性）覆盖默认左右两边、收起/展开、宽窗/窄窗，后续补实际touch pan产生非零offsetLeft/Top；断言入口和面板controls处于当前visualViewport内，移动入口不丢失文本或session、不创建模型任务。",
+      "evidence": [
+        "geometry.json",
+        "final-geometry.log",
+        "probe-final.js",
+        "final-pinch-1440x900.png",
+        "final-pinch-390x844.png"
+      ]
+    }
+  ],
+  "executedInteractionChecks": [
+    {
+      "case": "mouse_drag_left_keeps_closed",
+      "passed": true,
+      "actual": [
+        "left",
+        true
+      ],
+      "expected": [
+        "left",
+        true
+      ]
+    },
+    {
+      "case": "dock_left",
+      "passed": true,
+      "actual": [
+        0,
+        22
+      ],
+      "expected": [
+        0,
+        22
+      ]
+    },
+    {
+      "case": "touch_drag_right_keeps_docked_and_closed",
+      "passed": true,
+      "actual": [
+        "right",
+        true,
+        true
+      ],
+      "expected": [
+        "right",
+        true,
+        true
+      ]
+    },
+    {
+      "case": "pointercancel_restores_preferences",
+      "passed": true,
+      "actual": {
+        "side": "right",
+        "ratio": 0.4527363184079602,
+        "docked": true
+      },
+      "expected": {
+        "side": "right",
+        "ratio": 0.4527363184079602,
+        "docked": true
+      }
+    },
+    {
+      "case": "keyboard_moves_and_docks",
+      "passed": true,
+      "actual": [
+        true,
+        "left",
+        true,
+        true
+      ],
+      "expected": [
+        true,
+        "left",
+        true,
+        true
+      ]
+    },
+    {
+      "case": "keyboard_open_preserves_input_and_session",
+      "passed": true,
+      "actual": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ],
+      "expected": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ]
+    },
+    {
+      "case": "internal_route_preserves_input_and_session",
+      "passed": true,
+      "actual": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ],
+      "expected": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ]
+    },
+    {
+      "case": "history_switch_restores_each_unsent_draft",
+      "passed": true,
+      "actual": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ],
+      "expected": [
+        "  跨页与会话的未发送输入\n合成边界  ",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ]
+    },
+    {
+      "case": "legacy_assistant_reuses_selected_session",
+      "passed": true,
+      "actual": [
+        "/workflows",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ],
+      "expected": [
+        "/workflows",
+        "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+      ]
+    },
+    {
+      "case": "reload_preserves_placement",
+      "passed": true,
+      "actual": {
+        "side": "left",
+        "ratio": 0.4027363184079602,
+        "docked": true
+      },
+      "expected": {
+        "side": "left",
+        "ratio": 0.4027363184079602,
+        "docked": true
+      }
+    },
+    {
+      "case": "closed_launcher_remains_in_320x300",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "case": "movement_route_and_sessions_call_no_models",
+      "passed": true,
+      "actual": 0,
+      "expected": 0
+    }
+  ],
+  "notExecuted": [
+    "实体手机和真实软键盘",
+    "真实屏幕阅读器",
+    "Windows原生浏览器",
+    "WebKit/Firefox",
+    "触摸pinch手势和非零visualViewport offset平移（pageScaleFactor通过实际ChromiumCDP验证）",
+    "全量npm check/test与历史50项UI回归重跑",
+    "真实模型/真实宿主/企业MCP"
+  ],
+  "runtime": {
+    "pid": 96354,
+    "url": "http://127.0.0.1:65110",
+    "modelUrl": "http://127.0.0.1:65109",
+    "dataDir": "/tmp/flowhub-launcher-max-ap80wsi9/data-CpQAWl",
+    "profileId": "model_5844fb94-cd0c-4a32-9878-a1611fb91c78",
+    "seedSessionId": "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+  },
+  "cleanup": {
+    "browserSession": "launcher-max",
+    "browserCommand": "PATH=/tmp/flowhub-v2-runtime/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:$PATH bash /Users/sqz/.codex/skills/playwright/scripts/playwright_cli.sh --session launcher-max close",
+    "fixturePid": 96354,
+    "fixtureCommand": "确认PID仍对应 /tmp/flowhub-launcher-max-ap80wsi9/fixture-server.mjs 后 kill -TERM 96354；只关闭本轮临时实例。",
+    "retainedForFixAgent": true
+  }
+}

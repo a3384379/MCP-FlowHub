@@ -1,0 +1,57 @@
+▶ native limit never overlaps a fixed resource, including nested parent and child paths
+  ✔ /tenantId vs /tenantId (154.175292ms)
+  ✔ /scope/tenantId vs /scope (90.931209ms)
+  ✔ /scope vs /scope/tenantId (89.584375ms)
+✔ native limit never overlaps a fixed resource, including nested parent and child paths (335.422125ms)
+✔ v2 HTTP/service publication requires the shared DTO and reviewed binding CAS (172.756625ms)
+▶ host output contracts cannot be weakened and published checkpoints use immutable capability schemas
+  ✔ incompatible authored schema blocks publication (90.295959ms)
+  ✔ invalid submissions leave the same checkpoint available (96.804833ms)
+✔ host output contracts cannot be weakened and published checkpoints use immutable capability schemas (187.32075ms)
+✔ undo of layout changes keeps semantic revision and later unrelated config fields (93.53ms)
+▶ accepted test baselines stay stale after same-fixture suite regeneration and capability drift
+  ✔ changing then restoring fixture contents does not renew a run at the same draft revision (179.259625ms)
+  ✔ capability changes compare against the accepted run (182.794125ms)
+✔ accepted test baselines stay stale after same-fixture suite regeneration and capability drift (673.563875ms)
+▶ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector
+  ✔ json_text validates parsed data against the actual discovered schema (260.170708ms)
+✔ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector (1593.219708ms)
+▶ v2 host_tool preserves bounded native object schemas without weakening frozen result checks
+  ✔ omitted additionalProperties (183.683959ms)
+  ✔ explicit open object (183.929667ms)
+  ✔ nonrecursive local definitions (183.085875ms)
+  ✔ local object root reference (184.67875ms)
+  ✔ remote ref (91.364917ms)
+  ✔ dynamic ref (92.777333ms)
+  ✔ reference scope override (91.711875ms)
+  ✔ recursive ref (101.060458ms)
+  ✔ mutually recursive refs (92.952083ms)
+  ✔ ref into inert literal (91.935209ms)
+  ✔ unsafe pattern (91.447416ms)
+  ✔ scalar root (93.046709ms)
+  ✔ excessive schema depth (92.8585ms)
+  ✔ excessive ref expansion (88.776583ms)
+  ✔ exponential acyclic ref expansion (89.319542ms)
+  ✔ excessive schema bytes (88.214084ms)
+  ✔ excessive inert literal nodes (88.333333ms)
+  ✔ v1 and analysis keep their strict data schema (89.122167ms)
+✔ v2 host_tool preserves bounded native object schemas without weakening frozen result checks (2019.649042ms)
+✔ expired test command replays stay tombstoned and historical CANCELLED remains terminal (178.758417ms)
+✔ draft three-way merge combines keyed nodes, independent fields, edges and layout using server CAS (1.065625ms)
+✔ same-field conflicts retain both values and independent per-field resolutions persist (0.554916ms)
+✔ node edit/delete is explicit and keyed edge additions are preserved without silent cascade (0.213ms)
+✔ isolated host fixtures freeze capability contracts and distinguish missing/invalid fixtures (323.150833ms)
+✔ missing capability revision is a typed acceptance error before a test run is persisted (10.833333ms)
+✔ generation and run replay recover accepted immutable IDs after draft and suite edits (98.310833ms)
+✔ revoked owners cannot replay accepted test commands (94.461542ms)
+✔ mock connector enforces runtime environment/row contracts and retains raw evidence (268.87575ms)
+✔ deterministic generation drives nested string conditions and reports unvisited branch reasons (438.564458ms)
+✔ terminal testing close interrupts an agent checkpoint, stops later cases and finishes all writes before database close (97.186667ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 44
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7141.39375

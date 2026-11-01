@@ -54,7 +54,7 @@ test("official MCP subscriptions end gracefully on daemon.close while modern and
   assert.equal(subscription.honoredFilter.toolsListChanged, true);
   for (const client of [modern, legacy]) {
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 7);
+    assert.equal(tools.tools.length, 21);
     const search = await client.callTool({
       name: "workflow_search",
       arguments: { query: "排查", environment: "staging" },

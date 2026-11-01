@@ -1,0 +1,16 @@
+{
+  "codexVersion": "codex-cli 0.164.0-alpha.11.1",
+  "executionLocation": "macos",
+  "status": "PARTIAL",
+  "resolutionQuality": "host_effective",
+  "coverage": "partial",
+  "mcpSources": 11,
+  "plugins": 25,
+  "skills": 57,
+  "issueCodes": [
+    "PLUGIN_VERSION_AMBIGUOUS"
+  ],
+  "businessCalls": 0,
+  "modelCalls": 0,
+  "sourceModified": false
+}

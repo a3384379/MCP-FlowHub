@@ -54,6 +54,9 @@ try {
     "web-dist",
     "docs/LOCAL_VALIDATION.md",
     "docs/HOST_INTEGRATION.md",
+    "docs/V2_USER_GUIDE.md",
+    "docs/V2_MIGRATION.md",
+    "docs/V2_ACCEPTANCE.md",
     "docs/generated/openapi.json",
     "docs/third-party/Node-24.19.0-LICENSE.txt",
   ]) {
@@ -202,7 +205,7 @@ try {
     JSON.stringify(
       {
         version: pkg.version,
-        phase: "RC",
+        phase: pkg.version.includes("-alpha.") ? "ALPHA" : "RC",
         syntheticOnly: false,
         builtAt: new Date().toISOString(),
         gitSha,

@@ -57,6 +57,7 @@ async function fixture(t: TestContext) {
   for (const path of sourceDirectories as string[])
     await put(root, `${path}/fixture.json`, '{"synthetic":true}\n');
   await put(root, "apps/web/src/main.tsx", "export const app = 'synthetic';\n");
+  await put(root, "apps/web/src/features/settings/CredentialLibrary.tsx", "export const CredentialLibrary = () => null;\n");
   await put(root, ".github/workflows/ci.yml", "name: fixture\n");
   await put(root, "templates/report.md", "# Synthetic report\n");
   await put(root, "examples/workflow.json", '{"environment":"synthetic"}\n');
@@ -92,6 +93,7 @@ test("offline source snapshot preserves original build inputs and excludes local
   await assertSourceUnchanged(root, snapshot.files);
   for (const path of [
     "apps/web/src/main.tsx",
+    "apps/web/src/features/settings/CredentialLibrary.tsx",
     ".github/workflows/ci.yml",
     "examples/workflow.json",
     "templates/report.md",

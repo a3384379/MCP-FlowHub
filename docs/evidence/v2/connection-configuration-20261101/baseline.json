@@ -1,0 +1,25 @@
+{
+  "baseHead": "1721420bc43a0efeac088abbe9580ec34837a4e3",
+  "branch": "feat/flowhub-v2",
+  "date": "2026-11-01",
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "originalUntrackedAuditHashes": {
+    "docs/evidence/v2/chat-audit-20261031/backend-reproductions.json": "fb8ec150a208ae924d795ae03f9e3e9fa77115a8ca4ae849a787ec67d01558e2",
+    "docs/evidence/v2/chat-audit-20261031/browser-reproductions.json": "f08662a5c1a812ec1188aff06fb7e6ec093d9cb94775a7dd409a75b150d84cea",
+    "docs/evidence/v2/chat-audit-20261031/fixture-server.mjs": "84d2ece262707cdc2216967f6ca57a33210f1353c9a55a5543f00c6008dd993e",
+    "docs/evidence/v2/chat-audit-20261031/readonly-shows-saved.png": "11bb2525a6a62deb592c6b1c8542b1bc1c76ece30382da33b59853cefed68e50",
+    "docs/evidence/v2/chat-audit-20261031/reproduce-backend.mjs": "4a22230f53323aa145ba7c02b3de1fe74543ca5d19911fb46c23ae364d145bff",
+    "docs/evidence/v2/chat-audit-20261031/reproduce-browser.js": "8bb05846b24819b4f82761b334d4f3bb3f32ec81a9cd9c4012f70ef5e79c457e",
+    "docs/evidence/v2/chat-audit-20261031/verification.txt": "cd6734294c4738a50a9f233523d0b8750c8c835fc0f4c703cbb57b7017b9010f",
+    "docs/evidence/v2/chat-audit-20261031/审计报告.md": "d7fd096b61b121bd0a26fa5248dfc4499c3e04bd11caf97c66bd4fb3d555bd12"
+  },
+  "originalUntrackedAuditUnchanged": true,
+  "noPush": true,
+  "noMerge": true,
+  "noRelease": true
+}

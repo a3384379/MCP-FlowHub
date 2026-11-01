@@ -1,0 +1,23 @@
+[
+  {
+    "text": "run the current workflow after I confirm",
+    "verbs": [
+      "start_run"
+    ],
+    "layer": "compiled shared intent function, follow-up actual-engine proof by fix agent"
+  },
+  {
+    "text": "when I confirm, run the current workflow",
+    "verbs": [
+      "start_run"
+    ],
+    "layer": "compiled shared intent function, follow-up actual-engine proof by fix agent"
+  },
+  {
+    "text": "after the checks pass, run the current workflow",
+    "verbs": [
+      "start_run"
+    ],
+    "layer": "compiled shared intent function, follow-up actual-engine proof by fix agent"
+  }
+]

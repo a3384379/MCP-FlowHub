@@ -1,0 +1,47 @@
+{
+  "fullBackend": {
+    "passed": 407,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullUi": {
+    "passed": 71,
+    "failed": 0
+  },
+  "navigationFocusedUi": {
+    "passed": 3,
+    "failed": 0
+  },
+  "realPinchAfterFix": {
+    "passed": 3,
+    "failed": 0
+  },
+  "navigation": {
+    "groups": 3,
+    "directEntries": 7,
+    "icons": 7,
+    "desktopSidebarWidth": 228,
+    "mobileBreakpoint": 760,
+    "testedWidths": [
+      1440,
+      1280,
+      900,
+      390,
+      320
+    ],
+    "dirtyDraftCancelPreserved": true,
+    "browserBackClosesDrawer": true,
+    "backgroundInertRestored": true,
+    "focusTrapAndReturn": true
+  },
+  "dependenciesChanged": false,
+  "ddlChanged": false,
+  "modelCalls": 0,
+  "enterpriseBusinessCalls": 0,
+  "windowsNative": "UNVERIFIED",
+  "enterpriseMcp": "UNVERIFIED",
+  "realModel": "UNVERIFIED",
+  "protectedTablesUnchanged": 24,
+  "servedFrontendMatchesFinalBuild": true,
+  "vaultLockStatePreserved": true
+}

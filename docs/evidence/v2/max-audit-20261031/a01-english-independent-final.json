@@ -1,0 +1,227 @@
+{
+  "baselineHead": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "scope": "Independent A01 English future-condition review only; actual proposed start dispatch against memory database and ScriptedModelProvider; no browser or network",
+  "sourceSha256": "6a8f7b96fee2a1acec7addca1663ef0b15b98ab72e6400bb5fe99f43672ec16c",
+  "cases": [
+    {
+      "text": "run the current workflow after I confirm",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "when I confirm, run the current workflow",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "after the checks pass, run the current workflow",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Run the current workflow only after I confirm",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Do not run the current workflow until I confirm",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Wait for my confirmation, then run the current workflow",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "If the checks pass, run the current workflow",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Please do not run the current workflow now; run it after I confirm",
+      "expectedActions": [],
+      "inferredActions": [],
+      "mode": "help",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Create a draft now, then run the current workflow after I confirm",
+      "expectedActions": [
+        "edit_draft"
+      ],
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": false,
+      "taskStatus": "FAILED",
+      "errorCode": "INTENT_NOT_ALLOWED",
+      "actualRunsCreated": 0,
+      "toolReceipts": [],
+      "passed": true
+    },
+    {
+      "text": "Run the current workflow now",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Please run the current workflow now",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Now run the current workflow",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Please run the current workflow and tell me the result",
+      "expectedActions": [
+        "run"
+      ],
+      "inferredActions": [
+        "run"
+      ],
+      "mode": "compose",
+      "offeredWorkflowStart": true,
+      "taskStatus": "COMPLETED",
+      "errorCode": null,
+      "actualRunsCreated": 1,
+      "toolReceipts": [
+        {
+          "name": "workflow_start",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "text": "Create a draft now, then run the current workflow after I confirm",
+      "inferredActions": [
+        "edit_draft"
+      ],
+      "offeredWorkflowStart": false,
+      "taskStatus": "COMPLETED",
+      "actualDraftsCreated": 1,
+      "actualRunsCreated": 0,
+      "toolReceipts": [
+        {
+          "name": "workflow_draft_create",
+          "isError": false,
+          "status": "COMPLETED"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": 14,
+  "failed": 0
+}

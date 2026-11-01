@@ -1,0 +1,64 @@
+{
+  "id": "suite_demo",
+  "workflowId": "prod-incident-v2",
+  "draftRevision": 2,
+  "suiteRevision": 1,
+  "capabilityRevisions": {
+    "cap_demo_aliyun_search": 1
+  },
+  "fixtureHash": "sha256:49fabbb77d99fc433c19a2dc95e2347f377f730e60f4f04291c3dfc47dc6e249",
+  "generatedBy": "deterministic",
+  "mode": "mock",
+  "cases": [
+    {
+      "id": "case_logs_ok",
+      "name": "合成日志正常数据流",
+      "inputs": {
+        "orderNo": "DEMO-1001"
+      },
+      "mockResults": [
+        {
+          "nodeId": "logs",
+          "capabilityId": "cap_demo_aliyun_search",
+          "responseMode": "structured",
+          "result": {
+            "structuredContent": {
+              "logs": [
+                {
+                  "message": "合成日志：邮箱 demo@example.invalid；token 是业务字段名称，不自动替换。",
+                  "orderNo": "DEMO-1001"
+                }
+              ]
+            },
+            "content": []
+          }
+        }
+      ],
+      "agentSubmissions": [],
+      "assertions": [
+        {
+          "kind": "terminal_state",
+          "expected": "SUCCEEDED"
+        },
+        {
+          "kind": "tool_called",
+          "nodeId": "logs",
+          "expected": true
+        },
+        {
+          "kind": "argument_equals",
+          "nodeId": "logs",
+          "pointer": "/orderNo",
+          "expected": "DEMO-1001"
+        },
+        {
+          "kind": "argument_equals",
+          "nodeId": "logs",
+          "pointer": "/environment",
+          "expected": "production"
+        }
+      ],
+      "expectedValidationErrors": []
+    }
+  ]
+}

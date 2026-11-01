@@ -1,0 +1,314 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test
+
+[WebServer] (node:53276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 72 tests using 1 worker
+
+(node:53289) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/automation.spec.ts:64:1 › automatic incident run has no approval controls and a restricted host completes the Web-started chain (3.6s)
+  ✓   2 tests/ui/automation.spec.ts:193:1 › run details distinguish failure and cancellation without obsolete action buttons (615ms)
+  ✓   3 tests/ui/connection-binding-forms.spec.ts:37:1 › labelled STDIO registration, discovery, explicit environment binding and an approved Mock probe need no whole-configuration JSON (2.6s)
+  ✓   4 tests/ui/connection-binding-forms.spec.ts:212:1 › HTTP registration accepts only registered credential references and keeps protocol separate from transport (419ms)
+  ✓   5 tests/ui/default-login.spec.ts:7:1 › a fresh installation logs in with admin/admin without a setup-code step (1.4s)
+  ✓   6 tests/ui/editor-regressions.spec.ts:71:1 › blank workflow requires an explicit environment and can save, publish and run without a binding (674ms)
+  ✓   7 tests/ui/editor-regressions.spec.ts:127:1 › incident creation ignores modified source drafts and requires explicit binding and tool choices before publication (610ms)
+  ✓   8 tests/ui/editor-regressions.spec.ts:194:1 › deterministic creation supports production, explicit tools, and selecting then deleting a saved edge (800ms)
+  ✓   9 tests/ui/editor-regressions.spec.ts:302:1 › reviewed publication rejects a concurrent edit and offers comparison and a separate unbound draft (879ms)
+  ✓  10 tests/ui/editor-regressions.spec.ts:364:1 › a slow draft response cannot replace the workflow reached through navigation (822ms)
+  ✓  11 tests/ui/editor-regressions.spec.ts:410:1 › a delayed save preserves newer edits and undo keeps the latest server revision (577ms)
+  ✓  12 tests/ui/editor-regressions.spec.ts:471:1 › a save finishing after navigation cannot replace another workflow (751ms)
+  ✓  13 tests/ui/editor-regressions.spec.ts:521:1 › session expiry retains focused JSON text while a wrong vault password leaves the admin session active (920ms)
+  ✓  14 tests/ui/editor-regressions.spec.ts:593:1 › schema fields, finite conditions and invalid mapping literals preserve the selected node (574ms)
+  ✓  15 tests/ui/editor-regressions.spec.ts:653:1 › invalid JSON cannot submit the previous business inputs or replace the workflow with null (645ms)
+  ✓  16 tests/ui/editor-regressions.spec.ts:692:1 › invalid node JSON and literal text remain blocking after selecting another node (625ms)
+  ✓  17 tests/ui/editor-regressions.spec.ts:754:1 › an earlier node preview cannot consume raw text from a remounted editor (578ms)
+  ✓  18 tests/ui/management.spec.ts:4:1 › bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff (3.4s)
+  ✘  19 tests/ui/management.spec.ts:91:1 › a pending auth-state request never exposes a consumed setup-token field (185ms)
+(node:53486) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  20 tests/ui/model-services.spec.ts:12:1 › model service fills official URL, offers queried models and ignores stale catalog replies after switching service (420ms)
+  ✓  21 tests/ui/model-services.spec.ts:40:1 › real compatible catalog selects and persists an actual ID, reuses its saved Key, and explains model rejection (929ms)
+  ✓  22 tests/ui/published-start.spec.ts:60:1 › unpublished environment, mode and input changes cannot alter a published start (851ms)
+  ✓  23 tests/ui/published-start.spec.ts:136:1 › rollback preview and submission stay bound to the selected immutable version (576ms)
+  ✓  24 tests/ui/published-start.spec.ts:223:1 › missing immutable default fails closed without opening a draft-based preview (308ms)
+  ✓  25 tests/ui/responsive.spec.ts:4:1 › run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes (2.4s)
+  ✓  26 tests/ui/retention.spec.ts:4:1 › cleanup preview shows every result-copy scope and submits only the reviewed hash (689ms)
+  ✓  27 tests/ui/v2-assistant-audit.spec.ts:19:1 › formal assistant UI rejects negative execution, displays context/config, and deletes session (918ms)
+  ✓  28 tests/ui/v2-assistant-audit.spec.ts:36:1 › analysis UI reports auth failure, retries with a valid profile, and resets for the next checkpoint (2.5s)
+  ✓  29 tests/ui/v2-assistant-audit.spec.ts:49:1 › editor merges independent fields, resolves actual field conflicts, protects raw JSON focus and rejects stale reads (1.5s)
+  ✓  30 tests/ui/v2-assistant-audit.spec.ts:64:1 › turn receipts remain attached while delayed conversation and acceptance cannot replace another session (715ms)
+  ✓  31 tests/ui/v2-assistant-audit.spec.ts:87:1 › assistant UI labels past run provenance while clearing run and changing provider excludes that history (643ms)
+  ✓  32 tests/ui/v2-assistant-audit.spec.ts:101:1 › late analysis status and cancel receipts cannot disable the next checkpoint (2.6s)
+  ✓  33 tests/ui/v2-assistant-audit.spec.ts:126:1 › historical knowledge citation sends its original hash and range so the real source viewer reports staleness (675ms)
+  ✓  34 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A success cannot discard B's key after SSE recovery and a lost B receipt (794ms)
+  ✓  35 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A failure cannot discard B's key after SSE recovery and a lost B receipt (810ms)
+  ✓  36 tests/ui/v2-assistant-max-audit.spec.ts:269:1 › a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input (572ms)
+  ✓  37 tests/ui/v2-assistant-max-audit.spec.ts:326:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C (1.0s)
+  ✓  38 tests/ui/v2-assistant-max-audit.spec.ts:472:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does (736ms)
+  ✓  39 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: landscape single line (933ms)
+  ✓  40 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: short mobile multiline (1.2s)
+  ✓  41 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.4s)
+  ✓  42 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.5s)
+  ✓  43 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.5s)
+  ✓  44 tests/ui/v2-capability-acceptance.spec.ts:47:1 › UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references (6.5s)
+  ✓  45 tests/ui/v2-capability-acceptance.spec.ts:100:1 › UI-07: successful real Mock evidence becomes stale after a browser draft edit (1.6s)
+  ✓  46 tests/ui/v2-capability-acceptance.spec.ts:116:1 › UI-01: real discovery displays loading, complete empty, partial and registration error states (3.1s)
+  ✓  47 tests/ui/v2-discovery-design.spec.ts:205:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships (4.5s)
+  ✓  48 tests/ui/v2-discovery-design.spec.ts:285:1 › issue actions open the matching manual connection and credential forms and complete real directory sync (4.4s)
+  ✓  49 tests/ui/v2-discovery-design.spec.ts:381:1 › issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat (2.5s)
+  ✓  50 tests/ui/v2-discovery-design.spec.ts:443:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions (3.8s)
+  ✓  51 tests/ui/v2-discovery-design.spec.ts:509:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification (3.2s)
+  ✓  52 tests/ui/v2-discovery-design.spec.ts:555:1 › real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task (3.0s)
+  ✓  53 tests/ui/v2-discovery-design.spec.ts:592:1 › a late catalog search response cannot replace the user's newer Chinese query results (2.9s)
+  ✓  54 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration success cannot change the selected context or show an abandoned error (450ms)
+  ✓  55 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration error cannot change the selected context or show an abandoned error (434ms)
+  ✓  56 tests/ui/v2-discovery-races.spec.ts:71:1 › registration context-list response cannot revive an old selection after the POST has completed (440ms)
+  ✓  57 tests/ui/v2-discovery-races.spec.ts:89:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (419ms)
+  ✓  58 tests/ui/v2-discovery-races.spec.ts:140:1 › clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately (1.1s)
+  ✓  59 tests/ui/v2-discovery-races.spec.ts:172:1 › clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path (689ms)
+  ✓  60 tests/ui/v2-discovery-races.spec.ts:189:50 › a retained description draft keeps its original baseline across a pending scan and source change (947ms)
+  ✓  61 tests/ui/v2-discovery-races.spec.ts:189:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (947ms)
+  ✓  62 tests/ui/v2-discovery-races.spec.ts:212:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (1.2s)
+  ✓  63 tests/ui/v2-discovery-races.spec.ts:237:1 › description and credential fields remain locked while their save HTTP requests are pending (1.5s)
+  ✘  64 tests/ui/v2-discovery-races.spec.ts:296:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh (616ms)
+(node:53918) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  65 tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex (1.6s)
+  ✘  66 tests/ui/v2-floating-chat.spec.ts:100:1 › locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked (5.9s)
+(node:53985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  67 tests/ui/v2-floating-chat.spec.ts:139:1 › floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up (127ms)
+(node:53990) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  68 tests/ui/v2-floating-chat.spec.ts:232:1 › minimizing leaves a real streaming request active; stop and refresh preserve partial answer (105ms)
+(node:53995) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  69 tests/ui/v2-floating-chat.spec.ts:297:1 › lost acceptance retries the original idempotency key without a second draft write or model loop (107ms)
+(node:54000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  70 tests/ui/v2-floating-chat.spec.ts:387:1 › missing-model chat retains local help and does not send a fabricated answer (111ms)
+(node:54005) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  71 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (138ms)
+(node:54011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  72 tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest (1.0m)
+
+
+  1) tests/ui/management.spec.ts:91:1 › a pending auth-state request never exposes a consumed setup-token field
+
+    Error: route.fulfill: Fetch response has been disposed
+
+      110 |     requested();
+      111 |     await gate;
+    > 112 |     await route.fulfill({ response });
+          |                 ^
+      113 |   });
+      114 |   try {
+      115 |     await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/management.spec.ts:112:17
+
+    Error Context: test-results/management-a-pending-auth--c3f3f--consumed-setup-token-field/error-context.md
+
+  2) tests/ui/v2-discovery-races.spec.ts:296:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh
+
+    Error: {"error":{"code":"RATE_LIMITED","message":"Too many attempts; wait one minute."},"requestId":"req_75bd42c7-d436-4de4-9f7a-6263212e4280"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      27 |   return async (path: string, method = "GET", data?: any) => {
+      28 |     const result = await page.request.fetch(path, { method, headers: { "X-CSRF-Token": csrf }, ...(data === undefined ? {} : { data }) });
+    > 29 |     expect(result.ok(), await result.text()).toBeTruthy();
+         |                                              ^
+      30 |     return (await result.json()).data;
+      31 |   };
+      32 | }
+        at Object.api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:29:46)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:299:5
+
+    Error Context: test-results/v2-discovery-races-a-crede-d7f79-e-changing-snapshot-refresh/error-context.md
+
+  3) tests/ui/v2-floating-chat.spec.ts:100:1 › locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked
+
+    Error: {"error":{"code":"RATE_LIMITED","message":"Too many attempts; wait one minute."},"requestId":"req_ecdf095e-6bae-404d-8c47-6b95627f3fc4"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at Object.api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:134:5
+
+    Error Context: test-results/v2-floating-chat-locked-mo-f5061-cal-failures-can-be-reasked/error-context.md
+
+  4) tests/ui/v2-floating-chat.spec.ts:139:1 › floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up
+
+    Error: {"error":{"code":"CREDENTIAL_LOCKED","message":"Unlock the vault first."},"requestId":"req_3b34a21a-7600-4a74-bd65-19f7c6ff490c"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at fixture (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:46:19)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:142:13
+
+    Error Context: test-results/v2-floating-chat-floating--12190-utes-and-supports-follow-up/error-context.md
+
+  5) tests/ui/v2-floating-chat.spec.ts:232:1 › minimizing leaves a real streaming request active; stop and refresh preserve partial answer
+
+    Error: {"error":{"code":"CREDENTIAL_LOCKED","message":"Unlock the vault first."},"requestId":"req_f9165ebb-217d-4360-b921-1a235e416ada"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at fixture (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:46:19)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:235:13
+
+    Error Context: test-results/v2-floating-chat-minimizin-e74c1-esh-preserve-partial-answer/error-context.md
+
+  6) tests/ui/v2-floating-chat.spec.ts:297:1 › lost acceptance retries the original idempotency key without a second draft write or model loop
+
+    Error: {"error":{"code":"CREDENTIAL_LOCKED","message":"Unlock the vault first."},"requestId":"req_abe2efcd-af67-4cd8-ba45-de7069af8617"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at fixture (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:46:19)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:302:13
+
+    Error Context: test-results/v2-floating-chat-lost-acce-f92d9-d-draft-write-or-model-loop/error-context.md
+
+  7) tests/ui/v2-floating-chat.spec.ts:387:1 › missing-model chat retains local help and does not send a fabricated answer
+
+    Error: {"error":{"code":"CREDENTIAL_LOCKED","message":"Unlock the vault first."},"requestId":"req_71fcd074-d75f-465b-818c-c4f925d63052"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at fixture (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:46:19)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:390:13
+
+    Error Context: test-results/v2-floating-chat-missing-m-00384-ot-send-a-fabricated-answer/error-context.md
+
+  8) tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation
+
+    Error: {"error":{"code":"CREDENTIAL_LOCKED","message":"Unlock the vault first."},"requestId":"req_db989396-3dd3-41a0-9516-a99534e67ec4"}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      32 |       ...(data === undefined ? {} : { data }),
+      33 |     });
+    > 34 |     expect(response.ok(), await response.text()).toBeTruthy();
+         |                                                  ^
+      35 |     return (await response.json()).data;
+      36 |   };
+      37 |   const requests: any[] = [];
+        at api (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:34:50)
+        at fixture (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:46:19)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:420:13
+
+    Error Context: test-results/v2-floating-chat-assistant-720b2-keeps-the-same-conversation/error-context.md
+
+  9) tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Browser logs:
+
+    <launching> /Users/sqz/Library/Caches/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,AvoidCorsURLLoaderRestartOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --no-sandbox --user-data-dir=/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/playwright_chromiumdev_profile-Wjq3Sp --remote-debugging-pipe --no-startup-window
+    <launched> pid=54012
+    [pid=54012][err] [1101/192117.692217:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54012][err] [1101/192117.763017:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54012] <gracefully close start>
+    Call log:
+      - waiting for getByRole('button', { name: '保存模型', exact: true })
+        - locator resolved to <button disabled type="submit" class="primary">保存模型</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        115 × waiting for element to be visible, enabled and stable
+            - element is not enabled
+          - retrying click action
+            - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      19 |   });await new Promise<void>(resolve=>model.listen(0,"127.0.0.1",resolve));
+      20 |   try {
+    > 21 |     await page.goto("/models");await page.getByLabel("模型服务",{exact:true}).selectOption("custom");await page.getByLabel("模型配置名称").fill("隔离合成模型");await page.getByLabel("API 协议").selectOption("openai_compatible_chat");await page.getByLabel("Base URL").fill("http://127.0.0.1:"+(model.address()as any).port+"/v1");await page.getByLabel("Model",{exact:true}).fill("synthetic-browser");await page.getByLabel("API Key",{exact:true}).fill("synthetic-browser-key-only");await page.getByRole("button",{name:"保存模型",exact:true}).click();
+         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ^
+      22 |     await expect(page.locator("article").filter({has:page.getByRole("heading",{name:"隔离合成模型",exact:true})}).getByText("Key 已配置",{exact:false})).toBeVisible();expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain("synthetic-browser-key-only");
+      23 |     await page.goto("/workflows");await page.getByRole("button",{name:"打开 FlowHub 助手",exact:true}).click();await expect(page.locator(".assistant-loading")).toHaveCount(0);const previous=await page.getByRole("region",{name:"FlowHub 助手聊天窗口"}).getAttribute("data-session-id");await page.getByRole("button",{name:"新建会话",exact:true}).click();await expect.poll(()=>page.getByRole("region",{name:"FlowHub 助手聊天窗口"}).getAttribute("data-session-id")).not.toBe(previous);await page.getByRole("combobox",{name:"使用模型",exact:true}).selectOption({label:"隔离合成模型 · synthetic-browser"});await page.getByLabel("发送给助手").fill("创建合成流程并保存草稿，不执行");await page.getByRole("button",{name:"发送",exact:true}).click();
+      24 |     await expect(page.locator('.assistant-turn[data-status="COMPLETED"]').last()).toBeVisible();await expect.poll(async()=>(await api("/api/v2/workflows/"+workflowId+"/draft")).revision).toBe(1);
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-upgrade.spec.ts:21:518
+
+    Error Context: test-results/v2-upgrade-real-UI-model-s-dd52c--conflict-and-Mock-selftest/error-context.md
+
+  9 failed
+    tests/ui/management.spec.ts:91:1 › a pending auth-state request never exposes a consumed setup-token field
+    tests/ui/v2-discovery-races.spec.ts:296:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh
+    tests/ui/v2-floating-chat.spec.ts:100:1 › locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked
+    tests/ui/v2-floating-chat.spec.ts:139:1 › floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up
+    tests/ui/v2-floating-chat.spec.ts:232:1 › minimizing leaves a real streaming request active; stop and refresh preserve partial answer
+    tests/ui/v2-floating-chat.spec.ts:297:1 › lost acceptance retries the original idempotency key without a second draft write or model loop
+    tests/ui/v2-floating-chat.spec.ts:387:1 › missing-model chat retains local help and does not send a fabricated answer
+    tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation
+    tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest
+  63 passed (2.7m)

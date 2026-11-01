@@ -1,0 +1,31 @@
+{
+  "baseHead": "0abf63b94a48926d0667607c06e2dcaadbf58c4c",
+  "check": true,
+  "backend": {
+    "passed": 408,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ui": {
+    "passed": 72,
+    "failed": 0
+  },
+  "httpAuth": {
+    "passed": 7,
+    "failed": 0
+  },
+  "focusedUi": {
+    "passed": 11,
+    "failed": 0
+  },
+  "protectedTablesUnchanged": 24,
+  "originalUntrackedFilesUnchanged": 8,
+  "vaultLocked": false,
+  "servedFrontendMatchesBuild": true,
+  "realModelRequests": 0,
+  "realProviderConnectivityVerified": false,
+  "syntheticHttpProviderVerified": true,
+  "push": false,
+  "merge": false,
+  "release": false
+}

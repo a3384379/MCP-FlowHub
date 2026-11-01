@@ -1,0 +1,57 @@
+{
+  "before": {
+    "visual": {
+      "left": 40,
+      "top": 40,
+      "width": 195,
+      "height": 422,
+      "scale": 2
+    },
+    "panel": {
+      "left": 40,
+      "top": 58,
+      "right": 235,
+      "bottom": 462,
+      "inside": true,
+      "hittable": true
+    },
+    "input": {
+      "left": 60,
+      "top": 356,
+      "right": 215,
+      "bottom": 410,
+      "inside": true,
+      "hittable": true
+    },
+    "send": {
+      "left": 186,
+      "top": 415,
+      "right": 215,
+      "bottom": 444,
+      "inside": true,
+      "hittable": true
+    },
+    "close": {
+      "left": 201,
+      "top": 64.5,
+      "right": 228,
+      "bottom": 104.5,
+      "inside": true,
+      "hittable": true
+    }
+  },
+  "physicalTouchPoint": {
+    "x": 174.5,
+    "y": 44.5
+  },
+  "clickedClose": true,
+  "events": [
+    {
+      "target": "收起聊天窗口",
+      "clientX": 215,
+      "clientY": 85
+    }
+  ],
+  "retained": true,
+  "sameSession": true
+}

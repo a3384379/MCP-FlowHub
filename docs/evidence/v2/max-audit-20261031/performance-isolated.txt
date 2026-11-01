@@ -1,0 +1,10 @@
+✔ SQL capability pages exclude schemas, filter sources/environment and reject stale cursors; benchmark 200/1000 (2925.317542ms)
+ℹ {"discoveryPerformance":[{"capabilities":200,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":6.892374999999987},{"capabilities":1000,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":78.782333}]}
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3099.672834

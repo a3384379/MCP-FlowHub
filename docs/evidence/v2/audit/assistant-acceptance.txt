@@ -1,0 +1,22 @@
+▶ LLM-07: one real HTTP response mixes reads and writes, awaits each dispatch, and returns matching call IDs in both protocols
+  ✔ openai_responses (193.007375ms)
+  ✔ openai_compatible_chat (108.547625ms)
+✔ LLM-07: one real HTTP response mixes reads and writes, awaits each dispatch, and returns matching call IDs in both protocols (302.319375ms)
+▶ LLM-08: absent usage stays null, and mixed multi-round usage remains explicitly partial in durable task state
+  ✔ reported then missing (100.722875ms)
+  ✔ missing then reported (109.670625ms)
+✔ LLM-08: absent usage stays null, and mixed multi-round usage remains explicitly partial in durable task state (308.804708ms)
+✔ ASST-02: real HTTP tool feedback corrects a schema type error while the exact checkpoint remains unconsumed (121.315834ms)
+✔ ASST-02: analysis worker retries a wrong output type and advances the same checkpoint exactly once (104.619875ms)
+✔ ASST-04: cancellation during a dispatched write retains its real receipt and never dispatches queued calls or replays acceptance (98.579958ms)
+✔ KB-05: editing only a temporary document updates real hashes and line numbers, while an already issued citation remains stale after rebuild (14.683375ms)
+✔ KB-06: a real large report is explicitly bounded in model context, artifact pages keep offsets, and original bytes and hash remain intact (130.181167ms)
+✔ KB-07/KB-08: restricted assistant contexts and project-help tools cannot retrieve another owner's run or artifacts, and ordinary help sends no unrelated data or secrets (112.017667ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1489.617375

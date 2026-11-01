@@ -1,0 +1,1860 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:flowhub:contracts:mcp-tool-inputs:2.0",
+  "title": "FlowHub fixed 21 MCP tools",
+  "description": "验证应用层工具调用描述 {tool, arguments}，不是完整 MCP JSON-RPC 线协议，也不替代身份授权、运行状态、不可变快照和动态节点 Schema 校验。七个工具的 arguments Schema 可分别通过 $defs 取出交给锁定版本的 MCP SDK。所有固定结构拒绝额外字段；inputs 与 agent_result.payload 是仅有的动态数据容器，必须在运行时使用已发布版本或当前检查点声明的严格 Schema 再次验证。",
+  "$comment": "设计基线：2026-10-29。MCP 初始化、协议版本协商、JSON-RPC id、元数据、传输和结果封装由官方 SDK 处理。此契约不增加 approve、任意 Tool 调用、Shell 或环境覆盖接口。Schema 校验本身不构成权限或环境隔离措施。",
+  "type": "object",
+  "properties": {
+    "tool": {
+      "type": "string",
+      "enum": [
+        "workflow_search",
+        "workflow_get",
+        "workflow_start",
+        "workflow_advance",
+        "workflow_status",
+        "workflow_cancel",
+        "artifact_read",
+        "host_scan",
+        "host_scan_status",
+        "capability_search",
+        "capability_get",
+        "capability_import",
+        "workflow_draft_get",
+        "workflow_draft_create",
+        "workflow_draft_patch",
+        "workflow_draft_validate",
+        "workflow_draft_publish",
+        "workflow_test_generate",
+        "workflow_test_run",
+        "workflow_test_status",
+        "project_help_search"
+      ]
+    },
+    "arguments": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "tool",
+    "arguments"
+  ],
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_search"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_search"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_get"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_get"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_start"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_start"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_advance"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_advance"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_status"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_status"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_cancel"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_cancel"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "artifact_read"
+        },
+        "arguments": {
+          "$ref": "#/$defs/artifact_read"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "host_scan"
+        },
+        "arguments": {
+          "$ref": "#/$defs/host_scan"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "host_scan_status"
+        },
+        "arguments": {
+          "$ref": "#/$defs/host_scan_status"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "capability_search"
+        },
+        "arguments": {
+          "$ref": "#/$defs/capability_search"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "capability_get"
+        },
+        "arguments": {
+          "$ref": "#/$defs/capability_get"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "capability_import"
+        },
+        "arguments": {
+          "$ref": "#/$defs/capability_import"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_draft_get"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_draft_get"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_draft_create"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_draft_create"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_draft_patch"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_draft_patch"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_draft_validate"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_draft_validate"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_draft_publish"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_draft_publish"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_test_generate"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_test_generate"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_test_run"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_test_run"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "workflow_test_status"
+        },
+        "arguments": {
+          "$ref": "#/$defs/workflow_test_status"
+        }
+      }
+    },
+    {
+      "properties": {
+        "tool": {
+          "const": "project_help_search"
+        },
+        "arguments": {
+          "$ref": "#/$defs/project_help_search"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "workflow_search": {
+      "title": "workflow_search inputSchema",
+      "description": "搜索当前主体有权发现的已发布工作流。environment 只用于检索过滤，不能覆盖工作流或运行的环境绑定。未授权候选不暴露是否存在。",
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "用户需求或关键词；不执行查询字符串中的指令。"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "production",
+            "staging",
+            "test"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "服务端返回的不透明分页游标；运行时验证签名、有效期及所属主体/检索条件。"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_get": {
+      "title": "workflow_get inputSchema",
+      "description": "获取有权限的工作流契约，不返回密钥、内部启动命令或凭证明文。省略 version 时获取当前可用默认发布版本，遵循显式回滚指针而非选择最高版本；启动时仍必须显式指定版本。",
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "稳定工作流标识；标识本身不是授权凭证。"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "具体不可变发布版本，例如 1.0.0。运行时精确解析，不静默替换失效版本。"
+        }
+      },
+      "required": [
+        "workflowId"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_start": {
+      "title": "workflow_start inputSchema",
+      "description": "按指定已发布版本创建运行快照并立即返回句柄。不得接受环境、连接、凭证或策略覆盖。mode 必须与已发布版本允许的执行模式一致；auto 不绕过 Agent 任务约束。",
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "guided",
+            "auto"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "动态业务输入。运行时必须再用所选工作流不可变版本的 inputSchema 校验，包括 additionalProperties=false、字段长度、时间先后、查询时间窗与业务 scope。此处接受对象不等于接受任意字段或环境覆盖。",
+          "$comment": "动态属性无法由固定七工具的通用 Schema 静态列出。必须拒绝未在已发布 inputSchema 中声明的字段，禁止将任何业务字段解释为环境/连接/凭证/权限覆盖。"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "同一主体、操作和键的相同规范化请求返回首次结果；不同内容冲突，不重复启动。"
+        }
+      },
+      "required": [
+        "workflowId",
+        "version",
+        "mode",
+        "inputs",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_advance": {
+      "title": "workflow_advance inputSchema",
+      "description": "向当前 WAITING_AGENT 检查点提交 Agent 结果，或报告当前 host_skill 不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "checkpointId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "checkpointToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "短期不透明检查点令牌，绑定 owner/run/node/revision，只存 hash 并在日志中脱敏；不替代执行身份令牌。"
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "submission": {
+          "description": "只支持下述两个互斥提交类型。当前节点/检查点是否接受某类型由运行时判定。",
+          "oneOf": [
+            {
+              "title": "AgentResultSubmission",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "agent_result"
+                },
+                "payload": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "当前检查点声明的动态输出对象。运行时必须按 requiredOutputSchema 严格校验并拒绝额外字段；证据引用须真实存在且属于同一运行。",
+                  "$comment": "不得把 Agent 返回的 SQL、环境、连接、权限、任意路径或工具名直接解释为可执行指令。仅当前已发布节点明确声明的安全业务输出可以参与后续映射。"
+                }
+              },
+              "required": [
+                "type",
+                "payload"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "HostSkillUnavailableSubmission",
+              "type": "object",
+              "description": "仅当前检查点属于 host_skill 时允许。运行时检查不可变版本是否预声明 fallback，以及当前主体/节点是否可使用；未声明则拒绝请求的回退。不接受客户端临时注入 Skill、工具或新 fallback。",
+              "properties": {
+                "type": {
+                  "const": "host_skill_unavailable"
+                },
+                "useDeclaredFallback": {
+                  "type": "boolean",
+                  "description": "true 仅请求使用已发布节点预声明且当前可用的 fallback；false 表示不请求回退，按该节点已发布的失败策略处理。无论取值均不代表节点成功或人工批准。"
+                }
+              },
+              "required": [
+                "type",
+                "useDeclaredFallback"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "runId",
+        "checkpointId",
+        "checkpointToken",
+        "expectedRevision",
+        "idempotencyKey",
+        "submission"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_status": {
+      "title": "workflow_status inputSchema",
+      "description": "获取所属运行状态、按序增量事件、授权证据引用及待办。校验运行所有权；不返回凭证明文或无限制原始日志。",
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "afterEventSeq": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "只返回 seq 大于该值的事件；0 表示从首个可见事件开始。"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 50
+        }
+      },
+      "required": [
+        "runId"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_cancel": {
+      "title": "workflow_cancel inputSchema",
+      "description": "提交有版本保护且幂等的取消请求。取消阻止后继派发，不代表撤销已经完成的下游操作；仍在途的调用由执行引擎如实反映。",
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "审计原因；视为普通数据，不执行其中指令，并进行敏感字段处理。"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "runId",
+        "expectedRevision",
+        "reason",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false
+    },
+    "artifact_read": {
+      "title": "artifact_read inputSchema",
+      "description": "以 artifactId 读取同一运行下有权限产物的有界分块。标识由服务端解析，不作为本地路径或 URL 使用。运行时验证归属、授权与内容格式，阻止跨运行读取和路径/符号链接逃逸。",
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "artifactId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "字节偏移，不是字符索引。文本分块不得切断 UTF-8 字符，响应返回实际 nextOffset。"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 262144,
+          "default": 65536,
+          "description": "单次读取内容的最大字节数：默认 64 KiB，硬上限 256 KiB；实际块可能更小。"
+        }
+      },
+      "required": [
+        "runId",
+        "artifactId"
+      ],
+      "additionalProperties": false
+    },
+    "host_scan": {
+      "type": "object",
+      "properties": {
+        "contextId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "depth": {
+          "enum": [
+            "metadata",
+            "catalog"
+          ]
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "action": {
+          "enum": [
+            "scan",
+            "submit_descriptions"
+          ]
+        },
+        "expectedContextRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "entityKind": {
+                "enum": [
+                  "mcp_server",
+                  "mcp_tool",
+                  "skill",
+                  "plugin"
+                ]
+              },
+              "expectedSourceRevision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sourceFingerprint": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expectedPresentationRevision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "locale": {
+                "const": "zh-CN"
+              },
+              "displayName": {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              "summary": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "inputSummary": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "outputSummary": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "useCases": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "evidenceRefs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 300
+                }
+              },
+              "parameterDescriptions": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string",
+                      "pattern": "^/(inputSchema|outputSchema)(/.*)?$",
+                      "maxLength": 500
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": [
+                    "pointer",
+                    "description"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "entityId",
+              "entityKind",
+              "expectedSourceRevision",
+              "sourceFingerprint",
+              "expectedPresentationRevision",
+              "locale",
+              "displayName",
+              "summary",
+              "evidenceRefs"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "contextId",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Read registered local Codex capabilities (default action=scan). After scanning, translate source-backed names, purposes and descriptions into Chinese and submit with action=submit_descriptions. host_scan_status.catalog supplies entity identities and revisions. Description writes never scan, import or execute tools, change raw names or schemas, or require another model key. Never invent missing source descriptions.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "submit_descriptions"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "expectedContextRevision",
+              "entries"
+            ],
+            "properties": {
+              "depth": false,
+              "entries": true,
+              "expectedContextRevision": true
+            }
+          },
+          "else": {
+            "required": [
+              "depth"
+            ],
+            "properties": {
+              "entries": false,
+              "expectedContextRevision": false,
+              "depth": true
+            }
+          }
+        }
+      ]
+    },
+    "host_scan_status": {
+      "type": "object",
+      "properties": {
+        "scanId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "scanId"
+      ],
+      "additionalProperties": false,
+      "description": "Read durable scan results, coverage and source issues."
+    },
+    "capability_search": {
+      "type": "object",
+      "properties": {
+        "contextId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "kind": {
+          "enum": [
+            "mcp_tool",
+            "skill",
+            "mcp_server",
+            "plugin"
+          ]
+        },
+        "executor": {
+          "enum": [
+            "hub_direct",
+            "codex_host",
+            "informational"
+          ]
+        },
+        "environment": {
+          "enum": [
+            "test",
+            "staging",
+            "production"
+          ]
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false,
+      "description": "Search tools/Skills or use kind=mcp_server/plugin for services/plugins. Search current Chinese display text, original names and plugin names. Read exact definitions before importing."
+    },
+    "capability_get": {
+      "type": "object",
+      "properties": {
+        "capabilityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "includeSchemas": {
+          "type": "boolean"
+        },
+        "includeSkillContent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "capabilityId"
+      ],
+      "additionalProperties": false,
+      "description": "Read exact capability definition and optional schema or bounded Skill text."
+    },
+    "capability_import": {
+      "type": "object",
+      "properties": {
+        "capabilityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedSourceRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target": {
+          "enum": [
+            "hub_direct",
+            "codex_host"
+          ]
+        },
+        "environment": {
+          "enum": [
+            "test",
+            "staging",
+            "production"
+          ]
+        },
+        "lockedArguments": {
+          "type": "object"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "capabilityId",
+        "expectedSourceRevision",
+        "target",
+        "environment",
+        "lockedArguments",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Import to FlowHub only; no Codex config changes or implicit business probe. Never pass credential values."
+    },
+    "workflow_draft_get": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "workflowId"
+      ],
+      "additionalProperties": false,
+      "description": "Get editable draft, semantic/layout revision and issues, not a published version."
+    },
+    "workflow_draft_create": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "environment": {
+          "enum": [
+            "production",
+            "staging",
+            "test"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "auto",
+            "guided"
+          ]
+        },
+        "template": {
+          "enum": [
+            "blank",
+            "incident"
+          ]
+        },
+        "contextId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "name",
+        "environment",
+        "mode",
+        "template",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Create a persistent draft. Creation does not publish or execute."
+    },
+    "workflow_draft_patch": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "add_node"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "nodeType": {
+                    "enum": [
+                      "mcp_tool",
+                      "agent_task",
+                      "condition",
+                      "report_template"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "config": {
+                    "type": "object"
+                  },
+                  "capabilityRef": {
+                    "type": "object",
+                    "properties": {
+                      "capabilityId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "capabilityId",
+                      "revision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "nodeType",
+                  "title",
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "remove_node"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "cascade": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "cascade"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "update_node"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "changes": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "config": {
+                        "type": "object"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "changes"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "connect"
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "port": {
+                    "enum": [
+                      "next",
+                      "true",
+                      "false"
+                    ]
+                  }
+                },
+                "required": [
+                  "op",
+                  "source",
+                  "target",
+                  "port"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "disconnect"
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "port": {
+                    "enum": [
+                      "next",
+                      "true",
+                      "false"
+                    ]
+                  }
+                },
+                "required": [
+                  "op",
+                  "source",
+                  "target",
+                  "port"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_mapping"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "section": {
+                    "enum": [
+                      "argumentsMappings",
+                      "inputMappings"
+                    ]
+                  },
+                  "destination": {
+                    "type": "string",
+                    "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                  },
+                  "expression": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {}
+                        },
+                        "required": [
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "ref": {
+                            "type": "object",
+                            "properties": {
+                              "source": {
+                                "enum": [
+                                  "input",
+                                  "node"
+                                ]
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                              },
+                              "nodeId": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "source",
+                              "pointer"
+                            ],
+                            "additionalProperties": false,
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "source": {
+                                      "const": "node"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "required": [
+                                    "nodeId"
+                                  ],
+                                  "properties": {
+                                    "nodeId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "ref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "section",
+                  "destination",
+                  "expression"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_binding"
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "bindingId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "op",
+                  "key",
+                  "bindingId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_input_schema"
+                  },
+                  "schema": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "schema"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_output_schema"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "schema": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "schema"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_condition"
+                  },
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expression": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "op",
+                  "nodeId",
+                  "expression"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "set_metadata"
+                  },
+                  "changes": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "uniqueItems": true
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "op",
+                  "changes"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "const": "move_nodes"
+                  },
+                  "positions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "nodeId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "nodeId",
+                        "x",
+                        "y"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "expectedLayoutRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "op",
+                  "positions",
+                  "expectedLayoutRevision"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "workflowId",
+        "expectedRevision",
+        "idempotencyKey",
+        "operations"
+      ],
+      "additionalProperties": false,
+      "description": "Atomically edit with semantic operations, CAS and idempotency. Never overwrite the whole graph."
+    },
+    "workflow_draft_validate": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "level": {
+          "enum": [
+            "structure",
+            "publish"
+          ]
+        }
+      },
+      "required": [
+        "workflowId",
+        "expectedRevision",
+        "level"
+      ],
+      "additionalProperties": false,
+      "description": "Validate saved draft and current binding/capability revisions."
+    },
+    "workflow_draft_publish": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedBindingRevisions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "expectedCapabilityRevisions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "workflowId",
+        "expectedRevision",
+        "version",
+        "expectedBindingRevisions",
+        "expectedCapabilityRevisions",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Publish immutable reviewed revision only when requested. Does not start a run."
+    },
+    "workflow_test_generate": {
+      "type": "object",
+      "properties": {
+        "workflowId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "strategy": {
+          "enum": [
+            "deterministic",
+            "agent_proposed",
+            "ai_assisted"
+          ]
+        },
+        "scenarioHints": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "proposedCases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputs": {
+                "type": "object"
+              },
+              "mockResults": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nodeId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "capabilityId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "responseMode": {
+                      "enum": [
+                        "structured",
+                        "text",
+                        "error",
+                        "timeout"
+                      ]
+                    },
+                    "result": {}
+                  },
+                  "required": [
+                    "nodeId",
+                    "capabilityId",
+                    "responseMode",
+                    "result"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "agentSubmissions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nodeId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "payload": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "nodeId",
+                    "payload"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "assertions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "terminal_state",
+                        "node_state",
+                        "tool_called",
+                        "tool_not_called",
+                        "argument_equals",
+                        "output_equals",
+                        "artifact_contains",
+                        "error_code",
+                        "tool_call_count"
+                      ]
+                    },
+                    "nodeId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                    },
+                    "expected": {}
+                  },
+                  "required": [
+                    "kind",
+                    "expected"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "expectedValidationErrors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "inputs",
+              "mockResults",
+              "agentSubmissions",
+              "assertions",
+              "expectedValidationErrors"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "baseSuiteId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedSuiteRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "workflowId",
+        "expectedRevision",
+        "strategy",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Generate product test suite. agent_proposed accepts Codex fixtures without any model Key; assertions are independently evaluated."
+    },
+    "workflow_test_run": {
+      "type": "object",
+      "properties": {
+        "suiteId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedSuiteRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "enum": [
+            "mock",
+            "contract",
+            "live"
+          ]
+        },
+        "caseIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 200
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "suiteId",
+        "expectedSuiteRevision",
+        "mode",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false,
+      "description": "Run isolated mock tests through the same engine; missing fixtures are uncovered. Never fall back to live."
+    },
+    "workflow_test_status": {
+      "type": "object",
+      "properties": {
+        "testRunId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "testRunId"
+      ],
+      "additionalProperties": false,
+      "description": "Read actual expected/actual assertions, coverage gaps and baseline staleness."
+    },
+    "project_help_search": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "productVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false,
+      "description": "Search implemented versioned local help with exact source citations."
+    },
+    "discovery_description": {
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "entityKind": {
+          "enum": [
+            "mcp_server",
+            "mcp_tool",
+            "skill",
+            "plugin"
+          ]
+        },
+        "expectedSourceRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceFingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedPresentationRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "locale": {
+          "const": "zh-CN"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "inputSummary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "outputSummary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "useCases": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "parameterDescriptions": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "type": "string",
+                "pattern": "^/(inputSchema|outputSchema)(/.*)?$",
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "pointer",
+              "description"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "entityId",
+        "entityKind",
+        "expectedSourceRevision",
+        "sourceFingerprint",
+        "expectedPresentationRevision",
+        "locale",
+        "displayName",
+        "summary",
+        "evidenceRefs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

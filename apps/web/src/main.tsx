@@ -23,7 +23,20 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
+import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
+import { CredentialLibrary } from "./features/settings/CredentialLibrary";
+import { ModelsPage } from "./features/models/ModelsPage";
+import { TestingPanel } from "./features/testing/TestingPanel";
+import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
+import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
+import { subscribeEvents } from "./shared/v2";
+import { mergeDraft } from "./shared/draft-merge";
+import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
+import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
+import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
+import { AppSidebar, NavigationIcon } from "./features/navigation/AppSidebar";
+import { navigationForPage, navigationLabel } from "./features/navigation/navigation";
 import {
   ConnectionForm,
   BindingForm,
@@ -32,6 +45,8 @@ import {
   bindingProbeDefaults,
 } from "./ConnectionBindingForms";
 type J = any;
+const retentionScopeKeys = ["runs", "resultRuns", "checkpoints", "artifacts", "assistantResultTasks", "assistantResultMessages", "assistantLegacyResultMessages", "assistantResultToolCalls", "assistantResultSessions", "assistantTasks", "assistantMessages", "assistantToolCalls", "assistantSessions", "workflowTestResultRuns", "workflowTestRuns", "applicationResultEvents", "applicationEvents"];
+const retentionPreview = (value: J) => ({...value, ...Object.fromEntries(retentionScopeKeys.map(key=>[key,Array.isArray(value[key])?value[key]:[]]))});
 const editorTextVersions = new WeakMap<
   Map<string, string>,
   Map<string, number>
@@ -74,7 +89,7 @@ async function api(
   signal?: AbortSignal,
   withMeta = false,
 ): Promise<J> {
-  const response = await fetch("/api/v1" + path, {
+  const response = await fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
     method,
     headers: {
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
@@ -413,6 +428,7 @@ function JsonEditor({
   );
 }
 function App() {
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [path, setPath] = useState(
       location.pathname === "/" ? "/workflows" : location.pathname,
     ),
@@ -422,7 +438,8 @@ function App() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [password, setPassword] = useState(""),
-    [setupToken, setSetupToken] = useState("");
+    [username, setUsername] = useState("admin");
+  useEffect(() => { setNavigationOpen(false); }, [path]);
   const [workflows, setWorkflows] = useState<J[]>([]),
     [connections, setConnections] = useState<J[]>([]),
     [bindings, setBindings] = useState<J[]>([]),
@@ -442,8 +459,11 @@ function App() {
     [selected, setSelected] = useState<string | null>(null),
     [run, setRun] = useState<J>(null),
     [artifact, setArtifact] = useState<J>(null);
+  const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
+  const serverDraftBase=useRef<J>(null),conflictRef=useRef<J>(conflict),remoteSyncRequest=useRef(0),pendingRemoteEvent=useRef<J>(null),syncRemoteRef=useRef<(event:J)=>Promise<void>>(async()=>{});
+  conflictRef.current=conflict;
   const pathRef = useRef(path),
     dirtyRef = useRef(dirty),
     draftRef = useRef<J>(draft);
@@ -453,12 +473,39 @@ function App() {
   const historyIndex = useRef(0),
     restoringHistory = useRef(false);
   const routeGeneration = useRef(0);
+  const credentialLibraryRequested = useRef(false);
+  useEffect(() => {
+    if (path !== "/settings" || !credentialLibraryRequested.current) return;
+    const library = document.getElementById("credential-library");
+    if (library) {
+      credentialLibraryRequested.current = false;
+      library.scrollIntoView({ block: "start" });
+      library.focus({ preventScroll: true });
+    }
+  }, [path]);
   const artifactRequest = useRef(0);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
     [redoCount, setRedoCount] = useState(0);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [assistantOpenRequest,setAssistantOpenRequest]=useState(0);
+  const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
+  useEffect(() => {
+    if (!["/assistant", "/editor"].includes(path) || !session) return;
+    history.replaceState(history.state, "", "/workflows");
+    setPath("/workflows");
+    if (path === "/assistant") setAssistantOpenRequest(value => value + 1);
+  }, [path, session]);
+  useEffect(() => {
+    if (!session) return;
+    let alive=true;
+    const changed=()=>{void api("/auth/state").then(value=>{if(alive)setAuth(value);}).catch(()=>{});};
+    window.addEventListener("flowhub-credentials-changed",changed);
+    return ()=>{alive=false;window.removeEventListener("flowhub-credentials-changed",changed);};
+  },[session]);
+  const savingRef=useRef(false);
+  const [changedByAI,setChangedByAI]=useState<string[]>([]);
   const busyRef = useRef(busy);
   busyRef.current = busy;
   const modalRef = useRef<HTMLElement>(null);
@@ -593,7 +640,7 @@ function App() {
     setTools(t);
   }, []);
   const navigate = (next: string, skipDirty = false) => {
-    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return;
+    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return false;
     setDirty(false);
     jsonTextCache.current.clear();
     historyIndex.current++;
@@ -601,6 +648,25 @@ function App() {
     setPath(next);
     setModal(null);
     setArtifact(null);
+    return true;
+  };
+  const manageDiscovery = (destination: DiscoveryDestination) => {
+    const name = destination.name || "新连接";
+    if (destination.type === "connection") {
+      navigate("/connections");
+      setModal({ type: "connection", title: "手动连接 · " + name,
+        sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
+        payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
+      });
+    } else if (destination.type === "library") {
+      credentialLibraryRequested.current = true;
+      navigate("/settings");
+    } else {
+      navigate("/settings");
+      setModal(destination.type === "unlock"
+        ? { type: "unlock", title: "解锁凭据库", password: "" }
+        : { type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
+    }
   };
   useEffect(() => {
     history.replaceState({ ...history.state, flowhubIndex: 0 }, "");
@@ -738,10 +804,11 @@ function App() {
     window.addEventListener("beforeunload", listener);
     return () => window.removeEventListener("beforeunload", listener);
   }, [dirty]);
-  const buildCanvas = (record: J) => {
+  const buildCanvas = (record: J, serverBase=false, preserveSelection=false) => {
     assertWorkflowShape(record.draft);
+    if(serverBase)serverDraftBase.current=structuredClone(record);
     setDraft(record);
-    setSelected(null);
+    if(!preserveSelection)setSelected(null);
     setNodes(
       record.draft.nodes.map((n: J, i: number) => ({
         id: n.id,
@@ -793,6 +860,50 @@ function App() {
       })),
     );
   };
+  const mergeRemoteRecord=(latest:J,changedNodes:string[]=[])=>{
+    const local=editorRef.current,base=serverDraftBase.current;
+    if(!local||!base||base.id!==latest.id)return;
+    const protectedReason=publishReviewRef.current?.type==="publish"?"发布差异仍在审阅，请关闭审阅后重新合并":
+      [...jsonTextCache.current.keys()].some(key=>key.startsWith(local.id+"/"))?"存在未应用的 JSON 文本；完成校验后可重新合并":"";
+    if(protectedReason){setConflict({base,remote:latest,protectedReason,fields:[]});return;}
+    const result=mergeDraft(base,local,latest);
+    if(result.invalidEdges.length&&!result.conflicts.length){setConflict({base,remote:latest,protectedReason:"合并后存在节点删除与连线引用冲突，请比较并调整草稿后重试",fields:[]});return;}
+    buildCanvas(result.record,false,true);setDirty(result.dirty);setChangedByAI(changedNodes);
+    undoStack.current=undoStack.current.map(snapshot=>mergeDraft(base,snapshot,latest).record);
+    redoStack.current=redoStack.current.map(snapshot=>mergeDraft(base,snapshot,latest).record);
+    if(result.conflicts.length)setConflict({base,remote:latest,fields:result.conflicts});
+    else {serverDraftBase.current=structuredClone(latest);setConflict(null);if(result.dirty)setNotice("已合并服务端改图；本地字段仍待保存");}
+  };
+  syncRemoteRef.current=async(event:J)=>{
+    const current=draftRef.current;
+    if(!current||current.id!==event.workflowId||(!event.force&&event.revision<=current.revision&&(event.layoutRevision??0)<=(current.layoutRevision??0)))return;
+    if(savingRef.current){pendingRemoteEvent.current=event;return;}
+    const request=++remoteSyncRequest.current,generation=routeGeneration.current,sourcePath=pathRef.current;
+    const editableStamp=()=>JSON.stringify({draft:editorRef.current?.draft,layout:editorRef.current?.layout,raw:[...jsonTextCache.current]});
+    const original=editableStamp();
+    try{
+      const latest=await api("/api/v2/workflows/"+current.id+"/draft");
+      if(request!==remoteSyncRequest.current||routeGeneration.current!==generation||pathRef.current!==sourcePath||draftRef.current?.id!==latest.id)return;
+      const acknowledged=serverDraftBase.current;
+      if(!event.force&&acknowledged?.id===latest.id&&latest.revision<=acknowledged.revision&&(latest.layoutRevision??0)<=(acknowledged.layoutRevision??0))return;
+      if(editableStamp()!==original){setConflict({base:serverDraftBase.current,remote:latest,fields:[],protectedReason:"读取服务端期间出现新输入，已保留；请重新合并"});return;}
+      mergeRemoteRecord(latest,event.changedNodes??[]);
+    }catch(e){if(request===remoteSyncRequest.current&&generation===routeGeneration.current)setError((e as Error).message);}
+  };
+  const resolveDraftField=(fieldPath:string,choice:"local"|"remote")=>{
+    const current=conflictRef.current;if(!current?.remote||current.protectedReason)return;
+    const choices={...(current.choices??{}),[fieldPath]:choice};
+    const result=mergeDraft(current.base,editorRef.current,current.remote,choices);
+    if(result.invalidEdges.length&&!result.conflicts.length){setError("该选择会留下失效连线，请比较节点删除与连线后再处理");return;}
+    buildCanvas(result.record,false,true);setDirty(result.dirty);
+    if(result.conflicts.length)setConflict({...current,fields:result.conflicts,choices});
+    else {serverDraftBase.current=structuredClone(current.remote);setConflict(null);}
+  };
+  useEffect(()=>{
+    if(!session)return;
+    return subscribeEvents(event=>{if(event.type!=="draft.changed")return;void load();void syncRemoteRef.current(event);});
+  },[session]);
+  useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
@@ -822,7 +933,7 @@ function App() {
               generation === routeGeneration.current &&
               pathRef.current === path
             )
-              buildCanvas(record);
+              buildCanvas(record,true);
           } catch (e) {
             if (active) throw e;
           }
@@ -965,6 +1076,7 @@ function App() {
   };
   const save = async () => {
     assertJsonValid();
+    if(conflictRef.current)throw new Error("请先解决草稿字段冲突或重新合并，再保存");
     if (!draft) return;
     if (pathRef.current !== "/workflows/" + draft.id + "/editor")
       throw new Error("当前页面与草稿不一致，请重新打开工作流");
@@ -976,10 +1088,11 @@ function App() {
     assertWorkflowShape(workflow);
     let result: J;
     try {
+      savingRef.current=true;remoteSyncRequest.current++;
       result = await api(
         "/workflows/" + draft.id + "/draft",
         "PUT",
-        { workflow, layout },
+        { workflow, layout, expectedLayoutRevision: snapshot.layoutRevision ?? 1 },
         snapshot.revision,
       );
     } catch (e) {
@@ -991,11 +1104,12 @@ function App() {
       )
         setConflict({ workflow, layout, revision: draft.revision });
       throw e;
-    }
+    } finally { savingRef.current=false; }
     if (
       pathRef.current === savePath &&
       generation === routeGeneration.current
     ) {
+      serverDraftBase.current=structuredClone(result);
       const unchanged =
         JSON.stringify(editorRef.current?.draft) === JSON.stringify(workflow) &&
         JSON.stringify(editorRef.current?.layout) === JSON.stringify(layout) &&
@@ -1011,6 +1125,7 @@ function App() {
       );
       setDirty(!unchanged);
     }
+    if(pendingRemoteEvent.current){const event=pendingRemoteEvent.current;pendingRemoteEvent.current=null;void syncRemoteRef.current(event);}
     await load();
     return result;
   };
@@ -1086,7 +1201,7 @@ function App() {
           title: source.title,
           schema:
             source.type === "mcp_tool"
-              ? tools.find(
+              ? mcpOutputSchema(tools.find(
                   (tool) =>
                     tool.name === source.config.toolName &&
                     tool.connectionId ===
@@ -1095,7 +1210,7 @@ function App() {
                           binding.id ===
                           draft.draft.bindings[source.config.bindingKey],
                       )?.connectionId,
-                )?.outputSchema
+                )?.outputSchema, source.config.resultAdapterRef)
               : source.type === "condition"
                 ? { type: "boolean" }
                 : source.config.outputSchema,
@@ -1257,8 +1372,12 @@ function App() {
           JSON.stringify(currentWorkflow()) !== JSON.stringify(m.workflow) ||
           draftRef.current?.revision !== m.revision
         )
-          throw new Error("草稿在审阅后发生变化，请重新保存并审阅发布差异");
-        await api("/workflows/" + m.workflow.workflowId + "/publish", "POST", {
+          throw new UiError("REVISION_CONFLICT","草稿在审阅后发生变化，请重新保存并审阅发布差异",409);
+        if(m.workflow.schemaVersion==="flowhub.workflow/v2") await api("/api/v2/workflows/"+m.workflow.workflowId+"/publish","POST",{
+          expectedRevision:m.revision,expectedBindingRevisions:m.expectedBindingRevisions,
+          expectedCapabilityRevisions:Object.fromEntries(m.workflow.nodes.filter((n:J)=>n.config.capabilityRef).map((n:J)=>[n.config.capabilityRef.capabilityId,n.config.capabilityRef.revision])),
+          version:m.workflow.version,idempotencyKey:uid(),
+        }); else await api("/workflows/" + m.workflow.workflowId + "/publish", "POST", {
           expectedRevision: m.revision,
           expectedBindingRevisions: m.expectedBindingRevisions,
           changeNote: m.changeNote ?? "",
@@ -1282,6 +1401,7 @@ function App() {
           ) {
             const unchanged =
               JSON.stringify(currentWorkflow()) === JSON.stringify(m.workflow);
+            serverDraftBase.current=structuredClone(latest);
             if (unchanged) buildCanvas(latest);
             else
               setDraft((local: J) =>
@@ -1385,18 +1505,20 @@ function App() {
         await api("/vault/password", "POST", m.payload);
       }
       if (m.type === "secret") {
-        await api("/secrets", "POST", { label: m.label, value: m.value });
+        const created = await api("/secrets", "POST", { label: m.label, value: m.value, purpose: m.purpose ?? "unspecified", ...(m.idempotencyKey ? { idempotencyKey: m.idempotencyKey } : {}) });
+        window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
       }
       if (m.type === "unlock") {
         await api("/vault/unlock", "POST", { password: m.password });
         setAuth({ ...auth, vaultLocked: false });
+        window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
         const result = await api("/retention/commit", "POST", {
           previewHash: m.value.hash,
         });
         setNotice(
-          `清理完成：${result.expiredResultRuns} 个运行的原始结果，${result.deletedArtifacts} 份产物，${result.deletedRuns} 个运行的元数据`,
+          `清理完成：${result.expiredResultRuns} 个运行的原始结果，${result.deletedArtifacts} 份产物，${result.deletedRuns} 个运行的元数据；助手任务 ${result.expiredAssistantTasks??0} 份正文到期、${result.deletedAssistantTasks??0} 条元数据删除，自测 ${result.expiredTestRuns??0} 份结果到期、${result.deletedTestRuns??0} 条元数据删除；历史未归属消息 ${result.expiredLegacyAssistantMessages??0} 条正文到期`,
         );
       }
       if (m.type === "import") {
@@ -1413,6 +1535,10 @@ function App() {
     : path.split("/")[1] === "tools"
       ? "connections"
       : (path.split("/")[1] ?? "workflows");
+  const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
+  const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
+  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
+  const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
   if (!auth)
     return (
       <div className="login">
@@ -1442,36 +1568,25 @@ function App() {
           <div className="brand">
             <b>F</b>FlowHub <small>LOCAL WORKFLOW HUB</small>
           </div>
-          <h1>{auth?.initialized ? "欢迎回来" : "创建本机管理员"}</h1>
+          <h1>{auth?.initialized ? "欢迎回来" : "登录 FlowHub"}</h1>
           <p>一个 MCP 入口，多条受控工作流。管理会话独立于 Agent 执行身份。</p>
-          {!auth?.initialized && (
-            <label className="field">
-              本机一次性设置码
-              <input
-                autoComplete="off"
-                value={setupToken}
-                onChange={(e) => setSetupToken(e.target.value)}
-              />
-              <small>
-                在数据目录的 admin-setup-token 文件中查看；不会出现在日志或 URL
-                中。
-              </small>
-            </label>
-          )}
+          {!auth.initialized && <p>默认账号：admin，默认密码：admin。</p>}
+          <label className="field">
+            管理员账号
+            <input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
+          </label>
           <label className="field">
             管理员密码
             <input
               type="password"
-              autoComplete={
-                auth?.initialized ? "current-password" : "new-password"
-              }
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
                   document.getElementById("login")?.click();
               }}
-              placeholder="至少 12 个字符"
+              placeholder={auth.initialized ? "请输入密码" : "默认密码：admin"}
             />
           </label>
           {error && (
@@ -1507,119 +1622,56 @@ function App() {
             onClick={() =>
               act(async () => {
                 const s = await api(
-                  auth.initialized ? "/auth/session" : "/auth/bootstrap",
+                  "/auth/session",
                   "POST",
-                  auth.initialized ? { password } : { setupToken, password },
+                  { username, password },
                 );
                 csrf = s.csrf;
                 setSession(s);
                 setPassword("");
-                setSetupToken("");
                 setAuth(await api("/auth/state"));
               })
             }
           >
-            {busy
-              ? "正在验证…"
-              : auth?.initialized
-                ? "登录管理中心"
-                : "创建并进入"}
+            {busy ? "正在验证…" : "登录管理中心"}
           </button>
           <div className="login-note">
-            默认仅回环监听 · 凭据加密存储 · 无默认密码
+            默认仅回环监听 · 凭据加密存储
           </div>
         </div>
       </div>
     );
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <b>F</b>FlowHub
-        </div>
-        <div className="workspace-card">
-          <span>◈</span>
-          <div>
-            <strong>本机工作空间</strong>
-            <small>单用户 · Local workspace</small>
-          </div>
-        </div>
-        <small className="nav-caption">WORKSPACE</small>
-        <nav>
-          {[
-            ["workflows", "工作流库"],
-            ["editor", "流程编排"],
-            ["connections", "MCP 工具库"],
-            ["bindings", "环境与权限"],
-            ["runs", "运行记录"],
-            ["settings", "接入设置"],
-          ].map(([key, label]) => (
-            <button
-              aria-label={label}
-              key={key}
-              className={"nav-item " + (page === key ? "active" : "")}
-              onClick={() =>
-                key === "editor"
-                  ? workflows[0] && chooseWorkflow(workflows[0])
-                  : navigate("/" + key)
-              }
-            >
-              <i>{glyph[key]}</i>
-              {label}
-              {key === "workflows" && <small>{workflows.length}</small>}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="gateway">
-            <strong>
-              <span className="dot" /> Gateway MCP
-            </strong>
-            <p>1 个入口 · 固定 7 个工具</p>
-            <div className="meter" />
-          </div>
-          <div className="profile">
-            <span>AD</span>
-            <div>
-              <strong>本机管理员</strong>
-              <small>独立管理会话</small>
-            </div>
-            <button
-              aria-label="退出登录"
-              onClick={() =>
-                act(async () => {
-                  try {
-                    await api("/auth/session", "DELETE");
-                  } finally {
-                    csrf = "";
-                    setSession(null);
-                  }
-                })
-              }
-            >
-              ↪
-            </button>
-          </div>
-        </div>
-      </aside>
+      <AppSidebar
+        page={page}
+        open={navigationOpen}
+        close={() => setNavigationOpen(false)}
+        navigate={navigate}
+        busy={busy}
+        logout={() => act(async () => {
+          try { await api("/auth/session", "DELETE"); }
+          finally { csrf = ""; setSession(null); setNavigationOpen(false); }
+        })}
+      />
       <main>
         <header className="topbar">
-          <span>
-            工作空间 <b>/</b>{" "}
-            {
-              (
-                {
-                  workflows: "工作流库",
-                  editor: "流程编排",
-                  connections: "MCP 工具库",
-                  bindings: "环境与权限",
-                  runs: "运行记录",
-                  settings: "接入设置",
-                } as J
-              )[page]
-            }
-          </span>
-          <div>
+          <div className="topbar-navigation">
+            <button className="navigation-toggle" aria-label="打开导航" aria-haspopup="dialog" aria-controls={navigationOpen ? "mobile-navigation" : undefined} aria-expanded={navigationOpen} onClick={() => setNavigationOpen(true)}>
+              <NavigationIcon name="menu" />
+            </button>
+            <span className="breadcrumbs" aria-label="当前位置">
+              <span>{navigationForPage(page)?.group ?? "工作空间"}</span><b>/</b>
+              {page === "editor" ? <>
+                <a href="/workflows" onClick={event => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault(); navigate("/workflows");
+                }}>{navigationLabel("workflows")}</a>
+                <b>/</b><span aria-current="page">流程编排</span>
+              </> : <span aria-current="page">{navigationLabel(page)}</span>}
+            </span>
+          </div>
+          <div className="topbar-actions">
             <Badge tone="gray">LOCAL FIRST</Badge>
             <button
               onClick={() =>
@@ -1645,11 +1697,13 @@ function App() {
               {notice}
             </div>
           )}
+          {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
+          {page === "models" && <ModelsPage api={api} onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })} />}
           {page === "workflows" && (
             <>
               <PageHead
                 eyebrow="YOUR WORKFLOW LIBRARY"
-                title="工作流"
+                title={navigationLabel("workflows")}
                 text="把排查经验沉淀为可发现、可验证、可追踪的执行方案。"
               >
                 <button
@@ -1955,7 +2009,9 @@ function App() {
                     ? "绑定未配置"
                     : "固定环境"}
                 </Badge>
-                <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"}</span>
+                <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"} · r{draft.revision}</span>
+                {draft.draft.executionRequirements?.requiresCodex&&<Badge>需要 Codex 宿主</Badge>}
+                <button onClick={openAssistant}>AI 助手</button>
                 <button
                   disabled={!undoCount || busy || jsonInvalid}
                   onClick={() => undoEdit()}
@@ -1994,8 +2050,11 @@ function App() {
                 >
                   <h2>草稿已被其他会话修改</h2>
                   <p>
-                    本地修改仍保留。先比较或另存，再决定是否丢弃本地修改并加载服务端草稿。
+                    {conflict.fields?.length?"不同字段已合并。本地修改仍保留；同一字段可分别选择保留本地或服务端值。":"本地输入仍保留。处理下方原因后可重新合并，也可比较差异或另存草稿。"}
                   </p>
+                  {conflict.protectedReason&&<p role="status">{conflict.protectedReason}</p>}
+                  {conflict.fields?.map((field:J)=><article key={field.path} className="panel"><strong>{field.path}</strong><div className="v2-two-columns"><div><p>本地值</p><pre>{field.localMissing?"（删除）":pretty(field.local)}</pre><button onClick={()=>resolveDraftField(field.path,"local")}>保留本地：{field.path}</button></div><div><p>服务端值</p><pre>{field.remoteMissing?"（删除）":pretty(field.remote)}</pre><button onClick={()=>resolveDraftField(field.path,"remote")}>使用服务端：{field.path}</button></div></div></article>)}
+                  <button disabled={busy} onClick={()=>void syncRemoteRef.current({workflowId:draft.id,force:true})}>重新尝试合并</button>
                   <div className="actions">
                     <button
                       onClick={() =>
@@ -2067,7 +2126,7 @@ function App() {
                           jsonTextCache.current.clear();
                           invalidJson.current.clear();
                           setJsonInvalid(false);
-                          buildCanvas(latest);
+                          buildCanvas(latest,true);
                           setDirty(false);
                           setConflict(null);
                         }, "已加载服务端草稿")
@@ -2160,6 +2219,7 @@ function App() {
               >
                 <aside className="palette">
                   <h3>节点与工具</h3>
+                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
                     <button key={type} onClick={() => addNode(type)}>
@@ -2348,6 +2408,8 @@ function App() {
                   </ReactFlow>
                 </div>
                 <aside className="inspector">
+                  <div className="actions"><span>节点属性</span><button onClick={openAssistant}>AI 助手</button></div>
+                  <>
                   <EditorTextContext.Provider
                     value={{
                       cache: jsonTextCache.current,
@@ -2661,15 +2723,17 @@ function App() {
                       <Empty text="选择节点，查看工具、参数映射和输出契约" />
                     )}
                   </EditorTextContext.Provider>
+                </>
                 </aside>
               </div>
+              <TestingPanel api={api} workflowId={draft.id} revision={draft.revision} />
             </>
           )}
           {page === "connections" && (
             <>
               <PageHead
                 eyebrow="CONNECTED CAPABILITIES"
-                title="MCP 工具库"
+                title={navigationLabel("connections")}
                 text="登记独立连接，读取实际工具目录及 Schema 指纹。认证失败不会触发降级。"
               >
                 <button
@@ -2830,7 +2894,7 @@ function App() {
             <>
               <PageHead
                 eyebrow="ENVIRONMENT & POLICY"
-                title="环境与权限"
+                title={navigationLabel("bindings")}
                 text="将环境、资源、凭证引用及查询模板固定为可验证的绑定档案。"
               >
                 <button
@@ -3048,7 +3112,7 @@ function App() {
                   </tbody>
                 </table>
                 {!runs.length && (
-                  <Empty text="暂无运行，从工作流库启动一次合成排查" />
+                  <Empty text="暂无运行，从工作流启动一次合成排查" />
                 )}
                 {runsMeta?.hasMore && (
                   <button
@@ -3097,6 +3161,7 @@ function App() {
                     <span className="error">{run.waitingReason}</span>
                   )}
                 </div>
+                <section className="panel"><button onClick={openAssistant}>使用助手解释当前运行</button><p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p></section>
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
@@ -3152,6 +3217,7 @@ function App() {
                         <Badge>WAITING_AGENT · {run.checkpoint.kind}</Badge>
                         <h2>{run.checkpoint.nodeId} · 宿主待办</h2>
                         <p>{run.checkpoint.instruction}</p>
+                        <RunAnalysisControl api={api} run={run}/>
                         <small>
                           等待已连接的 Codex 通过 workflow_status
                           获取交接信息，并通过 workflow_advance 提交结构化结果。
@@ -3363,8 +3429,8 @@ function App() {
             <>
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
-                title="接入设置"
-                text="配置唯一 MCP 入口、独立管理权限与本机加密凭据库。"
+                title={navigationLabel("settings")}
+                text="配置唯一 MCP 入口、独立管理权限与本机配置和凭据库。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3385,7 +3451,7 @@ function App() {
                         setModal({
                           type: "retention",
                           title: "数据保留与清理预览",
-                          value: await api("/retention/preview", "POST", {}),
+                          value: retentionPreview(await api("/retention/preview", "POST", {})),
                         }),
                       )
                     }
@@ -3393,71 +3459,11 @@ function App() {
                     预览清理范围
                   </button>
                 </section>
-                <section className="panel">
-                  <h2>加密凭据库</h2>
-                  <p>scrypt 派生 · AES-256-GCM · 重启默认锁定</p>
-                  <div className="actions">
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "unlock",
-                          title: "解锁凭据库",
-                          password: "",
-                        })
-                      }
-                    >
-                      解锁
-                    </button>
-                    <button
-                      onClick={() =>
-                        act(async () => {
-                          await api("/vault/lock", "POST", {});
-                          setAuth({ ...auth, vaultLocked: true });
-                        }, "凭据库已锁定")
-                      }
-                    >
-                      立即锁定
-                    </button>
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "secret",
-                          title: "新增凭据",
-                          label: "新凭据",
-                          value: "",
-                        })
-                      }
-                    >
-                      添加凭据
-                    </button>
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "rotate",
-                          title: "修改凭据库口令",
-                          payload: { oldPassword: "", newPassword: "" },
-                        })
-                      }
-                    >
-                      修改口令
-                    </button>
-                    <button
-                      onClick={() =>
-                        act(async () =>
-                          showJson(
-                            "凭据引用（不含明文）",
-                            await api("/secrets"),
-                          ),
-                        )
-                      }
-                    >
-                      查看引用
-                    </button>
-                  </div>
-                  <p>
-                    首次创建管理员时使用同一口令初始化凭据库。仅保存密文，不能找回丢失口令。
-                  </p>
-                </section>
+                <CredentialLibrary api={api}
+                  onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
+                  onUnlock={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+                  onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
+                  onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
                   <h2>诊断导出（仅元数据）</h2>
                   <p>
@@ -3509,6 +3515,18 @@ function App() {
           <small>本机工作空间 / 独立管理员</small>
         </footer>
       </main>
+      <FloatingAssistant
+        api={api}
+        context={assistantContext}
+        contextLabel={assistantContextLabel}
+        dirty={dirty}
+        openRequest={assistantOpenRequest}
+        workflows={workflows}
+        runs={runs}
+        onNavigate={navigate}
+        onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
+        onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+      />
       {modal && (
         <div
           className="modal-backdrop"
@@ -3529,6 +3547,7 @@ function App() {
                 ×
               </button>
             </div>
+            {modal.sourceNotice && <p className="banner">{modal.sourceNotice}</p>}
             {modal.type === "versions" ? (
               <>
                 <div className="actions">
@@ -3735,8 +3754,12 @@ function App() {
             ) : modal.type === "retention" ? (
               <>
                 <p>
-                  原始结果到期后，日志、查询、分析及报告正文和事件备注一并清理。
-                  业务输入与运行元数据保留 30 天。活跃运行不受影响。
+                  原始结果保留 7 天，到期后清理日志、查询、分析、报告和事件备注，
+                  以及助手会话正文、消息、工具收据、自测结果与事件中的业务副本。
+                  业务输入与运行元数据保留 30 天，助手与自测元数据也保留 30 天。
+                  活跃运行和会话、已保存的测试套件配置、发布版本与能力修订不受影响。
+                  会话中存在到期来源时，无法归属任务的历史消息会单独列入正文清理，
+                  即使该消息刚刚创建；新消息按实际任务来源判断。
                 </p>
                 <ul>
                   <li>
@@ -3745,6 +3768,11 @@ function App() {
                   <li>遗留检查点：{modal.value.checkpoints.length} 个运行</li>
                   <li>运行元数据：{modal.value.runs.length} 个运行</li>
                   <li>产物：{modal.value.artifacts.length} 份</li>
+                  <li>助手正文到期：{modal.value.assistantResultTasks.length} 个任务、{modal.value.assistantResultMessages.length} 条消息、{modal.value.assistantResultToolCalls.length} 份工具收据、{modal.value.assistantResultSessions.length} 个会话</li>
+                  <li>来源到期会话中的历史未归属消息正文：{modal.value.assistantLegacyResultMessages.length} 条</li>
+                  <li>助手元数据删除：{modal.value.assistantTasks.length} 个任务、{modal.value.assistantMessages.length} 条消息、{modal.value.assistantToolCalls.length} 份工具收据、{modal.value.assistantSessions.length} 个会话</li>
+                  <li>自测：{modal.value.workflowTestResultRuns.length} 份结果到期、{modal.value.workflowTestRuns.length} 条元数据删除</li>
+                  <li>应用事件：{modal.value.applicationResultEvents.length} 份正文到期、{modal.value.applicationEvents.length} 条元数据删除</li>
                 </ul>
                 <details>
                   <summary>查看清理对象 ID</summary>
@@ -3754,6 +3782,19 @@ function App() {
                       检查点运行: modal.value.checkpoints,
                       元数据运行: modal.value.runs,
                       产物: modal.value.artifacts,
+                      助手正文任务: modal.value.assistantResultTasks,
+                      助手正文消息: modal.value.assistantResultMessages,
+                      历史未归属消息正文: modal.value.assistantLegacyResultMessages,
+                      助手正文收据: modal.value.assistantResultToolCalls,
+                      助手正文会话: modal.value.assistantResultSessions,
+                      助手元数据任务: modal.value.assistantTasks,
+                      助手元数据消息: modal.value.assistantMessages,
+                      助手元数据收据: modal.value.assistantToolCalls,
+                      助手元数据会话: modal.value.assistantSessions,
+                      自测结果: modal.value.workflowTestResultRuns,
+                      自测元数据: modal.value.workflowTestRuns,
+                      应用事件正文: modal.value.applicationResultEvents,
+                      应用事件元数据: modal.value.applicationEvents,
                     })}
                   </pre>
                 </details>
@@ -3892,17 +3933,12 @@ function App() {
               />
             ) : modal.type === "secret" ? (
               <>
-                <Field
-                  label="凭据标签"
-                  value={modal.label}
-                  onChange={(label) => setModal({ ...modal, label })}
-                />
-                <Field
-                  label="凭据值"
-                  type="password"
-                  value={modal.value}
-                  onChange={(value) => setModal({ ...modal, value })}
-                />
+                <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
+                <label>用途<select aria-label="用途" value={modal.purpose ?? "unspecified"} onChange={event => setModal({ ...modal, purpose: event.target.value })}>
+                  <option value="mcp_auth">MCP 认证凭据</option><option value="mcp_config">MCP 普通配置</option><option value="unspecified">用途待确认</option>
+                </select></label>
+                <Field label="保存值" type={modal.purpose === "mcp_config" ? "text" : "password"} value={modal.value} onChange={(value) => setModal({ ...modal, value })} />
+                <p>值在本机加密保存。模型 API Key 请在模型设置中配置。</p>
               </>
             ) : ["connection", "edit-connection"].includes(modal.type) ? (
               <ConnectionForm
@@ -4021,8 +4057,8 @@ function App() {
                     busy ||
                     jsonInvalid ||
                     (modal.type === "retention" &&
-                      !["runs", "resultRuns", "checkpoints", "artifacts"].some(
-                        (key) => modal.value[key].length,
+                      !retentionScopeKeys.some(
+                        (key) => modal.value[key]?.length,
                       ))
                   }
                   onClick={submitModal}

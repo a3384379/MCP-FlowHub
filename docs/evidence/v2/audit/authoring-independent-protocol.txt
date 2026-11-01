@@ -1,0 +1,12 @@
+✔ assistant analysis uses a checkpoint lease and existing advance, retaining business originals (159.885583ms)
+✔ host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key (95.244833ms)
+✔ analysis auth errors do not retry or consume the checkpoint (93.600459ms)
+✔ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (2854.3705ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3631.889666

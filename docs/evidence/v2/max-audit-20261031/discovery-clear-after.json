@@ -1,0 +1,51 @@
+{
+  "profileClearRequest": {
+    "codexHome": "/private/tmp/flowhub-settings-regression-jRRmMB/home",
+    "cwd": "/private/tmp/flowhub-settings-regression-jRRmMB/project",
+    "profile": null,
+    "codexPath": "/tmp/flowhub-settings-regression-jRRmMB/codex-explicit.mjs",
+    "discoveryMode": "auto",
+    "projectTrusted": false,
+    "useAppServer": false,
+    "contextId": "ctx_db58e17780981ccde43797f9",
+    "expectedRevision": 1
+  },
+  "cliClearRequest": {
+    "codexHome": "/private/tmp/flowhub-settings-regression-jRRmMB/home",
+    "cwd": "/private/tmp/flowhub-settings-regression-jRRmMB/project",
+    "profile": "synthetic-profile",
+    "codexPath": "",
+    "discoveryMode": "auto",
+    "projectTrusted": false,
+    "useAppServer": false,
+    "contextId": "ctx_db58e17780981ccde43797f9",
+    "expectedRevision": 1
+  },
+  "registeredRequest": {
+    "codexHome": "/private/tmp/flowhub-settings-regression-jRRmMB/home",
+    "cwd": "/private/tmp/flowhub-settings-regression-jRRmMB/project",
+    "profile": null,
+    "codexPath": "",
+    "discoveryMode": "auto",
+    "projectTrusted": false,
+    "useAppServer": false
+  },
+  "originalPreserved": true,
+  "originalRevision": 1,
+  "newContext": {
+    "hostId": "darwin",
+    "executionLocation": "macos",
+    "codexHome": "/private/tmp/flowhub-settings-regression-jRRmMB/home",
+    "canonicalCwd": "/private/tmp/flowhub-settings-regression-jRRmMB/project",
+    "profile": null,
+    "codexPath": "/private/tmp/flowhub-settings-regression-jRRmMB/automatic/automatic.mjs",
+    "codexVersion": "codex-cli synthetic-automatic",
+    "projectTrusted": false,
+    "useAppServer": false,
+    "discoveryMode": "auto",
+    "revision": 1,
+    "id": "ctx_aaca6627ea8431e428935c87",
+    "createdAt": "2026-10-31T14:57:31.657Z",
+    "catalogScanId": "scan_06c2841c-36fa-4f69-b874-badb54087528"
+  }
+}

@@ -1,0 +1,48 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:codex-local
+> npm run build:server && node scripts/smoke-codex-v2.mjs
+
+
+> mcp-flowhub@2.0.0-alpha.2 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 82 management paths.
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "codexUserAgent": "Codex Desktop/0.164.0-alpha.11.1 (Mac OS 26.6.2; arm64) dumb (flowhub-local-acceptance; 2.0.0-alpha.2)",
+  "stages": [
+    {
+      "stage": "actual_codex_initialize",
+      "status": "PASS"
+    },
+    {
+      "stage": "codex_discovers_21_mcp_tools",
+      "status": "PASS"
+    },
+    {
+      "stage": "actual_codex_uploads_chinese_description",
+      "status": "PASS",
+      "entityId": "cap_acedf54ddccaea52f4aab1cd",
+      "originalName": "local-review-report",
+      "displayName": "本地报告整理",
+      "presentationRevision": 1
+    },
+    {
+      "stage": "codex_mcp_author_test_publish_execute_report",
+      "status": "PASS",
+      "workflowId": "codex-local-smoke",
+      "draftRevision": 2,
+      "suiteId": "suite_8216b3c6-5488-42d9-8288-03714d983c23",
+      "testRunId": "test_a44374a0-c62b-4d14-89c9-d5f1b147cefb",
+      "runId": "run_b589f86a-b475-4d17-9277-1af60bbe5de3",
+      "reportBytes": 1094
+    }
+  ],
+  "modelTurns": 0,
+  "businessServiceCalls": 0,
+  "persistentCodexConfigModified": false,
+  "privateCredentialsCopied": false,
+  "naturalLanguageModelAcceptance": "UNVERIFIED"
+}

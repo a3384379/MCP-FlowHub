@@ -1,0 +1,22 @@
+[
+  {
+    "case": "question_grants_run",
+    "question": "请先不要运行当前流程，等我确认后再运行当前流程",
+    "inferredActions": [],
+    "mode": "help",
+    "offeredWorkflowStart": false,
+    "taskStatus": "FAILED",
+    "actualRunsCreated": 0,
+    "toolReceipts": []
+  },
+  {
+    "case": "inventory_crowds_out_selected_workflow",
+    "registeredConnections": 16,
+    "cachedTools": 960,
+    "truncated": true,
+    "originalBytes": 85824,
+    "selectedWorkflowIdProvided": true,
+    "selectedWorkflowDefinitionProvided": true,
+    "taskStatus": "COMPLETED"
+  }
+]

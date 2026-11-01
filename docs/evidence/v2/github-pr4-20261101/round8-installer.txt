@@ -1,0 +1,20 @@
+✔ offline Windows processes retain OS identity without global tools, credentials or Node injection (0.409333ms)
+✔ noninteractive installer probes receive EOF and preserve Unicode output and process failures (43.684167ms)
+✔ installer ownership preserves data and extra files across upgrade and uninstall (10.95425ms)
+✔ install refuses unrelated directories, changed payloads, and extra-file collisions before replacing files (6.625208ms)
+✔ daemon locks and process-inspection failures block every destructive installer operation (5.088125ms)
+✔ Unicode bridge paths, external Node CLI references and options before serve all block replacement (1.479875ms)
+✔ Windows program paths reject drive roots, UNC and program/data overlap (0.275459ms)
+✔ uninstall rejects marker traversal and directory-link replacements without deleting data (5.712917ms)
+✔ uninstaller does not claim or remove an unowned directory (1.646667ms)
+✔ compiler archive hash and native PE headers reject substitutes (1.582375ms)
+✔ native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds (2.739042ms)
+✔ Linux invocation cannot generate a Windows installer (29.264875ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 145.015625

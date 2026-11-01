@@ -1,0 +1,6 @@
+### Result
+{"viewport":{"left":0,"top":0,"width":130,"height":281.3333435058594},"drawer":{"left":0,"top":0,"width":130,"height":281.328125},"controls":[{"name":"关闭导航","left":65,"top":20,"right":105,"bottom":60},{"name":"系统设置","left":16,"top":136.59375,"right":113,"bottom":196.59375},{"name":"退出登录","left":20,"top":225.328125,"right":109,"bottom":265.328125}]}
+### Ran Playwright code
+```js
+await (async (page) => { const cdp=await page.context().newCDPSession(page); await cdp.send("Emulation.setPageScaleFactor",{pageScaleFactor:3}); await page.getByRole("dialog",{name:"主导航",exact:true}).getByRole("button",{name:"系统设置",exact:true}).scrollIntoViewIfNeeded(); return await page.evaluate(() => { const v=visualViewport; const controls=["关闭导航","系统设置","退出登录"].map(name=>{ const button=Array.from(document.querySelectorAll(".navigation-drawer button")).find(b=>b.getAttribute("aria-label")===name||b.textContent?.trim()===name); const b=button.getBoundingClientRect(); return {name,left:b.left,top:b.top,right:b.right,bottom:b.bottom};}); const r=document.querySelector(".navigation-drawer").getBoundingClientRect();return {viewport:{left:v.offsetLeft,top:v.offsetTop,width:v.width,height:v.height},drawer:{left:r.left,top:r.top,width:r.width,height:r.height},controls}; }); })(page);
+```

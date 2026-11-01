@@ -1,0 +1,70 @@
+[
+  {
+    "case": "explicit-null-is-not-config-only",
+    "codexPath": "/private/tmp/flowhub-audit-discovery-ZMw6FB/bin/codex",
+    "codexVersion": "codex-cli synthetic"
+  },
+  {
+    "case": "legal-module-args-false-credential",
+    "policy": {
+      "credentialArgs": true,
+      "embeddedUrl": false,
+      "unsupported": false,
+      "credentialVariables": [],
+      "requiresCredentials": true
+    },
+    "jobStatus": "PARTIAL",
+    "sourceAvailability": "credentials_required",
+    "calls": 0,
+    "configure": {
+      "code": "CREDENTIAL_IMPORT_UNSUPPORTED"
+    }
+  },
+  {
+    "case": "unchanged-metadata-scan-invalidates-catalog",
+    "before": {
+      "revision": 1,
+      "availability": "ready",
+      "sourceRefs": [
+        {
+          "sourceId": "src_694814910dd0b6307943c586",
+          "revision": 1
+        }
+      ]
+    },
+    "after": {
+      "revision": 2,
+      "availability": "not_checked",
+      "sourceRefs": [
+        {
+          "sourceId": "src_694814910dd0b6307943c586",
+          "revision": 1
+        }
+      ]
+    }
+  },
+  {
+    "case": "schema-drift-keeps-old-connection-catalog",
+    "capabilityRevision": 2,
+    "capabilitySchema": {
+      "type": "object",
+      "properties": {
+        "requiredField": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "requiredField"
+      ],
+      "additionalProperties": false
+    },
+    "connectionSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "oldConnectionId": "conn_cd1ebb61dcd0d9c40d4e745e",
+    "newConnectionId": "conn_cd1ebb61dcd0d9c40d4e745e",
+    "newBindingSourceRevision": 2
+  }
+]

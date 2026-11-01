@@ -1,0 +1,88 @@
+{
+  "scope": "design_examples_only_not_product_tests",
+  "generatedAt": "2026-10-31T03:11:07.042276+00:00",
+  "passed": 20,
+  "failed": 0,
+  "results": [
+    {
+      "name": "schema definition: assistant-event.schema.json",
+      "status": "pass"
+    },
+    {
+      "name": "schema definition: authoring-batch.schema.json",
+      "status": "pass"
+    },
+    {
+      "name": "schema definition: capability.schema.json",
+      "status": "pass"
+    },
+    {
+      "name": "schema definition: test-suite.schema.json",
+      "status": "pass"
+    },
+    {
+      "name": "positive example: capability",
+      "status": "pass"
+    },
+    {
+      "name": "positive example: authoring",
+      "status": "pass"
+    },
+    {
+      "name": "positive example: test suite",
+      "status": "pass"
+    },
+    {
+      "name": "event example 0",
+      "status": "pass"
+    },
+    {
+      "name": "event example 1",
+      "status": "pass"
+    },
+    {
+      "name": "event example 2",
+      "status": "pass"
+    },
+    {
+      "name": "negative: no arbitrary shell operation",
+      "status": "pass"
+    },
+    {
+      "name": "negative: revision must be positive",
+      "status": "pass"
+    },
+    {
+      "name": "negative: capability DTO forbids credential field",
+      "status": "pass"
+    },
+    {
+      "name": "negative: mock fixture cannot relabel itself live",
+      "status": "pass"
+    },
+    {
+      "name": "negative: no new approval node",
+      "status": "pass"
+    },
+    {
+      "name": "tool catalog: one server, 7 legacy + 14 new",
+      "status": "pass"
+    },
+    {
+      "name": "acceptance: 104 distinct not-run cases",
+      "status": "pass"
+    },
+    {
+      "name": "NL eval: 30 distinct not-run scenarios",
+      "status": "pass"
+    },
+    {
+      "name": "all Markdown code fences paired",
+      "status": "pass"
+    },
+    {
+      "name": "offline UI has no external script or stylesheet",
+      "status": "pass"
+    }
+  ]
+}

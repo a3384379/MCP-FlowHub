@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 // This reads only our route declarations. It does not evaluate application code.
-const source = await readFile("packages/admin-api/src/index.ts", "utf8");
+const source = (await Promise.all(["packages/admin-api/src/index.ts", "packages/admin-api/src/v2.ts"].map(p=>readFile(p,"utf8")))).join("\n");
 const declarations = [
   ...source.matchAll(/app\.(get|post|put|patch|delete)\(\s*["']([^"']+)["']/g),
 ];
@@ -9,7 +9,7 @@ for (let i = 0; i < declarations.length; i++) {
   const match = declarations[i],
     method = match[1],
     route = match[2];
-  if (!route.startsWith("/api/v1/")) continue;
+  if (!/^\/api\/v[12]\//.test(route)) continue;
   const code = source.slice(
       match.index,
       declarations[i + 1]?.index ?? source.length,
@@ -92,7 +92,7 @@ const document = {
   openapi: "3.1.0",
   info: {
     title: "MCP FlowHub management API",
-    version: "1.0.0-rc.1",
+    version: JSON.parse(await readFile("package.json","utf8")).version,
     description:
       "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API.",
   },

@@ -5,7 +5,7 @@
 
 - 使用现有 checkout，保留用户修改。云端只用合成数据，不接入企业系统或索要企业凭据。
 - 只有 `flowhub serve` 持有 SQLite 和业务状态。STDIO 薄桥只转发，不启动 daemon、不写数据库。
-- 固定七工具：workflow_search、workflow_get、workflow_start、workflow_advance、workflow_status、workflow_cancel、artifact_read。
+- 单一 MCP Server；原七执行工具保持兼容，2.0 新增十四固定发现/编排/自测工具，总计二十一个，不随工作流数量增长。
 - 新工作流只新增数据；禁止任意工具透传、shell/eval 节点、环境覆盖和模型自行批准。
 - V1 仅串行与互斥分支；仅 WAITING_AGENT 宿主交接；不含人工审批节点或业务内容自动脱敏；生产只读依赖真实服务端权限。
 - 使用官方 SDK v2 协议适配；不自行实现现代/legacy 消息转换；认证失败不触发降级。
@@ -15,3 +15,13 @@
 - Windows 包只能在 Windows 原生构建并测试；Linux 成功不算 Windows 通过。
 - 未执行/失败/阻塞如实记录；不能把 Mock 当真实公司接入，不能把哈希当完整安全认证。
 - 不提交 node_modules、数据库、令牌、.env、企业资料或构建产物；不自动发布。
+
+## 2.0 增量约束（用户于 2026-10-31 明确授权）
+
+先读 docs/upgrade-v2/00_开始阅读.md、docs/upgrade-v2/docs/05_本地Codex升级提示词.md 和完整设计。
+按 S0–S7 增量实施及本地提交，不自动 push、merge 或 Release。保留用户修改与正式库。
+Web/MCP/Assistant 共用 Authoring Service、operation、CAS、幂等及事件；只有 daemon 写数据库。
+发现只读，不安装插件、不执行 hooks；区分 hub_direct/codex_host/informational，不复用 Codex OAuth。
+无模型 Key 不阻塞发现、Codex 编排与确定性 Mock；所有自测使用隔离数据目录。
+冻结 v1 DDL/checksum，以顺序迁移加表；同步备份、恢复、source snapshot 和离线帮助。
+保留业务原值，不恢复审批或业务自动脱敏。实际模型、宿主、Windows 与合成测试证据分别记录。

@@ -1,0 +1,22 @@
+{
+  "head": "5c30751d0022f052d47baad5ea2e732df611cc01",
+  "prRun": 41332510282,
+  "pushRun": 41332504228,
+  "linuxPushFailure": {
+    "job": 124925376100,
+    "ui": "72/73",
+    "file": "tests/ui/v2-discovery-races.spec.ts",
+    "assertion": "Esc draft input not found after reopening"
+  },
+  "windowsPrFailure": {
+    "job": 124925394844,
+    "phase": "doctor tools assertion after real installation and shortcut verification",
+    "actual": 21,
+    "expected": 7
+  },
+  "nativeProbe": {
+    "push": "success",
+    "pr": "success",
+    "unicodeShellLink": "passed"
+  }
+}

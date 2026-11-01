@@ -1,0 +1,62 @@
+[
+  {
+    "case": "run_proposes_cancel",
+    "text": "运行当前流程",
+    "offeredTools": [
+      "workflow_search",
+      "workflow_get",
+      "workflow_start",
+      "workflow_advance",
+      "workflow_status",
+      "workflow_cancel",
+      "artifact_read",
+      "capability_search",
+      "capability_get",
+      "workflow_draft_get",
+      "workflow_test_status",
+      "project_help_search"
+    ],
+    "taskStatus": "COMPLETED",
+    "errorCode": null,
+    "runBefore": "WAITING_AGENT",
+    "runAfter": "CANCELLED",
+    "newRuns": 0,
+    "receipts": [
+      {
+        "name": "workflow_cancel",
+        "status": "COMPLETED",
+        "isError": false
+      }
+    ]
+  },
+  {
+    "case": "cancel_proposes_start",
+    "text": "取消当前运行",
+    "offeredTools": [
+      "workflow_search",
+      "workflow_get",
+      "workflow_start",
+      "workflow_advance",
+      "workflow_status",
+      "workflow_cancel",
+      "artifact_read",
+      "capability_search",
+      "capability_get",
+      "workflow_draft_get",
+      "workflow_test_status",
+      "project_help_search"
+    ],
+    "taskStatus": "COMPLETED",
+    "errorCode": null,
+    "runBefore": "WAITING_AGENT",
+    "runAfter": "WAITING_AGENT",
+    "newRuns": 1,
+    "receipts": [
+      {
+        "name": "workflow_start",
+        "status": "COMPLETED",
+        "isError": false
+      }
+    ]
+  }
+]

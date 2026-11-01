@@ -32,10 +32,12 @@ ShowUninstDetails show
 Var MutexHandle
 Var HelperResult
 Var HelperOutput
+Var HelperLog
 
 !macro InstallerInit PREFIX
 Function ${PREFIX}.onInit
   SetShellVarContext current
+  ReadEnvStr $HelperLog "FLOWHUB_INSTALLER_DIAGNOSTICS"
   ${IfNot} ${RunningX64}
     MessageBox MB_OK|MB_ICONSTOP "FlowHub requires native Windows x64." /SD IDOK
     SetErrorLevel 21
@@ -68,6 +70,11 @@ FunctionEnd
   Pop $HelperResult
   Pop $HelperOutput
   DetailPrint "$HelperOutput"
+  ${If} $HelperLog != ""
+    FileOpen $9 "$HelperLog" a
+    FileWrite $9 "$HelperResult: $HelperOutput$\r$\n"
+    FileClose $9
+  ${EndIf}
   ${If} $HelperResult != 0
     MessageBox MB_OK|MB_ICONSTOP "$HelperOutput$\r$\nInstallation stopped. Stop FlowHub before retrying; user data is retained." /SD IDOK
     ${If} $HelperResult == 20
@@ -92,7 +99,7 @@ Section "MCP FlowHub (offline)" SEC_MAIN
   File /oname=node.exe "${FLOWHUB_BUNDLE}\runtime\node.exe"
   File /oname=install-helper.mjs "${FLOWHUB_HELPER}"
   File /oname=payload-manifest.json "${FLOWHUB_MANIFEST}"
-  nsExec::ExecToStack /TIMEOUT=60000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
+  nsExec::ExecToStack /TIMEOUT=90000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
   !insertmacro CheckHelper
   SetOutPath "$PLUGINSDIR\payload"
   File /r "${FLOWHUB_BUNDLE}\*"

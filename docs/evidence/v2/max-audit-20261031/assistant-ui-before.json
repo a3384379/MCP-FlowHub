@@ -1,0 +1,52 @@
+{
+  "commit": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "results": [
+    {
+      "case": "late_A_receipt_erases_B_pending",
+      "pendingBeforeLateA": 1,
+      "pendingAfterLateA": 0,
+      "sendEnabledWhileBNotAccepted": true,
+      "originalRetryButtonCount": 0,
+      "BRequestCount": 2,
+      "sameBText": true,
+      "sameIdempotencyKey": false,
+      "draftsBeforeRetry": 1,
+      "draftsAfterRetry": 2
+    },
+    {
+      "case": "continue_old_turn_uses_newer_turns",
+      "clickedTurn": "cancelled A",
+      "receivedPreviousResults": [
+        {
+          "status": "COMPLETED",
+          "errorCode": null,
+          "partialText": "后续 B 的正文",
+          "tools": []
+        },
+        {
+          "status": "COMPLETED",
+          "errorCode": null,
+          "partialText": "后续 C 的正文",
+          "tools": []
+        }
+      ],
+      "containsSelectedAPartial": false,
+      "containsLaterB": true,
+      "containsLaterC": true
+    },
+    {
+      "case": "readonly_receipt_shows_saved_draft_revision",
+      "taskMode": "help",
+      "requestedActions": [],
+      "tools": [
+        {
+          "name": "workflow_status",
+          "revision": 3
+        }
+      ],
+      "draftRevisionBefore": 2,
+      "draftRevisionAfter": 2,
+      "displayedActions": "查看改动\n已保存 r3"
+    }
+  ]
+}

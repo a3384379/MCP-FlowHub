@@ -1,0 +1,10 @@
+✔ max intent: unmet future conditions never grant present execution; independent draft creation and current commands remain allowed (8.762542ms)
+✔ max intent: provider-proposed starts after future conditions create zero real runs and a requested draft can still be saved (241.643417ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 410.8665

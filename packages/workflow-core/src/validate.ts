@@ -3,6 +3,7 @@ import {
   workflowSchema,
   ensure,
   parts,
+  pointersOverlap,
   hash,
   get,
   HubError,
@@ -11,13 +12,14 @@ import {
 } from "../../contracts/src/domain.js";
 import {
   assertSafeSchemaPatterns,
+  assertSafeNativeObjectSchema,
   walkSchema,
 } from "../../contracts/src/schema-safety.js";
 import { schemaAt, assertAssignable, validateMappedLiteral } from "./mapping-schema.js";
 import { protectDiagnostic } from "../../security/src/diagnostics.js";
 import { queryScopes } from "./query-scope.js";
-const overlap = (a: string, b: string) =>
-  a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
+import { mcpOutputSchema } from "../../contracts/src/mcp-output-schema.js";
+const overlap = pointersOverlap;
 const encodePointer = (key: string) => key.replaceAll("~", "~0").replaceAll("/", "~1");
 type WorkflowIssue = { code: string; message: string; nodeId: string; path: string };
 
@@ -57,6 +59,11 @@ export function assertObjectPayloadSchema(root: Json) {
   ensure(possible(root).has("object"), "SCHEMA_INVALID",
     "Workflow data schema must support a structured object payload.");
 }
+export function validateWorkflowDocument(w: Workflow) {
+  if(w?.schemaVersion==="flowhub.workflow/v2"&&Array.isArray(w.nodes))for(const node of w.nodes)
+    if(node?.type==="agent_task"&&node.config?.kind==="host_tool")assertSafeNativeObjectSchema(node.config.outputSchema);
+  validate(workflowSchema,w);
+}
 export function validateWorkflow(
   w: Workflow,
   bindings: Json[],
@@ -67,7 +74,7 @@ export function validateWorkflow(
     "BUDGET_EXCEEDED",
     "Workflow exceeds 512 KiB.",
   );
-  validate(workflowSchema, w);
+  validateWorkflowDocument(w);
   for (const [key, bindingId] of Object.entries(w.bindings)) {
     const binding = bindings.find((item) => item.id === bindingId);
     if (!(binding && binding.environment === w.environment &&
@@ -157,9 +164,9 @@ export function validateWorkflow(
     if (n.type === "condition") return { type: "boolean" };
     if (n.type === "mcp_tool") {
       const b = bindings.find((b) => b.id === w.bindings[n.config.bindingKey]);
-      return connections
+      return mcpOutputSchema(connections
         .find((c) => c.id === b?.connectionId)
-        ?.tools?.find((t: Json) => t.name === n.config.toolName)?.outputSchema;
+        ?.tools?.find((t: Json) => t.name === n.config.toolName)?.outputSchema, n.config.resultAdapterRef);
     }
     return n.config.outputSchema;
   };
@@ -227,7 +234,8 @@ export function validateWorkflow(
       }
     if (n.config.outputSchema) {
       issuePath = nodePath + "/outputSchema";
-      safeSchema(n.config.outputSchema);
+      if(w.schemaVersion==="flowhub.workflow/v2"&&n.type==="agent_task"&&n.config.kind==="host_tool")assertSafeNativeObjectSchema(n.config.outputSchema);
+      else safeSchema(n.config.outputSchema);
       if (n.type === "agent_task") assertObjectPayloadSchema(n.config.outputSchema);
     }
     if (n.type === "report_template")
@@ -320,8 +328,15 @@ export function validateWorkflow(
           "Mapping overrides locked fields.",
         );
       }
+      if (n.config.rowLimitArgument) {
+        issuePath = nodePath + "/rowLimitArgument";
+        ensure(!Object.keys(b.lockedArguments).some(locked => overlap(n.config.rowLimitArgument, locked)),
+          "ENVIRONMENT_OVERRIDE_DENIED", "Native row limit overlaps locked resource arguments.");
+        const definition = schemaAt(tool.inputSchema, n.config.rowLimitArgument);
+        ensure(["integer", "number"].includes(definition.type), "LIMIT_UNSUPPORTED", "The declared native row-limit argument is not numeric.");
+      }
       // Check source/target types and mandatory downstream parameters.
-      const supplied = [...Object.keys(n.config.argumentsMappings), ...Object.keys(b.lockedArguments)];
+      const supplied = [...Object.keys(n.config.argumentsMappings), ...Object.keys(b.lockedArguments), ...(n.config.rowLimitArgument ? [n.config.rowLimitArgument] : [])];
       for (const [key, expr] of Object.entries(n.config.argumentsMappings) as [
         string,
         Json,

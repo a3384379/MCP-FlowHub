@@ -1,0 +1,21 @@
+FlowHub ready on 127.0.0.1:18473 (loopback only).
+node:events:487
+      throw er; // Unhandled 'error' event
+      ^
+
+Error [ERR_STREAM_WRITE_AFTER_END]: write after end
+    at write_ (node:_http_outgoing:952:11)
+    at ServerResponse.write (node:_http_outgoing:901:15)
+    at Timeout.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/admin-api/src/index.js:666:23)
+    at listOnTimeout (node:internal/timers:635:17)
+    at process.processTimers (node:internal/timers:571:7)
+Emitted 'error' event on ServerResponse instance at:
+    at emitErrorNt (node:_http_outgoing:924:9)
+    at processTicksAndRejections (node:internal/process/task_queues:91:21)
+    at runNextTicks (node:internal/process/task_queues:69:3)
+    at listOnTimeout (node:internal/timers:597:9)
+    at process.processTimers (node:internal/timers:571:7) {
+  code: 'ERR_STREAM_WRITE_AFTER_END'
+}
+
+Node.js v24.19.0

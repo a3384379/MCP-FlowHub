@@ -1,0 +1,11 @@
+
+Running 4 tests using 1 worker
+
+(node:10107) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:140:1 › clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately (1.4s)
+  ✓  2 ../../../Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:172:1 › clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path (656ms)
+  ✓  3 ../../../Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:237:1 › description and credential fields remain locked while their save HTTP requests are pending (1.3s)
+  ✓  4 ../../../Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:281:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh (1.0s)
+
+  4 passed (4.9s)

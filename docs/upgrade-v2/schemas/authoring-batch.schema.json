@@ -1,0 +1,454 @@
+{
+  "type": "object",
+  "properties": {
+    "workflowId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expectedRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "add_node"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nodeType": {
+                "enum": [
+                  "mcp_tool",
+                  "agent_task",
+                  "condition",
+                  "report_template"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "config": {
+                "type": "object"
+              },
+              "capabilityRef": {
+                "type": "object",
+                "properties": {
+                  "capabilityId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "capabilityId",
+                  "revision"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "nodeType",
+              "title",
+              "config"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "remove_node"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cascade": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "cascade"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "update_node"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "changes": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "config": {
+                    "type": "object"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "changes"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "connect"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1
+              },
+              "port": {
+                "enum": [
+                  "next",
+                  "true",
+                  "false"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "source",
+              "target",
+              "port"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "disconnect"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1
+              },
+              "port": {
+                "enum": [
+                  "next",
+                  "true",
+                  "false"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "source",
+              "target",
+              "port"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_mapping"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "section": {
+                "enum": [
+                  "argumentsMappings",
+                  "inputMappings"
+                ]
+              },
+              "destination": {
+                "type": "string",
+                "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+              },
+              "expression": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {}
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "ref": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "enum": [
+                              "input",
+                              "node"
+                            ]
+                          },
+                          "pointer": {
+                            "type": "string",
+                            "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                          },
+                          "nodeId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "source",
+                          "pointer"
+                        ],
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "source": {
+                                  "const": "node"
+                                }
+                              }
+                            },
+                            "then": {
+                              "required": [
+                                "nodeId"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "ref"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "section",
+              "destination",
+              "expression"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_binding"
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bindingId": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "op",
+              "key",
+              "bindingId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_input_schema"
+              },
+              "schema": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "schema"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_output_schema"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "schema": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "schema"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_condition"
+              },
+              "nodeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expression": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "expression"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "set_metadata"
+              },
+              "changes": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "uniqueItems": true
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "op",
+              "changes"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "move_nodes"
+              },
+              "positions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nodeId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "nodeId",
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "expectedLayoutRevision": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "op",
+              "positions",
+              "expectedLayoutRevision"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "workflowId",
+    "expectedRevision",
+    "idempotencyKey",
+    "operations"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlowHub 2.0 Authoring batch design contract",
+  "$comment": "config/expression dynamic semantics require runtime node-specific schema and graph validation; this contract alone does not prove executable workflow."
+}

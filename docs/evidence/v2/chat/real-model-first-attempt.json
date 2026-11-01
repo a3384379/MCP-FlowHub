@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-31",
+  "model": "gpt-6-luna",
+  "provider": "openai_responses",
+  "scope": "isolated in-memory database; only synthetic workflow and conversation; encrypted model credential reused from validated local backup",
+  "turns": [
+    {
+      "question": "当前 MCP 有哪些？请直接根据运行时目录回答，并区分未扫描与零工具。",
+      "status": "COMPLETED",
+      "errorCode": null,
+      "answer": "当前运行时目录显示：\n\n- **已注册的 MCP 连接：0 个**\n- **工具目录：未扫描**（`not_scanned`），因此**当前可发现的 MCP 工具数未知**；不能把缓存计数为 0 当作已确认“零工具”。\n- **Skills 也尚未扫描**，数量未知。\n\n要确认可用目录，请到 **发现页**启动扫描。只读发现不会修改源配置。",
+      "tools": [],
+      "historyMessages": 1,
+      "rounds": 1
+    },
+    {
+      "question": "刚才说尚未扫描，这会修改 Codex 原配置吗？",
+      "status": "FAILED",
+      "errorCode": "MODEL_STREAM_INTERRUPTED",
+      "answer": null,
+      "tools": [],
+      "historyMessages": 3,
+      "rounds": 1
+    }
+  ],
+  "runs": 0,
+  "versions": 0,
+  "finalWorkflow": {
+    "name": "聊天验收合成流程",
+    "revision": 1,
+    "nodes": 2
+  },
+  "passed": false
+}

@@ -1,0 +1,144 @@
+[
+  {
+    "case": "mouse_drag_left_keeps_closed",
+    "passed": true,
+    "actual": [
+      "left",
+      true
+    ],
+    "expected": [
+      "left",
+      true
+    ]
+  },
+  {
+    "case": "dock_left",
+    "passed": true,
+    "actual": [
+      0,
+      22
+    ],
+    "expected": [
+      0,
+      22
+    ]
+  },
+  {
+    "case": "touch_drag_right_keeps_docked_and_closed",
+    "passed": true,
+    "actual": [
+      "right",
+      true,
+      true
+    ],
+    "expected": [
+      "right",
+      true,
+      true
+    ]
+  },
+  {
+    "case": "pointercancel_restores_preferences",
+    "passed": true,
+    "actual": {
+      "side": "right",
+      "ratio": 0.4527363184079602,
+      "docked": true
+    },
+    "expected": {
+      "side": "right",
+      "ratio": 0.4527363184079602,
+      "docked": true
+    }
+  },
+  {
+    "case": "keyboard_moves_and_docks",
+    "passed": true,
+    "actual": [
+      true,
+      "left",
+      true,
+      true
+    ],
+    "expected": [
+      true,
+      "left",
+      true,
+      true
+    ]
+  },
+  {
+    "case": "keyboard_open_preserves_input_and_session",
+    "passed": true,
+    "actual": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ],
+    "expected": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ]
+  },
+  {
+    "case": "internal_route_preserves_input_and_session",
+    "passed": true,
+    "actual": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ],
+    "expected": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ]
+  },
+  {
+    "case": "history_switch_restores_each_unsent_draft",
+    "passed": true,
+    "actual": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ],
+    "expected": [
+      "  跨页与会话的未发送输入\n合成边界  ",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ]
+  },
+  {
+    "case": "legacy_assistant_reuses_selected_session",
+    "passed": true,
+    "actual": [
+      "/workflows",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ],
+    "expected": [
+      "/workflows",
+      "session_5e2cca69-86bb-4f6d-9ab0-442fe919c3a9"
+    ]
+  },
+  {
+    "case": "reload_preserves_placement",
+    "passed": true,
+    "actual": {
+      "side": "left",
+      "ratio": 0.4027363184079602,
+      "docked": true
+    },
+    "expected": {
+      "side": "left",
+      "ratio": 0.4027363184079602,
+      "docked": true
+    }
+  },
+  {
+    "case": "closed_launcher_remains_in_320x300",
+    "passed": true,
+    "actual": true,
+    "expected": true
+  },
+  {
+    "case": "movement_route_and_sessions_call_no_models",
+    "passed": true,
+    "actual": 0,
+    "expected": 0
+  }
+]

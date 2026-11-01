@@ -1,0 +1,179 @@
+{
+  "scope": "第二轮max只读复审；当前未提交修复树，使用已有dist、不build、不修改仓库、不触碰真实配置/服务/凭据",
+  "reproducer": "/tmp/flowhub-discovery-reaudit-repro.mjs",
+  "evidence": "/tmp/flowhub-discovery-reaudit-evidence.json",
+  "findings": [
+    {
+      "id": "DISC-R01",
+      "priority": "P1",
+      "original": "DISC-A01 partially open",
+      "title": "Schema漂移后新能力仍复用旧连接目录",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 177,
+          "end": 178
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 223,
+          "end": 230
+        }
+      ],
+      "trigger": "首次catalog+import后，只改变同一工具inputSchema，配置/endpoint不变；再次catalog得到cap r2，再导入r2。",
+      "observed": "新的cap inputSchema要求requiredField，但返回同一connectionId；connections.tools[0].inputSchema仍旧空object，新binding.sourceCapabilityRevision却为2。",
+      "impact": "导入回执混合新能力修订与旧连接schema，新增/修复后的工作流仍不能按当前schema发布/执行；配置漂移那条修好了，目录漂移未修。",
+      "minimal_fix": "将执行catalog/schema指纹纳入连接版本/身份，或以CAS升级连接并失效旧绑定；确保旧发布快照有可解释的漂移处理，禁止直接跳过新discover结果。",
+      "tests": [
+        "旧连接存在时同工具input/output schema漂移",
+        "仅description变化按契约分别处理",
+        "新binding引用的connection工具hash须等于cap工具hash"
+      ],
+      "evidence_case": "schema-drift-keeps-old-connection-catalog"
+    },
+    {
+      "id": "DISC-R02",
+      "priority": "P2",
+      "title": "元数据刷新无语义变化却失效已发现能力和修订",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 141,
+          "end": 144
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-authoring/src/index.ts",
+          "start": 34,
+          "end": 38
+        }
+      ],
+      "trigger": "完成一次catalog得到ready r1；配置和工具不变，执行默认metadata刷新。",
+      "observed": "cap r1 ready变为r2 not_checked，sourceRefs修订仍r1。",
+      "impact": "默认“重新扫描”使已编排节点CAPABILITY_STALE并使模拟测试过期，且UI禁用导入；违背CAP08仅扫描时间变化不递增语义修订。",
+      "minimal_fix": "metadata刷新在source指纹/启用策略/上下文未改变时保留最近catalog契约和语义修订；本次未进行连接检测单独用scan观测字段表达。真实来源变化才使能力失效。",
+      "tests": [
+        "catalog→相同metadata→catalog全程cap revision稳定",
+        "已有草稿及自测快照未被metadata-only失效",
+        "禁用或源指纹真实改变仍立刻失效"
+      ],
+      "evidence_case": "unchanged-metadata-scan-invalidates-catalog"
+    },
+    {
+      "id": "DISC-R03",
+      "priority": "P2",
+      "title": "显式配置模式与手动Codex路径入口缺失",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 50,
+          "end": 56
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 9,
+          "end": 10
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 28,
+          "end": 28
+        }
+      ],
+      "trigger": "在隔离PATH放合成codex可执行；调用createContext({codexHome:synthetic,cwd:synthetic,codexPath:null})。",
+      "observed": "仍定位PATH中的fake codex并执行--version，context.codexPath为真实合成路径，codexVersion=codex-cli synthetic。UI既没有codexPath输入，也没有仅导入配置选项。",
+      "impact": "方案3.1的P0路径未交付：有PATH Codex时无法主动选择不运行CLI的配置扫描；PATH外可执行也无法经UI选择。这里P0指设计范围，缺陷紧急度为P2。",
+      "minimal_fix": "用Object.hasOwn区分未提供codexPath与显式null；增加明确discoveryMode/config_only，并让UI支持选择可执行路径或仅配置；配置模式不得启动CLI/AppServer。",
+      "tests": [
+        "PATH存在时显式null不执行fake codex（记录调用标记断言）",
+        "UI手动路径选择成功",
+        "config_only持久化和再次进入保持选择"
+      ],
+      "evidence_case": "explicit-null-is-not-config-only"
+    },
+    {
+      "id": "DISC-R04",
+      "priority": "P2",
+      "title": "保守参数策略误把合法模块启动当凭据且无解除路径",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 27,
+          "end": 40
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 49,
+          "end": 49
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 220,
+          "end": 220
+        }
+      ],
+      "trigger": "合法STDIO启动形态command=/synthetic/python3,args=[-m,synthetic_mcp]；同类uvx --from也落相同路径。",
+      "observed": "sourcePolicy返回credentialArgs=true、unsupported=false、requiresCredentials=true、变量列表为空；catalog不调用discover，展示credentials_required；本地configureSource无论如何都报CREDENTIAL_IMPORT_UNSUPPORTED。",
+      "impact": "无凭据的常见已安装MCP无法自动同步/导入；UI指向无法完成的“配置连接凭据”。不应为修复此项放开秘密参数检测。",
+      "minimal_fix": "把未知参数unsupportedArgs与已识别credentialArgs分开，显示真实unsupported原因；为明确支持的Python/Node/uvx/npx等launcher建立受限版本适配，支持无敏感语义的合法参数；未知方言保留安全拒绝并指向可用的本地手工连接配置。",
+      "tests": [
+        "Python -m/-u、uvx --from、npx --package等无凭据夹具",
+        "--client-secret/-H/带userinfo URL仍无明文持久化",
+        "unsupported状态与用户下一步可以实际完成"
+      ],
+      "evidence_case": "legal-module-args-false-credential"
+    }
+  ],
+  "original_findings_status": [
+    {
+      "id": "DISC-A01",
+      "status": "partial",
+      "reason": "配置指纹变化已换连接；Schema漂移仍R01。"
+    },
+    {
+      "id": "DISC-A02",
+      "status": "closed_by_source_review_and_existing_isolated_regression",
+      "reason": "每context generation、context revision与每次写前check阻止旧扫描覆盖；测试包含逆序完成。"
+    },
+    {
+      "id": "DISC-A03",
+      "status": "closed_by_source_review_and_existing_isolated_regression",
+      "reason": "禁用向cap传播，import核enabled/source stale/source revision；metadata刷新另见R02。"
+    },
+    {
+      "id": "DISC-A04",
+      "status": "closed_by_source_review_and_existing_isolated_regression",
+      "reason": "normalizedServer保留enabled/disabled工具，toolEnabled用于展示/导入/connection保存。"
+    },
+    {
+      "id": "DISC-A05",
+      "status": "closed_for_reported_credential_variants",
+      "reason": "client-secret/header/URL等报告变体被拒绝，未知方言保守拒绝造成R04。未声称任意位置秘密均可自动识别。"
+    },
+    {
+      "id": "DISC-A06",
+      "status": "closed_by_source_review_and_existing_isolated_regression",
+      "reason": "先命令replay，导入singleflight；同请求重放无需源/网络。"
+    },
+    {
+      "id": "DISC-A07",
+      "status": "closed_by_source_review_and_existing_isolated_regression",
+      "reason": "scan总deadline、source deadline、四worker、AbortController、connector disposal/10s默认deadline已加。SDK首调自动聚合仍存在，但现在signal覆盖全程。"
+    },
+    {
+      "id": "DISC-A08",
+      "status": "closed_for_reported_enablement_case",
+      "reason": "skills.config与AppServer disabled状态均校正，target导入查enabled。"
+    },
+    {
+      "id": "DISC-A09",
+      "status": "closed_for_reported_self_alias_case",
+      "reason": "daemon传真实endpoint/instanceId；静态规范化匹配与协议serverInfo检查。"
+    }
+  ],
+  "additional_review": {
+    "sql_pagination": "已用SQL过滤/摘要投影/LIMIT与keyset；snapshot仍SQL group_concat整个匹配目录的轻量id/revision/stale，不再把完整Schema送JS。原200/1000基准存在；本轮未重跑全套。",
+    "provenance": "sourceChain和插件组件父关系已加；静态层仍partial，真实Codex版本/Profile/安装索引格式未实机验证。",
+    "abort": "已审closeDiscovery等待disposals，registry停止新工作并abort scan；真实慢页关闭测试在新增20项中存在，父代理报告已20/20，本轮未重复全套。"
+  },
+  "verification": "本轮独立执行4项隔离复现并保存原始JSON；无实际模型、真实宿主、真实MCP或Windows验收。"
+}

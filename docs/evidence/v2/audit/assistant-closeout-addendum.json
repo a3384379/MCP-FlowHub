@@ -1,0 +1,154 @@
+{
+  "audit": "MCP FlowHub 2.0 assistant bounded final closeout addendum",
+  "generatedAt": "2026-10-31T06:48:50.235748+00:00",
+  "repo": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "baseHead": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "baseReport": "/tmp/flowhub-assistant-closeout.json",
+  "scope": "仅补充复核A08、R04中央浏览器证据及明确新增KB-R01；没有扩张新功能或新审计面。",
+  "repositoryModifiedByAuditor": false,
+  "buildPerformedByAuditor": false,
+  "testsExecutedByAuditorThisAddendum": false,
+  "summary": {
+    "original14Closed": true,
+    "originalIDsClosed": 14,
+    "independentlySyntheticVerifiedPreviously": 12,
+    "sourceAndRootBrowserLogVerified": 2,
+    "originalOpenP1": 0,
+    "originalOpenP2": 0,
+    "newKBStatus": "SOURCE_FIXED_DYNAMIC_VERIFICATION_PENDING"
+  },
+  "updates": [
+    {
+      "id": "ASST-A08",
+      "priority": "P2",
+      "previousStatus": "PARTIALLY_CLOSED_PENDING_EXISTING_UI_RACE_FIX",
+      "status": "CLOSED_SOURCE_AND_ROOT_BROWSER_EVIDENCE_VERIFIED",
+      "sourceEvidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/workflows/RunAnalysisControl.tsx",
+          "lineStart": 5,
+          "lineEnd": 23,
+          "sha256": "af786c1d02a88aab77162190548a46d13571ca65b2865a9d20cec9948bf4b6af"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-audit.spec.ts",
+          "lineStart": 89,
+          "lineEnd": 112,
+          "sha256": "62940d17ab4ae472cb69dbf97ff5ab6d1940915f6478e56190379a93dbc7e216"
+        }
+      ],
+      "analysis": [
+        "current()同时校验mounted、epoch、runId/checkpointId scope和taskId；scopeRef在render更新，避免effect重置前的短窗口。",
+        "refresh()为每个GET取得statusRequest序号，响应只有序号和当前scope/task同时匹配才adopt；adopt、取消开始和unmount都会使旧GET失效。",
+        "submit acceptance、status refresh和cancel响应均复核generation/scope/task；checkpoint改变时reset同步taskRef，旧COMPLETED无法恢复成当前任务。"
+      ],
+      "browserEvidence": {
+        "file": "/tmp/flowhub-v2-audit-ui-targeted.log",
+        "line": 9,
+        "test": "late analysis status and cancel receipts cannot disable the next checkpoint",
+        "result": "PASSED",
+        "duration": "2.3s",
+        "verification": "已实际读取中央日志并审阅精确浏览器测试源码；本补充审计没有自行重跑浏览器。",
+        "behavior": "测试捕获真实旧task的COMPLETED status/cancel响应，延迟到second checkpoint后依次释放；按钮保持可用且旧task不再展示；第二次分析最终SUCCEEDED、provider总调用2次。"
+      }
+    },
+    {
+      "id": "ASST-R04",
+      "priority": "P2",
+      "previousStatus": "SOURCE_FIXED_CURRENT_BROWSER_RESULT_PENDING_ROOT",
+      "status": "CLOSED_SOURCE_AND_ROOT_BROWSER_EVIDENCE_VERIFIED",
+      "sourceEvidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lineStart": 8,
+          "lineEnd": 53,
+          "sha256": "e519ac4de8ba40c86071164df72b51e9394525dda4c23d3c7478ace53c17fc41"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-audit.spec.ts",
+          "lineStart": 52,
+          "lineEnd": 72,
+          "sha256": "62940d17ab4ae472cb69dbf97ff5ab6d1940915f6478e56190379a93dbc7e216"
+        }
+      ],
+      "browserEvidence": {
+        "file": "/tmp/flowhub-v2-audit-ui-final.log",
+        "line": 40,
+        "test": "new submission hides previous completion and receipts while delayed old status and acceptance cannot replace another session",
+        "result": "PASSED",
+        "duration": "875ms",
+        "verification": "已实际读取中央日志；本补充审计没有自行重跑。"
+      },
+      "analysis": [
+        "原源码关闭判断保持；精确浏览器回归通过补齐了上轮唯一尚未取得的R04动态证据。"
+      ]
+    },
+    {
+      "id": "KB-R01",
+      "status": "SOURCE_FIXED_DYNAMIC_VERIFICATION_PENDING",
+      "scope": "仅核本次明确新增的旧citation在rebuild复用chunkID后丢失stale问题。",
+      "sourceEvidence": [
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/project-knowledge/src/index.ts",
+          "lineStart": 13,
+          "lineEnd": 55,
+          "sha256": "1603b0801fc67eaacf10ebd90dd2e2f65bca6b075e56331460694c032ff4cfde"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lineStart": 19,
+          "lineEnd": 19,
+          "sha256": "e519ac4de8ba40c86071164df72b51e9394525dda4c23d3c7478ace53c17fc41"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx",
+          "lineStart": 68,
+          "lineEnd": 75,
+          "sha256": "e519ac4de8ba40c86071164df72b51e9394525dda4c23d3c7478ace53c17fc41"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/admin-api/src/v2.ts",
+          "lineStart": 68,
+          "lineEnd": 68,
+          "sha256": "f15d4edbb99f0141023e1ff3a71f62ed42044cd6ca04f03c26f85af552af930b"
+        },
+        {
+          "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-audit.spec.ts",
+          "lineStart": 114,
+          "lineEnd": 126,
+          "sha256": "62940d17ab4ae472cb69dbf97ff5ab6d1940915f6478e56190379a93dbc7e216"
+        }
+      ],
+      "analysis": [
+        "source()接收读者保存的原contentHash、lineStart、lineEnd，并验证64位十六进制hash及正整数有界行范围；任一citation字段存在时必须三者齐全合法。",
+        "source()读取原行范围并将当前实际hash与传入原hash比较，rebuild覆盖当前chunk记录不会覆盖传入的引用身份，因此旧citation仍会stale=true。",
+        "root仅为ProjectKnowledge构造参数，生产默认projectRoot；HTTP查询只用于chunkId及citation元数据，读取路径来自内部知识索引chunk.sourcePath，调用方不能指定任意sourcePath。",
+        "AssistantPanel点击已保存citation时传入原chunkId、contentHash和行范围，打开资料显示原引用范围及stale提示。",
+        "新UI精确回归源码已存在：模拟历史引用hash，核对请求元数据并等待真实source viewer过期提示。"
+      ],
+      "verificationBoundary": "仅完成本轮源码链路复核；未运行新KB测试，未声称新测试通过。中央统一build后的engine/UI动态结果由root补充。"
+    }
+  ],
+  "original14EffectiveStatuses": {
+    "ASST-A01": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A02": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A03": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A04": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A05": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A06": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A07": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-A08": "CLOSED_SOURCE_AND_ROOT_BROWSER_EVIDENCE_VERIFIED",
+    "ASST-A09": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-R01": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-R02": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-R03": "CLOSED_SYNTHETIC_VERIFIED",
+    "ASST-R04": "CLOSED_SOURCE_AND_ROOT_BROWSER_EVIDENCE_VERIFIED",
+    "ASST-R05": "CLOSED_SYNTHETIC_VERIFIED"
+  },
+  "evidenceCaveats": [
+    "只引用日志中精确单项结果；/tmp/flowhub-v2-audit-ui-final.log整体为27 passed/3 failed，/tmp/flowhub-v2-audit-ui-targeted.log整体为3 passed/1 failed，均不能据此声称整个UI套件通过。",
+    "其他失败项修复和最终全套重跑由root负责，不在本补充审计范围。",
+    "上轮独立17/17测试及原复现证据保留；本轮没有重复构建、测试或写入仓库。",
+    "未访问真实模型、正式数据、公司MCP或Windows环境；本结论保留原报告的外部验收边界。"
+  ]
+}

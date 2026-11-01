@@ -1,0 +1,11 @@
+{
+  "scope": "real built UI, real daemon and official MCP Client; synthetic isolated Codex/MCP fixture only",
+  "errors": [],
+  "consoleErrors": [],
+  "mobileHorizontalOverflow": false,
+  "modelCalls": 0,
+  "businessToolCalls": 0,
+  "images": 8,
+  "codeHead": "02017ad",
+  "screenshotsUseSyntheticData": true
+}

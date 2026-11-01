@@ -1,0 +1,622 @@
+{
+  "date": "2026-10-31T06:44:38.437Z",
+  "repository": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "head": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "auditedState": "Current uncommitted repair tree plus centrally built dist 2.0.0-alpha.2; this auditor did not build or commit.",
+  "os": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "node": "v24.19.0"
+  },
+  "scope": "Final read-only closeout of existing discovery audit IDs; no feature expansion, repository edits, real user home/DB/MCP or model use.",
+  "summary": {
+    "original": 9,
+    "reaudit": 4,
+    "closedForReportedCase": 13,
+    "openReportedFindings": 0,
+    "openP1": 0
+  },
+  "findings": [],
+  "original_and_reaudit_status": [
+    {
+      "id": "DISC-A01",
+      "priority": "P1",
+      "title": "源连接变更后新导入仍复用旧地址和旧身份",
+      "status": "closed_for_reported_case",
+      "reason": "源配置、身份引用及实际过滤后 catalogFingerprint 进入不可变连接身份；新 Schema 导入与能力版本一致，旧连接/绑定不被改写。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 230,
+          "end": 249
+        }
+      ],
+      "tests": [
+        "current source revision gets a new connection; successful replay is independent of source and network",
+        "schema-only and description-only catalog drift create immutable connections with matching contracts"
+      ],
+      "observations": [
+        "schema-drift-keeps-old-connection-catalog",
+        "immutable-schema-drift-and-identical-catalog-reuse"
+      ]
+    },
+    {
+      "id": "DISC-A02",
+      "priority": "P1",
+      "title": "同上下文旧扫描能覆盖新扫描并把新能力标失效",
+      "status": "closed_for_reported_case",
+      "reason": "每上下文 scan generation 与 context revision 在后续写前核对；旧扫描逆序完成被 SCAN_SUPERSEDED 拒绝，context 变化被 CONTEXT_CHANGED 拒绝。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 78,
+          "end": 79
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 94,
+          "end": 111
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 139,
+          "end": 157
+        }
+      ],
+      "tests": [
+        "older scans and context drift cannot overwrite newer current catalog"
+      ]
+    },
+    {
+      "id": "DISC-A03",
+      "priority": "P1",
+      "title": "禁用来源后旧能力仍ready且导入会重新启动已禁用MCP",
+      "status": "closed_for_reported_case",
+      "reason": "disabled 与 source/tool policy 传播至能力；新导入查 capability/source enabled/stale/revision 并重读源，拒绝后无 downstream 连接。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 150,
+          "end": 153
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 222,
+          "end": 232
+        }
+      ],
+      "tests": [
+        "source and tool disables invalidate old catalog and never reconnect during import"
+      ]
+    },
+    {
+      "id": "DISC-A04",
+      "priority": "P1",
+      "title": "Codex工具allowlist/denylist被丢弃或未执行",
+      "status": "closed_for_reported_case",
+      "reason": "CLI normalizedServer 保留 allow/deny 字段，插件 per-server 覆盖参与有效配置；发现展示、重新导入及存储连接工具集均执行 toolEnabled。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 20,
+          "end": 26
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 164,
+          "end": 166
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 142,
+          "end": 146
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 232,
+          "end": 242
+        }
+      ],
+      "tests": [
+        "skill enablement, plugin server overrides and CLI allow/deny policy are effective",
+        "plugin per-server deny rules and custom Skill/app components preserve installed provenance",
+        "source and tool disables invalidate old catalog and never reconnect during import"
+      ]
+    },
+    {
+      "id": "DISC-A05",
+      "priority": "P1",
+      "title": "不匹配有限正则的命令行凭据明文复制入connections",
+      "status": "closed_for_reported_case",
+      "reason": "已报告 client-secret/client_secret/access-token/token、Authorization header、URL userinfo/query 等认证变体保持 metadata-only；认证内容未进入普通表，未知 flag 为 unsupported 且不会导入。该结论限于已报告认证位置与显式支持的启动方言，不宣称可识别任意字符串中的秘密。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 28,
+          "end": 49
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 49,
+          "end": 51
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 120,
+          "end": 138
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 233,
+          "end": 235
+        }
+      ],
+      "tests": [
+        "command credentials and URL/header forms stay metadata only without plaintext in ordinary records",
+        "credential command arguments remain metadata-only and are never copied into connection rows",
+        "launcher adapters support Python, Node, uvx and npx while unknown options are unsupported and secrets stay rejected"
+      ],
+      "observations": [
+        "launcher-and-auth-classification"
+      ]
+    },
+    {
+      "id": "DISC-A06",
+      "priority": "P2",
+      "title": "成功导入的幂等重放仍连接下游并可因停服失败",
+      "status": "closed_for_reported_case",
+      "reason": "固定 DTO 校验后先读 owner/operation/key 命令账本，成功重放不重读源或网络；并发导入以 request fingerprint singleflight 并在提交中再次查幂等。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 34,
+          "end": 37
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 214,
+          "end": 219
+        }
+      ],
+      "tests": [
+        "current source revision gets a new connection; successful replay is independent of source and network"
+      ]
+    },
+    {
+      "id": "DISC-A07",
+      "priority": "P1",
+      "title": "目录扫描无总deadline与取消，daemon shutdown可被扫描长期阻塞",
+      "status": "closed_for_reported_case",
+      "reason": "扫描全程 30s 默认 deadline、单源 10s、四 worker；关闭中止扫描并等待 job 和 connector disposal。真实 SDK tools/list 的合成慢进程测试在 deadline 后退出且留下退出标记。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 108,
+          "end": 111
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 137,
+          "end": 139
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 157,
+          "end": 157
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 253,
+          "end": 254
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 266,
+          "end": 288
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 347,
+          "end": 350
+        }
+      ],
+      "tests": [
+        "close aborts a pending catalog, persists terminal state and rejects subsequent work",
+        "catalog deadline covers real SDK tools/list and closes the child transport",
+        "concurrent source discovery exposes successful sources before a slow one and scan cancel is durable"
+      ]
+    },
+    {
+      "id": "DISC-A08",
+      "priority": "P2",
+      "title": "Skill启用覆盖被忽略，显式禁用Skill仍可作为host_reference导入",
+      "status": "closed_for_reported_case",
+      "reason": "读取 skills.config 的 path enablement；App Server 同 path disabled 校正已索引组件；禁用 capability 的两个 target 均在导入入口被拒绝。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 81,
+          "end": 85
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 120,
+          "end": 128
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 178,
+          "end": 183
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 158,
+          "end": 167
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 222,
+          "end": 225
+        }
+      ],
+      "tests": [
+        "skill enablement, plugin server overrides and CLI allow/deny policy are effective",
+        "App Server effective disabled Skill corrects an already indexed path"
+      ]
+    },
+    {
+      "id": "DISC-A09",
+      "priority": "P2",
+      "title": "HTTP别名形式的FlowHub来源完全绕过self识别",
+      "status": "closed_for_reported_case",
+      "reason": "实际 daemon endpoint/instance identity 可传入 registry；规范化 endpoint alias 与协议 serverInfo 身份检查同时阻止 self 进入 downstream 导入。本轮不执行递归工作流。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 51,
+          "end": 57
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 25,
+          "end": 26
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 182,
+          "end": 184
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 228,
+          "end": 238
+        }
+      ],
+      "tests": [
+        "HTTP self aliases normalize independently of server label and protocol identity blocks recursion"
+      ]
+    },
+    {
+      "id": "DISC-R01",
+      "priority": "P1",
+      "title": "Schema漂移后新能力仍复用旧连接目录",
+      "status": "closed_for_reported_case",
+      "reason": "连接 ID 纳入过滤后工具目录指纹及协议/源/凭据引用；input/output Schema 与 description 漂移得到新连接；相同 catalog 复用原连接。独立复现证明旧连接、旧 binding 和 capability r1 原样保留，新 binding 引用 r2 且 connection schema 匹配 r2。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 238,
+          "end": 249
+        }
+      ],
+      "tests": [
+        "schema-only and description-only catalog drift create immutable connections with matching contracts"
+      ],
+      "observations": [
+        "schema-drift-keeps-old-connection-catalog",
+        "immutable-schema-drift-and-identical-catalog-reuse"
+      ]
+    },
+    {
+      "id": "DISC-R02",
+      "priority": "P2",
+      "title": "元数据刷新无语义变化却失效已发现能力和修订",
+      "status": "closed_for_reported_case",
+      "reason": "同 source fingerprint/context revision 的 metadata 刷新保留 catalog 的发现/可用状态；lastObservation 单独记录本次未连接。独立已有 SUCCEEDED Mock 结果在 metadata 后仍 stale=false、cap r1/ready 不变，publish 校验及发布成功；发布后再次 metadata 不改快照。发布动作自身递增 workflow revision 与测试基线变化属于既有行为，本结论针对 metadata 不引入失效。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 126,
+          "end": 131
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 150,
+          "end": 153
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 171,
+          "end": 173
+        }
+      ],
+      "tests": [
+        "unchanged metadata preserves catalog semantics, real draft capability refs and accepted self-test baseline"
+      ],
+      "observations": [
+        "unchanged-metadata-scan-invalidates-catalog",
+        "completed-mock-result-and-publish-after-metadata"
+      ]
+    },
+    {
+      "id": "DISC-R03",
+      "priority": "P2",
+      "title": "显式配置模式与手动Codex路径入口缺失",
+      "status": "closed_for_reported_case",
+      "reason": "Object.hasOwn 区分缺省与显式 null；config_only 强制 codexPath=null、useAppServer=false，持久化选择；UI 提供模式及绝对可执行文件输入并恢复已选上下文。独立 marker 证明 null/config_only 不运行 CLI/AppServer；绝对路径执行正常。浏览器层本子审计只读检查源码与用例，未启动 UI。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 59,
+          "end": 68
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 94,
+          "end": 104
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 178,
+          "end": 178
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 7,
+          "end": 10
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 21,
+          "end": 28
+        }
+      ],
+      "tests": [
+        "explicit null and config_only never run PATH Codex or App Server and remain persisted"
+      ],
+      "observations": [
+        "explicit-null-is-not-config-only",
+        "config-only-marker-and-runtime-DTO-boundary"
+      ]
+    },
+    {
+      "id": "DISC-R04",
+      "priority": "P2",
+      "title": "保守参数策略误把合法模块启动当凭据且无解除路径",
+      "status": "closed_for_reported_case",
+      "reason": "Python -m/-u、Node 明确启动 flag、uvx --from、npx --package 使用受限启动方言；unknown flag 单独归 unsupportedArgs，不再假报 credentials_required；UI 指向现有 MCP 工具库手动连接路径。已知认证参数仍拒绝，未放宽秘密复制边界。",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 29,
+          "end": 49
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 49,
+          "end": 51
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 125,
+          "end": 125
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 32,
+          "end": 32
+        }
+      ],
+      "tests": [
+        "launcher adapters support Python, Node, uvx and npx while unknown options are unsupported and secrets stay rejected"
+      ],
+      "observations": [
+        "legal-module-args-false-credential",
+        "launcher-and-auth-classification"
+      ]
+    }
+  ],
+  "verification": [
+    {
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-discovery-reaudit-repro.mjs",
+      "exitCode": 0,
+      "kind": "Independent rerun of unchanged original second-round reproducer",
+      "artifact": "/tmp/flowhub-discovery-closeout-observations.json",
+      "cases": 4
+    },
+    {
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node --test dist/tests/engine/v2-discovery.test.js dist/tests/engine/v2-discovery-acceptance.test.js",
+      "exitCode": 0,
+      "kind": "Direct current-dist related regressions, no build",
+      "tests": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": "/tmp/flowhub-discovery-closeout-tests.txt"
+    },
+    {
+      "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-discovery-closeout-extra.mjs",
+      "exitCode": 0,
+      "kind": "Independent extended fixture assertions",
+      "cases": 4,
+      "artifact": "/tmp/flowhub-discovery-closeout-extra-observations.json"
+    }
+  ],
+  "initial_custom_fixture_failure": {
+    "exitCode": 1,
+    "reproducer": "/tmp/flowhub-discovery-closeout-extra-initial.mjs",
+    "actual": "FAILED instead of SUCCEEDED for the synthetic Mock result",
+    "cause": "Auditor marked the binding simulationOnly but initially omitted synthetic:true from the fixture response. WorkflowTesting correctly rejected that provenance mismatch. Corrected only the temporary fixture; no product change.",
+    "correctedResult": "4/4 extended closeout cases pass"
+  },
+  "production_runtime_boundary": {
+    "reviewed": true,
+    "files": [
+      "packages/host-discovery/src/runtime.ts",
+      "apps/daemon/src/index.ts",
+      "packages/application/src/index.ts",
+      "apps/daemon/src/cli.ts",
+      "scripts/ui-server.mjs"
+    ],
+    "observation": "DiscoveryRuntime is code-only constructor injection. Host-context DTO additionalProperties=false rejects hostRuntime; HTTP regression confirms rejection. Production CLI startDaemon passes only dataDir/port; default discoveryCommand uses configured absolute context.codexPath. UI-only test server restricts injected JavaScript fixtures to its isolated data directory."
+  },
+  "initial_implementation_gaps": [
+    {
+      "topic": "UI paging, source/executor/environment filters, plugin expansion and host capability insertion",
+      "status": "implemented_by_source_review",
+      "evidence": [
+        "apps/web/src/features/discovery/DiscoveryPage.tsx:32-36",
+        "apps/web/src/features/workflows/CapabilityPicker.tsx:5-22"
+      ],
+      "boundary": "No browser execution in this independent sub-audit; parent centralized UI run must be recorded separately."
+    },
+    {
+      "topic": "Static source resolution, full real-host/version/Profile/installation formats",
+      "status": "partial_and_explicitly_reported",
+      "evidence": [
+        "packages/host-discovery/src/index.ts:105-116",
+        "tests/engine/v2-discovery-acceptance.test.ts:31-36"
+      ],
+      "boundary": "Source chains and separate same-name layers preserved; fallback remains resolutionQuality=partial and must not be claimed as complete host-effective merge. True Codex host/parent-directory/Profile behavior remains external validation."
+    },
+    {
+      "topic": "Plugin custom Skill/app paths and system/user Skill roots",
+      "status": "implemented_with_isolated_regressions",
+      "evidence": [
+        "packages/host-discovery/src/index.ts:132-136",
+        "packages/host-discovery/src/index.ts:164-174"
+      ],
+      "boundary": "Unknown manifest formats stay unsupported; real installed plugin formats not read."
+    },
+    {
+      "topic": "Unrepresented env HTTP headers/cwd/placement",
+      "status": "explicit_supported_or_unsupported_policy",
+      "evidence": [
+        "packages/host-discovery/src/index.ts:47-49",
+        "packages/capability-registry/src/index.ts:55-64"
+      ],
+      "boundary": "No helper execution; cwd/remote/unsupported transport requires manual supported connection configuration."
+    },
+    {
+      "topic": "HTTP fixed DTO and boolean/integer query decoding",
+      "status": "closed_with_direct_regression",
+      "evidence": [
+        "packages/admin-api/src/v2.ts:10-23",
+        "tests/engine/v2-discovery.test.ts:225-234"
+      ]
+    },
+    {
+      "topic": "SQL summary pagination and 200/1000 cache search performance",
+      "status": "closed_for_local_synthetic_benchmark",
+      "evidence": [
+        "packages/capability-registry/src/index.ts:193-207",
+        "/tmp/flowhub-discovery-closeout-tests.txt"
+      ],
+      "actual": {
+        "samplesPerScale": 40,
+        "capabilities200P95Ms": 7.533957999999984,
+        "capabilities1000P95Ms": 96.62154199999986
+      },
+      "boundary": "macOS synthetic in-memory SQLite; this is not a Windows or real-host performance result."
+    }
+  ],
+  "not_verified": [
+    "No real Codex CLI/App Server, Desktop session, user CODEX_HOME, credentials or enterprise MCP read.",
+    "No real model call or OAuth use.",
+    "Windows-native/WSL process/path/runtime and transparent encryption/DLP acceptance not run. Cross-platform synthetic runtime reduces fixture dependence on shebang but does not establish Windows success.",
+    "Real-host effective layered config/Profile/parent-directory trust and installed plugin format compatibility remain partial/not verified.",
+    "No browser, npm ci, whole npm run check/test, build, packaging, push, merge or Release performed by this sub-auditor. Parent central results remain separate.",
+    "No real recursive FlowHub workflow, live resource binding verification or business query executed.",
+    "Safety classification is tested for reported credential forms and supported launcher dialects; no universal secret-detection claim."
+  ],
+  "source_identity": [
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+      "sha256": "d9051ec44f72bec47c73cb3d5ea0f6e593aa2a2a3dfce5eaac2b784e06e2e42c",
+      "mtime": "2026-10-31T06:36:07.650Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/app-server.ts",
+      "sha256": "d085bce6122f60e46a854a4c692effdd38948fd347d1a8ce6ca4d4d193032686",
+      "mtime": "2026-10-31T06:39:18.581Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/runtime.ts",
+      "sha256": "27798a782a4651227b26c7db57fe6313edfc1ccd6682dec6fd7110f52403a759",
+      "mtime": "2026-10-31T06:36:07.601Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+      "sha256": "bdb9afe9949a1c8bdab95fcb00c9d22911082ffdf23721a8e2aa3ab174a2d5ef",
+      "mtime": "2026-10-31T06:36:07.651Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+      "sha256": "5fbd1a830a2021017226cda885844d87cf05fae94219bdf7245a787d17daa724",
+      "mtime": "2026-10-31T05:12:06.084Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/admin-api/src/v2.ts",
+      "sha256": "f15d4edbb99f0141023e1ff3a71f62ed42044cd6ca04f03c26f85af552af930b",
+      "mtime": "2026-10-31T05:06:37.379Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+      "sha256": "c381cb7979faedbc85febb04f9ad93a0f185ae6bf6f0aa8029e88af27e6bdf75",
+      "mtime": "2026-10-31T06:42:48.487Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/workflows/CapabilityPicker.tsx",
+      "sha256": "016bfeb911ec2e24ff540aa7b421391f6fd524b6a7cc0b150ecc784600991495",
+      "mtime": "2026-10-31T05:06:37.349Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/engine/v2-discovery.test.ts",
+      "sha256": "5841891af40fcf40bc1b20556e3cfe58fed3b2313a275cc3ba474afd9c578d20",
+      "mtime": "2026-10-31T06:39:24.233Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/engine/v2-discovery-acceptance.test.ts",
+      "sha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875",
+      "mtime": "2026-10-31T06:37:27.604Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/helpers/discovery-runtime.ts",
+      "sha256": "02d7973a3210c18db1442d4d332d857a8b605ff86f1cef6e152e11782e3c08ed",
+      "mtime": "2026-10-31T06:36:07.658Z"
+    },
+    {
+      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-reaudit.spec.ts",
+      "sha256": "ee1cddc744afe379cd23767dcd01fc114df524a3c5bdda139f46200b6c19d8b4",
+      "mtime": "2026-10-31T06:37:27.605Z"
+    }
+  ],
+  "evidence_identity": [
+    {
+      "path": "/tmp/flowhub-discovery-closeout-observations.json",
+      "sha256": "6906d4ae2e21091e706192bccd5a93ff4d4d3cbdaec28ffb65c540bd97eb89db",
+      "mtime": "2026-10-31T06:40:54.934Z"
+    },
+    {
+      "path": "/tmp/flowhub-discovery-closeout-extra-observations.json",
+      "sha256": "5cc2edcfdcf8778c1f3272f10799f9c8d6e80842fade4ed551974af2e8c5f629",
+      "mtime": "2026-10-31T06:43:08.701Z"
+    },
+    {
+      "path": "/tmp/flowhub-discovery-closeout-tests.txt",
+      "sha256": "340fbe04d2ba24008709489563a95a8b2e7d3c8ee0fc1ac44bf4f2415a63b464",
+      "mtime": "2026-10-31T06:41:01.954Z"
+    }
+  ]
+}

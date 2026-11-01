@@ -85,7 +85,7 @@ test("automatic incident run has no approval controls and a restricted host comp
   await expect(
     page.getByRole("button", { name: "人工审批", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   const card = page
     .locator("article")
     .filter({

@@ -1,0 +1,27 @@
+✔ assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes (170.349875ms)
+✔ help mode cannot mutate and half JSON never dispatches (109.607625ms)
+✔ tool validation feedback permits bounded correction and preserves Web revision conflicts (104.29375ms)
+✔ cancellation aborts pending generation with no tool writes (92.061917ms)
+✔ restart marks unfinished durable tasks interrupted and retains tool receipts (90.220875ms)
+✔ model profile Key is encrypted and never stored in command or ordinary profile bodies (98.430167ms)
+✔ Chinese help and exact error names retrieve current version sources with real citations (93.359583ms)
+✔ text-only model probes remain useful for help and refuse composition without fake writes (91.507334ms)
+✔ repeated invalid edits stop after three feedback rounds without overwriting a draft (93.545333ms)
+✔ Responses and Chat Completions use separate envelopes and protocol paths (20.119208ms)
+✔ streamed JSON waits for completed finish and interrupted arguments never become a tool call (6.656ms)
+✔ provider authentication and 429 failures stay typed and bounded (1.937583ms)
+✔ authoring creates real drafts, retains idempotency and restricts creation ownership (61.67975ms)
+✔ patch transaction rolls back all mutations and events, CAS and command replay are exact (15.480792ms)
+✔ layout CAS is independent from semantic edits and incomplete legal drafts retain issues (4.998125ms)
+✔ publish freezes v2 snapshot, respects revision and preserves v1 schema restrictions (10.043083ms)
+✔ semantic undo and redo preserve unrelated later fields and reject same-field conflicts (7.64675ms)
+✔ assistant analysis uses a checkpoint lease and existing advance, retaining business originals (190.307333ms)
+✔ host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key (113.942625ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1199.515083

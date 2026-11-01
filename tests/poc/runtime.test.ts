@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, readFile, stat, access } from "node:fs/promises";
+import { mkdtemp, rm, readFile, stat, access, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
@@ -60,7 +60,7 @@ test("ENV-03/04: port conflict is actionable; failed startup releases its lock; 
   await assert.rejects(access(join(b, "daemon.lock")));
   const health = await fetch(`http://127.0.0.1:${first.port}/api/v1/health`);
   assert.equal(health.status, 200);
-  assert.equal(((await health.json()) as { phase: string }).phase, "RC");
+  assert.equal(((await health.json()) as { phase: string }).phase, "ALPHA");
 });
 
 test("SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial", async (t) => {
@@ -189,4 +189,11 @@ test("CLI rejects unknown options, unknown commands and unsafe port inputs", asy
       ]),
     );
   }
+});
+
+test("CLI invoked through a directory alias actually runs its entry point",async t=>{
+  const root=await mkdtemp(join(tmpdir(),"flowhub-cli-alias-")),alias=join(root,"program alias");t.after(()=>rm(root,{recursive:true,force:true}));
+  await symlink(resolve("."),alias,process.platform==="win32"?"junction":"dir");
+  const {stdout}=await promisify(execFile)(process.execPath,[join(alias,"dist/apps/daemon/src/cli.js"),"--help"]);
+  assert.match(stdout,/MCP FlowHub/);assert.match(stdout,/flowhub serve/);
 });

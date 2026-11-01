@@ -105,7 +105,7 @@ test("blank workflow requires an explicit environment and can save, publish and 
     bindings: {},
   });
   expect(version.snapshot.bindings).toEqual([]);
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page
     .locator("article")
     .filter({
@@ -322,11 +322,21 @@ test("reviewed publication rejects a concurrent edit and offers comparison and a
     .getByRole("button", { name: "关闭", exact: true })
     .last()
     .click();
-  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
   const recovery = page.getByRole("region", { name: "草稿冲突处理" });
+  // Closing review can safely adopt a remote-only change. A real same-field
+  // conflict below must remain available for comparison and save-as.
+  if (await recovery.isVisible())
+    await recovery.getByRole("button", { name: "重新尝试合并", exact: true }).click();
+  await expect(recovery).toHaveCount(0);
+  await page.locator(".react-flow__node").first().click();
+  await page.getByLabel("节点名称", { exact: true }).fill("本地未保存节点");
+  const latest = await api("/workflows/" + id + "/draft");
+  const changed = structuredClone(latest.draft);
+  changed.nodes[0].title = "远端同字段修改";
+  await api("/workflows/" + id + "/draft", "PUT", {workflow: changed, layout: latest.layout}, latest.revision);
   await expect(recovery).toBeVisible();
   await recovery.getByRole("button", { name: "比较差异", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("另一标签页已修改");
+  await expect(page.getByRole("dialog")).toContainText("远端同字段修改");
   await page.keyboard.press("Escape");
   await recovery.getByRole("button", { name: "另存草稿", exact: true }).click();
   const copy = page.getByRole("dialog", { name: "另存为新工作流" });
@@ -372,7 +382,7 @@ test("a slow draft response cannot replace the workflow reached through navigati
       waitUntil: "domcontentloaded",
     });
     await requested.promise;
-    await page.getByRole("button", { name: "工作流库", exact: true }).click();
+    await page.getByRole("button", { name: "工作流", exact: true }).click();
     await page
       .locator("article")
       .filter({ hasText: second })
@@ -485,7 +495,7 @@ test("a save finishing after navigation cannot replace another workflow", async 
     await page.getByRole("button", { name: "保存草稿", exact: true }).click();
     await stored.promise;
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "工作流库", exact: true }).click();
+    await page.getByRole("button", { name: "工作流", exact: true }).click();
     await page
       .locator("article")
       .filter({ hasText: second })
@@ -560,14 +570,14 @@ test("session expiry retains focused JSON text while a wrong vault password leav
       .click();
     await expect(page.getByLabel("节点配置（映射 / Schema）")).toHaveValue(raw);
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "接入设置", exact: true }).click();
+    await page.getByRole("button", { name: "系统设置", exact: true }).click();
     await page.getByRole("button", { name: "解锁", exact: true }).click();
     const unlock = page.getByRole("dialog", { name: "解锁凭据库" });
     await unlock.getByLabel("凭据库口令").fill("Wrong-synthetic-password");
     await unlock.getByRole("button", { name: "确认", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("AUTH_REQUIRED");
     await expect(
-      page.getByRole("heading", { name: "接入设置", exact: true }),
+      page.getByRole("heading", { name: "系统设置", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "登录管理中心", exact: true }),
@@ -659,7 +669,7 @@ test("invalid JSON cannot submit the previous business inputs or replace the wor
   await expect(page.locator(".react-flow__node")).toHaveCount(2);
   await publish(page);
   await expect(page.getByRole("status")).toContainText("不可变版本已发布");
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page
     .locator("article")
     .filter({ hasText: id })

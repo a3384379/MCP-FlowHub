@@ -1,0 +1,80 @@
+{
+  "baselineHead": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "scope": "Current uncommitted frozen assistant fixes; independent isolated browser and daemon; observations from actual CLI results",
+  "results": [
+    {
+      "case": "late_A_cannot_erase_B_pending",
+      "pendingBeforeLateA": 1,
+      "pendingAfterLateA": 1,
+      "sendDisabledWhileBNotAccepted": true,
+      "BRequestCount": 2,
+      "sameIdempotencyKey": true,
+      "draftsBeforeRetry": 1,
+      "draftsAfterRetry": 1,
+      "status": "passed"
+    },
+    {
+      "case": "continue_old_turn_targets_A",
+      "continueTaskId": "task_9f6a73f8-1462-4494-b8e4-f1a5e3c550d8",
+      "mode": "help",
+      "requestedActions": [],
+      "receivedPreviousResults": [
+        {
+          "taskId": "task_9f6a73f8-1462-4494-b8e4-f1a5e3c550d8",
+          "status": "CANCELLED",
+          "errorCode": null,
+          "partialText": "早期 A 的部分正文。",
+          "answer": null,
+          "tools": []
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "case": "readonly_receipt_has_no_saved_claim",
+      "status": "passed",
+      "taskMode": "help",
+      "requestedActions": [],
+      "tools": [
+        {
+          "name": "workflow_status",
+          "revision": 3
+        }
+      ],
+      "draftRevisionBefore": 2,
+      "draftRevisionAfter": 2,
+      "displayedActions": []
+    },
+    {
+      "case": "definitive_422_can_be_corrected",
+      "firstHttpStatus": 422,
+      "firstError": "INPUT_INVALID",
+      "taskCountAfterRejection": 0,
+      "retryButtonCount": 0,
+      "modelEnabled": true,
+      "secondHttpStatus": 200,
+      "posts": [
+        {
+          "length": 16001,
+          "text": null,
+          "key": "3933e3bf-b0c8-4d24-a041-2a17309ad425"
+        },
+        {
+          "length": 4,
+          "text": "解释项目",
+          "key": "d6f9447a-0dc3-4ff6-b31f-bc3a7582a2ca"
+        }
+      ],
+      "taskCount": 1,
+      "status": "passed"
+    }
+  ],
+  "engineVerification": {
+    "command": "node --test --test-concurrency=1 --test-timeout=60000 dist/tests/engine/v2-assistant-max-regressions.test.js dist/tests/engine/v2-conversation.test.js",
+    "exitCode": 0,
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  }
+}

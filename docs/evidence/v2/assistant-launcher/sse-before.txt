@@ -1,0 +1,22 @@
+✖ SSE backpressure closes without a later heartbeat writing after end, and disconnected clients leave the daemon healthy (1182.784833ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1470.232625
+
+✖ failing tests:
+
+test at dist/tests/poc/http-sse-lifecycle.test.js:124:1
+✖ SSE backpressure closes without a later heartbeat writing after end, and disconnected clients leave the daemon healthy (1182.784833ms)
+  Error [ERR_STREAM_WRITE_AFTER_END]: write after end
+      at write_ (node:_http_outgoing:952:11)
+      at ServerResponse.write (node:_http_outgoing:901:15)
+      at Timeout.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/admin-api/src/index.js:666:23)
+      at listOnTimeout (node:internal/timers:635:17)
+      at process.processTimers (node:internal/timers:571:7) {
+    code: 'ERR_STREAM_WRITE_AFTER_END'
+  }

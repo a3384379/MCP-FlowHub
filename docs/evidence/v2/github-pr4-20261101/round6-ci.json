@@ -1,0 +1,69 @@
+{
+  "head": "fa642675632cd2c55bd3b9ddd3115a1061bfd583",
+  "job": {
+    "id": 124902404153,
+    "head_sha": "fa642675632cd2c55bd3b9ddd3115a1061bfd583",
+    "name": "poc (windows-latest)",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "excerpt": "> node scripts/smoke-windows-installer.mjs\r\n2026-11-01T16:24:53.6787715Z \r\n2026-11-01T16:25:34.0795667Z Installer smoke failed; synthetic diagnostic files retained at C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\FlowHub 安装 smoke yCV7aB. Data directory retained at C:\\Users\\runneradmin\\AppData\\Local\\MCP-FlowHub. Installed=false. No FlowHub daemon or bridge was force-terminated.\r\n2026-11-01T16:25:34.0804905Z node:internal/modules/run_main:107\r\n2026-11-01T16:25:34.0808034Z     triggerUncaughtException(\r\n2026-11-01T16:25:34.0808956Z     ^\r\n2026-11-01T16:25:34.0809274Z \r\n2026-11-01T16:25:34.0810368Z AssertionError [ERR_ASSERTION]: D:\\a\\MCP-FlowHub\\MCP-FlowHub\\artifacts\\flowhub-2.0.0-alpha.2-windows-x64-setup.exe returned 21; expected 0\r\n2026-11-01T16:25:34.0811529Z 21: \r\n2026-11-01T16:25:34.0811802Z \r\n2026-11-01T16:25:34.0811926Z \r\n2026-11-01T16:25:34.0812476Z {\"at\":\"2026-11-01T16:24:58.583Z\",\"event\":\"operation-start\",\"operation\":\"preflight\"}\r\n2026-11-01T16:25:34.0813493Z {\"at\":\"2026-11-01T16:24:58.589Z\",\"event\":\"operation-failed\",\"code\":\"INSTALL_DIRECTORY_NOT_EMPTY\"}\r\n2026-11-01T16:25:34.0814900Z {\"at\":\"2026-11-01T16:25:03.884Z\",\"event\":\"operation-start\",\"operation\":\"preflight\"}\r\n2026-11-01T16:25:34.0815924Z {\"at\":\"2026-11-01T16:25:03.889Z\",\"event\":\"process-inspection-start\"}\r\n2026-11-01T16:25:34.0817388Z {\"at\":\"2026-11-01T16:25:33.989Z\",\"event\":\"process-inspection-failed\",\"elapsedMs\":30100,\"code\":\"INVALID_OUTPUT\",\"signal\":\"SIGTERM\",\"killed\":true}\r\n2026-11-01T16:25:34.0818970Z {\"at\":\"2026-11-01T16:25:33.990Z\",\"event\":\"operation-failed\",\"code\":\"INSTALL_PROCESS_CHECK_FAILED\"}\r\n2026-11-01T16:25:34.0819711Z \r\n2026-11-01T16:25:34.0819828Z \r\n2026-11-01T16:25:34.0820081Z 21 !== 0\r\n2026-11-01T16:25:34.0821014Z \r\n2026-11-01T16:25:34.0824802Z     at runExe (file:///D:/a/MCP-FlowHub/MCP-FlowHub/scripts/smoke-windows-installer.mjs:56:10)\r\n2026-11-01T16:25:34.0825996Z     at async file:///D:/a/MCP-FlowHub/MCP-FlowHub/scripts/smoke-windows-installer.mjs:109:3 {\r\n2026-11-01T16:25:34.0826830Z   generatedMessage: false,\r\n2026-11-01T16:25:34.0827355Z   code: 'ERR_ASSERTION',\r\n2026-11-01T16:25:34.0827843Z   actual: 21,\r\n2026-11-01T16:25:34.0828294Z   expected: 0,\r\n2026-11-01T16:25:34.0828775Z   operator: 'strictEqual',\r\n2026-11-01T16:25:34.0829273Z   diff: 'simple'\r\n2026-11-01T16:25:34.0829753Z }\r\n2026-11-01T16:25:34.0830092Z \r\n2026-11-01T16:25:34.0830385Z Node.js v24.19.0\r\n2026-11-01T16:25:34.1330959Z ##[error]Process completed with exit code 1.\r\n2026-11-01T16:25:34.1582210Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\r\n2026-11-01T16:25:34.1582732Z with:\r\n2026-11-01T16:25:34.1582939Z   name: flowhub-rc-Windows\r\n2026-11-01T16:25:34.1584150Z   path: artifacts/*.zip\nartifacts/*.tar.gz\nartifacts/*.sha256\nartifacts/*.exe\nartifacts/*installer*.json\nartifacts/*.build-info.json\nartifacts/latest-package.json\nartifacts/package-smoke-diagnostics.json\nartifacts/nsis-download-diagnostics.json\nartifacts/*.log\nartifacts/ui-*.png\nartifacts/reports/*\ntest-results/**/trace.zip\n\r\n2026-11-01T16:25:34.1585345Z   if-no-files-found: warn\r\n2026-11-01T16:25:34.1585565Z   retention-days: 14\r\n2026-11-01T16:25:34.1585771Z   compression-level: 6\r\n2026-11-01T16:25:34.1586210Z   overwrite: false\r\n2026-11-01T16:25:34.1586419Z   include-hidden-files: false\r\n2026-11-01T16:25:34.1586648Z env:\r\n2026-11-01T16:25:34.1586876Z   FLOWHUB_NSIS_ARCHIVE: D:\\a\\_temp\\flowhub-nsis.zip\r\n2026-11-01T16:25:34.1587164Z ##[endgroup]\r\n2026-11-01T16:25:34.3957066Z (node:7252) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.\r\n2026-11-01T16:25:34.3963271Z (Use `node --trace-deprecation ...` to show where the warning was created)\r\n2026-11-01T16:25:34.4203186Z Multiple search paths detected. Calculating the least common ancestor of all paths\r\n2026-11-01T16:25:34.4205281Z The least common ancestor is D:\\a\\MCP-FlowHub\\MCP-FlowHub. This will be the root directory of the artifact\r\n2026-11-01T16:25:34.4206421Z With the provided path, there will be 17 files uploaded\r\n2026-11-01T16:25:34.4207505Z Artifact name is valid!\r\n2026-11-01T16:25:34.4208084Z Root directory input is valid!\r\n2026-11-01T16:25:35.1188281Z (node:7252) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.\r\n2026-11-01T16:25:35.1200212Z Beginning upload of artifact content to blob storage\r\n2026-11-01T16:25:36.1420854Z Uploaded bytes 8388608\r\n2026-11-01T16:25:36.3379687Z Uploaded bytes 16777216\r\n2026-11-01T16:25:36.6726209Z Uploaded bytes 25165824\r\n2026-11-01T16:25:36.9103428Z Uploaded bytes 33554432\r\n2026-11-01T16:25:36.9772941Z Uploaded bytes 41943040\r\n2026-11-01T16:25:37.1453790Z Uploaded bytes 50331648\r\n2026-11-01T16:25:37.2762661Z Uploaded bytes 58720256\r\n2026-11-01T16:25:37.6825385Z Uploaded bytes 67108864\r\n2026-11-01T16:25:38.0602606Z Uploaded bytes 75497472\r\n2026-11-01T16:25:38.3448457Z Uploaded bytes 83886080\r\n2026-11-01T16:25:38.6937078Z Uploaded bytes 92274688\r\n2026-11-01T16:25:38.8853211Z Uploaded bytes 96062519\r\n2026-11-01T16:25:38.9586236Z Finished uploading artifact content to blob storage!\r\n2026-11-01T16:25:38.9587931Z SHA256 digest of uploaded artifact zip is a9afac9800915db826863be15e6b0c5d8e5ba12be0db74d6706d74517b6369d3\r\n2026-11-01T16:25:38.9589098Z Finalizing artifact upload\r\n2026-11-01T16:25:39.4406545Z Artifact flowhub-rc-Windows.zip successfully finalized. Artifact ID 13091122728\r\n2026-11-01T16:25:39.4408275Z Artifact flowhub-rc-Windows has been successfully uploaded! Final size is 96062519 bytes. Artifact ID is 13091122728\r\n2026-11-01T16:25:39.4421986Z Artifact download URL: https://github.com/a3384379/MCP-FlowHub/actions/runs/41324806130/artifacts/13091122728\r\n2026-11-01T16:25:39.4899373Z Post job cleanup.\r\n2026-11-01T16:25:39.7667782Z [command]\"C:\\Program Files\\Git\\bin\\git.exe\" version\r\n2026-11-01T16:25:39.8075175Z git version 2.56.0.windows.2\r\n2026-11-01T16:25:39.8165193Z Temporarily overriding HOME='D:\\a\\_temp\\1d3403f2-e71a-46a4-ad58-0fc44e13f67b' before making global git config changes\r\n2026-11-01T16:25:39.8166760Z Adding repository directory to the temporary git global config as a safe directory\r\n2026-11-01T16:25:39.8177488Z [command]\"C:\\Program Files\\Git\\bin\\git.exe\" config --global --add safe.directory D:\\a\\MCP-FlowHub\\MCP-FlowHub\r\n2026-11-01T16:25:39.8629418Z [command]\"C:\\Program Files\\Git\\bin\\git.exe\" config --local --name-o",
+  "nativeProbeJobs": [
+    {
+      "job": {
+        "id": 124902404140,
+        "head_sha": "fa642675632cd2c55bd3b9ddd3115a1061bfd583",
+        "name": "windows-process-probe",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    },
+    {
+      "job": {
+        "id": 124902390487,
+        "head_sha": "fa642675632cd2c55bd3b9ddd3115a1061bfd583",
+        "name": "windows-process-probe",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": 124902404153,
+      "name": "poc (windows-latest)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 124902404140,
+      "name": "windows-process-probe",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124902404021,
+      "name": "poc (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124902391645,
+      "name": "poc (windows-latest)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 124902390487,
+      "name": "windows-process-probe",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 124902390468,
+      "name": "poc (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

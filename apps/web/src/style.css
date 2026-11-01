@@ -8,6 +8,31 @@
   --muted: #71839b;
   --line: #dce6f3;
 }
+.credential-library-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.credential-library-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.credential-library-list article {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.credential-library-list small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
 * {
   box-sizing: border-box;
 }
@@ -116,19 +141,8 @@ code {
 }
 .app {
   display: grid;
-  grid-template-columns: 204px minmax(0, 1fr);
+  grid-template-columns: 228px minmax(0, 1fr);
   min-height: 100vh;
-}
-.sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  width: 204px;
-  padding: 28px 16px 20px;
-  background: #fcfdff;
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
 }
 .brand {
   display: flex;
@@ -154,114 +168,6 @@ code {
   font-size: 9px;
   letter-spacing: 1px;
 }
-.workspace-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px 9px;
-  margin-bottom: 26px;
-  background: white;
-}
-.workspace-card > span {
-  color: var(--blue);
-  background: #edf4ff;
-  border-radius: 6px;
-  padding: 7px;
-}
-.workspace-card strong {
-  font-size: 12px;
-}
-.workspace-card small {
-  display: block;
-  font-size: 10px;
-  margin-top: 4px;
-}
-.nav-caption {
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding-left: 12px;
-  margin-bottom: 10px;
-}
-.nav-item {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-align: left;
-  padding: 13px 12px;
-  margin: 4px 0;
-  font-size: 12px;
-  color: #74859c;
-}
-.nav-item i {
-  font-style: normal;
-  font-size: 18px;
-  width: 20px;
-  text-align: center;
-}
-.nav-item small {
-  margin-left: auto;
-}
-.nav-item.active {
-  background: #e9f2ff;
-  color: var(--blue);
-  font-weight: 650;
-}
-.sidebar-bottom {
-  margin-top: auto;
-  padding-top: 40px;
-}
-.gateway {
-  background: linear-gradient(135deg, #f0f6ff, #fff);
-  border: 1px solid #dbe8fc;
-  border-radius: 12px;
-  padding: 14px;
-  font-size: 11px;
-}
-.gateway p {
-  font-size: 10px;
-}
-.dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #1fa985;
-  margin-right: 7px;
-}
-.meter {
-  height: 3px;
-  background: #6a9feb;
-  border-radius: 3px;
-}
-.profile {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 20px;
-}
-.profile > span {
-  background: #e7edf6;
-  border-radius: 50%;
-  padding: 10px;
-  font-size: 10px;
-}
-.profile strong {
-  font-size: 11px;
-  display: block;
-}
-.profile small {
-  font-size: 10px;
-}
-.profile button {
-  margin-left: auto;
-  border: 0;
-  padding: 5px;
-}
 main {
   grid-column: 2;
   min-width: 0;
@@ -281,6 +187,14 @@ main {
   padding: 0 12px;
   font-weight: 400;
   color: #bac5d3;
+}
+.breadcrumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.breadcrumbs a:hover {
+  color: var(--blue);
+  text-decoration: underline;
 }
 .topbar > div {
   display: flex;
@@ -960,18 +874,8 @@ footer small {
   }
 }
 @media (max-width: 1000px) {
-  .app {
-    grid-template-columns: 165px minmax(0, 1fr);
-  }
-  .sidebar {
-    width: 165px;
-    padding: 24px 10px;
-  }
   .brand {
     font-size: 22px;
-  }
-  .workspace-card small {
-    font-size: 8px;
   }
   .editor {
     grid-template-columns: 120px minmax(180px, 1fr);
@@ -1006,33 +910,9 @@ footer small {
   }
 }
 @media (max-width: 680px) {
+  .brand { margin: 0; }
   .app {
     display: block;
-  }
-  .sidebar {
-    position: static;
-    width: auto;
-    padding: 14px;
-  }
-  .brand {
-    margin: 0;
-  }
-  .workspace-card,
-  .nav-caption,
-  .sidebar-bottom {
-    display: none;
-  }
-  .sidebar nav {
-    display: flex;
-    overflow: auto;
-    margin-top: 10px;
-  }
-  .nav-item {
-    min-width: 105px;
-    padding: 10px;
-  }
-  .nav-item small {
-    display: none;
   }
   main {
     display: block;
@@ -1219,3 +1099,21 @@ footer small {
     grid-template-columns: 1fr;
   }
 }
+
+/* 2.0 feature modules share the existing ice-blue workspace. */
+.v2-page,.v2-assistant,.v2-discovery,.v2-testing,.v2-capability-picker{min-width:0;max-width:100%;color:#172b4d}
+.v2-two-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.v2-page h1,.v2-discovery h1{font-size:26px;margin:6px 0 12px}.v2-model-card{border-top:1px solid #dce7f7;padding:12px 0}
+.v2-assistant{background:#fff;border-radius:16px;padding:12px}.v2-assistant .field,.v2-page .field,.v2-discovery .field{min-width:0}
+.v2-assistant select,.v2-page input,.v2-discovery select,.v2-capability-picker input{max-width:100%;width:100%;min-width:0;box-sizing:border-box}
+.v2-assistant pre,.v2-page pre,.v2-discovery pre,.v2-testing pre{overflow:auto;max-height:320px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;font-size:12px;background:#f4f8ff;border-radius:10px;padding:10px}
+.v2-messages{max-height:380px;overflow:auto;overflow-wrap:anywhere}.v2-messages article{border-bottom:1px solid #dce7f7;padding:12px 0}.v2-tool-cards details{border:1px solid #dce7f7;border-radius:10px;padding:10px;margin:8px 0}
+.v2-assistant-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.v2-assistant-controls .field{flex:1;min-width:120px}.v2-testing{margin-top:20px}.v2-capability-picker{border-bottom:1px solid #dce7f7;padding-bottom:16px}.v2-capability-picker button{width:100%;text-align:left;overflow-wrap:anywhere}
+.inspector .v2-assistant{padding:0}.inspector .v2-messages{max-height:260px}.v2-assistant textarea{min-height:90px}
+@media(max-width:1100px){.v2-two-columns{grid-template-columns:1fr}.v2-assistant-controls{align-items:stretch}.v2-assistant{max-width:100%}}
+@media(max-width:680px){.v2-page h1,.v2-discovery h1{font-size:23px}.v2-two-columns{gap:12px}.v2-assistant{padding:8px}.v2-tool-cards details{padding:8px}.v2-messages{max-height:300px}}
+
+.vault-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; background: #f0f5ff; color: #405d82; font-size: 12px; }
+.vault-notice span { flex: 1 1 180px; }
+.vault-notice button { flex-shrink: 0; }
+.assistant-composer .vault-notice { margin: 0 0 8px; padding: 6px 8px; }

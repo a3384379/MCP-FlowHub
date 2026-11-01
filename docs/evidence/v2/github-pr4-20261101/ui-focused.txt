@@ -1,0 +1,31 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-assistant-audit.spec.ts tests/ui/v2-assistant-max-audit.spec.ts
+
+[WebServer] (node:61613) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:61633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-assistant-audit.spec.ts:20:1 › Web save detects an unseen layout operation and merges before retrying (931ms)
+  ✓   2 tests/ui/v2-assistant-audit.spec.ts:49:1 › formal assistant UI rejects negative execution, displays context/config, and deletes session (876ms)
+  ✓   3 tests/ui/v2-assistant-audit.spec.ts:66:1 › analysis UI reports auth failure, retries with a valid profile, and resets for the next checkpoint (2.3s)
+  ✓   4 tests/ui/v2-assistant-audit.spec.ts:79:1 › editor merges independent fields, resolves actual field conflicts, protects raw JSON focus and rejects stale reads (1.5s)
+  ✓   5 tests/ui/v2-assistant-audit.spec.ts:94:1 › turn receipts remain attached while delayed conversation and acceptance cannot replace another session (656ms)
+  ✓   6 tests/ui/v2-assistant-audit.spec.ts:117:1 › assistant UI labels past run provenance while clearing run and changing provider excludes that history (525ms)
+  ✓   7 tests/ui/v2-assistant-audit.spec.ts:131:1 › late analysis status and cancel receipts cannot disable the next checkpoint (2.4s)
+  ✓   8 tests/ui/v2-assistant-audit.spec.ts:156:1 › historical knowledge citation sends its original hash and range so the real source viewer reports staleness (556ms)
+  ✓   9 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A success cannot discard B's key after SSE recovery and a lost B receipt (931ms)
+  ✓  10 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A failure cannot discard B's key after SSE recovery and a lost B receipt (933ms)
+  ✓  11 tests/ui/v2-assistant-max-audit.spec.ts:269:1 › a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input (423ms)
+  ✓  12 tests/ui/v2-assistant-max-audit.spec.ts:326:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C (790ms)
+  ✓  13 tests/ui/v2-assistant-max-audit.spec.ts:472:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does (548ms)
+  ✓  14 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: landscape single line (868ms)
+  ✓  15 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: short mobile multiline (833ms)
+  ✓  16 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.3s)
+  ✓  17 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.4s)
+  ✓  18 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.5s)
+
+  18 passed (21.0s)

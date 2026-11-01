@@ -19,20 +19,25 @@ import {
   get,
   validate,
   clone,
-  workflowSchema,
   type Json,
   type Workflow,
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
+import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
-import { AdminAuth } from "../../security/src/index.js";
+import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
+import { AuthoringService } from "../../workflow-authoring/src/index.js";
+import { CapabilityRegistry } from "../../capability-registry/src/index.js";
+import { registerV2 } from "./v2.js";
+import type { Application } from "../../application/src/index.js";
 import {
   previewRetention,
   commitRetention,
 } from "../../persistence/src/retention.js";
 import { backupDirectory, localBackups, preflightLocalBackup } from "./local-backups.js";
 import { hostIntegration, localCliPath, offlineRestoreInstructions } from "./settings-integration.js";
+import { credentialInventory } from "../../security/src/credential-metadata.js";
 import {
   bindingImpact,
   eventCursor,
@@ -44,6 +49,9 @@ export async function registerAdmin(
   app: FastifyInstance,
   engine: Engine,
   dataDir: string,
+  authoring = new AuthoringService(engine),
+  registry = new CapabilityRegistry(engine),
+  application?: Application,
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -131,7 +139,7 @@ export async function registerAdmin(
   app.addHook("onRequest", async (req) => {
     // Use Fastify's matched route template; the raw URL may be absolute or encoded.
     const path = req.routeOptions.url;
-    if (!path?.startsWith("/api/v1/")) return;
+    if (!path?.startsWith("/api/v1/") && !path?.startsWith("/api/v2/")) return;
     if (
       (["GET", "HEAD"].includes(req.method) &&
         ["/api/v1/health", "/api/v1/auth/state"].includes(path)) ||
@@ -186,8 +194,23 @@ export async function registerAdmin(
     return data({ csrf: session.csrf });
   });
   app.post("/api/v1/auth/session", async (req, reply) => {
-    const b = body(req, ["password"]),
-      session = auth.login(b.password);
+    const b = body(req, ["password"], ["username"]);
+    if (!auth.initialized) {
+      auth.throttle("default-bootstrap");
+      ensure((b.username === undefined || b.username === DEFAULT_ADMIN_USERNAME) &&
+        b.password === DEFAULT_ADMIN_PASSWORD && !vault.initialized,
+        "AUTH_REQUIRED", "Invalid administrator account or password.", 401);
+      try {
+        repo.tx(() => {
+          auth.setup(DEFAULT_ADMIN_PASSWORD, true);
+          vault.initialize(DEFAULT_ADMIN_PASSWORD, true);
+        });
+      } catch (error) { vault.lock(); throw error; }
+      await unlink(setupPath).catch(error => {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      });
+    }
+    const session = auth.login(b.password, b.username);
     loginCookie(reply, session);
     return data({ csrf: session.csrf });
   });
@@ -207,6 +230,7 @@ export async function registerAdmin(
     auth.throttle("vault");
     const b = body(req, ["password"]);
     vault.unlock(b.password);
+    auth.resetThrottle("vault");
     return data({ locked: vault.locked });
   });
   app.post("/api/v1/vault/lock", async () => {
@@ -217,24 +241,23 @@ export async function registerAdmin(
     auth.throttle("vault");
     const b = body(req, ["oldPassword", "newPassword"]);
     vault.changePassword(b.oldPassword, b.newPassword);
+    auth.resetThrottle("vault");
     repo.audit("admin", "vault:change-password", "vault");
     return data({ changed: true });
   });
   app.post("/api/v1/secrets", async (req) => {
-    const b = body(req, ["label", "value"]);
+    const b = body(req, ["label", "value"], ["purpose", "idempotencyKey"]);
     ensure(
-      typeof b.label === "string" && b.label.length <= 128,
+      typeof b.label === "string" && b.label.trim().length > 0 && b.label.length <= 128,
       "INPUT_INVALID",
       "Invalid secret label.",
     );
-    return data(vault.addSecret(b.label, b.value));
+    const save = () => vault.addSecret(b.label, b.value, { purpose: b.purpose });
+    if (b.idempotencyKey !== undefined) ensure(typeof b.idempotencyKey === "string" && b.idempotencyKey.length > 0 && b.idempotencyKey.length <= 256, "INPUT_INVALID", "Invalid idempotency key.");
+    return data(b.idempotencyKey ? repo.command("admin", "secret.create", b.idempotencyKey, b, save) : save());
   });
   app.get("/api/v1/secrets", async () =>
-    data(
-      repo
-        .all("secrets")
-        .map(({ id, label, createdAt }) => ({ id, label, createdAt })),
-    ),
+    data(credentialInventory(repo)),
   );
   app.get("/api/v1/settings", async () => {
     const address = app.server.address();
@@ -273,13 +296,13 @@ export async function registerAdmin(
     }))),
   );
   app.post("/api/v1/clients", async (req) => {
-    const b = body(req, ["label", "workflowAllowlist"]);
+    const b = body(req, ["label", "workflowAllowlist"], ["authoring"]);
     ensure(
       typeof b.label === "string" &&
         b.label.length > 0 &&
         b.label.length <= 128 &&
         Array.isArray(b.workflowAllowlist) &&
-        b.workflowAllowlist.length > 0 &&
+        (b.workflowAllowlist.length > 0 || b.authoring === true) &&
         b.workflowAllowlist.length <= 100 &&
         b.workflowAllowlist.every(
           (w: Json) => typeof w === "string" && repo.get("workflows", w),
@@ -292,7 +315,7 @@ export async function registerAdmin(
         id: id("client"),
         label: b.label,
         workflowAllowlist: b.workflowAllowlist,
-        scopes: ["workflow:execute"],
+        scopes: b.authoring === true ? ["workflow:execute", "workflow:author"] : ["workflow:execute"],
         tokenHash: hash(token),
         revoked: false,
         createdAt: now(),
@@ -337,6 +360,10 @@ export async function registerAdmin(
   app.get("/api/v1/connections", async () =>
     data(repo.all("connections").map((c) => connectors.catalogView(c))),
   );
+  const assertMcpCredentialPurpose = (configuration: Json) => {
+    const refs = [configuration.secretRef, ...Object.values(configuration.envRefs ?? {})];
+    ensure(!credentialInventory(repo).some(item => item.modelCredential && refs.includes(item.id)), "CREDENTIAL_PURPOSE_MISMATCH", "模型专用 Key 不能用于 MCP 连接，请配置对应的连接凭据。", 409);
+  };
   app.post("/api/v1/connections", async (req) => {
     const b = body(
       req,
@@ -407,6 +434,7 @@ export async function registerAdmin(
       tools: [],
       createdAt: now(),
     };
+    assertMcpCredentialPurpose(c);
     repo.insert("connections", c.id, c);
     repo.audit("admin", "connection:create", c.id);
     return data(c);
@@ -453,6 +481,7 @@ export async function registerAdmin(
       verifiedSdk: null,
       tools: [],
     };
+    assertMcpCredentialPurpose(next);
     repo.put("connections", c.id, next, expected);
     for (const binding of repo
       .all("bindings")
@@ -659,7 +688,7 @@ export async function registerAdmin(
         "Probe environment evidence differs.",
       );
       ensure(
-        (response.structuredContent as Json).environment === b.environment,
+        (response.structuredContent as Json).environment === undefined || (response.structuredContent as Json).environment === b.environment,
         "ENVIRONMENT_MISMATCH",
         "Normalized probe environment must match the fixed binding.",
       );
@@ -701,7 +730,7 @@ export async function registerAdmin(
   app.get("/api/v1/workflows", async () => data(repo.all("workflows")));
   app.post("/api/v1/workflows", async (req) => {
     const b = body(req, ["workflow"], ["layout"]);
-    return data(engine.saveDraft(b.workflow, undefined, b.layout ?? {}));
+    return data(authoring.saveRaw(b.workflow, undefined, b.layout ?? {}));
   });
   app.get("/api/v1/workflows/:id/draft", async (req) => {
     const w = repo.get("workflows", param(req));
@@ -709,7 +738,7 @@ export async function registerAdmin(
     return data(w);
   });
   app.put("/api/v1/workflows/:id/draft", async (req) => {
-    const b = body(req, ["workflow", "layout"]);
+    const b = body(req, ["workflow", "layout"], ["expectedLayoutRevision"]);
     ensure(
       repo.get("workflows", param(req)),
       "NOT_FOUND",
@@ -721,7 +750,9 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Workflow ID is immutable.",
     );
-    return data(engine.saveDraft(b.workflow, revision(req), b.layout));
+    ensure(b.expectedLayoutRevision===undefined || Number.isSafeInteger(b.expectedLayoutRevision) && b.expectedLayoutRevision>0,
+      "INPUT_INVALID","Expected layout revision must be a positive integer.");
+    return data(authoring.saveRaw(b.workflow, revision(req), b.layout, b.expectedLayoutRevision));
   });
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
@@ -756,7 +787,7 @@ export async function registerAdmin(
       "Change note must contain at most 2000 characters.",
     );
     return data(
-      engine.publish(
+      authoring.publishLegacy(
         param(req),
         b.expectedRevision,
         b.changeNote,
@@ -812,7 +843,7 @@ export async function registerAdmin(
   });
   app.post("/api/v1/workflow-imports/commit", async (req) => {
     const b = body(req, ["workflow"]);
-    const w = engine.saveDraft(b.workflow, undefined, {});
+    const w = authoring.saveRaw(b.workflow, undefined, {});
     repo.put("workflows", w.id, { ...w, enabled: false });
     return data({ ...w, enabled: false });
   });
@@ -822,7 +853,7 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Workflow object required.",
     );
-    validate(workflowSchema, w);
+    validateWorkflowDocument(w);
   }
   // Import uses the same runtime schema; graph/binding validation is deferred to publish.
   app.get("/api/v1/legacy-workflows", async () => data({
@@ -853,7 +884,7 @@ export async function registerAdmin(
     return data(repo.tx(() => {
       ensure(repo.get("workflows", source.id)?.revision === b.expectedRevision,
         "REVISION_CONFLICT", "Source changed during backup.", 409);
-      const draft = engine.saveDraft(workflow, undefined, {});
+      const draft = authoring.saveRaw(workflow, undefined, {});
       repo.audit("admin", "legacy-workflow-copy", source.id);
       return { draft, backup, published: false };
     }));
@@ -892,52 +923,35 @@ export async function registerAdmin(
       eventCursor: eventCursor(repo, runId, after, limit, status.events),
     });
   });
-  app.get("/api/v1/runs/:id/events", async (req, reply) => {
+  const streamEvents = (req: FastifyRequest, reply: Json, initial: number, read: (after: number) => Json[], cursor: (event: Json) => number, intervalMs = 2000) => {
     ensure(!streamsClosing, "SERVICE_STOPPING", "The daemon is stopping.", 503);
-    const runId = param(req);
-    engine.status(runId, owner(runId));
-    const page = eventPageQuery(req.query, req.headers["last-event-id"]);
-    let after = page.after;
-    reply.hijack();
-    reply.raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    });
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const cleanup = () => {
-      clearInterval(interval);
-      eventStreams.delete(close);
-    };
-    const close = () => {
-      cleanup();
-      reply.raw.end();
-    };
-    eventStreams.set(close, req.headers.cookie);
-    reply.raw.on("close", cleanup);
-    const send = () => {
-      auth.check(req.headers.cookie);
-      for (const event of repo.events(runId, after, page.limit)) {
-        reply.raw.write(
-          "id: " + event.seq + "\ndata: " + JSON.stringify(event) + "\n\n",
-        );
-        after = event.seq;
-      }
-    };
-    try {
-      send();
-    } catch {
-      close();
-      return;
-    }
-    interval = setInterval(() => {
-      try {
-        send();
-        reply.raw.write(": keepalive\n\n");
-      } catch {
-        close();
-      }
-    }, 2000);
+    let after=initial,closed=false;
+    reply.hijack();reply.raw.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"});
+    let interval: ReturnType<typeof setInterval>|undefined;
+    const cleanup=()=>{closed=true;clearInterval(interval);eventStreams.delete(close);};
+    const writable=()=>!closed&&!reply.raw.destroyed&&!reply.raw.writableEnded;
+    const close=()=>{if(closed)return;cleanup();if(!reply.raw.destroyed&&!reply.raw.writableEnded)reply.raw.end();};
+    eventStreams.set(close,req.headers.cookie);reply.raw.on("close",cleanup);reply.raw.on("error",cleanup);
+    const send=()=>{if(!writable()){cleanup();return false;}auth.check(req.headers.cookie);for(const event of read(after)) {
+      if(!writable())return false;
+      if(reply.raw.writableLength>1048576){close();return false;}
+      reply.raw.write("id: "+cursor(event)+"\ndata: "+JSON.stringify(event)+"\n\n");after=cursor(event);
+    }return writable();};
+    try{if(!send())return;}catch{close();return;}
+    interval=setInterval(()=>{try{if(send()&&writable())reply.raw.write(": keepalive\n\n");}catch{close();}},intervalMs);
+  };
+  app.get("/api/v1/runs/:id/events", async (req, reply) => {
+    const runId=param(req);engine.status(runId,owner(runId));
+    const page=eventPageQuery(req.query,req.headers["last-event-id"]);
+    streamEvents(req,reply,page.after,after=>repo.events(runId,after,page.limit),event=>event.seq);
+  });
+  app.get("/api/v2/events", async (req,reply) => {
+    const q=req.query as Json,after=Number(req.headers["last-event-id"]??q.afterEventId??0);
+    ensure(Number.isSafeInteger(after)&&after>=0,"INPUT_INVALID","Invalid event cursor.");
+    streamEvents(req,reply,after,cursor=>repo.changes(cursor).map(event=>{
+      if((q.taskId&&event.taskId!==q.taskId)||(q.workflowId&&event.workflowId!==q.workflowId))return {eventId:event.eventId,type:"cursor",timestamp:event.timestamp};
+      return event;
+    }),event=>event.eventId,250);
   });
   app.post("/api/v1/runs/:id/advance", async () => {
     throw new HubError(
@@ -1050,8 +1064,10 @@ export async function registerAdmin(
     const b = body(req, ["previewHash"]);
     return data(commitRetention(repo, b.previewHash));
   });
+  registerV2(app, authoring, registry, application);
   // preClose runs before Fastify waits for hijacked HTTP connections to finish.
   app.addHook("preClose", async () => {
+    await registry.close();
     streamsClosing = true;
     for (const close of eventStreams.keys()) close();
   });

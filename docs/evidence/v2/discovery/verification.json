@@ -1,0 +1,105 @@
+{
+  "verifiedAt": "2026-10-31T13:40:11.588Z",
+  "productCommits": [
+    "097192d",
+    "02017ad"
+  ],
+  "scope": "Discovery D1-D4; earlier assistant audit is outside this change",
+  "commands": [
+    {
+      "command": "npm run check",
+      "exitCode": 0
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 363,
+      "failed": 0
+    },
+    {
+      "command": "FLOWHUB_CHROMIUM=<isolated Chromium> npm run test:ui",
+      "exitCode": 0,
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "command": "npm run test:codex-local",
+      "exitCode": 0,
+      "actualCodexUpload": "PASS",
+      "actualCodexWorkflowLoop": "PASS",
+      "modelTurns": 0
+    },
+    {
+      "command": "npm run package:local",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:package",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run verify:release",
+      "exitCode": 0
+    },
+    {
+      "command": "npm audit --json",
+      "exitCode": 0,
+      "vulnerabilities": 0
+    }
+  ],
+  "runtime": {
+    "url": "http://127.0.0.1:18473",
+    "schemaVersions": [
+      1,
+      2,
+      3
+    ],
+    "preservedTableCount": 24,
+    "changedProtectedTables": [],
+    "adminLogin": "passed",
+    "vaultLocked": false,
+    "backupVerified": true
+  },
+  "screenshots": {
+    "desktop.png": {
+      "bytes": 188600,
+      "sha256": "01fe826b1055711f28940a46d63081624e715118ad8d845e1aa2a101aa2b9f18"
+    },
+    "localization.png": {
+      "bytes": 289596,
+      "sha256": "a3378a13830c186c12af00356307962c35a24669f6375ab952039bb100d3d127"
+    },
+    "mcp-detail.png": {
+      "bytes": 224043,
+      "sha256": "783c3abb374ee30c7ce8fcf28824370e6f910dedcd87133068c539ec637993d1"
+    },
+    "mobile-detail.png": {
+      "bytes": 57180,
+      "sha256": "135be8967bdb70e351bb128f0aa5e67b11545796b803c8b3490257f8dc6b68db"
+    },
+    "mobile.png": {
+      "bytes": 76372,
+      "sha256": "bd2b92e62b4d189e68a34b64bd61179ce52ef44f2f69daa99163a23d6128fd62"
+    },
+    "plugin-relations.png": {
+      "bytes": 167929,
+      "sha256": "80d2cfe4afa7d6169dbd83acd88e0a355290eb6bacea4e0c2baed1ffd221487f"
+    },
+    "skill-detail.png": {
+      "bytes": 231887,
+      "sha256": "30783b8f7203da6347bbe8bf0ef3603051fb4e857f77fbf8b3835c07e6e90247"
+    },
+    "skills.png": {
+      "bytes": 167705,
+      "sha256": "5f35b9701d9847122ccc632a092c5663a5f9706691d4ee3432689b8ef3246b4e"
+    }
+  },
+  "packagePointer": "artifacts/latest-package.json",
+  "boundaries": {
+    "realCodexProtocol": "verified with temporary CODEX_HOME and synthetic data",
+    "naturalLanguageTranslationQuality": "UNVERIFIED - no model turns",
+    "companyMcp": "UNVERIFIED - no business system calls",
+    "windowsNative": "UNVERIFIED",
+    "pushMergeRelease": "not performed"
+  }
+}

@@ -1,0 +1,49 @@
+[
+  {
+    "case": "run_proposes_cancel",
+    "text": "运行当前流程",
+    "offeredTools": [
+      "workflow_search",
+      "workflow_get",
+      "workflow_start",
+      "workflow_advance",
+      "workflow_status",
+      "artifact_read",
+      "host_scan_status",
+      "capability_search",
+      "capability_get",
+      "workflow_draft_get",
+      "workflow_test_status",
+      "project_help_search"
+    ],
+    "taskStatus": "FAILED",
+    "errorCode": "INTENT_NOT_ALLOWED",
+    "runBefore": "WAITING_AGENT",
+    "runAfter": "WAITING_AGENT",
+    "newRuns": 0,
+    "receipts": []
+  },
+  {
+    "case": "cancel_proposes_start",
+    "text": "取消当前运行",
+    "offeredTools": [
+      "workflow_search",
+      "workflow_get",
+      "workflow_status",
+      "workflow_cancel",
+      "artifact_read",
+      "host_scan_status",
+      "capability_search",
+      "capability_get",
+      "workflow_draft_get",
+      "workflow_test_status",
+      "project_help_search"
+    ],
+    "taskStatus": "FAILED",
+    "errorCode": "INTENT_NOT_ALLOWED",
+    "runBefore": "WAITING_AGENT",
+    "runAfter": "WAITING_AGENT",
+    "newRuns": 0,
+    "receipts": []
+  }
+]

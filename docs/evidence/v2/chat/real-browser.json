@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-31",
+  "scope": "actual browser UI, real daemon APIs, isolated synthetic data, existing gpt-6-luna API credential",
+  "completedTurns": 2,
+  "tasks": [
+    {
+      "status": "COMPLETED",
+      "rounds": 1,
+      "tools": [],
+      "historyMessages": 1
+    },
+    {
+      "status": "COMPLETED",
+      "rounds": 1,
+      "tools": [],
+      "historyMessages": 3
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "text": "当前 MCP 有哪些？请简短回答。"
+    },
+    {
+      "role": "assistant",
+      "text": "当前登记了 **1 个 MCP 连接**：FlowHub 合成 MCP（已启用，缓存 4 个工具）。能力发现尚未扫描，暂时无法确认当前可用工具清单。"
+    },
+    {
+      "role": "user",
+      "text": "接着刚才的问题，发现会修改 Codex 的原配置吗？"
+    },
+    {
+      "role": "assistant",
+      "text": "不会。发现是只读操作，不会修改 Codex 的原配置；目前尚未扫描。"
+    }
+  ],
+  "screenshots": [
+    "real-browser-desktop.png",
+    "real-browser-chat.png",
+    "real-browser-closed.png",
+    "real-browser-mobile.png"
+  ],
+  "console": "one expected 401 before admin login; no page exceptions",
+  "temporaryCredentialStoreRemoved": true
+}

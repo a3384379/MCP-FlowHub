@@ -1,0 +1,29 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-floating-chat.spec.ts tests/ui/v2-assistant-max-audit.spec.ts --grep assistant launcher drags|real pinch --repeat-each=3
+
+[WebServer] (node:67149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:67152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (2.2s)
+  ✓   2 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.5s)
+  ✓   3 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.6s)
+  ✓   4 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (1.3s)
+(node:67211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.6s)
+  ✓   6 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.8s)
+  ✓   7 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.6s)
+  ✓   8 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (1.2s)
+(node:67236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.6s)
+  ✓  10 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.5s)
+  ✓  11 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.5s)
+  ✓  12 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (1.3s)
+
+  12 passed (20.8s)

@@ -93,7 +93,7 @@ async function fixture(t: TestContext) {
         request.on("error", reject);
       },
     );
-  return { daemon, dataDir, api, open };
+  return { daemon, dataDir, api, open, cookie };
 }
 
 test("daemon shutdown ends active authenticated SSE and removes endpoint and lock without client disconnect", async (t) => {
@@ -138,4 +138,55 @@ test("an expired administrator session stops receiving SSE on the next heartbeat
   } finally {
     clock.mock.restore();
   }
+});
+
+test("SSE backpressure closes without a later heartbeat writing after end, and disconnected clients leave the daemon healthy", async (t) => {
+  const { daemon, cookie } = await fixture(t),
+    repo = daemon.engine.repo;
+  const before = repo.changes().at(-1)?.eventId ?? 0;
+  const stream = await new Promise<{
+    response: IncomingMessage;
+    closed: Promise<void>;
+  }>((resolve, reject) => {
+    const req = httpGet(
+      `http://127.0.0.1:${daemon.port}/api/v2/events?afterEventId=${before}`,
+      { headers: { Cookie: cookie } },
+      (response) => {
+        const closed = new Promise<void>((done, fail) => {
+          response.on("end", done);
+          response.on("error", fail);
+        });
+        response.resume();
+        resolve({ response, closed });
+      },
+    );
+    req.on("error", reject);
+  });
+  repo.changed("synthetic.large", {
+    data: { text: "x".repeat(2 * 1024 * 1024) },
+  });
+  repo.changed("synthetic.next");
+  await within(stream.closed);
+  // More than two 250ms heartbeats after closure: a stray timer must not write.
+  await new Promise((resolve) => setTimeout(resolve, 650));
+  assert.equal(
+    (await fetch(`http://127.0.0.1:${daemon.port}/api/v1/health`)).status,
+    200,
+  );
+  await new Promise<void>((resolve, reject) => {
+    const req = httpGet(
+      `http://127.0.0.1:${daemon.port}/api/v2/events?afterEventId=${repo.changes().at(-1)!.eventId}`,
+      { headers: { Cookie: cookie } },
+      (response) => {
+        response.destroy();
+        resolve();
+      },
+    );
+    req.on("error", reject);
+  });
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  assert.equal(
+    (await fetch(`http://127.0.0.1:${daemon.port}/api/v1/health`)).status,
+    200,
+  );
 });

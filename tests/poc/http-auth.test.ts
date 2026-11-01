@@ -121,6 +121,36 @@ async function fixture(t: TestContext) {
   return { daemon, call, api, dataDir, cookie, adminHeaders, token };
 }
 
+test("successful vault verification clears attempts while consecutive wrong passwords remain limited", async (t) => {
+  const { call, api, adminHeaders } = await fixture(t);
+  const unlock = (value: string) =>
+    call("/api/v1/vault/unlock", { password: value }, adminHeaders);
+  for (let attempt = 0; attempt < 7; attempt++) {
+    await api("/vault/lock", {});
+    const response = await unlock(password);
+    assert.equal(response.status, 200, JSON.stringify(response.json));
+    assert.equal(response.json.data.locked, false);
+  }
+  const wrongAttempts = async (count: number) => {
+    for (let attempt = 0; attempt < count; attempt++) {
+      const response = await unlock("synthetic-wrong-vault-password");
+      assert.equal(response.status, 401);
+      assert.equal(response.json.error.code, "AUTH_REQUIRED");
+    }
+  };
+  await wrongAttempts(4);
+  assert.equal((await unlock(password)).status, 200);
+  await wrongAttempts(4);
+  const nextPassword = "Synthetic-new-vault-password-429";
+  await api("/vault/password", { oldPassword: password, newPassword: nextPassword });
+  await api("/vault/lock", {});
+  assert.equal((await unlock(nextPassword)).status, 200);
+  await wrongAttempts(5);
+  const limited = await unlock(nextPassword);
+  assert.equal(limited.status, 429);
+  assert.equal(limited.json.error.code, "RATE_LIMITED");
+});
+
 test("SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets", async (t) => {
   const { daemon, call, api, cookie, adminHeaders, token } = await fixture(t);
   const run = await api("/runs", {
@@ -270,6 +300,32 @@ test("draft PUT updates only an existing stable workflow ID and enforces its rev
   );
 });
 
+test("whole Web draft saves reject unseen layout operations without losing either edit", async (t) => {
+  const { daemon, call, adminHeaders } = await fixture(t);
+  const authoring = daemon.application.authoring;
+  authoring.create({ workflowId: "layout-cas", name: "Layout CAS", environment: "test", mode: "auto", template: "blank", idempotencyKey: "create-layout" });
+  const initial = authoring.get("layout-cas");
+  authoring.patch({ workflowId: initial.id, expectedRevision: initial.revision, idempotencyKey: "move-layout", operations: [{ op: "move_nodes", expectedLayoutRevision: initial.layoutRevision, positions: [{ nodeId: "input", x: 180, y: 90 }] }] });
+  const remote = authoring.get(initial.id), workflow = structuredClone(initial.draft);
+  workflow.name = "Retained local semantic edit";
+  const save = (expectedLayoutRevision?: number) => call("/api/v1/workflows/" + initial.id + "/draft", { workflow, layout: initial.layout, ...(expectedLayoutRevision === undefined ? {} : { expectedLayoutRevision }) }, { ...adminHeaders, "If-Match": String(initial.revision) }, "PUT");
+  assert.equal(remote.revision, initial.revision);
+  assert.equal(remote.layoutRevision, initial.layoutRevision + 1);
+  for (const revision of [undefined, initial.layoutRevision]) {
+    const rejected = await save(revision);
+    assert.equal(rejected.status, 409);
+    assert.equal(rejected.json.error.code, "REVISION_CONFLICT");
+    assert.deepEqual(authoring.get(initial.id), remote);
+  }
+  const accepted = await call("/api/v1/workflows/" + initial.id + "/draft", { workflow, layout: remote.layout, expectedLayoutRevision: remote.layoutRevision }, { ...adminHeaders, "If-Match": String(remote.revision) }, "PUT");
+  assert.equal(accepted.status, 200, JSON.stringify(accepted.json));
+  assert.equal(accepted.json.data.draft.name, workflow.name);
+  assert.deepEqual(accepted.json.data.layout.input, { x: 180, y: 90 });
+  assert.equal(accepted.json.data.layoutRevision, remote.layoutRevision);
+  const changes = daemon.engine.repo.changes();
+  assert.equal(changes.at(-1).layoutRevision, remote.layoutRevision);
+});
+
 test("publish requires the reviewed draft revision and cannot publish a concurrent save", async (t) => {
   const { daemon, call, api, adminHeaders } = await fixture(t);
   const workflow = structuredClone(
@@ -415,7 +471,7 @@ test("MCP route authentication covers encoded and absolute targets and preserves
       Authorization: "Bearer " + token,
     });
     assert.equal(authenticated.status, 200, target);
-    assert.equal(authenticated.json.result.tools.length, 7, target);
+    assert.equal(authenticated.json.result.tools.length, 21, target);
     const scopedHeaders = { Authorization: "Bearer " + scoped };
     const allowed = await call(target, get("incident-staging"), scopedHeaders);
     assert.equal(allowed.status, 200, target);

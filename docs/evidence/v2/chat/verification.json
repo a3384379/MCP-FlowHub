@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-31",
+  "implementationCommit": "ebbca07",
+  "check": {
+    "exit": 0
+  },
+  "build": {
+    "exit": 0,
+    "existingWarnings": [
+      "React Flow use client directive",
+      "bundle size >500 kB"
+    ]
+  },
+  "fullBackend": {
+    "passed": 353,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullBrowser": {
+    "passed": 42,
+    "failed": 0
+  },
+  "finalAssistantRegression": {
+    "passed": 48,
+    "failed": 0,
+    "note": "after final cached tool names projection addition"
+  },
+  "realModel": {
+    "completedTurns": 5,
+    "model": "gpt-6-luna",
+    "draftRevisionBefore": 1,
+    "draftRevisionAfter": 2,
+    "published": 0,
+    "runs": 0,
+    "initialFailedAttemptPreserved": true,
+    "initialFailureRootCause": "unproven external stream interruption"
+  },
+  "realBrowser": {
+    "completedTurns": 2,
+    "temporaryCredentialStoreRemoved": true
+  },
+  "localService": {
+    "port": 18473,
+    "healthy": true,
+    "businessTablesCompared": 19,
+    "priorRowsChangedOrMissing": 0
+  },
+  "notVerified": [
+    "physical mobile keyboard",
+    "screen readers",
+    "native Windows",
+    "enterprise MCP",
+    "full 30-scenario model evaluation"
+  ],
+  "delivery": "local commits only; no push, merge or Release; existing offline archive not rebuilt"
+}

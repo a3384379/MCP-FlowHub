@@ -13,6 +13,7 @@ import {
   HubError,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
+import { credentialInventory } from "./credential-metadata.js";
 import { protectDiagnostic } from "./diagnostics.js";
 const derive = (password: string, salt: string) =>
   scryptSync(password, salt, 32, {
@@ -21,10 +22,13 @@ const derive = (password: string, salt: string) =>
     p: 1,
     maxmem: 64 * 1024 * 1024,
   });
-export function passwordHash(password: string) {
+export const DEFAULT_ADMIN_USERNAME = "admin";
+export const DEFAULT_ADMIN_PASSWORD = "admin";
+
+export function passwordHash(password: string, allowDefaultAdmin = false) {
   ensure(
     typeof password === "string" &&
-      password.length >= 12 &&
+      (password.length >= 12 || allowDefaultAdmin && password === DEFAULT_ADMIN_PASSWORD) &&
       password.length <= 256,
     "PASSWORD_WEAK",
     "Password must contain 12–256 characters.",
@@ -49,14 +53,14 @@ export class Vault {
   get locked() {
     return !this.key;
   }
-  initialize(password: string) {
+  initialize(password: string, allowDefaultAdmin = false) {
     ensure(
       !this.initialized,
       "VAULT_EXISTS",
       "Vault already initialized.",
       409,
     );
-    passwordHash(password);
+    passwordHash(password, allowDefaultAdmin);
     const salt = randomBytes(16).toString("hex");
     this.key = derive(password, salt);
     this.generation++;
@@ -120,9 +124,10 @@ export class Vault {
       cipher.final(),
     ]).toString("utf8");
   }
-  addSecret(label: string, value: string) {
+  addSecret(label: string, value: string, metadata: Json = {}) {
+    ensure(metadata.purpose === undefined || ["unspecified", "model_api", "mcp_auth", "mcp_config"].includes(metadata.purpose), "INPUT_INVALID", "Invalid credential purpose.");
     ensure(
-      typeof value === "string" && value.length > 0 && value.length < 16384,
+      typeof value === "string" && (value.length > 0 || metadata.purpose === "mcp_config") && value.length < 16384,
       "INPUT_INVALID",
       "Invalid secret.",
     );
@@ -132,6 +137,9 @@ export class Vault {
       label,
       encrypted: this.encrypt(value, ref),
       createdAt: now(),
+      purpose: metadata.purpose ?? "unspecified",
+      ...(metadata.sourceId ? { sourceId: metadata.sourceId } : {}),
+      ...(metadata.variable ? { variable: metadata.variable } : {}),
     });
     this.generation++;
     return { id: ref, label };
@@ -141,12 +149,19 @@ export class Vault {
     ensure(s, "AUTH_REQUIRED", "Secret unavailable.", 401);
     return this.decrypt(s.encrypted, ref);
   }
+  private sensitiveRecords() {
+    const metadata=credentialInventory(this.repo);
+    return this.repo.all("secrets").filter(s=>{
+      const meta=metadata.find(m=>m.id===s.id),normal=s.purpose==="mcp_config"||(!s.purpose||s.purpose==="unspecified")&&meta.usedBy.length>0&&meta.usedBy.every((u:Json)=>u.kind==="mcp_config");
+      return !normal||meta.usedBy.some((u:Json)=>["model_api","mcp_auth"].includes(u.kind));
+    });
+  }
   protectDiagnostic(value: Json): Json {
     // Decrypt only inside this call. No plaintext matcher survives vault lock,
     // password rotation, or the operation that stores the sanitized result.
     const secrets = this.locked
       ? []
-      : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
+      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
     return protectDiagnostic(value, secrets);
   }
   catalogContext() {
@@ -170,7 +185,7 @@ export class Vault {
     // the actual tool contract. Reject the entire catalog instead of rewriting.
     const secrets = this.locked
       ? []
-      : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
+      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
     const inspect = (item: Json, schema = false): void => {
       if (typeof item === "string")
         ensure(
@@ -219,7 +234,17 @@ export class Vault {
           }),
         ),
       }));
-    const oldKey = Buffer.from(this.key!),
+    // Only these documented operational fields contain Vault envelopes. Do not
+    // walk arbitrary business JSON looking for token/password/ciphertext names.
+    // Decrypt every envelope before changing keys or writing any record, so one
+    // corrupt historical receipt fails the whole rotation with the old key live.
+    const continuations = this.repo.all("assistant_tasks")
+      .filter((task) => task.providerContinuation != null)
+      .map((record) => ({record,text:this.decrypt(record.providerContinuation,record.id+":provider")}));
+    const receipts = this.repo.all("assistant_tool_calls")
+      .filter((call) => call.result?.checkpoint?.tokenDelivery !== undefined)
+      .map((record) => ({record,text:this.decrypt(record.result.checkpoint.tokenDelivery,record.id)}));
+    const oldKey = this.key!,
       salt = randomBytes(16).toString("hex");
     this.key = derive(newPassword, salt);
     try {
@@ -242,6 +267,14 @@ export class Vault {
             );
           this.repo.put("runs", c.record.id, c.record);
         }
+        for (const continuation of continuations) {
+          continuation.record.providerContinuation=this.encrypt(continuation.text,continuation.record.id+":provider");
+          this.repo.put("assistant_tasks",continuation.record.id,continuation.record);
+        }
+        for (const receipt of receipts) {
+          receipt.record.result.checkpoint.tokenDelivery=this.encrypt(receipt.text,receipt.record.id);
+          this.repo.put("assistant_tool_calls",receipt.record.id,receipt.record);
+        }
         this.repo.put("settings", "vault", {
           salt,
           verifier: this.encrypt("flowhub-vault-v1", "verifier"),
@@ -263,9 +296,9 @@ export class AdminAuth {
   get initialized() {
     return !!this.repo.get("settings", "admin");
   }
-  setup(password: string) {
+  setup(password: string, allowDefaultAdmin = false) {
     ensure(!this.initialized, "ADMIN_EXISTS", "Admin already configured.", 409);
-    this.repo.insert("settings", "admin", passwordHash(password));
+    this.repo.insert("settings", "admin", passwordHash(password, allowDefaultAdmin));
   }
   throttle(key: string) {
     const old = this.attempts.get(key);
@@ -280,16 +313,19 @@ export class AdminAuth {
       until: Date.now() + 60000,
     });
   }
-  login(password: string) {
+  resetThrottle(key: string) {
+    this.attempts.delete(key);
+  }
+  login(password: string, username = DEFAULT_ADMIN_USERNAME) {
     this.throttle("login");
     const admin = this.repo.get("settings", "admin");
     ensure(
-      admin && passwordMatches(password, admin),
+      username === DEFAULT_ADMIN_USERNAME && admin && passwordMatches(password, admin),
       "AUTH_REQUIRED",
       "Invalid administrator password.",
       401,
     );
-    this.attempts.delete("login");
+    this.resetThrottle("login");
     return this.session();
   }
   session() {

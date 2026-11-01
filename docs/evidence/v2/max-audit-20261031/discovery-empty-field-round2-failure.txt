@@ -1,0 +1,35 @@
+### Result
+{
+  "profile": "synthetic-profile",
+  "codexPath": "/tmp/flowhub-settings-regression-YPPjdn/codex-explicit.mjs",
+  "revision": 2,
+  "error": "",
+  "posts": [
+    {
+      "path": "/api/v2/host-contexts",
+      "method": "POST",
+      "body": {
+        "codexHome": "/private/tmp/flowhub-settings-regression-YPPjdn/home",
+        "cwd": "/private/tmp/flowhub-settings-regression-YPPjdn/project",
+        "discoveryMode": "auto",
+        "projectTrusted": false,
+        "useAppServer": false,
+        "contextId": "ctx_a203df073249c7fcd5874daf",
+        "expectedRevision": 1
+      }
+    },
+    {
+      "path": "/api/v2/host-scans",
+      "method": "POST",
+      "body": {
+        "contextId": "ctx_a203df073249c7fcd5874daf",
+        "depth": "metadata",
+        "idempotencyKey": "d62b56fd-5f1a-479b-8251-5b913e601ea1"
+      }
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({profile: window.d.context.profile, codexPath:window.d.context.codexPath, revision:window.d.context.revision,error:window.d.error,posts:window.requests.filter(r=>r.method==="POST")}))');
+```

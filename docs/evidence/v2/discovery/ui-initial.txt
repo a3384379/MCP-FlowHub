@@ -1,0 +1,137 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-discovery-design.spec.ts tests/ui/v2-discovery-reaudit.spec.ts tests/ui/v2-capability-acceptance.spec.ts
+
+[WebServer] (node:78010) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:78021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/v2-capability-acceptance.spec.ts:47:1 › UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references (5.9s)
+  ✓  2 tests/ui/v2-capability-acceptance.spec.ts:100:1 › UI-07: successful real Mock evidence becomes stale after a browser draft edit (1.5s)
+  ✓  3 tests/ui/v2-capability-acceptance.spec.ts:116:1 › UI-01: real discovery displays loading, complete empty, partial and registration error states (2.4s)
+  ✘  4 tests/ui/v2-discovery-design.spec.ts:41:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships (7.2s)
+(node:78151) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 tests/ui/v2-discovery-design.spec.ts:63:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions (7.8s)
+(node:78168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 tests/ui/v2-discovery-design.spec.ts:77:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification (7.2s)
+(node:78182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 tests/ui/v2-discovery-design.spec.ts:92:1 › real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task (2.4s)
+  ✘  8 tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex (5.2s)
+
+
+  1) tests/ui/v2-discovery-design.spec.ts:41:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('dialog').locator('pre')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('dialog').locator('pre') with timeout 5000ms
+      - waiting for getByRole('dialog').locator('pre')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      50 |     await page.getByRole("button", { name: "中 / EN 中文优先" }).click(); await expect(page.locator(".d-cap-name")).toHaveText(f.serverName); await page.getByRole("button", { name: "中 / EN 原文展示" }).click();
+      51 |     await page.getByRole("button", { name: "查看合成订单服务详情" }).click(); const dialog = page.getByRole("dialog");
+    > 52 |     await expect(dialog.locator(".d-tool-card")).not.toHaveCount(0); await expect(dialog.locator("pre")).toHaveCount(0);
+         |                                                                                                          ^
+      53 |     await dialog.getByRole("button", { name: "相关 Skills", exact: true }).click(); await expect(dialog.locator(".d-relation")).toContainText("代码审查"); await expect(dialog.locator(".d-relation")).toContainText("声明依赖");
+      54 |     await dialog.getByRole("button", { name: "代码审查", exact: true }).click(); await expect(dialog.getByRole("heading", { name: "代码审查", exact: true })).toBeVisible();
+      55 |     await expect(dialog.locator(".d-dependency")).toContainText("声明依赖 · 已匹配"); await expect(dialog.locator(".d-dependency")).toContainText("agents/openai.yaml"); await expect(dialog.locator(".d-fact-grid")).toContainText("研发协作插件");
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:52:106
+
+    Error Context: test-results/v2-discovery-design-typed--f3f9e--plugin-Skill-relationships/error-context.md
+
+  2) tests/ui/v2-discovery-design.spec.ts:63:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.d-cap-row').filter({ hasText: 'review-a87acc' })
+    Expected substring: "中文说明待更新"
+    Received string:    "review-a87accReview source changes and report new version findings.dev-a87acc插件清单归属仅 Codex 调用1 项已声明 MCP 依赖—"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" locator('.d-cap-row').filter({ hasText: 'review-a87acc' }) with timeout 5000ms
+      - waiting for locator('.d-cap-row').filter({ hasText: 'review-a87acc' })
+        14 × locator resolved to <article class="d-cap-row">…</article>
+           - unexpected value "review-a87accReview source changes and report new version findings.dev-a87acc插件清单归属仅 Codex 调用1 项已声明 MCP 依赖—"
+
+
+      70 |     await page.reload(); await page.getByRole("tab", { name: /Skills 技能/ }).click(); await expect(page.locator(".d-cap-row").filter({ hasText: "我的审查技能" })).toHaveCount(1);
+      71 |     await writeFile(join(f.skill, "SKILL.md"), f.original.replace("actionable findings", "new version findings")); await page.getByRole("button", { name: "重新扫描", exact: true }).click(); await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
+    > 72 |     const row = page.locator(".d-cap-row").filter({ hasText: f.skillName }); await expect(row).toContainText("中文说明待更新");
+         |                                                                                                ^
+      73 |     await row.getByRole("button").click(); await page.getByRole("dialog").getByText("查看保留的旧中文说明", { exact: true }).click(); await expect(page.getByRole("dialog")).toContainText("我的审查技能");
+      74 |   } finally { await f.close(); }
+      75 | });
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:72:96
+
+    Error Context: test-results/v2-discovery-design-manual-437b0-dates-flag-old-descriptions/error-context.md
+
+  3) tests/ui/v2-discovery-design.spec.ts:77:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByRole('dialog').getByLabel('导入固定环境', { exact: true })
+    Expected: "test"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByRole('dialog').getByLabel('导入固定环境', { exact: true }) with timeout 5000ms
+      - waiting for getByRole('dialog').getByLabel('导入固定环境', { exact: true })
+
+
+      81 |     await page.getByRole("button", { name: "查看合成订单服务详情" }).click(); const dialog = page.getByRole("dialog");
+      82 |     await dialog.locator(".d-tool-card").filter({ hasText: "读取订单" }).getByRole("button", { name: "导入工具", exact: true }).click();
+    > 83 |     await expect(dialog.getByLabel("导入固定环境", { exact: true })).toHaveValue("test");
+         |                                                                ^
+      84 |     await dialog.getByRole("button", { name: "导入连接与绑定", exact: true }).click(); await expect(dialog.getByRole("status")).toContainText("资源绑定尚未验证");
+      85 |     const bindings = await f.api("/api/v1/bindings"); expect(bindings.length).toBe(beforeBindings + 1); const binding = bindings.find((b: any) => b.sourceCapabilityId && b.environment === "test" && !b.simulationOnly);
+      86 |     expect(binding.validationStatus).toBe("UNVERIFIED");
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:83:64
+
+    Error Context: test-results/v2-discovery-design-MCP-de-8bdff-ming-execution-verification/error-context.md
+
+  4) tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('发现模式', { exact: true })
+    Expected: "config_only"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('发现模式', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('发现模式', { exact: true })
+
+
+      12 |   await page.addInitScript(contextId=>{if(!localStorage.getItem("flowhub.discovery.context"))localStorage.setItem("flowhub.discovery.context",contextId);},configContext.id);
+      13 |   try {
+    > 14 |     await page.goto("/discovery");await page.getByText("登记本机 Codex 上下文",{exact:true}).click();await expect(page.getByLabel("发现模式",{exact:true})).toHaveValue("config_only");await page.getByLabel("发现模式",{exact:true}).selectOption("auto");await page.getByLabel("Codex 可执行文件绝对路径（留空自动查找）",{exact:true}).fill(cli);await page.getByRole("button",{name:"登记上下文",exact:true}).click();
+         |                                                                                                                                                  ^
+      15 |     await expect(page.locator(".v2-discovery [role=status]")).toContainText("扫描完成");const contexts=(await(await page.request.get("/api/v2/host-contexts")).json()).data,manual=contexts.find((context:any)=>context.codexPath===cli);expect(manual).toBeTruthy();expect(manual.discoveryMode).toBe("auto");expect(await page.evaluate(()=>localStorage.getItem("flowhub.discovery.context"))).toBe(manual.id);expect(await readFile(marker,"utf8")).toContain("--version");
+      16 |     await page.getByLabel("发现模式",{exact:true}).selectOption("config_only");await page.getByRole("button",{name:"登记上下文",exact:true}).click();await expect(page.locator(".v2-discovery [role=status]")).toContainText("部分完成");await expect(page.getByLabel("Codex 可执行文件绝对路径（留空自动查找）",{exact:true})).toBeDisabled();expect(await page.evaluate(()=>localStorage.getItem("flowhub.discovery.context"))).toBe(configContext.id);const before=await readFile(marker,"utf8");
+      17 |     await page.reload();await page.getByText("登记本机 Codex 上下文",{exact:true}).click();await expect(page.getByLabel("发现模式",{exact:true})).toHaveValue("config_only");await expect(page.getByLabel("补充查询独立 App Server 会话目录",{exact:true})).toBeDisabled();expect(await readFile(marker,"utf8")).toBe(before);
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-reaudit.spec.ts:14:146
+
+    Error Context: test-results/v2-discovery-reaudit-disco-538bf-ion-without-launching-Codex/error-context.md
+
+  4 failed
+    tests/ui/v2-discovery-design.spec.ts:41:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships 
+    tests/ui/v2-discovery-design.spec.ts:63:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions 
+    tests/ui/v2-discovery-design.spec.ts:77:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification 
+    tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex 
+  4 passed (41.9s)

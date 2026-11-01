@@ -1,17 +1,23 @@
 import { readFile, writeFile, unlink, readdir } from "node:fs/promises";
 import { join, resolve, extname } from "node:path";
 import { openStore } from "../../../packages/persistence/src/index.js";
+import { MIGRATIONS, validateMigrations } from "../../../packages/persistence/src/migrations.js";
 import { Repository } from "../../../packages/persistence/src/repository.js";
 import { Vault } from "../../../packages/security/src/index.js";
 import { Connectors } from "../../../packages/mcp-connectors/src/registry.js";
 import { Engine } from "../../../packages/workflow-core/src/engine.js";
 import { registerAdmin } from "../../../packages/admin-api/src/index.js";
 import { createHubServer } from "../../../packages/mcp-server/src/index.js";
+import { Application } from "../../../packages/application/src/index.js";
+import type { ProviderFactory } from "../../../packages/llm-providers/src/index.js";
 import {
   VERSION,
+  RELEASE_PHASE,
   projectRoot,
   result,
   failure,
+  TOOL_NAMES,
+  EXECUTION_TOOL_NAMES,
 } from "../../../packages/contracts/src/index.js";
 import { HubError, hash } from "../../../packages/contracts/src/domain.js";
 import {
@@ -20,16 +26,46 @@ import {
   loadOrCreateToken,
 } from "./local-config.js";
 import { createLocalHttp } from "./http.js";
-export async function startDaemon(options: { dataDir: string; port: number }) {
+export async function startDaemon(options: { dataDir: string; port: number; providerFactory?:ProviderFactory;hostDiscoveryRuntime?:import("../../../packages/host-discovery/src/index.js").DiscoveryRuntime }) {
   const dataDir = await prepareDataDir(options.dataDir),
     unlock = await acquireLock(dataDir);
   let store: ReturnType<typeof openStore> | undefined,
     app: ReturnType<typeof createLocalHttp> | undefined,
-    engine: Engine | undefined;
+    engine: Engine | undefined,
+    application: Application | undefined;
   let endpointWritten = false;
+  let stopping = false;
+  let resourcesClosed: Promise<void> | undefined;
+  const closeResources = () => resourcesClosed ??= (async () => {
+    // All workers must finish their final durable state transitions while the
+    // database and Vault are still available, including partial startup failure.
+    let failure:unknown;
+    try { await application?.close(); } catch(error) { failure=error; }
+    try { await engine?.close(); } catch(error) { failure??=error; }
+    // A failing preClose hook can prevent Fastify's onClose hooks from running.
+    // Erase the in-memory key here as well, after all durable workers settle.
+    engine?.vault.lock();
+    if(failure)throw failure;
+  })();
+  const closeHttp = async () => {
+    try { await app?.close(); }
+    catch(error) {
+      // Fastify can stop before closing its listener when a preClose hook
+      // rejects. The stopping gate is already active; also release the sockets.
+      if(app?.server.listening)await new Promise<void>(resolve=>{
+        app!.server.close(()=>resolve());app!.server.closeAllConnections();
+      });
+      throw error;
+    }
+  };
   try {
     const token = await loadOrCreateToken(dataDir);
     store = openStore(join(dataDir, "flowhub.sqlite"));
+    const applied=validateMigrations(store.db,true);
+    if(applied>0 && applied<MIGRATIONS.length) {
+      const { backupDirectory } = await import("../../../packages/admin-api/src/local-backups.js");
+      await store.db.backup(join(await backupDirectory(dataDir,true), "pre-v2-"+Date.now()+".sqlite"));
+    }
     const instanceId = store.instanceId,
       repo = new Repository(store.db),
       vault = new Vault(repo);
@@ -41,13 +77,15 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
       await repo.backup(join(await backupDirectory(dataDir, true), "pre-legacy-retirement-" + instanceId + ".sqlite"));
     }
     engine.recover();
-    const service = engine;
+    application=new Application(engine,{...(options.providerFactory?{providerFactory:options.providerFactory}:{}),...(options.hostDiscoveryRuntime?{hostDiscoveryRuntime:options.hostDiscoveryRuntime}:{})});
+    const service=application;
     app = createLocalHttp(
       (subject) =>
         createHubServer(async (name, args) => {
           try {
+            if(stopping)throw new HubError("SERVICE_STOPPING","FlowHub is stopping.",503);
             return result({
-              ...service.handle(name, args, subject),
+              ...await service.handle(name, args, subject),
               instanceId,
             });
           } catch (error) {
@@ -58,9 +96,9 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
                     "INTERNAL_ERROR",
                     "Operation could not be completed.",
                   );
-            return failure(e.code, e.message);
+            return failure(e.code, e.message, e.details);
           }
-        }),
+        }, subject==="execution"||repo.get("clients",subject)?.scopes?.includes("workflow:author")?TOOL_NAMES:EXECUTION_TOOL_NAMES),
       token,
       (header) => {
         if (!header?.startsWith("Bearer ")) return undefined;
@@ -69,11 +107,17 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
           .find((c) => !c.revoked && c.tokenHash === hash(header.slice(7)))?.id;
       },
     );
-    await registerAdmin(app, engine, dataDir);
+    app.addHook("onRequest",async (_request,reply)=>{
+      if(stopping)return reply.code(503).send({error:{code:"SERVICE_STOPPING",message:"FlowHub is stopping."}});
+    });
+    // Fastify invokes this before its onClose hook locks the Vault. Setting the
+    // gate synchronously in close() prevents new work during worker shutdown.
+    app.addHook("preClose",async()=>{stopping=true;await closeResources();});
+    await registerAdmin(app, engine, dataDir, service.authoring, service.registry, service);
     app.get("/api/v1/health", async () => ({
       status: "ok",
       version: VERSION,
-      phase: "RC",
+      phase: RELEASE_PHASE,
       syntheticOnly: false,
     }));
     const webRoot = resolve(projectRoot, "web-dist"),
@@ -117,40 +161,46 @@ export async function startDaemon(options: { dataDir: string; port: number }) {
     });
     await app.listen({ host: "127.0.0.1", port: options.port });
     const port = (app.server.address() as { port: number }).port;
+    service.registry.setSelfIdentity({endpoints:[`http://127.0.0.1:${port}/mcp`],instanceId});
     await writeFile(
       join(dataDir, "endpoint.json"),
       JSON.stringify({ port, pid: process.pid, instanceId }),
       { mode: 0o600 },
     );
     endpointWritten = true;
-    let closed = false;
+    let closePromise: Promise<void>|undefined;
     return {
       port,
       instanceId,
       boots: store.boots,
       engine,
-      close: async () => {
-        if (closed) return;
-        closed = true;
-        try {
-          await service.close();
-          await app!.close();
-        } finally {
+      application:service,
+      close: () => {
+        if(closePromise)return closePromise;
+        stopping = true;
+        closePromise=(async()=>{
           try {
-            await unlink(join(dataDir, "endpoint.json"));
+            await closeHttp();
           } finally {
-            store!.close();
-            await unlock();
+            try {
+              await closeResources();
+            } finally {
+              try { await unlink(join(dataDir, "endpoint.json")); }
+              finally { try { store!.close(); } finally { await unlock(); } }
+            }
           }
-        }
+        })();
+        return closePromise;
       },
     };
   } catch (error) {
-    await engine?.close();
-    await app?.close();
-    if (endpointWritten) await unlink(join(dataDir, "endpoint.json"));
-    store?.close();
-    await unlock();
+    stopping=true;
+    // A listener/configuration failure must close the Application too. Preserve
+    // the startup error while attempting every cleanup, even if one hook fails.
+    await closeHttp().catch(()=>{});
+    await closeResources().catch(()=>{});
+    try { if (endpointWritten) await unlink(join(dataDir, "endpoint.json")); }
+    finally { try { store?.close(); } finally { await unlock(); } }
     if ((error as NodeJS.ErrnoException).code === "EADDRINUSE")
       throw new Error(
         "PORT_IN_USE: choose a free --port. No other process was stopped.",

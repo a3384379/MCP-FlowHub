@@ -1,0 +1,31 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-discovery-design.spec.ts tests/ui/v2-discovery-races.spec.ts
+
+[WebServer] (node:36078) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:36082) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-discovery-design.spec.ts:205:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships (3.7s)
+  ✓   2 tests/ui/v2-discovery-design.spec.ts:285:1 › issue actions open the matching manual connection and credential forms and complete real directory sync (3.8s)
+  ✓   3 tests/ui/v2-discovery-design.spec.ts:381:1 › issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat (1.8s)
+  ✓   4 tests/ui/v2-discovery-design.spec.ts:443:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions (2.8s)
+  ✓   5 tests/ui/v2-discovery-design.spec.ts:509:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification (2.6s)
+  ✓   6 tests/ui/v2-discovery-design.spec.ts:555:1 › real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task (2.0s)
+  ✓   7 tests/ui/v2-discovery-design.spec.ts:592:1 › a late catalog search response cannot replace the user's newer Chinese query results (2.4s)
+  ✓   8 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration success cannot change the selected context or show an abandoned error (291ms)
+  ✓   9 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration error cannot change the selected context or show an abandoned error (268ms)
+  ✓  10 tests/ui/v2-discovery-races.spec.ts:71:1 › registration context-list response cannot revive an old selection after the POST has completed (349ms)
+  ✓  11 tests/ui/v2-discovery-races.spec.ts:89:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (391ms)
+  ✓  12 tests/ui/v2-discovery-races.spec.ts:140:1 › clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately (953ms)
+  ✓  13 tests/ui/v2-discovery-races.spec.ts:172:1 › clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path (707ms)
+  ✓  14 tests/ui/v2-discovery-races.spec.ts:189:50 › a retained description draft keeps its original baseline across a pending scan and source change (992ms)
+  ✓  15 tests/ui/v2-discovery-races.spec.ts:189:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (874ms)
+  ✓  16 tests/ui/v2-discovery-races.spec.ts:212:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (1.2s)
+  ✓  17 tests/ui/v2-discovery-races.spec.ts:237:1 › description and credential fields remain locked while their save HTTP requests are pending (1.4s)
+  ✓  18 tests/ui/v2-discovery-races.spec.ts:296:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh (998ms)
+
+  18 passed (29.1s)

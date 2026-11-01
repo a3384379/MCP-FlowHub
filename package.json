@@ -1,6 +1,6 @@
 {
   "name": "mcp-flowhub",
-  "version": "1.0.0-rc.1",
+  "version": "2.0.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "Local MCP workflow hub with visual MCP orchestration, immutable workflows and evidence reports",
@@ -28,7 +28,14 @@
     "build:server": "node scripts/generate-openapi.mjs && tsc -p tsconfig.json",
     "build:web": "tsc -p apps/web/tsconfig.json && vite build",
     "dev:web": "vite --host 127.0.0.1",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
+    "test:discovery": "npm run build:server && node --test dist/tests/engine/v2-discovery.test.js",
+    "test:selftest": "npm run build:server && node --test dist/tests/engine/v2-mcp-selftest.test.js",
+    "test:assistant": "npm run build:server && node --test dist/tests/engine/v2-assistant.test.js",
+    "test:codex-local": "npm run build:server && node scripts/smoke-codex-v2.mjs",
+    "test:upgrade-local": "npm run build:server && node scripts/smoke-v2-upgrade.mjs",
+    "benchmark:v2": "npm run build:server && node scripts/benchmark-v2.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",
@@ -40,7 +47,9 @@
     "better-sqlite3": "13.0.3",
     "fastify": "5.12.7",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "smol-toml": "1.9.1",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

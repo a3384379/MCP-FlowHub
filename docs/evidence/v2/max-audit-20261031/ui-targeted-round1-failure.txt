@@ -1,0 +1,304 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-assistant-max-audit.spec.ts tests/ui/v2-discovery-races.spec.ts
+
+[WebServer] (node:1547) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:1550) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-assistant-max-audit.spec.ts:132:3 › late A success cannot discard B's key after SSE recovery and a lost B receipt (1.3s)
+  ✓   2 tests/ui/v2-assistant-max-audit.spec.ts:132:3 › late A failure cannot discard B's key after SSE recovery and a lost B receipt (972ms)
+  ✓   3 tests/ui/v2-assistant-max-audit.spec.ts:257:1 › a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input (518ms)
+  ✘   4 tests/ui/v2-assistant-max-audit.spec.ts:314:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C (5.6s)
+(node:1697) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 tests/ui/v2-assistant-max-audit.spec.ts:425:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does (5.5s)
+(node:1831) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 tests/ui/v2-assistant-max-audit.spec.ts:603:3 › assistant controls remain visible and clickable on both sides: landscape single line (870ms)
+  ✓   7 tests/ui/v2-assistant-max-audit.spec.ts:603:3 › assistant controls remain visible and clickable on both sides: short mobile multiline (817ms)
+  ✓   8 tests/ui/v2-assistant-max-audit.spec.ts:603:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (1.3s)
+  ✓   9 tests/ui/v2-assistant-max-audit.spec.ts:603:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (1.3s)
+  ✓  10 tests/ui/v2-assistant-max-audit.spec.ts:603:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (1.4s)
+  ✘  11 tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration success cannot change the selected context or show an abandoned error (5.1s)
+(node:1913) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration error cannot change the selected context or show an abandoned error (5.1s)
+(node:1930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 tests/ui/v2-discovery-races.spec.ts:63:1 › registration context-list response cannot revive an old selection after the POST has completed (5.2s)
+(node:2001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  14 tests/ui/v2-discovery-races.spec.ts:81:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (5.1s)
+(node:2107) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  15 tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and source change (1.0m)
+(node:2200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  16 tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (1.0m)
+(node:2527) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  17 tests/ui/v2-discovery-races.spec.ts:154:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (1.0m)
+(node:3001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  18 tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending (46.6s)
+
+
+  1) tests/ui/v2-assistant-max-audit.spec.ts:314:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('早期 A 的部分正文', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('早期 A 的部分正文', { exact: true }) with timeout 5000ms
+      - waiting for getByText('早期 A 的部分正文', { exact: true })
+
+
+      360 |     await expect(
+      361 |       page.getByText("早期 A 的部分正文", { exact: true }),
+    > 362 |     ).toBeVisible();
+          |       ^
+      363 |     await page.getByRole("button", { name: "停止回复", exact: true }).click();
+      364 |     const original = page.locator('.assistant-turn[data-status="CANCELLED"]');
+      365 |     await expect(original).toHaveCount(1);
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-max-audit.spec.ts:362:7
+
+    Error Context: test-results/v2-assistant-max-audit-con-62c59-lains-its-receipt-after-B-C/error-context.md
+
+  2) tests/ui/v2-assistant-max-audit.spec.ts:425:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.assistant-turn[data-status="COMPLETED"]')
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" locator('.assistant-turn[data-status="COMPLETED"]') with timeout 5000ms
+      - waiting for locator('.assistant-turn[data-status="COMPLETED"]')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      473 |     await openFreshChat(page, selected.id);
+      474 |     await send(page, "读取当前运行状态");
+    > 475 |     await expect(completed(page)).toHaveCount(1);
+          |                                   ^
+      476 |     const read = completed(page).first();
+      477 |     await expect(read.locator(".assistant-result-actions")).toHaveCount(0);
+      478 |     await expect(
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-assistant-max-audit.spec.ts:475:35
+
+    Error Context: test-results/v2-assistant-max-audit-rea-501e9--authoring-patch-still-does/error-context.md
+
+  3) tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration success cannot change the selected context or show an abandoned error
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('本机上下文', { exact: true })
+    Expected: "A"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('本机上下文', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('本机上下文', { exact: true })
+        - locator resolved to <select></select>
+        - unexpected value ""
+
+
+      33 |   await page.addInitScript(() => localStorage.setItem("flowhub.discovery.context", "A"));
+      34 |   await page.goto("/discovery");
+    > 35 |   await expect(page.getByLabel("本机上下文", { exact: true })).toHaveValue("A");
+         |                                                           ^
+      36 |   await page.getByText("登记本机 Codex 上下文", { exact: true }).click();
+      37 | }
+      38 |
+        at fakeContexts (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:35:59)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:41:3
+
+    Error Context: test-results/v2-discovery-races-late-co-3fa5e--or-show-an-abandoned-error/error-context.md
+
+  4) tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration error cannot change the selected context or show an abandoned error
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('本机上下文', { exact: true })
+    Expected: "A"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('本机上下文', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('本机上下文', { exact: true })
+        - locator resolved to <select></select>
+        - unexpected value ""
+
+
+      33 |   await page.addInitScript(() => localStorage.setItem("flowhub.discovery.context", "A"));
+      34 |   await page.goto("/discovery");
+    > 35 |   await expect(page.getByLabel("本机上下文", { exact: true })).toHaveValue("A");
+         |                                                           ^
+      36 |   await page.getByText("登记本机 Codex 上下文", { exact: true }).click();
+      37 | }
+      38 |
+        at fakeContexts (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:35:59)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:41:3
+
+    Error Context: test-results/v2-discovery-races-late-co-2d733--or-show-an-abandoned-error/error-context.md
+
+  5) tests/ui/v2-discovery-races.spec.ts:63:1 › registration context-list response cannot revive an old selection after the POST has completed
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('本机上下文', { exact: true })
+    Expected: "A"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('本机上下文', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('本机上下文', { exact: true })
+        - locator resolved to <select></select>
+        - unexpected value ""
+
+
+      33 |   await page.addInitScript(() => localStorage.setItem("flowhub.discovery.context", "A"));
+      34 |   await page.goto("/discovery");
+    > 35 |   await expect(page.getByLabel("本机上下文", { exact: true })).toHaveValue("A");
+         |                                                           ^
+      36 |   await page.getByText("登记本机 Codex 上下文", { exact: true }).click();
+      37 | }
+      38 |
+        at fakeContexts (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:35:59)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:65:3
+
+    Error Context: test-results/v2-discovery-races-registr-6f4fe-fter-the-POST-has-completed/error-context.md
+
+  6) tests/ui/v2-discovery-races.spec.ts:81:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('本机上下文', { exact: true })
+    Expected: "A"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('本机上下文', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('本机上下文', { exact: true })
+        - locator resolved to <select></select>
+        - unexpected value ""
+
+
+      33 |   await page.addInitScript(() => localStorage.setItem("flowhub.discovery.context", "A"));
+      34 |   await page.goto("/discovery");
+    > 35 |   await expect(page.getByLabel("本机上下文", { exact: true })).toHaveValue("A");
+         |                                                           ^
+      36 |   await page.getByText("登记本机 Codex 上下文", { exact: true }).click();
+      37 | }
+      38 |
+        at fakeContexts (/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:35:59)
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:83:3
+
+    Error Context: test-results/v2-discovery-races-a-newer-607d6-validates-the-older-request/error-context.md
+
+  7) tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and source change
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.fill: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('一句话用途', { exact: true })
+
+
+      134 |     await f.pendingScan(); await f.open(); const dialog = page.getByRole("dialog");
+      135 |     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
+    > 136 |     await dialog.getByLabel("一句话用途", { exact: true }).fill("开始编辑时保留的草稿");
+          |                                                       ^
+      137 |     if (change === "source") await writeFile(f.skill, f.original.replace("revision one", "revision two"));
+      138 |     else await f.api("/api/v2/discovery/descriptions", "POST", f.descriptions(f.entity, "较新的手工说明", "并发保存的新用途"));
+      139 |     await f.release();
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:136:55
+
+    Error Context: test-results/v2-discovery-races-a-retai-fa073-ding-scan-and-source-change/error-context.md
+
+  8) tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and presentation change
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.fill: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('一句话用途', { exact: true })
+
+
+      134 |     await f.pendingScan(); await f.open(); const dialog = page.getByRole("dialog");
+      135 |     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
+    > 136 |     await dialog.getByLabel("一句话用途", { exact: true }).fill("开始编辑时保留的草稿");
+          |                                                       ^
+      137 |     if (change === "source") await writeFile(f.skill, f.original.replace("revision one", "revision two"));
+      138 |     else await f.api("/api/v2/discovery/descriptions", "POST", f.descriptions(f.entity, "较新的手工说明", "并发保存的新用途"));
+      139 |     await f.release();
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:136:55
+
+    Error Context: test-results/v2-discovery-races-a-retai-0bc71-can-and-presentation-change/error-context.md
+
+  9) tests/ui/v2-discovery-races.spec.ts:154:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.fill: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('一句话用途', { exact: true })
+
+
+      157 |     await f.open(); let dialog = page.getByRole("dialog");
+      158 |     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
+    > 159 |     await dialog.getByLabel("一句话用途", { exact: true }).fill("Esc 保留的旧草稿"); await page.keyboard.press("Escape");
+          |                                                       ^
+      160 |     await writeFile(f.skill, f.original.replace("revision one", "revision two"));
+      161 |     await page.getByRole("button", { name: "重新扫描", exact: true }).click();
+      162 |     await expect(page.getByRole("button", { name: "重新扫描", exact: true })).toBeEnabled();
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:159:55
+
+    Error Context: test-results/v2-discovery-races-Esc-res-5ae71-rately-adopt-the-new-source/error-context.md
+
+  10) tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending
+
+    Test was interrupted.
+
+    Error: locator.fill: Test ended.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('一句话用途', { exact: true })
+
+
+      183 |     await f.open(); let dialog = page.getByRole("dialog");
+      184 |     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
+    > 185 |     await dialog.getByLabel("一句话用途", { exact: true }).fill("待保存的明确输入");
+          |                                                       ^
+      186 |     await dialog.getByRole("button", { name: "保存中文说明", exact: true }).click(); await expect.poll(() => descriptionWaiting).toBe(true);
+      187 |     await expect(dialog.getByLabel("一句话用途", { exact: true })).toBeDisabled(); await expect(dialog.getByLabel("中文显示名称", { exact: true })).toBeDisabled();
+      188 |     description.release(); await expect(dialog.getByRole("button", { name: "编辑中文说明", exact: true })).toBeVisible();
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-races.spec.ts:185:55
+
+  9 failed
+    tests/ui/v2-assistant-max-audit.spec.ts:314:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C
+    tests/ui/v2-assistant-max-audit.spec.ts:425:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does
+    tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration success cannot change the selected context or show an abandoned error
+    tests/ui/v2-discovery-races.spec.ts:39:38 › late context registration error cannot change the selected context or show an abandoned error
+    tests/ui/v2-discovery-races.spec.ts:63:1 › registration context-list response cannot revive an old selection after the POST has completed
+    tests/ui/v2-discovery-races.spec.ts:81:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request
+    tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and source change
+    tests/ui/v2-discovery-races.spec.ts:131:50 › a retained description draft keeps its original baseline across a pending scan and presentation change
+    tests/ui/v2-discovery-races.spec.ts:154:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source
+  1 interrupted
+    tests/ui/v2-discovery-races.spec.ts:179:1 › description and credential fields remain locked while their save HTTP requests are pending
+  8 passed (4.5m)

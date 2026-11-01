@@ -1,0 +1,407 @@
+{
+  "repository": "/Users/sqz/Documents/ChatGPT/mcp管理工具/",
+  "head": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "scope": [
+    "host-discovery",
+    "capability-registry",
+    "DiscoveryPage",
+    "CapabilityPicker"
+  ],
+  "read_only": true,
+  "method": "阅读AGENTS、原始设计/契约/验收与实现测试；Node 24.19.0运行dist，in-memory SQLite、独立临时CODEX_HOME、合成CLI和假连接器。所有传输均被stub，未接真实服务，未读正式库、真实Codex配置或凭据，未编译/修改仓库。",
+  "reproducer": "/tmp/flowhub-audit-discovery.mjs",
+  "evidence": "/tmp/flowhub-discovery-audit-evidence.json",
+  "findings": [
+    {
+      "id": "DISC-A01",
+      "priority": "P1",
+      "title": "源连接变更后新导入仍复用旧地址和旧身份",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 171,
+          "end": 186
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 62,
+          "end": 68
+        }
+      ],
+      "trigger": "catalog扫描 https://old.invalid/mcp 后首次导入；相同逻辑source改成 https://new.invalid/mcp，工具Schema保持相同；再次catalog扫描，再向staging导入。",
+      "observed": "最后一次discover使用new.invalid；返回connectionId仍是第一次ID，connections行endpoint保持old.invalid；sourceRevision=2但capabilityRevision仍1。",
+      "impact": "用户审阅的是新来源，返回的新环境binding实际使用旧端点/租户。源执行配置变化未参与能力CAS；已有connection存在时直接跳过写入。现有已发布绑定应保留，但不能把它冒充当前新源。",
+      "minimal_fix": "明确区分来源修订与连接修订。导入时比较旧connection的完整源指纹、凭据引用及发现Schema；仅明确匹配可复用，否则创建新连接或以CAS更新并失效相关binding，禁止静默复用。提交前重新检查source revision、context revision和tool schema。",
+      "tests": [
+        "endpoint/command/args/凭据身份改变但Tool Schema不变后导入返回正确连接",
+        "旧发布快照与旧绑定不被静默改写",
+        "仅discoveredAt变化仍可幂等复用"
+      ],
+      "evidence_case": "changed-source-existing-connection"
+    },
+    {
+      "id": "DISC-A02",
+      "priority": "P1",
+      "title": "同上下文旧扫描能覆盖新扫描并把新能力标失效",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 78,
+          "end": 108
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 122,
+          "end": 129
+        }
+      ],
+      "trigger": "扫描A先读取old源，在discover等待；配置改new后开始扫描B并让B完成；再放行A。",
+      "observed": "B完成时newTool stale=false；A随后完成后oldTool stale=false、newTool stale=true，两个job都SUCCEEDED。",
+      "impact": "当前能力目录被较旧快照回滚，后续导入可无故CAPABILITY_STALE，旧tool可能重新成为可用项；source revision也无CAS保护。",
+      "minimal_fix": "为每context持久化扫描generation/lease，仅最新代次提交当前目录；允许旧任务保留历史结果但不得改current/stale。短事务提交时验证context/source快照；或排队串行相同context并处理配置漂移。",
+      "tests": [
+        "双deferred扫描逆序完成",
+        "扫描期间更新context trust或Profile",
+        "旧扫描结束不得减少revision或stale新能力"
+      ],
+      "evidence_case": "older-scan-overwrites-newer"
+    },
+    {
+      "id": "DISC-A03",
+      "priority": "P1",
+      "title": "禁用来源后旧能力仍ready且导入会重新启动已禁用MCP",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 96,
+          "end": 108
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 124,
+          "end": 127
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 160,
+          "end": 177
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 138,
+          "end": 139
+        }
+      ],
+      "trigger": "已成功catalog来源enabled=true；将Codex源enabled改false并再次catalog；导入之前发现的capability。",
+      "observed": "source.enabled=false，但capability enabled=enabled、availability=ready、stale=false、revision=1；import仍调用discover一次并创建binding。",
+      "impact": "明确禁用设置未传递至旧能力；导入只检查self而不检查source.enabled/source.stale/source revision，connection函数又固定disabled=false。",
+      "minimal_fix": "禁用/不可执行/来源失效同步更新能力availability并阻止新的导入；导入检查当前source enabled/stale和所审阅sourceRevision。保留历史快照，不删发布依赖。",
+      "tests": [
+        "enabled true→false后metadata/catalog两种刷新",
+        "插件enabled false变化",
+        "禁用来源的旧cap拒绝导入且无任何downstream启动"
+      ],
+      "evidence_case": "disabled-server"
+    },
+    {
+      "id": "DISC-A04",
+      "priority": "P1",
+      "title": "Codex工具allowlist/denylist被丢弃或未执行",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 46,
+          "end": 50
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 39,
+          "end": 40
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 101,
+          "end": 104
+        }
+      ],
+      "trigger": "MCP配置enabled_tools=[read]或disabled_tools=[delete]，真实catalog同时提供read/delete；CLI列表含disabled_tools或静态TOML包含这些字段。",
+      "observed": "合成CLI项disabled_tools=[read]仍生成read enabled/ready，job SUCCEEDED。CLI只保留transport+enabled；静态路径即便保留字段，registry也遍历全部discovered.tools。",
+      "impact": "原本不向Codex暴露的工具会作为可用能力导入到FlowHub，放宽现有工具范围。插件mcp_servers子覆盖也完全未处理。",
+      "minimal_fix": "标准化保留有效enabled_tools/disabled_tools，按allowlist后denylist筛选；禁用项可仅作informational元数据。导入和执行边界再核验有效工具集合。插件每server覆盖也要应用。",
+      "tests": [
+        "静态TOML和CLI两条路径的allowlist/denylist组合",
+        "插件单server禁用与tool禁用",
+        "已有tool后新增denylist同步失效"
+      ],
+      "official_source": "https://learn.chatgpt.com/docs/config-file/config-reference",
+      "evidence_case": "disabled-tool-listed"
+    },
+    {
+      "id": "DISC-A05",
+      "priority": "P1",
+      "title": "不匹配有限正则的命令行凭据明文复制入connections",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 5,
+          "end": 5
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 87,
+          "end": 99
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 133,
+          "end": 139
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 170,
+          "end": 181
+        }
+      ],
+      "trigger": "STDIO source args=[--client-secret=SYNTHETIC_ARG_SECRET]；catalog成功后capability_import。",
+      "observed": "capability availability=ready；connections.args明文包含SYNTHETIC_ARG_SECRET。仅合成值，未读取真实凭据。",
+      "impact": "connection列表/备份/快照中的普通业务表会出现源凭据，违反目录不做凭据容器与命令行凭据不可复制约束。当前正则仅覆盖少数首部flag，client-secret、-H Authorization、带userinfo URL等遗漏。",
+      "minimal_fix": "来源认证参数使用版本化结构化识别/支持范围；覆盖标准secret flag与URL/header表达，对无法保证不含认证内容的来源保持metadata_only并引导在本地连接设置迁移到Vault引用。不要宣称任意args已安全；普通记录与诊断均不得复制认证值。",
+      "tests": [
+        "--client-secret、--client_secret、--access-token、--token=、-H Authorization及URL凭据变体",
+        "所有普通表、列表响应、job事件无合成明文",
+        "允许普通脚本路径/业务非敏感参数仍可导入"
+      ],
+      "evidence_case": "unrecognized-credential-argv-copied"
+    },
+    {
+      "id": "DISC-A06",
+      "priority": "P2",
+      "title": "成功导入的幂等重放仍连接下游并可因停服失败",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 168,
+          "end": 179
+        }
+      ],
+      "trigger": "导入成功后保持同owner、同key、同body重放；将假连接器改为unreachable。",
+      "observed": "重放抛SYNTHETIC_UNREACHABLE而非返回已有connectionId/bindingId。resolveSource和discover均在repo.command查重之前。",
+      "impact": "网络重试/响应丢失无法可靠取得原回执，每次还重复初始化下游。若源修订发生变化，连既有成功命令也可能被当前校验挡住。",
+      "minimal_fix": "校验DTO与owner后先读取同operation/key命令账本，hash相同直接返回已存响应，hash不同报冲突；未见命令时才做外部准备，事务内再次幂等查重与CAS。",
+      "tests": [
+        "成功后断网重放不发网络",
+        "配置已变化但完全相同请求返回原结果",
+        "并发同key只记录一份结果，外部准备尽量singleflight"
+      ],
+      "evidence_case": "idempotent-replay-needs-network"
+    },
+    {
+      "id": "DISC-A07",
+      "priority": "P1",
+      "title": "目录扫描无总deadline与取消，daemon shutdown可被扫描长期阻塞",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 81,
+          "end": 99
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 190,
+          "end": 190
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 263,
+          "end": 272
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 306,
+          "end": 310
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/daemon/src/index.ts",
+          "start": 144,
+          "end": 155
+        }
+      ],
+      "trigger": "来源完成connect后tools/list慢响应；扫描包含多个来源；在DISCOVERING_CATALOG期间close daemon。",
+      "observed": "隔离deferred discover实验中registry.close等待50ms后仍未结束，没有AbortSignal或cancel API传入。源码确认discover只给connect默认5秒，listTools没有timeout/signal。SDK 2.4.0本地源码DEFAULT_REQUEST_TIMEOUT_MSEC=60000；首个listTools(undefined)还自动遍历最多64页，FlowHub自己的100页/1000工具检查在SDK聚合之后才触发。",
+      "impact": "单来源可耗时多页×60秒，来源再串行叠加，后续成功来源迟迟不显示；application.close→registry.close阻塞daemon关闭及库锁释放。不能以connect的5秒证明整个扫描受限。",
+      "minimal_fix": "每scan有AbortController、总deadline、单来源deadline和默认4并发worker；SDK请求全程传remaining timeout和signal，使用受控分页/SDK listMaxPages和条目限额。在close先停止接收新扫描、abort并等待子transport关闭，持久化PARTIAL/CANCELLED与coverage。",
+      "tests": [
+        "真实协议mock初始化快但tools/list永不回",
+        "两页各接近deadline的总预算",
+        "一个慢源不挡其他源展示",
+        "close有界完成、子进程退出、无后续SQLite写入"
+      ],
+      "coordination": "根代理负责daemon/持久库关闭顺序与异常cleanup；discovery fixer应负责CapabilityRegistry job cancellation/generation与Connectors.discover deadline/signal，改共享connector时通知其他修复代理。",
+      "evidence_case": "close-does-not-cancel"
+    },
+    {
+      "id": "DISC-A08",
+      "priority": "P2",
+      "title": "Skill启用覆盖被忽略，显式禁用Skill仍可作为host_reference导入",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 67,
+          "end": 78
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 112,
+          "end": 115
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 110,
+          "end": 113
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 163,
+          "end": 163
+        }
+      ],
+      "trigger": "home/skills/report/SKILL.md存在，config.toml含[[skills.config]] path=<该Skill目录> enabled=false。",
+      "observed": "目录capability仍enabled=enabled、availability=host_only；codex_host导入返回host_reference。静态addSkills固定enabled=true；AppServer同path项也因去重而不覆盖。",
+      "impact": "宣称可用于Codex的能力与真实宿主禁用状态不符，用户会创建必定需人工恢复配置的流程。",
+      "minimal_fix": "解析有效skills.config enablement并保留来源；AppServer host-effective状态应校正已有component，而不是简单跳过重复path。所有target导入都检查可用/启用状态。",
+      "tests": [
+        "静态禁用、项目覆盖、AppServer同path enabled=false",
+        "已存在能力后禁用Skill",
+        "禁用Skill仅展示不可用且不可导入"
+      ],
+      "official_source": "https://learn.chatgpt.com/docs/config-file/config-reference",
+      "evidence_case": "disabled-skill"
+    },
+    {
+      "id": "DISC-A09",
+      "priority": "P2",
+      "title": "HTTP别名形式的FlowHub来源完全绕过self识别",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 84,
+          "end": 88
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 119,
+          "end": 122
+        }
+      ],
+      "trigger": "用非flowhub名称配置当前daemon的http://127.0.0.1:<port>/mcp，或AppServer以别名返回其tools。",
+      "observed": "合成元数据输入local-orchestrator+loopback /mcp得到self=false、executor=hub_direct。self实现只看名称和command，没有endpoint或instanceId比较。没有实际执行自调用循环。",
+      "impact": "核心禁止自身下游边界不覆盖官方HTTP接入方式；持有效本地凭据配置后可继续导入自己的workflow_start等工具，形成递归风险。",
+      "minimal_fix": "将当前daemon endpoint、规范化可执行路径与instanceId传入发现上下文；静态endpoint匹配和协议server身份双重检查，在导入提交时再次拒绝self。AppServer host-tool别名同样阻止递归导入。",
+      "tests": [
+        "相同endpoint不同alias/尾斜线/标准化路径",
+        "STDIO包装入口和实例身份",
+        "其他独立FlowHub实例按产品边界明确处理",
+        "不得真正启动递归工作流"
+      ],
+      "evidence_case": "aliased-loopback-hub-not-self"
+    }
+  ],
+  "implementation_gaps": [
+    {
+      "priority": "P2",
+      "topic": "UI目录和画布能力选择未交付完整契约",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 9,
+          "end": 9
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/discovery/DiscoveryPage.tsx",
+          "start": 28,
+          "end": 34
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/workflows/CapabilityPicker.tsx",
+          "start": 5,
+          "end": 14
+        }
+      ],
+      "details": "两个UI都丢弃nextCursor，只取默认20条，无分页入口。Picker固定executor=hub_direct，宿主Skills/host_tool无添加路径；发现页import codex_host只显示JSON receipt，也不落入当前画布。没有来源/环境筛选或同名来源辨别，插件列表平铺而不展开组件。应补真实浏览器多页、同名能力与host-only加入画布测试。"
+    },
+    {
+      "priority": "P2",
+      "topic": "真实配置/插件与Skill读取范围不完整",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 37,
+          "end": 65
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/host-discovery/src/index.ts",
+          "start": 77,
+          "end": 108
+        }
+      ],
+      "details": "静态模式仅exact cwd/.codex/config.toml且不实现有效层合并；虽然标partial避免谎称effective，但DISC03的正确覆盖与来源链仍未实现。插件读取固定root/skills，忽略兼容manifest.skills自定义路径；未读取manifest.apps/.app.json。用户~/.agents/skills和.codex/skills/.system未遍历。根plugin.json被标unsupported是安全回退，但新格式本机版本适配验收仍未完成。"
+    },
+    {
+      "priority": "P2",
+      "topic": "其他来源语义遗漏",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 87,
+          "end": 92
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 133,
+          "end": 139
+        }
+      ],
+      "details": "env_http_headers、http_headers_helper、cwd和remote placement没有标准化/unsupported状态；带env_http_headers可被误判无需认证，丢弃cwd会改变相对路径进程语义。仅建议修复前建立版本化配置夹具，不应静默猜测或执行header helper。"
+    },
+    {
+      "priority": "P2",
+      "topic": "HTTP发现入口未调用共享MCP DTO校验",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/admin-api/src/v2.ts",
+          "start": 10,
+          "end": 17
+        }
+      ],
+      "details": "scan/import/search/get直接接收req.body/query，缺有效schema统一校验；非法target会落hub_direct路径，GET includeSchemas=false字符串也被当真。MCP handle有validArguments而HTTP未共享。应复用输入DTO并做HTTP query布尔/数字解码。"
+    },
+    {
+      "priority": "P2",
+      "topic": "能力搜索数据库分页/性能尚未验证",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/capability-registry/src/index.ts",
+          "start": 141,
+          "end": 152
+        }
+      ],
+      "details": "search每次SELECT body取全部匹配行，读取完整Schema/Skill后在内存filter/slice，响应虽去掉Schema，但未做到数据库摘要投影与LIMIT分页。修复代理应补SQL投影/分页与200/1000能力基准，作为pending性能缺口，不声称已测出P95失败。"
+    }
+  ],
+  "not_verified": [
+    "真实本机Codex CLI/AppServer各版本输出及其桌面信任/Profile/父目录合并；遵守任务边界未运行真实宿主。",
+    "原生Windows/WSL路径、codex.cmd发现、透明加密/权限错误；当前仅macOS合成上下文。",
+    "真实HTTP bearer认证、Vault认证失败以及真实企业连接；本轮仅合成值、无真实凭据。",
+    "真实SDK慢页到达60秒及64页的墙钟全程未跑；超时结论来自本地SDK源码和可控pending实验。",
+    "实际FlowHub自引用循环未执行，证据止于self分类绕过。",
+    "浏览器UI实际操作/性能、200/1000能力P95、500组件5秒目标未执行；UI缺失通过源码确认。",
+    "没有重跑全套npm check/test/build/package；审计未修改仓库。"
+  ],
+  "reviewed_without_new_defect": [
+    "同名不同逻辑server/source身份使用context+sourceKey+toolName，不仅以URL合并。",
+    "扫描普通source/job不持久化原config.env/http_headers值；已覆盖的标准显式凭据通过本地admin服务入Vault。",
+    "safeChild对插件组件realpath越界拒绝，元数据扫描无业务tool call和hooks执行代码。",
+    "Scan失败/部分成功不直接删除既有发布依赖，历史capability_revisions保留；但当前状态同步/并发有上列缺陷。",
+    "AppServer独立短会话按精确版本门禁，生产路径未调用plugin/list/read，也未调用codex exec模型。"
+  ]
+}

@@ -1,0 +1,46 @@
+# 2.0 验收
+
+## 悬浮对话助手增量验收（2026-10-31）
+
+源码`ebbca07`，全量后端353/353、UI42/42；最后缓存工具名称补充后的助手相关48/48。真实gpt-6-luna完成三轮MCP问答、只读流程解释、一次实际patch（r1→r2，无发布/运行），另有浏览器两轮真实模型请求及实图。
+
+见[实施记录](design/assistant-chat-v1/实施记录.md)和[evidence/v2/chat](evidence/v2/chat)。首次实模第二问流式中断单独保留；原生Windows、实体手机键盘、企业MCP和完整30场景评测未在本轮执行。18473原数据保留：19张表原记录修改/丢失为0。
+
+## alpha.2 审计修复验收（2026-10-31，当前结果）
+
+本轮详细记录见 [V2_AUDIT.md](V2_AUDIT.md)，证据见 `evidence/v2/audit/`。下方S0–S7结果为alpha.1历史记录。
+
+- `npm run check`、`npm test`（含build）exit0；后台 **338/338**、无skip，120.1秒。
+- `npm run test:ui` exit0；真实浏览器 **35/35**，49.1秒；真实发现→导入→工具/Skill加入画布→刷新持久化，以及Mock成功→编辑→旧结果stale均有实际断言。
+- 真实本机Codex21工具编排/自测/报告、实际旧程序升级与停机回滚均exit0；临时目录，无OAuth复用，无正式库访问。
+- 104项当前矩阵为 **95 PASS / 4 PARTIAL / 5 UNVERIFIED**。PARTIAL为DISC-03、CAP-07、AUTHOR-08、RUN-07的完整复合场景，不能计为通过。5项未验证均保留原生/权限/新机边界。
+- 30条真实目标模型场景全部UNVERIFIED，真实模型调用0。合成HTTP Provider与真实Codex协议调用不替代模型效果。
+- 已复现审计记录均按原场景关闭，原始/复审/关闭证据分开保留。未发现仍开放的已复现P1，不宣称完整正式2.0发布验收完成。
+
+离线包门禁与最终本地提交记录见V2_AUDIT及V2_IMPLEMENTATION；最终包须由最终HEAD重建，build-info.gitSha=HEAD、dirty=false。Windows原生构建/安装器、企业真实MCP权限和Desktop已有会话授权仍独立待验。
+
+设计矩阵见 upgrade-v2/docs/04_测试与验收方案.md。设计包自检不计产品验收。
+所有尚未关联实际产品测试的项目均为未验证；不得根据实现说明推定通过。
+
+S0：check exit 0；全量测试 191/191 exit 0；最终迁移/runtime 定向 8/8 exit 0。Windows CI 已读取，修复夹具后尚无原生重跑。
+S1：统一编排/迁移/恢复/发布CAS 16/16 exit 0，日志 S1-tests.txt；S2：发现合成测试 4/4，真实本机 metadata PARTIAL，详见 S2-local.txt；S3：SDK闭环通过，后台全量 200/200 exit 0，旧身份7工具/默认21工具均验证；S4：助手/双协议/中文问答合成 12/12，SSE生命周期3/3；真实模型0调用，L4未验证。S5：后台定向19/19、全量浏览器24/24、最终定向浏览器3/3，均 exit 0；后续阶段结果见下。
+真实 Provider 的 30 场景评测：未执行，无模型调用。
+
+S6：check exit 0，完整后台220/220（含build）、浏览器24/24，新增边界16/16。真实本机Codex App Server（临时Home、无OAuth）经MCP完成21工具发现/编排/自测/报告，模型调用0。完整104项证据矩阵：`evidence/v2/acceptance-results.json`，S6为64 PASS / 30 PARTIAL / 10 UNVERIFIED；PARTIAL不计通过。30条真实模型场景逐项保留在`nl-evaluation-results.json`，均UNVERIFIED。
+
+S7最终代码：check/build exit 0；后台225/225（78.5秒）、浏览器24/24（25.5秒），真实Codex最小闭环再次通过。实际旧程序45eed03生成v1草稿/不可变发布/运行/报告/备份，升级v2后所有旧业务行相等；停机恢复并重启旧程序后hash与报告字节相等。缺新表备份被拒绝，运行中恢复被拒绝。
+
+macOS arm64离线候选2.0.0-alpha.1：package:local / test:package / verify:release均exit 0；包内Node独立启动、中文帮助、真实持久化编排、modern/legacy两种协议、个人21工具/旧身份7工具均通过。新增助手模块被篡改后完整性检查明确失败。首次包测试发现CLI真实路径入口和薄桥目录权限问题，均已修复并补回归；没有删测试绕过。最终本地提交后再次生成干净源码候选，最终路径与hash从artifacts/latest-package.json读取。
+
+S7当时104项矩阵为 **72 PASS / 26 PARTIAL / 6 UNVERIFIED**。PASS只对条目列明的合成或本机证据有效，不代表真实模型/企业/Windows验收；PARTIAL仍不可计为通过。30条真实目标模型评测全部UNVERIFIED，0次真实Provider调用。Windows原生构建/安装器/公司策略、真实企业MCP权限、现有Desktop会话授权仍未验证。没有运行会覆盖日常安装的安装器smoke。
+
+## 2026-10-31 Codex发现页与中文同步增量
+
+本轮限定发现目录、中文显示层及相关链路。check、后端363/363、浏览器47/47通过；实际本机Codex通过21工具目录、中文说明提交检索和编排/Mock/运行/报告闭环，模型回合0。实际本机原服务已更新，24张原配置与业务表hash一致，升级前备份验证通过。详细结果、原始失败与修正日志见 [发现页证据](evidence/v2/discovery/verification.json) 和 [实施记录](design/discovery-v2/实施记录.md)。未执行真实模型自然语言翻译质量、公司MCP与Windows原生验收。先前助手专项未提交审计材料保持原样，不将其开放问题算作本轮已修复。
+
+
+## 2026-10-31 发现与悬浮助手专项复审
+
+最新专项结果以 [max 审计与修复记录](evidence/v2/max-audit-20261031/审计与修复.md) 和 [逐项清单](evidence/v2/max-audit-20261031/findings.json) 为准。该轮覆盖上下文与凭据并发、中文草稿、请求回执与续答、动作约束和可视区布局；此前未跟踪的助手审计材料原样保留。历史测试次数仍表示各自提交时结果，不替代本轮最终回归。
+
+本专项源码`153202c`：17项确认问题（4 P1、13 P2）全部经独立复审关闭；check、后台396/396、浏览器71/71、本机Codex合成闭环通过。服务数据核对与最终提交打包记录按专项报告定位；企业、真实模型、Windows和实体手机验收继续独立保留。

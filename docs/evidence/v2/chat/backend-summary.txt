@@ -1,0 +1,15 @@
+Command: npm test
+Exit: 0
+
+✔ uninstaller does not claim or remove an unowned directory (1.746833ms)
+✔ compiler archive hash and native PE headers reject substitutes (1.540709ms)
+✔ native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds (2.553833ms)
+✔ Linux invocation cannot generate a Windows installer (29.287792ms)
+ℹ tests 353
+ℹ suites 0
+ℹ pass 353
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 124348.322375

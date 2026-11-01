@@ -1,0 +1,592 @@
+{
+  "schemaVersion": "flowhub.acceptance-source-mapping/v1",
+  "createdAt": "2026-10-31T06:43:42.914055+00:00",
+  "repository": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "head": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "workingTreeDirty": true,
+  "design": "docs/upgrade-v2/docs/04_测试与验收方案.md",
+  "originalResults": "docs/evidence/v2/acceptance-results.json",
+  "method": "Read-only design-to-test assertion mapping. No test, build, packaging or product command executed by this mapping agent; no repository files changed.",
+  "adoptionRule": "PASS recommendations are conditional on root recording a successful current-tree regression. Synthetic evidence cannot be promoted to real-model, real host-only execution, enterprise, fresh-machine or native-Windows acceptance.",
+  "summary": {
+    "requestedCases": 17,
+    "suggestedSyntheticPass": [
+      "ASST-08"
+    ],
+    "suggestedPartial": [
+      "LLM-07",
+      "LLM-08",
+      "ASST-02",
+      "ASST-04",
+      "ASST-05",
+      "KB-05",
+      "KB-06",
+      "KB-07",
+      "KB-08",
+      "UI-01",
+      "UI-02",
+      "UI-07",
+      "RUN-07",
+      "AUTHOR-08",
+      "CAP-07",
+      "PACK-08"
+    ],
+    "originalUnverifiedWithinRequest": [
+      "PACK-08"
+    ]
+  },
+  "testSourceHashes": {
+    "scripts/smoke-codex-v2.mjs": "77e3d0cbc25256fe7863562161164b04baf1dc5bc87e76459466a4c317cea040",
+    "scripts/smoke-v2-upgrade.mjs": "4e2e85d01295ca55b5d34bfde879bb6942a7956706ecea48e165d8100246b471",
+    "tests/engine/publish-binding-cas.test.ts": "86e8481062bf7d276ac9b5796278e5d1e0cf3a2725069d2b40d1310286c0299e",
+    "tests/engine/v2-assistant-audit-regressions.test.ts": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+    "tests/engine/v2-assistant.test.ts": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+    "tests/engine/v2-authoring-audit-regressions.test.ts": "93be3c00c4f0654812997232695d2a8ffd7075d69ebc289828daae8cb8c90eb6",
+    "tests/engine/v2-authoring-reaudit.test.ts": "bcf19e78b5b4a682e64ff3f50f8446668d6a27fcb496db1f162caf7ca343baa1",
+    "tests/engine/v2-discovery-acceptance.test.ts": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875",
+    "tests/engine/v2-discovery.test.ts": "5841891af40fcf40bc1b20556e3cfe58fed3b2313a275cc3ba474afd9c578d20",
+    "tests/engine/v2-executors.test.ts": "ca1cd3463cf82901504fa022d53034c458f03c29a0d5802c7fecb45ed90aefdc",
+    "tests/engine/v2-mcp-selftest.test.ts": "4a589fddb39402dc21df229e99b8b51f1545d8112eec88a7dca84717d5f1d089",
+    "tests/engine/v2-testing.test.ts": "6308a0aa9565a0143dba0bfd6d47b07cc12c0dcb61c16d7579ae67c4e7a8ae42",
+    "tests/engine/workflow.test.ts": "4f0e7e315edad78cabd7ecae1f0171f96cb9973d9027d560dd7a2257cca4504d",
+    "tests/ui/v2-assistant-audit.spec.ts": "0ec5ed9f7f4ad0b215cfba025a8b630040c141d2c5b81ed1c2309ebc9bddf53a",
+    "tests/ui/v2-discovery-reaudit.spec.ts": "ee1cddc744afe379cd23767dcd01fc114df524a3c5bdda139f46200b6c19d8b4",
+    "tests/ui/v2-upgrade.spec.ts": "48f612bbe400d6e4141de8b148cf5d71fe6bc2ab311620f827eaf8d1600f0499"
+  },
+  "cases": [
+    {
+      "id": "LLM-07",
+      "title": "多工具结果关联",
+      "originalStatus": "PARTIAL",
+      "setup": "一轮返回多个callId",
+      "expected": "逐一对应，写工具串行且结果不串线",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes",
+          "lineStart": 26,
+          "lineEnd": 32,
+          "actualAssertions": "同一 callId 在后续单独模型轮次再次提出时，仅有一个完成工具回执，workflow revision 仍为1。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "common, coordinated, postfix and interrogative negatives deny actual run/publish proposals; affirmative combined actions remain executable",
+          "lineStart": 148,
+          "lineEnd": 164,
+          "actualAssertions": "正向创建、发布、运行按三次独立模型轮次提出；每轮只返回一个call。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有同一模型响应包含多个不同callId的场景。",
+        "未断言多个写工具执行不重叠、按依赖串行，且每个回送tool_call_id/call_id与对应结果一致。"
+      ],
+      "note": null
+    },
+    {
+      "id": "LLM-08",
+      "title": "usage缺失",
+      "originalStatus": "PARTIAL",
+      "setup": "Provider不返回token计数",
+      "expected": "显示未知，不能当作免费或0花费",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "Responses and Chat Completions use separate envelopes and protocol paths",
+          "lineStart": 87,
+          "lineEnd": 95,
+          "actualAssertions": "两个HTTP协议适配器在响应不含usage时都返回usage=null。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "未断言助手任务持久化结果中usage保持未知，以及未被累计为0。",
+        "没有浏览器断言usage缺失时显示“未知”，且未显示免费/0花费。"
+      ],
+      "note": null
+    },
+    {
+      "id": "ASST-02",
+      "title": "错参修复",
+      "originalStatus": "PARTIAL",
+      "setup": "第一次TYPE_MISMATCH第二次修正",
+      "expected": "按错误纠正，原checkpoint不被误消费",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "tool validation feedback permits bounded correction and preserves Web revision conflicts",
+          "lineStart": 40,
+          "lineEnd": 46,
+          "actualAssertions": "先返回REVISION_CONFLICT，后修订revision成功；Web description保留。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "analysis correction budgets 1/2/3 count the initial attempt, account usage and retain checkpoint on exhaustion",
+          "lineStart": 187,
+          "lineEnd": 197,
+          "actualAssertions": "analysis invalid-json按预算尝试；耗尽时保留checkpoint id；第二次有效JSON可完成。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-authoring-audit-regressions.test.ts",
+          "testName": "host output contracts cannot be weakened and published checkpoints use immutable capability schemas / invalid submissions leave the same checkpoint available",
+          "lineStart": 106,
+          "lineEnd": 118,
+          "actualAssertions": "内部engine收到错类型/缺字段/额外字段输出后返回INPUT_INVALID，checkpoint和revision不变，随后有效输出可完成。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有助手同一任务先收到TYPE_MISMATCH反馈、再按该错误修正的完整场景。",
+        "checkpoint保留的直接engine断言和助手纠错断言分属不同场景，不能组合推断原checkpoint只被正确结果消费一次。"
+      ],
+      "note": null
+    },
+    {
+      "id": "ASST-04",
+      "title": "用户取消",
+      "originalStatus": "PARTIAL",
+      "setup": "正在生成与等待工具结果分别取消",
+      "expected": "停止后续动作，不盲重放已派发调用",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "cancellation aborts pending generation with no tool writes",
+          "lineStart": 47,
+          "lineEnd": 51,
+          "actualAssertions": "模型生成等待时cancel，任务CANCELLED，workflow零写入。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "failed and cancelled analysis acceptance replays original task, while a fresh key can retry",
+          "lineStart": 128,
+          "lineEnd": 134,
+          "actualAssertions": "cancelled analysis用原幂等key返回原task；新key允许重试。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "session deletion waits for cancelling workers so delayed receipts cannot recreate deleted copies",
+          "lineStart": 142,
+          "lineEnd": 146,
+          "actualAssertions": "取消worker尚未收敛时不能删除session；收敛后删除不再留下task/event。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "未测试真实工具已经派发、正在等待异步结果时取消。",
+        "未断言已派发调用只执行一次、已完成回执保留、后续模型轮次和工具均停止。"
+      ],
+      "note": null
+    },
+    {
+      "id": "ASST-05",
+      "title": "SSE断连",
+      "originalStatus": "PARTIAL",
+      "setup": "工具成功后前端断网再连",
+      "expected": "恢复事件，不重复执行patch",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/ui/v2-assistant-audit.spec.ts",
+          "testName": "formal assistant UI rejects negative execution, displays context/config, and deletes session",
+          "lineStart": 11,
+          "lineEnd": 22,
+          "actualAssertions": "截断的是消息提交POST的acceptance响应；重发后模型请求仍1次，但此任务因INTENT_NOT_ALLOWED失败，未发生成功patch。",
+          "evidenceLevel": "synthetic_browser"
+        },
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes",
+          "lineStart": 26,
+          "lineEnd": 32,
+          "actualAssertions": "账本阻止后续模型轮次的同callId重复创建。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有成功patch之后浏览器SSE断网再连的场景。",
+        "未断言按eventId补读并恢复画布/工具回执，同时patch命令/revision/写入次数不增加。"
+      ],
+      "note": null
+    },
+    {
+      "id": "ASST-08",
+      "title": "发布意图",
+      "originalStatus": "PARTIAL",
+      "setup": "明确创建并发布与只保存对照",
+      "expected": "分别执行预期动作，不加人工审批",
+      "suggestedStatus": "PASS",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes",
+          "lineStart": 26,
+          "lineEnd": 32,
+          "actualAssertions": "请求文本为“保存草稿，不要发布或执行”；实际草稿持久化且COMPLETED，versions=0、runs=0。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "common, coordinated, postfix and interrogative negatives deny actual run/publish proposals; affirmative combined actions remain executable",
+          "lineStart": 148,
+          "lineEnd": 164,
+          "actualAssertions": "多个否定/询问意图拒绝发布或运行；明确“创建、发布并运行”在同任务真实完成，新增version和run。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [],
+      "note": "仅建议合成HTTP/Scripted层通过。正向请求包含运行，是明确创建并发布的已授权连续动作；未作真实模型意图效果验收推断。"
+    },
+    {
+      "id": "KB-05",
+      "title": "文档升级",
+      "originalStatus": "PARTIAL",
+      "setup": "修改帮助文档并重建索引",
+      "expected": "hash与行号更新；旧引用可识别过期",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "knowledge citations hash actual source ranges, expose stale sources, and history has a real cursor",
+          "lineStart": 110,
+          "lineEnd": 117,
+          "actualAssertions": "每个当前chunk内容/hash与实际source行范围相符；人为改坏索引contentHash后source.stale=true，rebuild后false。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "未实际修改帮助文档正文/插入行后重建索引。",
+        "未断言新contentHash及行号随源变更更新，也未断言先前发给用户的旧citation可识别过期。"
+      ],
+      "note": "测试修改的是knowledge_chunks.contentHash，不能等价于文档真实升级场景。"
+    },
+    {
+      "id": "KB-06",
+      "title": "大业务输出",
+      "originalStatus": "PARTIAL",
+      "setup": "选择超上下文预算的artifact",
+      "expected": "分页/截断明确标注，原产物保持完整",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/workflow.test.ts",
+          "testName": "report requires actual chapters/bytes, references and bounded UTF-8 reads",
+          "lineStart": 553,
+          "lineEnd": 641,
+          "actualAssertions": "报告保存实际内容与证据；artifact_read的小maxBytes读取遵守UTF-8边界。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有选择超过助手上下文预算的大artifact并发送模型的场景。",
+        "未断言模型请求/任务摘要含明确截断范围、总长度和续读方式。",
+        "未比较上下文截断前后原artifact全部字节/hash保持完整。"
+      ],
+      "note": null
+    },
+    {
+      "id": "KB-07",
+      "title": "不默认外发历史",
+      "originalStatus": "PARTIAL",
+      "setup": "普通帮助问答",
+      "expected": "没有自动附加全部运行数据或Key",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "real message provenance scopes history by selected run/artifacts and provider; clearing selection never reuses old run answers",
+          "lineStart": 166,
+          "lineEnd": 185,
+          "actualAssertions": "真实HTTP请求体在清除run/换Provider/选其他run时排除旧run私有结果及无来源旧消息；对应来源history仅同Provider同上下文时复用。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/ui/v2-assistant-audit.spec.ts",
+          "testName": "assistant UI labels past run provenance while clearing run and changing provider excludes that history",
+          "lineStart": 75,
+          "lineEnd": 87,
+          "actualAssertions": "浏览器先选run后清除，最后模型请求不含原run结果；页面仍展示有来源的历史消息。",
+          "evidenceLevel": "synthetic_browser"
+        },
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "testName": "model profile Key is encrypted and never stored in command or ordinary profile bodies",
+          "lineStart": 59,
+          "lineEnd": 64,
+          "actualAssertions": "Profile/普通表/命令账本无Key明文。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "缺少普通帮助请求在预存多条无关运行/产物时，明确断言所有未选中业务内容均不进入Provider消息。",
+        "没有对Provider请求消息显式断言配置中的模型Key/连接secret均未附加；存储密文检查不等价于上下文外发检查。"
+      ],
+      "note": "历史隔离回归实质增强，但按完整expected仍保留PARTIAL。"
+    },
+    {
+      "id": "KB-08",
+      "title": "运行所有权",
+      "originalStatus": "PARTIAL",
+      "setup": "读取其他owner的run资料",
+      "expected": "沿用owner检查，不经检索旁路读取",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "testName": "selected workflow and run constrain reads, tests, start and cancellation before dispatch",
+          "lineStart": 53,
+          "lineEnd": 60,
+          "actualAssertions": "同execution owner下，工具越过选定workflow/run会INTENT_NOT_ALLOWED，工具账本为空。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/workflow.test.ts",
+          "testName": "per-host token is workflow-scoped, cannot read another owner, and revocation takes effect",
+          "lineStart": 404,
+          "lineEnd": 450,
+          "actualAssertions": "原MCP身份权限/运行owner隔离有效，另一个执行身份读取run拒绝。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "未以owner A的assistant session选中/读取owner B的run和artifact，并检查Provider零收到相关内容。",
+        "未通过project_help_search/知识上下文路径尝试读取其他owner资料以证明检索不成为旁路。"
+      ],
+      "note": "选中对象限制不是跨owner测试；MCP原owner负测不自动证明assistant知识路径。"
+    },
+    {
+      "id": "UI-01",
+      "title": "发现页面多态",
+      "originalStatus": "PARTIAL",
+      "setup": "loading/partial/failed/empty",
+      "expected": "文案准确，未知不显示0项已安装",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/ui/v2-discovery-reaudit.spec.ts",
+          "testName": "discovery accepts an explicit executable and remembers configuration-only selection without launching Codex",
+          "lineStart": 6,
+          "lineEnd": 19,
+          "actualAssertions": "真实发现页能选择显式CLI及config_only；页面分别观察到SUCCEEDED/PARTIAL，选择刷新后保留。",
+          "evidenceLevel": "synthetic_browser"
+        }
+      ],
+      "missingAssertions": [
+        "未分别控制并断言loading、failed、empty状态。",
+        "未断言partial/failed未知计数显示未知而非“0项已安装”。"
+      ],
+      "note": null
+    },
+    {
+      "id": "UI-02",
+      "title": "工具加入画布",
+      "originalStatus": "PARTIAL",
+      "setup": "选择实际能力和binding",
+      "expected": "生成真实节点，刷新后存在",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/ui/v2-upgrade.spec.ts",
+          "testName": "real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest",
+          "lineStart": 6,
+          "lineEnd": 43,
+          "actualAssertions": "AI创建blank草稿并新增condition节点；浏览器画布节点增至3，reload后仍有3。",
+          "evidenceLevel": "synthetic_browser"
+        },
+        {
+          "file": "tests/engine/v2-mcp-selftest.test.ts",
+          "testName": "official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state",
+          "lineStart": 14,
+          "lineEnd": 94,
+          "actualAssertions": "SDK链路发现/导入实际能力和binding并编排mcp_tool；非浏览器CapabilityPicker链路。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "未在真实能力目录/CapabilityPicker选择实际capability和binding并点击加入画布。",
+        "未断言该mcp_tool的真实capabilityRef/bindingId持久化、刷新后仍正确。"
+      ],
+      "note": null
+    },
+    {
+      "id": "UI-07",
+      "title": "自测过期",
+      "originalStatus": "PARTIAL",
+      "setup": "通过后再修改草稿",
+      "expected": "原测试标stale，不继续全绿",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/ui/v2-upgrade.spec.ts",
+          "testName": "real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest",
+          "lineStart": 37,
+          "lineEnd": 40,
+          "actualAssertions": "浏览器运行Mock，断言“实际自测状态：SUCCEEDED”；后续直接离开页面。",
+          "evidenceLevel": "synthetic_browser"
+        },
+        {
+          "file": "tests/engine/v2-authoring-reaudit.test.ts",
+          "testName": "accepted test baselines stay stale after same-fixture suite regeneration and capability drift",
+          "lineStart": 42,
+          "lineEnd": 69,
+          "actualAssertions": "后端成功自测后改input schema，status.stale=true；布局修改不失效；suite重建和capability漂移也保留stale。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-testing.test.ts",
+          "testName": "deterministic generation executes numeric/string boundaries and both boolean branches",
+          "lineStart": 11,
+          "lineEnd": 17,
+          "actualAssertions": "成功自测后语义修改导致stale=true，再运行旧suite报TEST_BASELINE_STALE。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有浏览器在成功自测后修改草稿，并断言旧结果显示stale/过期且不再持续绿色全通过。"
+      ],
+      "note": "后端stale已得到直接行为断言；该ID属于L3界面验收，不能由后端PASS代替。"
+    },
+    {
+      "id": "RUN-07",
+      "title": "host-only节点",
+      "originalStatus": "PARTIAL",
+      "setup": "网页Key与Codex运行对照",
+      "expected": "网页准确说明需要宿主；Codex实际交接",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-executors.test.ts",
+          "testName": "host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key",
+          "lineStart": 36,
+          "lineEnd": 42,
+          "actualAssertions": "host_tool检查点固定能力/参数；Key分析入口HOST_CAPABILITY_UNAVAILABLE且模型请求=0；内部engine.advance记录host_reported。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "scripts/smoke-codex-v2.mjs",
+          "testName": "script stage: codex_mcp_author_test_publish_execute_report",
+          "lineStart": 47,
+          "lineEnd": 61,
+          "actualAssertions": "本机Codex脚本实际经App Server调用FlowHub；所编排的是report_template流程，无host_tool/host_skill检查点。",
+          "evidenceLevel": "local_codex_script"
+        }
+      ],
+      "missingAssertions": [
+        "未以浏览器断言网页模型Key路径准确展示“需要Codex宿主”提示。",
+        "未由实际Codex会话接收host-only checkpoint、执行对应宿主能力并回传结果；内部engine.advance只能证明合成宿主回执。"
+      ],
+      "note": "保持真实宿主验收边界；原本本机Codex脚本不能提升此项为真实宿主节点PASS。"
+    },
+    {
+      "id": "AUTHOR-08",
+      "title": "发布修订变化",
+      "originalStatus": "PARTIAL",
+      "setup": "校验后binding/capability变更",
+      "expected": "CAS拒绝过期发布，旧版本不变",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-authoring-audit-regressions.test.ts",
+          "testName": "v2 HTTP/service publication requires the shared DTO and reviewed binding CAS",
+          "lineStart": 73,
+          "lineEnd": 97,
+          "actualAssertions": "v2发布携带binding revision=1，实际binding升至2后HTTP409；更新reviewed revision才可发布；随后binding升至3，旧发布快照不变；幂等回执保持。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/publish-binding-cas.test.ts",
+          "testName": "publication binds the reviewed binding revisions and preserves previous immutable versions",
+          "lineStart": 19,
+          "lineEnd": 247,
+          "actualAssertions": "原v1发布路径在binding变更后拒绝过期review map，草稿revision与既有版本不变。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "v2没有先validate得到capabilitySnapshot、再修改被引用capability并使用旧expectedCapabilityRevisions发布的明确负测。",
+        "缺少能力漂移拒绝时既有v2发布版本及hash/新version缺失的断言。"
+      ],
+      "note": "binding CAS分支有直接测试；完整binding/capability条件仍建议PARTIAL。"
+    },
+    {
+      "id": "CAP-07",
+      "title": "Schema漂移",
+      "originalStatus": "PARTIAL",
+      "setup": "工具入参改变类型",
+      "expected": "修订递增，相关草稿定位问题",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "tests/engine/v2-discovery.test.ts",
+          "testName": "schema-only and description-only catalog drift create immutable connections with matching contracts",
+          "lineStart": 237,
+          "lineEnd": 250,
+          "actualAssertions": "同一目录改变输入Schema/输出Schema/description；重新导入得到新connection，binding指向当前cap修订，旧connection/binding保持。",
+          "evidenceLevel": "synthetic"
+        },
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "testName": "PLUG-08: Skill content drift advances semantic revision, mtime-only refresh does not, and publication stays immutable",
+          "lineStart": 53,
+          "lineEnd": 59,
+          "actualAssertions": "Skill真实内容漂移使revision=2，相关草稿有CAPABILITY_STALE，旧revision/发布快照不变。",
+          "evidenceLevel": "synthetic"
+        }
+      ],
+      "missingAssertions": [
+        "没有对同一工具已有入参由string改number等明确类型变更的场景；当前schema-only测试加入新的requiredField。",
+        "schema-only工具漂移测试未建立引用该能力的草稿并断言定位问题/nodeId/path及修订递增；Skill漂移不能替代工具入参类型漂移。"
+      ],
+      "note": null
+    },
+    {
+      "id": "PACK-08",
+      "title": "升级文档可操作",
+      "originalStatus": "UNVERIFIED",
+      "setup": "按本地教程新机执行",
+      "expected": "步骤和真实CLI一致，缺项明确",
+      "suggestedStatus": "PARTIAL",
+      "recommendationScope": "source assertion coverage only; adopt PASS only after root current-tree regression succeeds",
+      "tests": [
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "testName": "script stages: actual_v1_program_create_publish_run_report_backup; upgrade_to_v2_preserves_every_v1_row_and_report; stopped_restore_and_actual_old_program_restart",
+          "lineStart": 14,
+          "lineEnd": 52,
+          "actualAssertions": "隔离目录提取实际旧源码并启动旧CLI，创建报告和备份，内部startDaemon升级，内部restoreBackup恢复，旧CLI重启，所有旧行/hash/报告相同。",
+          "evidenceLevel": "local_macos_upgrade_drill"
+        }
+      ],
+      "missingAssertions": [
+        "未在干净新机/独立测试账号逐步按docs/V2_MIGRATION.md和本地教程操作离线候选。",
+        "脚本中升级/恢复采用内部startDaemon/restoreBackup，未直接验教程对应候选目录launcher及restore CLI步骤。",
+        "无原生Windows教程操作证据，不能提升Windows验收。"
+      ],
+      "note": "原acceptance-results.json该项为UNVERIFIED而非PARTIAL。suggestedStatus=PARTIAL仅表达已有部分迁移演练证据；若保留原矩阵语义，报告状态仍建议UNVERIFIED，不应自动覆盖成PASS。"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+### Result
+"{\"path\":\"/workflows\",\"heading\":\"工作流\",\"canvas\":0}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (JSON.stringify({path:location.pathname,heading:document.querySelector("h1")?.textContent,canvas:document.querySelectorAll(".react-flow").length}))');
+```

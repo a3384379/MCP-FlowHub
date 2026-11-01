@@ -1,4 +1,4 @@
-# RC 设备核验清单
+# 本地候选设备核验清单
 
 这份清单**不是通过记录**。只用合成数据，无需额外模型 API Key 或企业地址。
 
@@ -24,7 +24,7 @@
    ```
 
 5. 宿主 command 设置为包内 runtime/node.exe；args 数组为包内 dist/apps/daemon/src/cli.js、mcp、--stdio、--data-dir、批准目录。不拼接 shell，不把 token 放宿主参数，不提交企业路径。
-6. 真实 Codex 发现七工具，调用 workflow_search(query="排查") 和 workflow_get；样例明确标为合成；真实环境不使用这些绑定。workflow_start 应创建真实运行并停在 WAITING_AGENT；宿主回传分析后自动继续。记录 Codex/Windows 版本、era/协议及原始业务值完整性结果，模拟宿主不能替代。
+6. 真实 Codex 个人/编排身份发现21工具，旧execution身份仍为七工具；调用 workflow_search(query="排查") 和 workflow_get，编排身份继续验证草稿/自测链路。样例明确标为合成；真实环境不使用这些绑定。guided运行应停在 WAITING_AGENT，宿主回传后继续。记录 Codex/Windows 版本、era/协议及原始业务值完整性，模拟宿主不能替代。
 7. 独立 MCP 客户端连接 `flowhub mock --stdio`，调用 synthetic_order_lookup，传 `{"orderNo":"DEMO-1001"}`，应得到 synthetic=true、test 哨兵与中文 emoji。
 8. 重启 daemon，确认 instance ID 持续、启动计数增加；同目录重复 daemon 被拒，多桥共享同一实例。验证加密策略开启时配置/SQLite/子进程可用，不关闭安全软件。
 

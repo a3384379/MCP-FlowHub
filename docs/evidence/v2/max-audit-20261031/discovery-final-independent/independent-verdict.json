@@ -1,0 +1,89 @@
+{
+  "audit": "discovery-d07-d08-independent-max",
+  "date": "2026-10-31",
+  "baseHead": "61e19eeca0146c2e8247c3f16720570c63115ca6",
+  "sourceState": "current uncommitted fixes; source hashes recorded separately",
+  "status": "passed",
+  "findings": [
+    {
+      "id": "D07",
+      "status": "closed",
+      "evidence": [
+        "backend-d07.txt",
+        "ui-targeted.txt",
+        "ui-results.json"
+      ],
+      "checks": [
+        "explicit null Profile",
+        "explicit empty CLI reset",
+        "target ID and CAS retained",
+        "identity change typed rejection",
+        "rejected input preserved",
+        "separate default Profile registration"
+      ]
+    },
+    {
+      "id": "D08",
+      "status": "closed",
+      "additionalCounterexampleFoundDuringAudit": true,
+      "additionalCounterexampleFixed": true,
+      "evidence": [
+        "d08-late-secrets-before.txt",
+        "d08-late-secrets-after.txt",
+        "d08-late-secrets-after-followup.txt",
+        "d08-late-secret-error-after-followup.txt",
+        "d08-pending-initial-snapshot-after-followup.txt",
+        "d08-navigation-after-followup.txt",
+        "ui-followup.txt",
+        "ui-followup-results.json"
+      ],
+      "checks": [
+        "same-entity snapshot preserves refs and pending state",
+        "late successful automatic activation cannot reset newer manual selection",
+        "late activation error suppressed",
+        "initial activation survives snapshot",
+        "navigation invalidates prior activation",
+        "source baseline fixed and backend CAS rejects drift",
+        "real credential save returns 200 with exact secretRef and notice"
+      ]
+    }
+  ],
+  "executed": {
+    "targetedBackendUniqueTests": 3,
+    "initialProductUiUniqueTests": 4,
+    "finalProductUiRerunTests": 1,
+    "finalPrivateComponentCases": 4
+  },
+  "remainingConfirmedFindings": [],
+  "boundaries": {
+    "enterpriseServices": "not contacted",
+    "formalData": "not accessed",
+    "ports18473And18479": "not used",
+    "models": "not called",
+    "userBrowser": "not used",
+    "windows": "not run"
+  },
+  "archivePolicy": {
+    "gitAllowed": "reports, JSON, text logs only",
+    "tmpOnly": "compiled bundles, source snapshots, runnable harness",
+    "excluded": [
+      "data directories",
+      "SQLite databases",
+      "tokens",
+      "node_modules"
+    ]
+  },
+  "cleanup": {
+    "auditDaemonPidsStopped": [
+      9821,
+      14019
+    ],
+    "staticServerPidsStopped": [
+      11154,
+      12398
+    ],
+    "browserSessionClosed": "discovery-d07-d08-max",
+    "formalProcessesStopped": false,
+    "syntheticRuntimeDataRemoved": true
+  }
+}

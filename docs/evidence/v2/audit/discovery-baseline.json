@@ -1,0 +1,122 @@
+[
+  {
+    "case": "disabled-server",
+    "sourceEnabled": false,
+    "capability": {
+      "stale": false,
+      "enabled": "enabled",
+      "availability": "ready",
+      "revision": 1
+    },
+    "newDiscoveryCalls": 1,
+    "imported": {
+      "connectionId": "conn_e3aa22dd979f445a7d633beb",
+      "bindingId": "binding_d80b5ef2c5d1ffe9692142e9",
+      "status": "configuration_required",
+      "reason": "Protocol catalog imported; independently verify the environment/resource binding before live publication."
+    }
+  },
+  {
+    "case": "changed-source-existing-connection",
+    "capabilityRevision": 1,
+    "first": {
+      "connectionId": "conn_d2e4fa7bfe27befa3376a4d2",
+      "bindingId": "binding_bf393cc220861eda6b5387ed",
+      "status": "configuration_required",
+      "reason": "Protocol catalog imported; independently verify the environment/resource binding before live publication."
+    },
+    "second": {
+      "connectionId": "conn_d2e4fa7bfe27befa3376a4d2",
+      "bindingId": "binding_1aed389887f0475e19479517",
+      "status": "configuration_required",
+      "reason": "Protocol catalog imported; independently verify the environment/resource binding before live publication."
+    },
+    "lastDiscoveredEndpoint": "https://new.invalid/mcp",
+    "persistedEndpoint": "https://old.invalid/mcp",
+    "sourceRevision": 2
+  },
+  {
+    "case": "idempotent-replay-needs-network",
+    "result": {
+      "connectionId": "conn_f40bb9e54fb2f407f5f36e3b",
+      "bindingId": "binding_7c7c9fe6b8c68ac2f4dccf81",
+      "status": "configuration_required",
+      "reason": "Protocol catalog imported; independently verify the environment/resource binding before live publication."
+    },
+    "replay": {
+      "error": "SYNTHETIC_UNREACHABLE"
+    }
+  },
+  {
+    "case": "disabled-tool-listed",
+    "job": "SUCCEEDED",
+    "items": [
+      {
+        "name": "read",
+        "enabled": "enabled",
+        "availability": "ready"
+      }
+    ]
+  },
+  {
+    "case": "older-scan-overwrites-newer",
+    "newScanCompletedBeforeOld": [
+      {
+        "name": "newTool",
+        "stale": false
+      }
+    ],
+    "afterBoth": [
+      {
+        "name": "newTool",
+        "stale": true
+      },
+      {
+        "name": "oldTool",
+        "stale": false
+      }
+    ],
+    "sourceFingerprint": "cee7ec109b0a90c79ee0421d7459d06173eba18e016e2b54ed7183a90e6c9960",
+    "oldJob": "SUCCEEDED",
+    "newJob": "SUCCEEDED"
+  },
+  {
+    "case": "disabled-skill",
+    "capability": {
+      "name": "report",
+      "enabled": "enabled",
+      "availability": "host_only"
+    },
+    "imported": {
+      "status": "host_reference",
+      "hostReference": {
+        "capabilityId": "cap_d48f5c1511e8bfcad3327737",
+        "revision": 1,
+        "executor": "codex_host"
+      }
+    }
+  },
+  {
+    "case": "close-does-not-cancel",
+    "closedAfter50ms": false,
+    "jobStatus": "DISCOVERING_CATALOG"
+  },
+  {
+    "case": "aliased-loopback-hub-not-self",
+    "source": [
+      {
+        "name": "local-orchestrator",
+        "self": false,
+        "executor": "hub_direct"
+      }
+    ]
+  },
+  {
+    "case": "unrecognized-credential-argv-copied",
+    "availability": "ready",
+    "connectionArgs": [
+      "--client-secret=SYNTHETIC_ARG_SECRET"
+    ],
+    "plaintextPresent": true
+  }
+]

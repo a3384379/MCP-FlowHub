@@ -1,0 +1,44 @@
+[
+  {
+    "text": "run the current workflow after I confirm",
+    "verbs": [
+      "start_run"
+    ],
+    "actions": [
+      "run"
+    ],
+    "offeredStart": true,
+    "taskStatus": "COMPLETED",
+    "errorCode": null,
+    "actualRunsCreated": 1,
+    "receiptCount": 1
+  },
+  {
+    "text": "when I confirm, run the current workflow",
+    "verbs": [
+      "start_run"
+    ],
+    "actions": [
+      "run"
+    ],
+    "offeredStart": true,
+    "taskStatus": "COMPLETED",
+    "errorCode": null,
+    "actualRunsCreated": 1,
+    "receiptCount": 1
+  },
+  {
+    "text": "after the checks pass, run the current workflow",
+    "verbs": [
+      "start_run"
+    ],
+    "actions": [
+      "run"
+    ],
+    "offeredStart": true,
+    "taskStatus": "COMPLETED",
+    "errorCode": null,
+    "actualRunsCreated": 1,
+    "receiptCount": 1
+  }
+]

@@ -1,0 +1,268 @@
+{
+  "audit": {
+    "round": 2,
+    "head": "5c68e54 plus uncommitted shared-tree repairs",
+    "scope": "Read-only independent review of authoring/testing/engine/contracts/v2 API/application/MCP bridge and new draft merge helper; main editor only used for integration clues because another agent owns it.",
+    "repoEditedByAuditor": false,
+    "buildExecutedByAuditor": false,
+    "runtime": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+    "reproducer": "/tmp/flowhub-authoring-reaudit.mjs",
+    "evidence": "/tmp/flowhub-authoring-reaudit-output.jsonl",
+    "reproducerExitCode": 0,
+    "isolation": "In-memory SQLite and synthetic schemas/data only. No official DB, credentials, external service or provider accessed. Existing unified-build dist inspected before use.",
+    "migrationConstraint": "Preserve both shipped v1 and v2 historical DDL/checksums. No repository file was edited by this auditor."
+  },
+  "validation": {
+    "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node --test --test-concurrency=1 dist/tests/engine/v2-authoring-audit-regressions.test.js dist/tests/engine/v2-testing-audit-regressions.test.js dist/tests/engine/v2-draft-merge.test.js",
+    "exitCode": 0,
+    "passed": 19,
+    "failed": 0,
+    "wallTimeMs": 2467,
+    "limitation": "These passing regressions do not cover the three new independently reproduced defects below."
+  },
+  "originalFindingsReview": [
+    {
+      "id": "AUTH-RUN-01",
+      "state": "closed for original reproduction",
+      "evidence": "Both validator and dispatch resolution now reject decoded JSON Pointer overlap with locked arguments; independent new regression run passed exact, ancestor and descendant cases with zero dispatch.",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/validate.ts",
+          "start": 323,
+          "end": 331
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 1190,
+          "end": 1197
+        }
+      ]
+    },
+    {
+      "id": "AUTH-PUBLISH-02",
+      "state": "closed for original reproduction",
+      "evidence": "Shared AuthoringService publish validates full DTO before ledger. Authenticated Fastify injection regression independently passed missing/wrong/extra fields, stale binding CAS, immutable version and exact replay checks.",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-authoring/src/index.ts",
+          "start": 223,
+          "end": 240
+        }
+      ]
+    },
+    {
+      "id": "AUTH-HOST-03",
+      "state": "original invalid-data bypass closed, but overcorrection creates compatibility defect REAUDIT-HOST-03",
+      "evidence": "Publication rejects incompatible integer/string output schemas; advance also validates actual frozen capability schema, and deleting/changing current registry leaves existing published checkpoint bound to frozen schema. Independent regressions passed. Exact hash equality is nevertheless incompatible with bounded native object schemas; see new finding."
+    },
+    {
+      "id": "TEST-HOST-04",
+      "state": "closed for original reproduction",
+      "evidence": "Accepted test run freezes whitelisted capability revision metadata, copies it into isolated DB and marks host result synthetic_fixture. Independent tests passed valid/missing/invalid host fixtures and typed missing revision rejection, zero network/secret access.",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 172,
+          "end": 188
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 236,
+          "end": 245
+        }
+      ]
+    },
+    {
+      "id": "TEST-IDEMPOTENCY-05",
+      "state": "closed for original generate/run replay reproduction",
+      "evidence": "Mutable baseline checks moved into first-execution command callback; accepted suite/case selection and execution contracts frozen in durable run. Independent regressions passed same-ID replay after suite/draft edits, different-body conflict and revoked-owner denial. New stale-status issue is separate."
+    }
+  ],
+  "newFindings": [
+    {
+      "id": "REAUDIT-TEST-01",
+      "priority": "P1",
+      "title": "Regenerating the same suite can revive an obsolete green run as current",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 166,
+          "end": 170
+        }
+      ],
+      "trigger": [
+        "Generate suite@1 and run successfully against draft revision1 with inputs {}.",
+        "Change inputSchema to require integer amount, producing draft revision2; old run correctly becomes stale.",
+        "Regenerate the same suite via baseSuiteId at draftRevision2 with exactly the same cases, making fixtureHash unchanged.",
+        "Read old test run status."
+      ],
+      "observed": {
+        "marker": "OLD_RUN_REVIVED",
+        "before": {
+          "status": "SUCCEEDED",
+          "stale": false,
+          "draftRevision": 1
+        },
+        "staleImmediatelyAfterEdit": true,
+        "afterSuiteRegeneration": {
+          "status": "SUCCEEDED",
+          "stale": false,
+          "draftRevision": 1
+        },
+        "currentDraftRevision": 2,
+        "freshRun": {
+          "status": "FAILED",
+          "errorCode": "INPUT_INVALID"
+        }
+      },
+      "cause": "status() checks assertBaseline(latest suite) and fixtureHash only. Replacing that suite with a baseline for the current draft causes a run made from the old immutable acceptedSuite to appear fresh, despite run.draftRevision not matching the current draft.",
+      "impact": "The product reports a previous green run as applicable to the current workflow even when running those same cases on the current draft actually fails. This violates revision binding and stale quality evidence.",
+      "minimalFix": "Compute staleness from the run's immutable accepted baseline/execution snapshot, including run.draftRevision, accepted capability revisions and fixtureHash, compared against the current workflow/registry. A mutable suite update must never refresh old run evidence. Handle legacy rows lacking acceptedSuite using recorded run revision/hash conservatively.",
+      "tests": [
+        "Run r1 green, modify required input schema to r2, regenerate same suite with unchanged fixtureHash: old run remains stale=true while new run may fail.",
+        "Same behavior across suite regeneration with changed then restored fixture contents.",
+        "Changing current capabilities invalidates old runs using their accepted capability revision, independent of a newly regenerated suite.",
+        "Layout-only edits remain semantically fresh by existing revision semantics."
+      ]
+    },
+    {
+      "id": "REAUDIT-MOCK-02",
+      "priority": "P1",
+      "title": "Text fixtures still change result adaptation and falsely pass a workflow the real connector rejects",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-testing/src/index.ts",
+          "start": 224,
+          "end": 225
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/registry.ts",
+          "start": 454,
+          "end": 454
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/mcp-connectors/src/results.ts",
+          "start": 4,
+          "end": 17
+        }
+      ],
+      "trigger": {
+        "nodeConfig": {
+          "resultAdapterRef": "omitted, so runtime defaults to structured"
+        },
+        "toolOutputSchema": "omitted (legal text-only MCP tool)",
+        "fixture": {
+          "responseMode": "text",
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Synthetic raw text result"
+              }
+            ]
+          }
+        }
+      },
+      "observed": {
+        "marker": "TEXT_ADAPTER_FALSE_GREEN",
+        "mockStatus": "SUCCEEDED",
+        "mockOutput": {
+          "text": "Synthetic raw text result",
+          "content": [
+            {
+              "type": "text",
+              "text": "Synthetic raw text result"
+            }
+          ]
+        },
+        "runtimeSharedAdapter": {
+          "errorCode": "OUTPUT_ADAPTER_REQUIRED"
+        }
+      },
+      "verification": "Mock ran through the product WorkflowTesting engine in an in-memory DB. The exact same raw result was independently passed to the actual shared adapter with the actual connector's default, confirming OUTPUT_ADAPTER_REQUIRED. No external service was called.",
+      "cause": "The mock passes node.resultAdapterRef ?? 'text' whenever the fixture says responseMode=text, while the production connector always passes node.resultAdapterRef ?? 'structured'. Fixture metadata silently repairs the workflow rather than describing only the downstream response.",
+      "impact": "A user can receive green Mock quality evidence for a text-only tool whose published workflow has no required text/json_text adapter, then fail on actual execution.",
+      "minimalFix": "Always choose the adapter from frozen node config with the same default as Connectors.call; fixture.responseMode controls response content/failure simulation only. Preserve raw results and actual output schema validation. Do not infer or auto-select text adapters from fixtures.",
+      "tests": [
+        "Text-only fixture + omitted/structured node adapter must fail OUTPUT_ADAPTER_REQUIRED in both Mock and actual synthetic SDK connector.",
+        "Explicit text adapter succeeds and retains raw evidence.",
+        "Explicit json_text succeeds for valid JSON, fails OUTPUT_INVALID for malformed JSON, and validates parsed values against actual output schema.",
+        "StructuredContent precedence is identical regardless of fixture responseMode."
+      ]
+    },
+    {
+      "id": "REAUDIT-HOST-03",
+      "priority": "P1",
+      "title": "Exact host schema equality plus the restricted agent schema makes ordinary native MCP output contracts unusable",
+      "locations": [
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts",
+          "start": 258,
+          "end": 271
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/contracts/workflow-v2.schema.json",
+          "start": 176,
+          "end": 325
+        },
+        {
+          "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/contracts/workflow-v2.schema.json",
+          "start": 1203,
+          "end": 1205
+        }
+      ],
+      "trigger": {
+        "capability": {
+          "kind": "mcp_tool",
+          "executor": "codex_host",
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count"
+            ]
+          }
+        },
+        "attempts": [
+          "Use the native outputSchema unchanged as host_tool node outputSchema.",
+          "Add additionalProperties:false to make the node schema accepted by the current DSL."
+        ]
+      },
+      "observed": {
+        "marker": "HOST_SCHEMA_SUBSET_DEAD_END",
+        "nativeSchemaRoot": "object",
+        "nativeSchemaMissingAdditionalProperties": "legal JSON Schema default",
+        "exactNodeRejected": "INPUT_INVALID",
+        "restrictedNodeIssues": [
+          {
+            "code": "HOST_CONTRACT_MISMATCH",
+            "message": "Host node output schema must match the discovered capability revision."
+          }
+        ],
+        "publishRejected": "WORKFLOW_INVALID"
+      },
+      "cause": "hostToolConfig.outputSchema points at dataSchema, which was designed for hand-authored input/analysis schemas and requires explicit additionalProperties:false for all object schemas. The repair additionally requires exact hash equality with the native MCP capability outputSchema. The native contract often omits additionalProperties or allows it, so neither exact nor narrowed node forms can pass.",
+      "impact": "Valid discovered native host tools cannot be added/published through the intended Codex/authoring path. Standard MCP outputSchema remains an object-root contract; it need not obey FlowHub's hand-authored analysis schema subset.",
+      "minimalFix": "Keep v1 and hand-authored analysis schemas strict. Define a dedicated bounded native schema contract for v2 host_tool, preserving the exact actual frozen outputSchema. Support safe native object schemas with omitted/true additionalProperties and supported nonrecursive local definitions/refs under existing size/depth/complexity protections; reject external refs and unsafe recursion. Never add false to the native contract to force it into the old subset, and never close the defect by disabling real frozen-schema validation. The actual discovered schema must still validate every host result.",
+      "tests": [
+        "Native object schema without additionalProperties can be persisted exactly, published, frozen and used by Mock/host checkpoint; valid output succeeds and invalid type fails without consuming checkpoint.",
+        "Repeat for additionalProperties:true and a bounded nonrecursive local $defs/$ref contract; reject external refs, excessive depth and unsafe recursion.",
+        "Node presentation of native schema must preserve semantic equality to the actual capability contract without inventing additionalProperties:false.",
+        "Existing strict v1 and analysis node schema rejection tests remain unchanged and passing.",
+        "Published native schemas remain usable after current capability changes or disappears because the published copy is immutable."
+      ],
+      "boundaries": "Only the omitted-additionalProperties case was independently executed in this round. The current schema source also excludes additionalProperties:true and native $defs/$ref; these broader cases are explicit repair acceptance requirements from root, not claims of already executed experiments."
+    }
+  ],
+  "reviewedWithoutNewConfirmedFinding": [
+    "MCP bridge remains thin and unchanged; no DB ownership, scan loop, provider loop or hidden authoring tool expansion was added.",
+    "The new pure draft merge helper passes independently executed keyed node/edge merge, conflict choice and delete/edit regressions. No new confirmed P1/P2 in the helper itself.",
+    "Terminal WorkflowTesting.close interrupts an active synthetic checkpoint, stops later cases, closes isolated DBs and prevents post-close writes; independent regression passed.",
+    "Mock environment cross-check, row-count equality and raw result evidence were added and their independent regressions passed; adapter selection parity remains incomplete as reported.",
+    "Semantic undo now preserves later unrelated nested config changes and does not increment semantic revision for layout-only undo in the independently executed regressions."
+  ]
+}

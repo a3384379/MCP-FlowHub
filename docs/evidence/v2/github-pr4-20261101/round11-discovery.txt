@@ -1,0 +1,25 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-discovery-races.spec.ts
+
+[WebServer] (node:76543) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:76546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration success cannot change the selected context or show an abandoned error (699ms)
+  ✓   2 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration error cannot change the selected context or show an abandoned error (288ms)
+  ✓   3 tests/ui/v2-discovery-races.spec.ts:71:1 › registration context-list response cannot revive an old selection after the POST has completed (400ms)
+  ✓   4 tests/ui/v2-discovery-races.spec.ts:89:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (391ms)
+  ✓   5 tests/ui/v2-discovery-races.spec.ts:141:1 › clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately (1.1s)
+  ✓   6 tests/ui/v2-discovery-races.spec.ts:173:1 › clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path (728ms)
+  ✓   7 tests/ui/v2-discovery-races.spec.ts:190:50 › a retained description draft keeps its original baseline across a pending scan and source change (990ms)
+  ✓   8 tests/ui/v2-discovery-races.spec.ts:190:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (989ms)
+  ✓   9 tests/ui/v2-discovery-races.spec.ts:213:1 › changing capability type hides old rows and rejects a late response from the previous type (1.5s)
+  ✓  10 tests/ui/v2-discovery-races.spec.ts:237:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (1.3s)
+  ✓  11 tests/ui/v2-discovery-races.spec.ts:264:1 › description and credential fields remain locked while their save HTTP requests are pending (1.6s)
+  ✓  12 tests/ui/v2-discovery-races.spec.ts:323:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh (1.1s)
+
+  12 passed (12.4s)

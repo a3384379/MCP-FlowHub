@@ -3,12 +3,17 @@ import { createHash } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { once } from "node:events";
 import { promisify } from "node:util";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 import { assertWindowsBuild } from "./windows-installer.mjs";
+import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { windowsTestEnvironment } from "./windows-test-environment.mjs";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { TOOL_NAMES, EXECUTION_TOOL_NAMES } from "../dist/packages/contracts/src/index.js";
 
 assertWindowsBuild();
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -32,10 +37,10 @@ const checks = [];
 const children = new Set();
 let success = false;
 let installed = false;
-const env = Object.fromEntries(["SystemRoot", "WINDIR", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA"]
-  .flatMap((key) => process.env[key] ? [[key, process.env[key]]] : []));
 // Installed applications do not get access to a global npm/node executable.
-env.PATH = join(installDir, "app/runtime");
+const env = windowsTestEnvironment(join(installDir, "app/runtime"));
+const helperDiagnostics = join(root, "artifacts/windows-installer-helper.log");
+env.FLOWHUB_INSTALLER_DIAGNOSTICS = helperDiagnostics;
 
 async function within(promise, timeout, description) {
   let timer;
@@ -49,7 +54,8 @@ async function runExe(executable, args, expected = 0) {
   let result;
   try { await exec(executable, args, { env, windowsHide: true, windowsVerbatimArguments: true, timeout: 600_000 }); result = 0; }
   catch (error) { result = error.code; }
-  assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}`);
+  const detail = result === expected ? "" : (await Promise.all([helperDiagnostics, `${helperDiagnostics}.node.log`, `${helperDiagnostics}.powershell.log`].map(path => readFile(path,"utf8").catch(()=>"No helper diagnostics were produced.")))).join("\n");
+  assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}\n${detail.slice(-16000)}`);
 }
 async function runSetup(directory, expected = 0) {
   // NSIS /D= consumes the unquoted remainder of the native command line and
@@ -93,6 +99,16 @@ async function readDatabaseIdentity(runtime, appDir) {
   });
   return JSON.parse(result.stdout);
 }
+async function verifyExecutionIdentity(runtime, entry, tokenFile, instanceId) {
+  const client = new Client({ name: "native-installed-execution-identity", version: "1" }, { versionNegotiation: { mode: { pin: "2026-07-28" } } });
+  try {
+    await client.connect(new StdioClientTransport({ command: runtime, args: [entry, "mcp", "--stdio", "--data-dir", dataDir, "--token-file", tokenFile], cwd: temporary, env, stderr: "pipe" }), { timeout: 5000 });
+    assert.deepEqual((await client.listTools()).tools.map(tool => tool.name).sort(), [...EXECUTION_TOOL_NAMES].sort());
+    const result = await client.callTool({ name: "workflow_get", arguments: { workflowId: "incident-production" } });
+    assert.notEqual(result.isError, true);
+    assert.equal(result.structuredContent.instanceId, instanceId);
+  } finally { await client.close(); }
+}
 
 try {
   const unrelated = join(temporary, "unrelated");
@@ -121,12 +137,14 @@ try {
   assert.ok(process.env.APPDATA, "APPDATA is required to verify current-user Start Menu shortcuts.");
   const shortcutsDir = join(process.env.APPDATA, "Microsoft/Windows/Start Menu/Programs/MCP FlowHub");
   const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
-  const shortcutResult = await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
-    "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false); $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:FLOWHUB_SHORTCUT_PATH); @{target=$s.TargetPath;arguments=$s.Arguments}|ConvertTo-Json -Compress"],
-  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true });
-  const shortcut = JSON.parse(shortcutResult.stdout);
-  assert.equal(shortcut.target.toLowerCase(), runtime.toLowerCase());
-  assert.equal(shortcut.arguments, `"${entry}" serve`);
+  const shortcutScript = await readFile(join(root, "scripts/windows-shell-link.ps1"), "utf8");
+  const shortcutResult = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(shortcutScript,"utf16le").toString("base64")],
+  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true, timeout: 60_000 });
+  const shortcut = JSON.parse(Buffer.from(shortcutResult.stdout.trim(),"base64").toString("utf16le"));
+  assert.equal((await realpath(shortcut.target)).toLowerCase(), (await realpath(runtime)).toLowerCase());
+  const shortcutArguments = /^"([^"]+)" serve$/.exec(shortcut.arguments);
+  assert.ok(shortcutArguments,"Shortcut must launch exactly the installed CLI serve command.");
+  assert.equal((await realpath(shortcutArguments[1])).toLowerCase(), (await realpath(entry)).toLowerCase());
   assert.match(await readFile(join(shortcutsDir, "Open management.url"), "utf8"), /URL=http:\/\/127\.0\.0\.1:18473\//);
   checks.push("native offline install in a Unicode and space path; complete payload integrity");
   checks.push("actual flowhub.cmd launcher and current-user Start Menu targets");
@@ -141,10 +159,22 @@ try {
   const page = await fetch(`http://127.0.0.1:${endpoint.port}/`);
   assert.match(await page.text(), /assets\/index-/);
   const doctor = await exec(runtime, [entry, "doctor"], { env, windowsHide: true, timeout: 15_000 });
-  assert.equal(JSON.parse(doctor.stdout).tools.length, 7);
+  assert.equal(TOOL_NAMES.length, 21);
+  assert.equal(EXECUTION_TOOL_NAMES.length, 7);
+  assert.deepEqual(JSON.parse(doctor.stdout).tools.sort(), [...TOOL_NAMES].sort());
+  const origin = `http://127.0.0.1:${endpoint.port}`;
+  const bootstrap = await fetch(origin + "/api/v1/auth/bootstrap", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupToken: await readFile(join(dataDir,"admin-setup-token"),"utf8"), password: "Synthetic-native-installer-password" }) });
+  assert.equal(bootstrap.status, 200);
+  const csrf = (await bootstrap.json()).data.csrf, cookie = bootstrap.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+  const executionIdentity = await fetch(origin + "/api/v1/clients", { method: "POST", headers: { "Content-Type": "application/json", Cookie: cookie, "X-CSRF-Token": csrf }, body: JSON.stringify({ label: "Installed restricted execution", workflowAllowlist: ["incident-production"] }) });
+  assert.equal(executionIdentity.status, 200);
+  const executionTokenFile = (await executionIdentity.json()).data.absoluteTokenFile;
+  await verifyExecutionIdentity(runtime, entry, executionTokenFile, endpoint.instanceId);
+  const loggedOut = await fetch(origin + "/api/v1/auth/session", { method: "DELETE", headers: { Cookie: cookie, "X-CSRF-Token": csrf } });
+  assert.ok(loggedOut.ok);
   await runSetup(installDir, 20);
   await runUninstall(20);
-  checks.push("installed daemon, UI and seven tools; active-daemon install/uninstall refusal");
+  checks.push("installed daemon/UI, personal 21-tool identity and restricted seven-tool identity; active-daemon install/uninstall refusal");
   await stopCommand(daemon);
   await assert.rejects(access(join(dataDir, "daemon.lock")), { code: "ENOENT" });
   const executionToken = await readFile(join(dataDir, "execution-token"));
@@ -176,7 +206,8 @@ try {
   const restartedEndpoint = JSON.parse(await readFile(join(dataDir, "endpoint.json"), "utf8"));
   assert.equal(restartedEndpoint.instanceId, endpoint.instanceId);
   const restartedDoctor = await exec(runtime, [entry, "doctor"], { env, windowsHide: true, timeout: 15_000 });
-  assert.equal(JSON.parse(restartedDoctor.stdout).tools.length, 7);
+  assert.deepEqual(JSON.parse(restartedDoctor.stdout).tools.sort(), [...TOOL_NAMES].sort());
+  await verifyExecutionIdentity(runtime, entry, executionTokenFile, endpoint.instanceId);
   await stopCommand(restarted);
   const identityAfterRestart = await readDatabaseIdentity(runtime, appDir);
   assert.equal(identityAfterRestart.instanceId, identityBeforeReinstall.instanceId);
@@ -207,6 +238,6 @@ try {
     await rm(dataDir, { recursive: true });
     await rm(temporary, { recursive: true, force: true });
   } else {
-    console.error(`Installer smoke failed; synthetic diagnostic files retained at ${temporary}. Data directory retained at ${dataDir}. Installed=${installed}. No process was force-terminated.`);
+    console.error(`Installer smoke failed; synthetic diagnostic files retained at ${temporary}. Data directory retained at ${dataDir}. Installed=${installed}. No FlowHub daemon or bridge was force-terminated.`);
   }
 }

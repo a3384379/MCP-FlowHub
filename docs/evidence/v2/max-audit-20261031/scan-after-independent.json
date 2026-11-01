@@ -1,0 +1,15 @@
+[
+  {
+    "case": "scan_grants_import",
+    "text": "扫描当前MCP",
+    "actions": [
+      "discover"
+    ],
+    "offeredImport": false,
+    "taskStatus": "FAILED",
+    "newConnections": 0,
+    "newBindings": 0,
+    "catalogCalls": 0,
+    "receipts": []
+  }
+]

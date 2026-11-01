@@ -1,0 +1,45 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-discovery-design.spec.ts
+
+[WebServer] (node:88736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 1 worker
+
+(node:88742) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/v2-discovery-design.spec.ts:193:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships (4.0s)
+  ✘  2 tests/ui/v2-discovery-design.spec.ts:269:1 › issue actions open the matching manual connection and credential forms and complete real directory sync (1.0m)
+(node:89298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 tests/ui/v2-discovery-design.spec.ts:316:1 › issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat (1.9s)
+  ✓  4 tests/ui/v2-discovery-design.spec.ts:344:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions (3.3s)
+  ✓  5 tests/ui/v2-discovery-design.spec.ts:410:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification (2.6s)
+  ✓  6 tests/ui/v2-discovery-design.spec.ts:456:1 › real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task (2.6s)
+  ✓  7 tests/ui/v2-discovery-design.spec.ts:493:1 › a late catalog search response cannot replace the user's newer Chinese query results (3.0s)
+
+
+  1) tests/ui/v2-discovery-design.spec.ts:269:1 › issue actions open the matching manual connection and credential forms and complete real directory sync
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('SYNTHETIC_AUTH', { exact: true })
+
+
+      302 |     await row(issue.credential).getByRole("button", { name: "配置凭据", exact: true }).click();
+      303 |     const secret = (await f.api("/api/v1/secrets")).find((s: any) => s.label === issue.credential);
+    > 304 |     await page.getByRole("dialog").getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption(secret.id);
+          |                                                                                  ^
+      305 |     await page.getByRole("dialog").getByRole("button", { name: "保存连接引用", exact: true }).click();
+      306 |     await expect(page.getByRole("dialog").getByRole("status")).toContainText("凭据引用已保存");
+      307 |     await page.keyboard.press("Escape");
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:304:82
+
+    Error Context: test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/error-context.md
+
+  1 failed
+    tests/ui/v2-discovery-design.spec.ts:269:1 › issue actions open the matching manual connection and credential forms and complete real directory sync
+  6 passed (1.3m)

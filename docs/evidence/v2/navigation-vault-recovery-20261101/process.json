@@ -1,0 +1,9 @@
+{
+  "previousPid": 48605,
+  "pid": 56278,
+  "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /Users/sqz/Documents/ChatGPT/mcp管理工具/dist/apps/daemon/src/cli.js serve --data-dir /Users/sqz/.local/share/mcp-flowhub --port 18473",
+  "gracefulShutdown": true,
+  "readiness": 200,
+  "sameDataDirectory": true,
+  "log": "/tmp/flowhub-recovery-formal-daemon.log"
+}

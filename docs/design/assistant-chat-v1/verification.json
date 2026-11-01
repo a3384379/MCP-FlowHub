@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-31",
+  "scope": "离线设计原型，示例数据，不是生产助手实现或真实模型验收",
+  "method": "隔离的 Playwright CLI Chromium headless 会话；截图人工查看",
+  "preview_url": "http://127.0.0.1:18480/preview.html",
+  "passed": [
+    "收起后聊天区域隐藏，重新打开保留未发送草稿",
+    "Shift+Enter换行，Enter创建新轮次",
+    "isComposing中文组字期间Enter不发送",
+    "停止示例回复后保留本轮消息",
+    "追问追加第二轮，工具活动默认折叠",
+    "页面切换更新上下文标签并保留已有两轮",
+    "Escape收起并将焦点返回悬浮按钮",
+    "1440x960、1366x768、390x844、320x720无横向溢出，完整输入区可见",
+    "手机展开时隐藏悬浮入口，不遮挡输入区",
+    "浏览器控制台0错误0警告",
+    "网络清单只有loopback18480设计HTML请求，无模型或MCP请求",
+    "桌面、收起、新会话、手机截图已查看"
+  ],
+  "not_verified": [
+    "真实模型流式回复与多轮理解",
+    "真实MCP目录问答、工具编排、草稿修改、撤销",
+    "生产会话持久化、SSE重连、取消幂等、权限回归",
+    "实体手机软键盘和屏幕阅读器"
+  ],
+  "production_changes": "无；仅新增本目录方案、HTML原型和设计图片；未重启18473应用，未push/merge/发布",
+  "artifacts": [
+    "方案.md",
+    "preview.html",
+    "desktop.png",
+    "chat-detail.png",
+    "closed.png",
+    "welcome.png",
+    "mobile.png"
+  ]
+}

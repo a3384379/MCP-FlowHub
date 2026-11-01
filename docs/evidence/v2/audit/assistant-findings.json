@@ -1,0 +1,140 @@
+{
+  "audit": "MCP FlowHub 2.0 assistant/provider/knowledge/UI independent audit",
+  "head": "5c68e54b17a87d916782191b1e388a7510d020ea",
+  "repo": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "repositoryModified": false,
+  "evidence": {
+    "script": "/tmp/flowhub-assistant-audit/reproduce.mjs",
+    "observations": "/tmp/flowhub-assistant-audit/observations.json",
+    "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node /tmp/flowhub-assistant-audit/reproduce.mjs",
+    "exitCode": 0,
+    "scope": "Actual HttpModelProvider through loopback synthetic HTTP service; actual Application, Engine, Vault and in-memory SQLite. No ScriptedModelProvider, real credentials, paid model, production DB or business MCP. No build performed."
+  },
+  "findings": [
+    {
+      "id": "ASST-A01", "priority": "P1", "title": "Negated requests and staging nouns grant execution intent",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/shared/v2.ts", "start": 7, "end": 13,
+      "trigger": "In compose mode submit 保存草稿，不要发布或执行 or 创建试运行流程并保存草稿.",
+      "actual": "Both produce [edit_draft, run]. The actual HTTP provider receives workflow_start/advance/cancel and a returned workflow_start is executed to COMPLETED, despite the negative instruction. 请解释当前流程的运行原理 similarly grants edit_draft and run.",
+      "impact": "An LLM mistake or injected tool content can start a workflow including production queries when the user only requested a saved draft. The existing assistant fixture uses the same negative sentence but hardcodes actions=[edit_draft], hiding the UI classifier defect.",
+      "fix": "Resolve explicit action intent conservatively with negation/coordinated clauses and noun boundaries; do not derive run from 试运行/运行原理. Enforce the same intent envelope server-side. Keep positive combined create/publish/run requests supported without approval nodes.",
+      "tests": "Exercise the real shared classifier and full HTTP-provider task for Chinese/English positive, negative, coordinated negative, staging noun and explain-only sentences; assert absence of run tools and zero run records."
+    },
+    {
+      "id": "ASST-A02", "priority": "P1", "title": "Selected workflow scope does not restrict workflow_start or workflow_cancel",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts", "start": 175, "end": 181,
+      "trigger": "Select workflow selected and ask to run the current flow; provider returns workflow_start(workflowId=other).",
+      "actual": "The task completes and the actual run belongs to other. The scope guard checks only draft_patch and draft_publish. workflow_cancel has no selected-run guard either; workflow_advance checks owner/kind but not context.runId.",
+      "impact": "The execution identity has global access, so one request can affect a different saved workflow/run than the user selected. This violates contextual action intent even though Engine owner checks still run.",
+      "fix": "Bind start/publish/edit/test and run mutations to explicit targets resolved from user intent/current selection; require runId equal the selected or task-created run for advance/cancel. Apply target checks before ledger dispatch. Do not silently grant all execution-owned runs.",
+      "tests": "Two different synthetic published flows and active runs; ask to run/cancel selected A while provider calls B; assert INTENT_NOT_ALLOWED, B untouched, A remains usable."
+    },
+    {
+      "id": "ASST-A03", "priority": "P1", "title": "Help-mode run context sends an execution credential to the model and permits cleartext persistence",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts", "start": 149, "end": 157,
+      "related": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/workflow-core/src/engine.ts:633-639", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:167-168", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:209-211"],
+      "trigger": "Choose a WAITING_AGENT run and ask only for an explanation in help mode.",
+      "actual": "engine.status includes checkpoint.token; it is serialized verbatim into Selected context and transmitted to the loopback model. When the synthetic model echoes that supplied token, the exact token appears in ordinary assistant_messages and plaintext application_events, even though the tool ledger separately encrypts tokenDelivery. Read-only workflow_status tool results also feed raw output to the model.",
+      "impact": "A client execution credential crosses an unnecessary external-model boundary and the encrypted-at-rest guarantee is broken through responses/events. This is separate from preserving original business data.",
+      "fix": "Create a model-safe run/checkpoint projection that omits the actual execution token in context and all tool results. Keep the credential inside daemon execution state and inject it immediately before authorized workflow_advance, using opaque checkpoint references. Do not apply business-data redaction.",
+      "tests": "Capture actual HTTP provider requests for help and compose; assert current and historical checkpoint credentials absent. Echo all supplied context and verify messages/events/ledger ordinary JSON never contain raw execution credentials; authorized advance still works."
+    },
+    {
+      "id": "ASST-A04", "priority": "P2", "title": "Deleting a session leaves event copies and analysis-tool ledger orphans",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts", "start": 64, "end": 66,
+      "related": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:131", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/admin-api/src/index.ts:925-928"],
+      "trigger": "Complete a normal assistant task or analysis task, then delete its session.",
+      "actual": "Normal task and messages disappear but its message.delta/task.completed events still stream from application_events. Reproduction leaves two events containing the synthetic echoed credential. The analysis ledger is created without sessionId at line 131, so deleteSession's sessionId filter leaves one assistant_tool_calls row after the analysis task is deleted.",
+      "impact": "Delete does not remove the durable copies the user asked to remove; business results and credential echoes can remain indefinitely. Cross-domain coordination needed with root-owned retention remediation.",
+      "fix": "Determine all taskIds before deleting the session; delete tool calls by taskId and owned event copies atomically, including analysis tasks. Preserve unrelated run data and unrelated sessions.",
+      "tests": "Real analysis plus normal session tasks with distinctive synthetic business strings; delete the sessions, replay SSE from cursor 0 and inspect all ledger rows; assert no deleted copies/orphans and unrelated records retained."
+    },
+    {
+      "id": "ASST-A05", "priority": "P2", "title": "Successful analysis submission cannot be retried with the same idempotency key",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts", "start": 108, "end": 111,
+      "trigger": "POST analysis succeeds but client loses the response; retry the identical runId/profileId/key after checkpoint was advanced.",
+      "actual": "Reproduction first task COMPLETED and run SUCCEEDED; identical retry throws HOST_CAPABILITY_UNAVAILABLE because current checkpoint validation executes before repo.command can return the persisted acceptance.",
+      "impact": "An ordinary transport retry reports a failed operation after it actually succeeded, breaking the promised shared idempotent task API. A changed profile with reused key may also return the wrong state error instead of IDEMPOTENCY_CONFLICT.",
+      "fix": "Perform idempotency lookup and request-hash validation before checking current checkpoint state; return the original accepted task without reanalysis or advancing another checkpoint.",
+      "tests": "Retry exact analysis request during generation, after success, after failure, after cancellation, and after a second checkpoint appears. Same key yields same task, changed content yields IDEMPOTENCY_CONFLICT and no duplicate provider call."
+    },
+    {
+      "id": "ASST-A06", "priority": "P2", "title": "A usable non-streaming model is unusable through the formal UI",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts", "start": 144, "end": 162,
+      "related": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/models/ModelsPage.tsx:8", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:27-29"],
+      "trigger": "Configure a compatible provider supporting text and tools but rejecting stream=true. Run model capability probes, then help-mode assistant.",
+      "actual": "Text and tools probes pass; stream probe fails; assistant still requests stream=true and fails MODEL_REQUEST_FAILED. The UI hardcodes stream:true and has no alternative. saveProfile also retains old capabilities/lastTestAt when model/provider/baseUrl changes.",
+      "impact": "A correctly configured usable text model cannot answer help through the product. Stale capability probes may block a newly selected capable model or misrepresent a replaced provider.",
+      "fix": "Expose stream selection or automatically use non-streaming after a failed/unsupported stream probe; keep actual tool capability gating independent. Reset capability tests when provider identity/model/protocol changes, and honor the new values.",
+      "tests": "Real loopback provider allows nonstream text/tools and rejects stream; formal profile settings and help/compose must work with truthful capability statuses. Retest/invalidate after changing model or URL."
+    },
+    {
+      "id": "ASST-A07", "priority": "P2", "title": "Timeout and body-read failures escape the Provider error contract",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts", "start": 47, "end": 51,
+      "related": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts:60-78", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:216"],
+      "trigger": "Provider sends HTTP 200 headers and then stalls past profile.timeoutMs, either in JSON body or SSE body.",
+      "actual": "The synthetic 1000 ms timeout throws raw DOMException TimeoutError code 23 from response.json, outside the fetch try/catch. Assistant maps it to MODEL_CONNECTION_FAILED; analysis maps it to MODEL_OUTPUT_INVALID. Task deadline abort is also reported as user CANCELLED rather than timeout/budget.",
+      "impact": "Timeouts are misdiagnosed and clients cannot distinguish cancellation, invalid model output and stalled network. The same response-read gap leaves nonstream responses without the stream path's 4 MiB budget.",
+      "fix": "Wrap fetch plus complete body consumption in one typed adapter boundary; distinguish user cancel, task deadline, provider timeout, invalid JSON and interrupted network; enforce a body budget for nonstream as well.",
+      "tests": "Headers-then-stall and mid-SSE stall, request timeout before headers, user abort, truncated JSON and oversized JSON; assert exact typed errors and zero tool dispatch."
+    },
+    {
+      "id": "ASST-A08", "priority": "P2", "title": "Analysis UI permanently disables retry and can disable the next analysis checkpoint",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/workflows/RunAnalysisControl.tsx", "start": 4, "end": 7,
+      "trigger": "Submit an analysis task that fails authentication/schema, or reach another analysis checkpoint in the same mounted run view.",
+      "actual": "setTask stores only acceptance; the control never polls/subscribes to task status and disables the action with disabled={!profile||task}. The failed result is never shown, changing profile cannot retry, and task state is not reset by runId/checkpointId changes.",
+      "impact": "A recoverable analysis failure or the standard second-analysis stage requires a full page reload; the interface cannot explain or cancel the pending task.",
+      "fix": "Track accepted task through the shared SSE/task-status service, display terminal errors and cancellation, re-enable on terminal failure, and reset state when run/checkpoint changes while retaining the original task receipt.",
+      "tests": "Playwright: model 401 then select valid profile/retry without reload; consecutive local analysis nodes; switch runs with task state present; cancel and retry while original checkpoint remains valid."
+    },
+    {
+      "id": "ASST-A09", "priority": "P2", "title": "Tool knowledge citations carry hashes of invented excerpt text rather than the cited file range",
+      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/project-knowledge/src/index.ts", "start": 31, "end": 37,
+      "trigger": "Search workflow_draft_create and verify its citation against contracts/mcp-v2-tool-inputs.schema.json lines 735–786.",
+      "actual": "Citation.contentHash hashes name + space + description, while sourcePath/lineStart/lineEnd refer to JSON source with the full definition. The actual cited range has a different hash. Markdown chunks do hash their real range.",
+      "impact": "Version/staleness verification cannot verify tool citations as real source evidence; synthetic assembled content is presented with the same citation contract as source excerpts.",
+      "fix": "Build tool excerpts from the actual cited source range and hash those exact bytes, or define a separate normalized-content hash and source-range hash explicitly. Keep line numbers and actual source text coherent.",
+      "tests": "For every returned citation, read the exact source range and compare content/hash; also rebuild changed docs and identify old citations as stale. Preserve independent Chinese recall and mixed error-code tests."
+    }
+  ],
+  "designNotImplemented": [
+    {
+      "requirement": "07 UI section 5 and UI-04: three-way local patch merge for nonconflicting fields, per-node/field conflict values and selective resolution",
+      "files": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/main.tsx:814-816", "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/main.tsx:2032-2121"],
+      "actual": "All local dirtiness produces a whole-draft conflict; UI only offers compare, save-as and discard/reload. Inputs are preserved, but there is no same-revision nonconflicting merge or per-field keep-local/remote resolution."
+    },
+    {
+      "requirement": "02 sections 6.4/6.5 and 07 section 6: select a run/artifact as assistant context with visible source/size and navigable knowledge citations",
+      "files": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/main.tsx:1688", "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/main.tsx:2396", "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/assistant/AssistantPanel.tsx:30-34"],
+      "actual": "The only formal AssistantPanel contexts are empty AI workspace and workflowId/revision/selectedNodeIds in editor. No UI passes runId/artifactRefs; citation cards display path/line/hash only and do not navigate to actual local help/source. Backend-only run context cannot be selected in the interface."
+    },
+    {
+      "requirement": "02 sections 6.2/6.3 and 07 section 7: configurable timeout/limits/budget and accurate task usage",
+      "files": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:21", "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:159-164", "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/features/models/ModelsPage.tsx:14-19"],
+      "actual": "Profile DTO has timeoutMs but formal model form does not expose it or budgets; per-task limits are hardcoded. usage is overwritten on every turn instead of accumulating, so two 7-token responses display 7 rather than 14. Unknown accounting for partial/failed turns has no representation."
+    },
+    {
+      "requirement": "03 assistant messages history pagination and 02 storage strategy",
+      "files": ["/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:58-59", "/Users/sqz/Documents/ChatGPT/mcp管理工具/apps/web/src/shared/v2.ts:2-5"],
+      "actual": "Messages silently return the last 100 with no cursor or older-history retrieval. Every new component subscription starts SSE at 0; browser Last-Event-ID handles reconnect only during that EventSource lifetime, not remounts. Root separately owns durable retention for V2 copies."
+    }
+  ],
+  "pending": [
+    {
+      "line": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/security/src/index.ts:199-249",
+      "lead": "Vault password rotation reencrypts secrets and v1 runs only. New encrypted assistant_tasks.providerContinuation and assistant_tool_calls.result.checkpoint.tokenDelivery are left under the old key; duplicate completed status-call replay at assistant-core:189 can no longer decrypt after rotation. Source-confirmed omission; full live duplicate-call rotation scenario not yet executed."
+    },
+    {
+      "line": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/assistant-core/src/index.ts:115-129",
+      "lead": "Analysis claim expires 180 s after acceptance, but each of up to three JSON/schema attempts receives a new 180 s AbortSignal; no total analysis deadline/lease renewal. Long retries may continue after claim expiry. Live long-duration scenario not executed."
+    },
+    {
+      "line": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts:44",
+      "lead": "Responses store:false continuation preserves raw output items but does not request reasoning.encrypted_content. Need official protocol verification plus a stateless reasoning-model-shaped synthetic continuation test before claiming a real provider defect. No paid model invoked."
+    },
+    {
+      "line": "/Users/sqz/Documents/ChatGPT/mcp管理工具/packages/llm-providers/src/index.ts:49",
+      "lead": "429 currently stops after one request, records retryAfter only in the thrown details, and task final state keeps only errorCode. Design LLM-03 requests bounded cancellable retry; current code avoids infinite retries but does not implement Retry-After recovery."
+    }
+  ]
+}

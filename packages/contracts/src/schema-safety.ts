@@ -1,4 +1,4 @@
-import { ensure, type Json } from "./domain.js";
+import { ensure, get, type Json } from "./domain.js";
 
 /** A deliberately small regex language with bounded, linear backtracking.
  * No groups, alternatives, backreferences or lookarounds. Fixed repetitions
@@ -244,4 +244,50 @@ export function assertSafeSchemaPatterns(schema: Json) {
     for (const pattern of Object.keys(node.patternProperties ?? {}))
       assertSafePattern(pattern);
   });
+}
+
+/** Native host contracts keep their JSON Schema meaning, including open objects.
+ * References may only reach schema positions in this document. Both the source
+ * tree and its acyclic reference expansion are bounded before AJV sees them.
+ */
+export function assertSafeNativeObjectSchema(root: Json) {
+  const positions=new Set<Json>(),references=new Map<Json,Json>();
+  walkSchema(root,node=>{
+    positions.add(node);
+    if(typeof node==="boolean")return;
+    ensure(!Object.hasOwn(node,"$id")&&!Object.hasOwn(node,"$anchor")&&!Object.hasOwn(node,"$dynamicAnchor")&&!Object.hasOwn(node,"$dynamicRef")&&!Object.hasOwn(node,"$recursiveRef"),
+      "SCHEMA_INVALID","Native contracts cannot change reference scope or use dynamic references.");
+    if(Object.hasOwn(node,"$ref")) {
+      ensure(typeof node.$ref==="string"&&node.$ref.startsWith("#/")&&node.$ref.length<=512,"SCHEMA_INVALID","Only document-local JSON Pointer references are supported.");
+      let target:Json;
+      try{target=get(root,decodeURIComponent(node.$ref.slice(1)));}catch{ensure(false,"SCHEMA_INVALID","Local schema reference is missing or invalid.");}
+      references.set(node,target);
+    }
+  },{maxDepth:15,maxNodes:2048});
+  assertSafeSchemaPatterns(root);
+  for(const target of references.values())ensure(positions.has(target),"SCHEMA_INVALID","References must target a schema position in the native document.");
+  const children=(node:Json):Json[]=>{
+    if(typeof node==="boolean")return [];
+    const result:Json[]=[];
+    for(const keyword of schemaMaps)if(Object.hasOwn(node,keyword))result.push(...Object.values(node[keyword]));
+    for(const keyword of schemaArrays)if(Object.hasOwn(node,keyword))result.push(...node[keyword]);
+    for(const keyword of singleSchemas)if(Object.hasOwn(node,keyword))result.push(node[keyword]);
+    if(Object.hasOwn(node,"items"))result.push(...(Array.isArray(node.items)?node.items:[node.items]));
+    if(node.dependencies)result.push(...Object.values(node.dependencies).filter(value=>!Array.isArray(value)));
+    if(references.has(node))result.push(references.get(node));
+    return result;
+  };
+  const active=new Set<Json>(),memo=new Map<Json,{depth:number;nodes:number}>();
+  const expand=(node:Json):{depth:number;nodes:number}=>{
+    ensure(!active.has(node),"SCHEMA_INVALID","Recursive native schema references are unsupported.");
+    const prior=memo.get(node);if(prior)return prior;
+    active.add(node);let depth=1,nodes=1;
+    for(const child of children(node)){const expanded=expand(child);depth=Math.max(depth,expanded.depth+1);nodes+=expanded.nodes;
+      ensure(depth<=24&&nodes<=8192,"SCHEMA_LIMIT","Native schema reference expansion exceeds limits.");}
+    active.delete(node);const result={depth,nodes};memo.set(node,result);return result;
+  };
+  expand(root);
+  let object=root;
+  while(object&&object.type===undefined&&references.has(object))object=references.get(object);
+  ensure(object?.type==="object","SCHEMA_INVALID","Native host output must have an object root.");
 }

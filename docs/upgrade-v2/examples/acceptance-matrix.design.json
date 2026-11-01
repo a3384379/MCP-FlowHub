@@ -1,0 +1,834 @@
+[
+  {
+    "id": "BASE-01",
+    "group": "基线与迁移",
+    "title": "旧v1库升级",
+    "setup": "使用真实v1结构合成库",
+    "expected": "新表建立；旧checksum、工作流快照和报告正文不变",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-02",
+    "group": "基线与迁移",
+    "title": "新库初始化",
+    "setup": "全新独立数据目录",
+    "expected": "按同一迁移链初始化，不跳过v1",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-03",
+    "group": "基线与迁移",
+    "title": "迁移事务失败",
+    "setup": "在新增表阶段注入异常",
+    "expected": "事务回滚；原库仍可由旧版恢复读取",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-04",
+    "group": "基线与迁移",
+    "title": "未来Schema版本",
+    "setup": "history中加入未知未来版本",
+    "expected": "拒绝写入，不重建空库",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-05",
+    "group": "基线与迁移",
+    "title": "旧checksum不匹配",
+    "setup": "修改旧迁移记录",
+    "expected": "明确MIGRATION_MISMATCH，不自动修正checksum",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-06",
+    "group": "基线与迁移",
+    "title": "备份预检",
+    "setup": "合法v2库与缺表v2库分别预检",
+    "expected": "合法可恢复；缺表拒绝且目标库不变",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-07",
+    "group": "基线与迁移",
+    "title": "旧审批历史",
+    "setup": "包含只读旧历史的合成库",
+    "expected": "不复活审批；历史可读且正常清理",
+    "status": "not_run"
+  },
+  {
+    "id": "BASE-08",
+    "group": "基线与迁移",
+    "title": "回滚演练",
+    "setup": "升级后停止并恢复旧程序及旧备份",
+    "expected": "旧实例恢复；不让旧程序直接写v2库",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-01",
+    "group": "宿主与配置发现",
+    "title": "本机Codex不存在",
+    "setup": "空PATH及空配置",
+    "expected": "CODEX_NOT_FOUND，其他手工功能可用",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-02",
+    "group": "宿主与配置发现",
+    "title": "自定义CODEX_HOME",
+    "setup": "非默认目录含合成MCP",
+    "expected": "读取选中目录，不读错默认home",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-03",
+    "group": "宿主与配置发现",
+    "title": "用户/项目覆盖",
+    "setup": "同名MCP不同配置层",
+    "expected": "正确解析有效配置并保存来源链",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-04",
+    "group": "宿主与配置发现",
+    "title": "可信项目差异",
+    "setup": "可信/非可信项目夹具",
+    "expected": "不能把未生效项目配置标有效",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-05",
+    "group": "宿主与配置发现",
+    "title": "不支持JSON选项",
+    "setup": "模拟旧CLI help",
+    "expected": "不用未知参数，走受支持回退并标精度",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-06",
+    "group": "宿主与配置发现",
+    "title": "Profile切换",
+    "setup": "两个Profile同名server",
+    "expected": "上下文隔离，不能串用认证/工具",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-07",
+    "group": "宿主与配置发现",
+    "title": "Windows与WSL",
+    "setup": "分别创建native/WSL上下文",
+    "expected": "路径和进程环境不混用",
+    "status": "not_run"
+  },
+  {
+    "id": "DISC-08",
+    "group": "宿主与配置发现",
+    "title": "部分来源损坏",
+    "setup": "一个TOML损坏其他正常",
+    "expected": "返回partial和具体错误，不将总数置零",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-01",
+    "group": "插件与Skills",
+    "title": "市场不是安装",
+    "setup": "marketplace中有10项仅2项安装",
+    "expected": "安装清单只有2项；可用项单独标识",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-02",
+    "group": "插件与Skills",
+    "title": "已装但禁用",
+    "setup": "本地包存在enabled=false",
+    "expected": "显示已装禁用，不标可执行",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-03",
+    "group": "插件与Skills",
+    "title": "插件多组件",
+    "setup": "一个插件2MCP和3Skill",
+    "expected": "父子关系准确，没有重复工具项",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-04",
+    "group": "插件与Skills",
+    "title": "宿主专用插件",
+    "setup": "无独立endpoint的能力",
+    "expected": "codex_host，不伪造连接",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-05",
+    "group": "插件与Skills",
+    "title": "未知Manifest版本",
+    "setup": "不受支持格式",
+    "expected": "标unsupported，不能猜字段并执行",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-06",
+    "group": "插件与Skills",
+    "title": "Skill脚本依赖",
+    "setup": "Skill含外部脚本及hooks",
+    "expected": "建立索引不执行脚本/hooks",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-07",
+    "group": "插件与Skills",
+    "title": "不稳定RPC",
+    "setup": "plugin/list方法不可用",
+    "expected": "生产扫描仍完成本地路径，不依赖该方法",
+    "status": "not_run"
+  },
+  {
+    "id": "PLUG-08",
+    "group": "插件与Skills",
+    "title": "Skill内容变化",
+    "setup": "修改合成SKILL.md后刷新",
+    "expected": "指纹变化可追踪；旧发布快照不变",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-01",
+    "group": "能力目录与导入",
+    "title": "同名不同服务器",
+    "setup": "两个query工具不同connection",
+    "expected": "不合并，搜索能区分来源",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-02",
+    "group": "能力目录与导入",
+    "title": "同端点不同身份",
+    "setup": "同URL不同租户凭据",
+    "expected": "保留独立身份和绑定",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-03",
+    "group": "能力目录与导入",
+    "title": "重复导入",
+    "setup": "同sourceRevision重复提交",
+    "expected": "幂等返回已有连接，不新增重复记录",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-04",
+    "group": "能力目录与导入",
+    "title": "缺认证变量",
+    "setup": "引用不存在环境变量",
+    "expected": "credentials_required；普通表无Key值",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-05",
+    "group": "能力目录与导入",
+    "title": "FlowHub自引用",
+    "setup": "扫描包含当前Hub",
+    "expected": "self可见但禁止递归导入",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-06",
+    "group": "能力目录与导入",
+    "title": "来源消失",
+    "setup": "源删除后再次扫描",
+    "expected": "标stale，历史依赖不被删除",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-07",
+    "group": "能力目录与导入",
+    "title": "Schema漂移",
+    "setup": "工具入参改变类型",
+    "expected": "修订递增，相关草稿定位问题",
+    "status": "not_run"
+  },
+  {
+    "id": "CAP-08",
+    "group": "能力目录与导入",
+    "title": "只更新扫描时间",
+    "setup": "相同工具重新扫描",
+    "expected": "语义revision不变，不使全部测试失效",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-01",
+    "group": "编排服务",
+    "title": "创建空白流程",
+    "setup": "明确test环境和name",
+    "expected": "返回真实workflowId/revision可读取",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-02",
+    "group": "编排服务",
+    "title": "原子patch失败",
+    "setup": "一个batch前两操作合法第三非法",
+    "expected": "整个batch回滚，不留下半张图",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-03",
+    "group": "编排服务",
+    "title": "重复幂等请求",
+    "setup": "相同key相同body重发",
+    "expected": "只产生一次revision变化",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-04",
+    "group": "编排服务",
+    "title": "幂等冲突",
+    "setup": "相同key不同body",
+    "expected": "IDEMPOTENCY_CONFLICT，原数据不变",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-05",
+    "group": "编排服务",
+    "title": "并发改同字段",
+    "setup": "Web与AI持相同revision提交",
+    "expected": "仅一个成功，另一个明确冲突",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-06",
+    "group": "编排服务",
+    "title": "删除有引用节点",
+    "setup": "下游仍引用该node",
+    "expected": "默认拒绝；显式cascade按契约删除",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-07",
+    "group": "编排服务",
+    "title": "布局与语义分离",
+    "setup": "AI改参同时用户移动节点",
+    "expected": "不覆盖无关布局，不篡改执行语义",
+    "status": "not_run"
+  },
+  {
+    "id": "AUTHOR-08",
+    "group": "编排服务",
+    "title": "发布修订变化",
+    "setup": "校验后binding/capability变更",
+    "expected": "CAS拒绝过期发布，旧版本不变",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-01",
+    "group": "统一MCP工具",
+    "title": "旧七工具兼容",
+    "setup": "已有execution身份和旧请求",
+    "expected": "旧调用不需新增必填字段",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-02",
+    "group": "统一MCP工具",
+    "title": "完整工具集合",
+    "setup": "编排身份listTools",
+    "expected": "准确21项，工具名无重复",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-03",
+    "group": "统一MCP工具",
+    "title": "百条流程",
+    "setup": "创建100个合成工作流",
+    "expected": "仍一个Server；工具集合不随流程增长",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-04",
+    "group": "统一MCP工具",
+    "title": "通过MCP全链路",
+    "setup": "真实SDK调用create到artifact_read",
+    "expected": "数据库、版本、报告均有实际结果",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-05",
+    "group": "统一MCP工具",
+    "title": "新流程归属",
+    "setup": "受限编排身份创建新workflow",
+    "expected": "可用其新流程；不获得其他流程权限",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-06",
+    "group": "统一MCP工具",
+    "title": "非法工具参数",
+    "setup": "extra field与错类型请求",
+    "expected": "结构化错误，未执行写入",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-07",
+    "group": "统一MCP工具",
+    "title": "Schema按需取",
+    "setup": "先search再get所选工具",
+    "expected": "search不返回所有完整Schema",
+    "status": "not_run"
+  },
+  {
+    "id": "MCP-08",
+    "group": "统一MCP工具",
+    "title": "宿主目录刷新",
+    "setup": "升级后新会话取工具",
+    "expected": "旧缓存与新目录区别明确，不伪报安装失败",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-01",
+    "group": "模型Provider",
+    "title": "无Key",
+    "setup": "未配置任何ModelProfile",
+    "expected": "Codex/手工功能可用，内置推理明确未配置",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-02",
+    "group": "模型Provider",
+    "title": "认证失败",
+    "setup": "MockProvider返回401",
+    "expected": "MODEL_AUTH_FAILED，无Key明文日志",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-03",
+    "group": "模型Provider",
+    "title": "限流",
+    "setup": "返回429及Retry-After",
+    "expected": "有界重试和可取消，不无限请求",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-04",
+    "group": "模型Provider",
+    "title": "兼容协议",
+    "setup": "只支持Chat Completions的服务",
+    "expected": "调用正确协议路径，不强发Responses",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-05",
+    "group": "模型Provider",
+    "title": "不支持工具",
+    "setup": "仅文本模型",
+    "expected": "问答可用，编排显示不支持而非假执行",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-06",
+    "group": "模型Provider",
+    "title": "流式半截参数",
+    "setup": "args分多个delta到达",
+    "expected": "完整且验证前不执行任何写工具",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-07",
+    "group": "模型Provider",
+    "title": "多工具结果关联",
+    "setup": "一轮返回多个callId",
+    "expected": "逐一对应，写工具串行且结果不串线",
+    "status": "not_run"
+  },
+  {
+    "id": "LLM-08",
+    "group": "模型Provider",
+    "title": "usage缺失",
+    "setup": "Provider不返回token计数",
+    "expected": "显示未知，不能当作免费或0花费",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-01",
+    "group": "助手任务可靠性",
+    "title": "真实改图",
+    "setup": "模型返回合法patch",
+    "expected": "调用服务且持久化，不只返回JSON文本",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-02",
+    "group": "助手任务可靠性",
+    "title": "错参修复",
+    "setup": "第一次TYPE_MISMATCH第二次修正",
+    "expected": "按错误纠正，原checkpoint不被误消费",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-03",
+    "group": "助手任务可靠性",
+    "title": "反复错误",
+    "setup": "模型三次同类校验失败",
+    "expected": "停止并给未完成原因，保留草稿",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-04",
+    "group": "助手任务可靠性",
+    "title": "用户取消",
+    "setup": "正在生成与等待工具结果分别取消",
+    "expected": "停止后续动作，不盲重放已派发调用",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-05",
+    "group": "助手任务可靠性",
+    "title": "SSE断连",
+    "setup": "工具成功后前端断网再连",
+    "expected": "恢复事件，不重复执行patch",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-06",
+    "group": "助手任务可靠性",
+    "title": "daemon重启",
+    "setup": "工具已落库模型还未结束",
+    "expected": "task标INTERRUPTED，已有结果不丢不重做",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-07",
+    "group": "助手任务可靠性",
+    "title": "帮助模式",
+    "setup": "用户只问用法",
+    "expected": "不传写工具，不创建或执行流程",
+    "status": "not_run"
+  },
+  {
+    "id": "ASST-08",
+    "group": "助手任务可靠性",
+    "title": "发布意图",
+    "setup": "明确创建并发布与只保存对照",
+    "expected": "分别执行预期动作，不加人工审批",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-01",
+    "group": "知识与上下文",
+    "title": "当前版本引用",
+    "setup": "问已实现功能",
+    "expected": "引用当前产品文档，不把计划文档当已实现",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-02",
+    "group": "知识与上下文",
+    "title": "中文召回",
+    "setup": "查询“试运行数据库绑定”",
+    "expected": "相关章节进入TopK，人工核查引用片段",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-03",
+    "group": "知识与上下文",
+    "title": "英文错误码",
+    "setup": "查询TYPE_MISMATCH",
+    "expected": "精确定位定义和修复说明",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-04",
+    "group": "知识与上下文",
+    "title": "不存在功能",
+    "setup": "询问未支持的循环执行",
+    "expected": "明确未支持，不生成虚假按钮/接口",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-05",
+    "group": "知识与上下文",
+    "title": "文档升级",
+    "setup": "修改帮助文档并重建索引",
+    "expected": "hash与行号更新；旧引用可识别过期",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-06",
+    "group": "知识与上下文",
+    "title": "大业务输出",
+    "setup": "选择超上下文预算的artifact",
+    "expected": "分页/截断明确标注，原产物保持完整",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-07",
+    "group": "知识与上下文",
+    "title": "不默认外发历史",
+    "setup": "普通帮助问答",
+    "expected": "没有自动附加全部运行数据或Key",
+    "status": "not_run"
+  },
+  {
+    "id": "KB-08",
+    "group": "知识与上下文",
+    "title": "运行所有权",
+    "setup": "读取其他owner的run资料",
+    "expected": "沿用owner检查，不经检索旁路读取",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-01",
+    "group": "界面与画布",
+    "title": "发现页面多态",
+    "setup": "loading/partial/failed/empty",
+    "expected": "文案准确，未知不显示0项已安装",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-02",
+    "group": "界面与画布",
+    "title": "工具加入画布",
+    "setup": "选择实际能力和binding",
+    "expected": "生成真实节点，刷新后存在",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-03",
+    "group": "界面与画布",
+    "title": "AI新增局部布局",
+    "setup": "原图用户手动排列",
+    "expected": "只布局新节点，不移动无关节点",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-04",
+    "group": "界面与画布",
+    "title": "未保存编辑冲突",
+    "setup": "输入中AI回包到达",
+    "expected": "保留两份值，不能覆盖用户焦点文本",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-05",
+    "group": "界面与画布",
+    "title": "变更撤销",
+    "setup": "撤销AI一次batch",
+    "expected": "反向operation正确，发布历史不变",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-06",
+    "group": "界面与画布",
+    "title": "模型设置",
+    "setup": "保存Key然后重开页面",
+    "expected": "仅配置状态，不在localStorage/页面回显Key",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-07",
+    "group": "界面与画布",
+    "title": "自测过期",
+    "setup": "通过后再修改草稿",
+    "expected": "原测试标stale，不继续全绿",
+    "status": "not_run"
+  },
+  {
+    "id": "UI-08",
+    "group": "界面与画布",
+    "title": "桌面与窄屏",
+    "setup": "1440/1366/390宽测试",
+    "expected": "按钮可用、label可访问、无整页横溢出",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-01",
+    "group": "产品级生成用例与自测",
+    "title": "确定性生成",
+    "setup": "无Key根据Schema生成",
+    "expected": "正常/必填/类型/边界用例可运行",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-02",
+    "group": "产品级生成用例与自测",
+    "title": "模型生成补充",
+    "setup": "Codex经MCP提交proposedCases与fixture",
+    "expected": "agent_proposed无Key可用；经契约检查，不直接信任通过结论",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-03",
+    "group": "产品级生成用例与自测",
+    "title": "Mock无外部调用",
+    "setup": "用网络拦截器统计",
+    "expected": "零真实业务请求/零真实secret访问",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-04",
+    "group": "产品级生成用例与自测",
+    "title": "缺Fixture",
+    "setup": "某节点没有mock输出",
+    "expected": "FIXTURE_MISSING，不用空结果伪成功",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-05",
+    "group": "产品级生成用例与自测",
+    "title": "分支覆盖",
+    "setup": "true/false两套fixture",
+    "expected": "两个分支分别命中，有独立证据",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-06",
+    "group": "产品级生成用例与自测",
+    "title": "断言独立",
+    "setup": "模型声称成功但actual不符",
+    "expected": "独立assertion失败，expected/actual可见",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-07",
+    "group": "产品级生成用例与自测",
+    "title": "测试版本绑定",
+    "setup": "suite对应revision2后来变3",
+    "expected": "提示TEST_BASELINE_STALE",
+    "status": "not_run"
+  },
+  {
+    "id": "TEST-08",
+    "group": "产品级生成用例与自测",
+    "title": "MCP生成自测",
+    "setup": "经workflow_test_*系列调用",
+    "expected": "返回suite/testRun与case证据，不只内部单测",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-01",
+    "group": "执行业务与兼容",
+    "title": "无审批数据库链",
+    "setup": "输入→数据库→结束",
+    "expected": "合法绑定直接执行，没有审批状态",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-02",
+    "group": "执行业务与兼容",
+    "title": "业务原值保留",
+    "setup": "邮箱/手机号/token文本合成结果",
+    "expected": "节点传递/产物/报告内容不自动替换",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-03",
+    "group": "执行业务与兼容",
+    "title": "生产试运行隔离",
+    "setup": "两套合成环境哨兵",
+    "expected": "每条流程只命中自己的binding",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-04",
+    "group": "执行业务与兼容",
+    "title": "text-only MCP",
+    "setup": "合法文本结果无structuredContent",
+    "expected": "保留content，声明适配后正确映射",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-05",
+    "group": "执行业务与兼容",
+    "title": "无environment字段",
+    "setup": "第三方合法返回对象",
+    "expected": "依据绑定路由处理，不拒绝所有结果",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-06",
+    "group": "执行业务与兼容",
+    "title": "限额前置",
+    "setup": "binding10行、用户100行",
+    "expected": "调用前有效limit10或明确unsupported",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-07",
+    "group": "执行业务与兼容",
+    "title": "host-only节点",
+    "setup": "网页Key与Codex运行对照",
+    "expected": "网页准确说明需要宿主；Codex实际交接",
+    "status": "not_run"
+  },
+  {
+    "id": "RUN-08",
+    "group": "执行业务与兼容",
+    "title": "未知结果不重放",
+    "setup": "调用派发后连接丢失",
+    "expected": "OUTCOME_UNKNOWN，无盲重复查询",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-01",
+    "group": "打包部署与运维",
+    "title": "离线包完整",
+    "setup": "新的packages/docs/contracts",
+    "expected": "打包实际包含所有新增模块和帮助索引",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-02",
+    "group": "打包部署与运维",
+    "title": "无全局Node运行",
+    "setup": "用包内runtime启动",
+    "expected": "健康和旧/新MCP工具可用",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-03",
+    "group": "打包部署与运维",
+    "title": "原生Windows",
+    "setup": "Windows runner构建测试",
+    "expected": "独立记录，不用Linux替代",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-04",
+    "group": "打包部署与运维",
+    "title": "配置读写权限拒绝",
+    "setup": "合成受限目录",
+    "expected": "明确错误，不变更系统策略",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-05",
+    "group": "打包部署与运维",
+    "title": "端口冲突",
+    "setup": "18473已占用",
+    "expected": "使用开发端口，不杀其他服务",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-06",
+    "group": "打包部署与运维",
+    "title": "包完整性变更",
+    "setup": "破坏新增模块文件",
+    "expected": "完整性检查发现，不伪通过",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-07",
+    "group": "打包部署与运维",
+    "title": "卸载保留数据",
+    "setup": "隔离安装账号测试",
+    "expected": "仅受管程序文件删除，数据保留",
+    "status": "not_run"
+  },
+  {
+    "id": "PACK-08",
+    "group": "打包部署与运维",
+    "title": "升级文档可操作",
+    "setup": "按本地教程新机执行",
+    "expected": "步骤和真实CLI一致，缺项明确",
+    "status": "not_run"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "case": "question_grants_run",
+    "question": "运行当前流程有何风险",
+    "inferredActions": [
+      "run"
+    ],
+    "mode": "compose",
+    "offeredWorkflowStart": true,
+    "taskStatus": "COMPLETED",
+    "actualRunsCreated": 1,
+    "toolReceipts": [
+      {
+        "name": "workflow_start",
+        "isError": false,
+        "status": "COMPLETED"
+      }
+    ]
+  },
+  {
+    "case": "inventory_crowds_out_selected_workflow",
+    "registeredConnections": 16,
+    "cachedTools": 960,
+    "truncated": true,
+    "originalBytes": 84614,
+    "selectedWorkflowIdProvided": true,
+    "selectedWorkflowDefinitionProvided": true,
+    "taskStatus": "COMPLETED"
+  }
+]

@@ -1,0 +1,27 @@
+
+> mcp-flowhub@2.0.0-alpha.1 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 74 management paths.
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (3232.498667ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (1301.157125ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (130.250709ms)
+✔ metadata scans report broken sources and never store inline credential values (173.33025ms)
+✔ explicit local credential import seals inline env, preserves source, and enables independent catalog (689.318541ms)
+✔ context trust options use CAS and do not silently mutate an existing registration (201.621459ms)
+✔ credential command arguments remain metadata-only and are never copied into connection rows (186.350208ms)
+✔ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (3664.683917ms)
+✔ ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate daemon rejected (541.168458ms)
+✔ ENV-03/04: port conflict is actionable; failed startup releases its lock; loopback only (1046.010333ms)
+✔ SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial (583.6905ms)
+✔ ENV-08: bridge without daemon fails without creating data or polluting stdout (148.03325ms)
+✔ CLI rejects unknown options, unknown commands and unsafe port inputs (378.5045ms)
+✔ CLI invoked through a directory alias actually runs its entry point (93.724542ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6161.975458

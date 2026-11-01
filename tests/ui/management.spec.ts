@@ -9,32 +9,25 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   const stateResponse = await page.request.get("/api/v1/auth/state");
   expect(stateResponse.ok()).toBe(true);
   const initialized = (await stateResponse.json()).data.initialized;
-  await page.goto("/");
-  const setup = page.getByLabel("本机一次性设置码");
   if (!initialized) {
-    await expect(setup).toBeVisible();
-    const token = await readFile(
-      process.env.FLOWHUB_UI_DATA_DIR + "/admin-setup-token",
-      "utf8",
-    );
-    await setup.fill(token);
-    await page.getByLabel("管理员密码").fill(password);
-    await page.getByRole("button", { name: "创建并进入" }).click();
-  } else {
-    await expect(
-      page.getByRole("button", { name: "登录管理中心", exact: true }),
-    ).toBeVisible();
-    await expect(setup).toHaveCount(0);
-    await page.getByLabel("管理员密码").fill(password);
-    await page.getByRole("button", { name: "登录管理中心" }).click();
+    // Legacy setup remains available to seed this suite's custom credential.
+    const token = await readFile(process.env.FLOWHUB_UI_DATA_DIR + "/admin-setup-token", "utf8");
+    const seeded = await page.request.post("/api/v1/auth/bootstrap", {data:{setupToken:token,password}});
+    expect(seeded.ok()).toBe(true);
+    await page.context().clearCookies();
   }
+  await page.goto("/");
+  await expect(page.getByLabel("本机一次性设置码")).toHaveCount(0);
+  await expect(page.getByLabel("管理员账号", {exact:true})).toHaveValue("admin");
+  await page.getByLabel("管理员密码").fill(password);
+  await page.getByRole("button", {name:"登录管理中心",exact:true}).click();
   await expect(
     page.getByRole("heading", { name: "工作流", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /试运行问题排查/ }),
   ).toBeVisible();
-  for (const label of ["MCP 工具库", "环境与权限", "运行记录", "接入设置"]) {
+  for (const label of ["MCP 服务", "环境与资源", "运行记录", "系统设置"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
     await expect(
       page.getByRole("heading", { name: label, exact: true }),
@@ -42,9 +35,9 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   }
   await page.goto("/tools");
   await expect(
-    page.getByRole("heading", { name: "MCP 工具库", exact: true }),
+    page.getByRole("heading", { name: "MCP 服务", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page.getByRole("button", { name: "打开编排" }).nth(1).click();
   await expect(page.locator(".react-flow__node")).toHaveCount(8);
   await page.getByRole("button", { name: "校验流程", exact: true }).click();
@@ -57,7 +50,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   await expect(page.getByLabel("实际 MCP 工具")).toHaveValue(
     "huawei_log_search",
   );
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page.getByRole("button", { name: "启动", exact: true }).nth(1).click();
   await page
     .getByRole("dialog")
@@ -87,7 +80,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.screenshot({ path: "artifacts/ui-run-1366.png", fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "工作流库", exact: true }).click();
+  await page.getByRole("button", { name: "工作流", exact: true }).click();
   await page.screenshot({
     path: "artifacts/ui-library-1440.png",
     fullPage: true,
