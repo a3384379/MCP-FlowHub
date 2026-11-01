@@ -7,6 +7,13 @@ import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from 
 import { pathToFileURL } from "node:url";
 
 const exec = promisify(execFile);
+export function execWithoutInput(executable, args, options) {
+  const execution = exec(executable, args, options);
+  // No installer probe consumes input. An open pipe can leave Windows
+  // PowerShell waiting for EOF even with -NonInteractive and -Command.
+  execution.child.stdin?.end();
+  return execution;
+}
 const product = "MCP-FlowHub";
 const markerName = ".flowhub-install.json";
 const ownedRootFiles = ["flowhub.cmd", "installer-helper.mjs", "NSIS-COPYING.txt", "NSIS-NOTICE.txt"];
@@ -77,7 +84,7 @@ export async function inspectWindowsProcesses() {
   const started = Date.now();
   await diagnostic("process-inspection-start");
   try {
-    const { stdout } = await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+    const { stdout } = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
       "$ErrorActionPreference='Stop'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); @(Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress"],
     { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
     const records = JSON.parse(stdout);

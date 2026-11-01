@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
+import { execWithoutInput } from "../installer/windows/install-helper.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const exec = promisify(execFile);
@@ -104,7 +105,7 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
     const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
     // Expand only the exact reviewed archive into a new private staging path.
     // No downloads, system NSIS installation, PATH lookup or package manager.
-    await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+    await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
       "$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath $env:FLOWHUB_NSIS_ARCHIVE -DestinationPath $env:FLOWHUB_NSIS_STAGE"],
     { env: { ...process.env, FLOWHUB_NSIS_ARCHIVE: resolve(archive), FLOWHUB_NSIS_STAGE: temporary }, windowsHide: true, timeout: 60_000 });
     const nsisDir = join(temporary, pin.directory);

@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 import { assertWindowsBuild } from "./windows-installer.mjs";
+import { execWithoutInput } from "../installer/windows/install-helper.mjs";
 
 assertWindowsBuild();
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -124,9 +125,9 @@ try {
   assert.ok(process.env.APPDATA, "APPDATA is required to verify current-user Start Menu shortcuts.");
   const shortcutsDir = join(process.env.APPDATA, "Microsoft/Windows/Start Menu/Programs/MCP FlowHub");
   const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
-  const shortcutResult = await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+  const shortcutResult = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
     "$ErrorActionPreference='Stop'; $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:FLOWHUB_SHORTCUT_PATH); $json=@{target=$s.TargetPath;arguments=$s.Arguments}|ConvertTo-Json -Compress; [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($json))"],
-  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true });
+  { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true, timeout: 30_000 });
   const shortcut = JSON.parse(Buffer.from(shortcutResult.stdout.trim(),"base64").toString("utf16le"));
   assert.equal((await realpath(shortcut.target)).toLowerCase(), (await realpath(runtime)).toLowerCase());
   const shortcutArguments = /^"([^"]+)" serve$/.exec(shortcut.arguments);
@@ -212,6 +213,6 @@ try {
     await rm(dataDir, { recursive: true });
     await rm(temporary, { recursive: true, force: true });
   } else {
-    console.error(`Installer smoke failed; synthetic diagnostic files retained at ${temporary}. Data directory retained at ${dataDir}. Installed=${installed}. No process was force-terminated.`);
+    console.error(`Installer smoke failed; synthetic diagnostic files retained at ${temporary}. Data directory retained at ${dataDir}. Installed=${installed}. No FlowHub daemon or bridge was force-terminated.`);
   }
 }

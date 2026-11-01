@@ -8,11 +8,18 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped } =
+const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped, execWithoutInput } =
   await import(pathToFileURL(resolve("installer/windows/install-helper.mjs")).href);
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+
+test("noninteractive installer probes receive EOF and preserve Unicode output and process failures", async () => {
+  const script = "process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({target:'C:\\\\用户\\\\程序 files\\\\node.exe'})));";
+  const result = await execWithoutInput(process.execPath, ["-e", script], { timeout: 5000 });
+  assert.deepEqual(JSON.parse(result.stdout), { target: "C:\\用户\\程序 files\\node.exe" });
+  await assert.rejects(execWithoutInput(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>process.exit(7));"], { timeout: 5000 }), { code: 7 });
+});
 
 async function put(root: string, name: string, content: string) {
   await mkdir(dirname(join(root, name)), { recursive: true });
