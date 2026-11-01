@@ -1112,3 +1112,8 @@ footer small {
 .inspector .v2-assistant{padding:0}.inspector .v2-messages{max-height:260px}.v2-assistant textarea{min-height:90px}
 @media(max-width:1100px){.v2-two-columns{grid-template-columns:1fr}.v2-assistant-controls{align-items:stretch}.v2-assistant{max-width:100%}}
 @media(max-width:680px){.v2-page h1,.v2-discovery h1{font-size:23px}.v2-two-columns{gap:12px}.v2-assistant{padding:8px}.v2-tool-cards details{padding:8px}.v2-messages{max-height:300px}}
+
+.vault-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; background: #f0f5ff; color: #405d82; font-size: 12px; }
+.vault-notice span { flex: 1 1 180px; }
+.vault-notice button { flex-shrink: 0; }
+.assistant-composer .vault-notice { margin: 0 0 8px; padding: 6px 8px; }

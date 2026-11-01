@@ -1,0 +1,15 @@
+✔ successful vault verification clears attempts while consecutive wrong passwords remain limited (1728.17475ms)
+✔ SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets (1005.847875ms)
+✔ draft PUT updates only an existing stable workflow ID and enforces its revision (505.017166ms)
+✔ publish requires the reviewed draft revision and cannot publish a concurrent save (511.900417ms)
+✔ public health, auth and static routes stay available; admin session and schema routes stay protected (572.4225ms)
+✔ MCP route authentication covers encoded and absolute targets and preserves scoped host identity (578.992125ms)
+✔ MCP factory fails closed when the adapter receives no authentication context (2.429666ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5180.367959

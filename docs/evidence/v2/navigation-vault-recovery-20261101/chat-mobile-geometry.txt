@@ -1,0 +1,6 @@
+### Result
+{"width":390,"height":350,"button":{"left":20,"top":177,"right":108,"bottom":212},"hittable":true}
+### Ran Playwright code
+```js
+await (async (page) => {const button=page.getByRole("region",{name:"FlowHub 助手聊天窗口",exact:true}).getByRole("button",{name:"解锁凭据库",exact:true});return await button.evaluate(el=>{const r=el.getBoundingClientRect(),v=visualViewport;return {width:v.width,height:v.height,button:{left:r.left,top:r.top,right:r.right,bottom:r.bottom},hittable:el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};});})(page);
+```

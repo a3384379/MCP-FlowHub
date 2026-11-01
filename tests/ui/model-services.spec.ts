@@ -56,6 +56,20 @@ test("real compatible catalog selects and persists an actual ID, reuses its save
     await card.getByRole("button",{name:"测试文本 / 工具 / 流式",exact:true}).click();await expect(card.getByText("MODEL_NOT_AVAILABLE",{exact:false}).first()).toBeVisible();await expect(card.getByText("当前 Key 无法使用这个模型",{exact:false}).first()).toBeVisible();
     await card.getByRole("button",{name:"编辑模型",exact:true}).click();mode="auth";await page.getByRole("button",{name:"刷新可用模型",exact:true}).click();await expect(page.getByRole("alert")).toContainText("MODEL_AUTH_FAILED");await expect(page.getByRole("alert")).toContainText("API Key 无效");
     expect(requests.filter(item=>item==="GET /v1/models")).toHaveLength(3);expect(await page.locator("body").innerText()).not.toContain(key);expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain(key);
+    const previousRequests=requests.length;
+    await page.request.post("/api/v1/vault/lock",{headers:{"X-CSRF-Token":csrf},data:{}});
+    await page.evaluate(()=>window.dispatchEvent(new Event("flowhub-credentials-changed")));
+    await expect(page.getByRole("button",{name:"测试文本 / 工具 / 流式",exact:true}).first()).toBeDisabled();
+    await expect(page.getByText("凭据库已锁定",{exact:false})).toBeVisible();
+    await page.getByLabel("模型配置名称",{exact:true}).fill("解锁前保留的模型草稿");
+    await page.getByRole("button",{name:"解锁凭据库",exact:true}).click();
+    const unlock=page.getByRole("dialog",{name:"解锁凭据库",exact:true});
+    await unlock.getByLabel("凭据库口令",{exact:true}).fill("Synthetic-browser-password-041");
+    await unlock.getByRole("button",{name:"确认",exact:true}).click();
+    await expect(unlock).toHaveCount(0);
+    await expect(page.getByRole("button",{name:"测试文本 / 工具 / 流式",exact:true}).first()).toBeEnabled();
+    await expect(page.getByLabel("模型配置名称",{exact:true})).toHaveValue("解锁前保留的模型草稿");
+    expect(requests).toHaveLength(previousRequests);
     const denied=await page.request.post("/api/v2/model-catalog",{data:{serviceId:"custom",baseUrl:base,apiKey:key}});expect(denied.status()).toBe(403);
     const remove=await page.request.delete("/api/v2/model-profiles/"+profile.id,{headers:{"X-CSRF-Token":csrf}});expect(remove.ok()).toBeTruthy();
   }finally{server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}

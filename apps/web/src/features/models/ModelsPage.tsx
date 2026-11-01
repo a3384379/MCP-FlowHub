@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { Api } from "../../shared/v2";
+import { useVaultState } from "../../shared/useVaultState";
+import { VaultNotice } from "../settings/VaultNotice";
 import { MODEL_SERVICES, OPENAI_BASE_URL, modelServiceId, modelErrorHint } from "../../../../../packages/contracts/src/model-services";
 
 type Catalog = {models:{id:string;ownedBy:string|null;created:number|null;shutdownDate:string|null}[];endpoint:string;fetchedAt:string;docsUrl:string|null};
-export function ModelsPage({api}:{api:Api}) {
+export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void}) {
+  const vault=useVaultState(api);
   const [profiles,setProfiles]=useState<any[]>([]),[current,setCurrent]=useState<any>(null);
   const [service,setService]=useState("openai"),[name,setName]=useState(""),[kind,setKind]=useState("openai_responses"),[baseUrl,setBaseUrl]=useState(OPENAI_BASE_URL),[model,setModel]=useState(""),[key,setKey]=useState("");
   const [modelDoc,setModelDoc]=useState<any>(null),[docBusy,setDocBusy]=useState(false);
@@ -34,6 +37,7 @@ export function ModelsPage({api}:{api:Api}) {
   const visibleModels=catalog?.models.filter(item=>item.id.toLowerCase().includes(filter.toLowerCase()))??[];
   const diagnostic=(value:any)=>typeof value==="object"&&value?Object.entries(value).map(([type,result]:[string,any])=><div key={type}><strong>{{text:"文本",tools:"工具调用",stream:"流式"}[type]??type}：{result?.status??"未知"}</strong>{result?.errorCode&&<p>{result.errorCode} · {modelErrorHint(result.errorCode)}{result.httpStatus?"（HTTP "+result.httpStatus+"）":""}</p>}</div>):null;
   return <section className="v2-page"><h1>模型设置</h1><p>选择模型服务后查询可用模型。API Key 保存在本机凭据库；Codex、画布和 Mock 不依赖此配置。</p>
+    <VaultNotice vault={vault} unlock={onUnlockVault} />
     {error&&<p className="banner error" role="alert">{error}</p>}
     <div className="v2-two-columns"><form className="panel" onSubmit={e=>{e.preventDefault();void save();}}>
       <h2>{current?"修改模型":"添加模型"}</h2>
@@ -44,7 +48,7 @@ export function ModelsPage({api}:{api:Api}) {
       <label className="field">Base URL<input required type="url" readOnly={service==="openai"} disabled={busy} value={baseUrl} onChange={e=>{invalidate();setBaseUrl(e.target.value);}}/></label>
       <small>请求会按所选协议使用 /responses 或 /chat/completions，完整接口地址也会自动归一化。</small>
       <label className="field">API Key<input type="password" disabled={busy} autoComplete="off" value={key} onChange={e=>{invalidate();setKey(e.target.value);}} placeholder={current?.keyConfigured?"已配置；留空保留原 Key":"只在此输入，不放入聊天"}/></label>
-      <button type="button" disabled={busy||catalogBusy||(!key&&!current?.keyConfigured)||!baseUrl} onClick={()=>void refreshModels()}>{catalogBusy?"正在查询模型…":"刷新可用模型"}</button>
+      <button type="button" disabled={busy||catalogBusy||(!key&&!current?.keyConfigured)||!baseUrl||(!key&&vault.locked!==false)} onClick={()=>void refreshModels()}>{catalogBusy?"正在查询模型…":"刷新可用模型"}</button>
       <p role="status">{catalogBusy?"正在请求模型服务目录…":catalog?"已从模型接口获取 "+catalog.models.length+" 个模型 · "+catalog.fetchedAt:"填写 API Key 或编辑已有配置后，刷新模型列表。"}</p>
       {service==="custom"&&<label><input type="checkbox" disabled={catalogBusy||busy} checked={manual} onChange={e=>setManual(e.target.checked)}/>输入自定义模型名称</label>}
       {manual&&service==="custom"?<label className="field">Model<input required disabled={catalogBusy||busy} value={model} onChange={e=>setModel(e.target.value)} placeholder="填写兼容服务实际模型标识"/></label>:<>
@@ -60,11 +64,11 @@ export function ModelsPage({api}:{api:Api}) {
       <label className="field">工具调用上限<input type="number" min={1} max={24} required value={maxToolCalls} onChange={e=>setMaxToolCalls(Number(e.target.value))}/></label>
       <label className="field">校验尝试上限（含首次）<input type="number" min={1} max={3} required value={maxCorrectionAttempts} onChange={e=>setMaxCorrectionAttempts(Number(e.target.value))}/></label>
       <label className="field">流式回答<select value={String(stream)} onChange={e=>setStream(e.target.value==="true")}><option value="true">优先流式（探测失败后使用非流式）</option><option value="false">非流式</option></select></label>
-      <button className="primary" disabled={busy||catalogBusy||((service==="openai"||!manual)&&!available)} type="submit">{busy?"保存中…":"保存模型"}</button>{current&&<button type="button" disabled={busy} onClick={()=>{invalidate();setCurrent(null);setModel("");setKey("");setName("");}}>取消修改</button>}
-    </form><div className="panel"><h2>已配置模型</h2>{!profiles.length?<p>尚未配置。可继续使用无 Key 功能。</p>:profiles.map(p=><article key={p.id} className="v2-model-card"><h3>{p.name}</h3><p>{(p.serviceId??modelServiceId(p.baseUrl))==="openai"?"OpenAI（ChatGPT）":"自定义兼容服务"} · {p.providerKind} · {p.model} · {p.keyConfigured?"Key 已配置":"未配置 Key"} · 请求超时 {p.timeoutMs} ms · 最近探测 {p.lastTestAt??"未测试"}</p><div className="actions">
+      <button className="primary" disabled={busy||catalogBusy||vault.locked!==false||((service==="openai"||!manual)&&!available)} type="submit">{busy?"保存中…":"保存模型"}</button>{current&&<button type="button" disabled={busy} onClick={()=>{invalidate();setCurrent(null);setModel("");setKey("");setName("");}}>取消修改</button>}
+    </form><div className="panel"><h2>已配置模型</h2><p>探测结果是上次测试的历史记录；当前能否使用还取决于凭据库是否解锁。</p>{!profiles.length?<p>尚未配置。可继续使用无 Key 功能。</p>:profiles.map(p=><article key={p.id} className="v2-model-card"><h3>{p.name}</h3><p>{(p.serviceId??modelServiceId(p.baseUrl))==="openai"?"OpenAI（ChatGPT）":"自定义兼容服务"} · {p.providerKind} · {p.model} · {p.keyConfigured?"Key 已配置":"未配置 Key"} · 请求超时 {p.timeoutMs} ms · 最近探测 {p.lastTestAt??"未测试"}</p><div className="actions">
       <button disabled={busy} onClick={()=>edit(p)}>编辑模型</button>
-      <button disabled={busy||catalogBusy} onClick={()=>{setBusy(true);setError("");void api("/api/v2/model-profiles/"+p.id+"/test","POST",{}).then(result=>{if(live.current)setProbe(result);}).then(load).catch(e=>{if(live.current)setError(explain(e));}).finally(()=>{if(live.current)setBusy(false);});}}>测试文本 / 工具 / 流式</button>
+      <button disabled={busy||catalogBusy||vault.locked!==false} onClick={()=>{setBusy(true);setError("");void api("/api/v2/model-profiles/"+p.id+"/test","POST",{}).then(result=>{if(live.current)setProbe(result);}).then(load).catch(e=>{if(live.current)setError(explain(e));}).finally(()=>{if(live.current)setBusy(false);});}}>测试文本 / 工具 / 流式</button>
       <button disabled={busy} onClick={()=>void api("/api/v2/model-profiles/"+p.id,"DELETE").then(load).catch(e=>setError(explain(e)))}>删除模型</button></div>
-      {diagnostic(p.capabilities)}</article>)}{probe&&<div role="status"><h3>最近探测结果</h3>{diagnostic(probe)}</div>}</div></div>
+      {diagnostic(p.capabilities)}</article>)}{probe&&<div role="status"><h3>最近探测结果（历史记录）</h3>{diagnostic(probe)}</div>}</div></div>
   </section>;
 }

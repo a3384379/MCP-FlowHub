@@ -97,6 +97,45 @@ const textResponse = (res: ServerResponse, content: string) => {
 const turns = (page: any, status: string) =>
   page.locator(`.assistant-turn[data-status="${status}"]`);
 
+test("locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked", async ({page}) => {
+  const f = await fixture(page, (_body, res) => textResponse(res, "解锁后的合成回复"));
+  const password = "Synthetic-browser-password-041";
+  try {
+    const region = page.getByRole("region", {name:"FlowHub 助手聊天窗口"});
+    const sessionId = await region.getAttribute("data-session-id");
+    const before = (await f.api("/api/v2/model-profiles")).find((p:any) => p.id === f.profile.id);
+    await f.api("/api/v1/vault/lock", "POST", {});
+    await page.evaluate(() => window.dispatchEvent(new Event("flowhub-credentials-changed")));
+    const input = page.getByLabel("发送给助手", {exact:true});
+    await input.fill("解锁时保留的问题");
+    await expect(region.getByText("凭据库已锁定", {exact:false})).toBeVisible();
+    await expect(region.getByRole("button", {name:"发送",exact:true})).toBeDisabled();
+    await input.press("Enter");
+    expect(f.requests).toHaveLength(0);
+    const failed = await f.api("/api/v2/assistant/sessions/" + sessionId + "/messages", "POST", {text:"锁定时失败的原问题",mode:"help",context:{},requestedActions:[],modelProfileId:f.profile.id,idempotencyKey:randomUUID()});
+    await expect.poll(async () => (await f.api("/api/v2/assistant/tasks/"+failed.taskId)).errorCode).toBe("CREDENTIAL_LOCKED");
+    await expect(region.getByRole("button", {name:"重新提问",exact:true})).toBeDisabled();
+    await region.getByRole("button", {name:"解锁凭据库",exact:true}).click();
+    const unlock = page.getByRole("dialog", {name:"解锁凭据库",exact:true});
+    await unlock.getByLabel("凭据库口令", {exact:true}).fill(password);
+    await unlock.getByRole("button", {name:"确认",exact:true}).click();
+    await expect(unlock).toHaveCount(0);
+    await expect(region.getByRole("button", {name:"发送",exact:true})).toBeEnabled();
+    await expect(input).toHaveValue("解锁时保留的问题");
+    expect(f.requests).toHaveLength(0);
+    const after = (await f.api("/api/v2/model-profiles")).find((p:any) => p.id === f.profile.id);
+    expect(after.secretRef).toBe(before.secretRef);expect(after.revision).toBe(before.revision);
+    await region.getByRole("button", {name:"重新提问",exact:true}).click();
+    await expect(input).toHaveValue("锁定时失败的原问题");
+    await region.getByRole("button", {name:"发送",exact:true}).click();
+    await expect(turns(page, "COMPLETED")).toHaveCount(1);
+    expect(f.requests).toHaveLength(1);
+  } finally {
+    await f.api("/api/v1/vault/unlock", "POST", {password});
+    await f.close();
+  }
+});
+
 test("floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up", async ({
   page,
 }) => {

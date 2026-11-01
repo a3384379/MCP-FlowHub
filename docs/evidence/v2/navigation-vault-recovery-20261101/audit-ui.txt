@@ -1,0 +1,16 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/responsive.spec.ts tests/ui/management.spec.ts
+
+[WebServer] (node:51129) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:51132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/management.spec.ts:4:1 › bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff (3.9s)
+  ✓  2 tests/ui/management.spec.ts:91:1 › a pending auth-state request never exposes a consumed setup-token field (164ms)
+  ✓  3 tests/ui/responsive.spec.ts:4:1 › run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes (1.7s)
+
+  3 passed (7.1s)

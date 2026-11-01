@@ -26,7 +26,7 @@
   letter-spacing: -0.6px;
   color: #192b45;
 }
-.app-brand > span {
+.app-brand > .app-brand-mark {
   display: grid;
   place-items: center;
   width: 30px;
@@ -213,4 +213,31 @@
     min-width: 40px;
     min-height: 40px;
   }
+}
+
+.app-nav-item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.navigation-logout-label {
+  display: none;
+}
+.navigation-overlay[data-compact] .app-brand-name,
+.navigation-overlay[data-compact] .app-sidebar-account > .app-avatar,
+.navigation-overlay[data-compact] .app-sidebar-account > div {
+  display: none;
+}
+.navigation-overlay[data-compact] .app-workspace {
+  margin-left: 10px;
+}
+.navigation-overlay[data-compact] .app-sidebar-account button {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.navigation-overlay[data-compact] .navigation-logout-label {
+  display: inline;
+  font-size: 12px;
 }

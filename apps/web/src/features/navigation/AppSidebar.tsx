@@ -8,6 +8,7 @@ import {
   type NavigationKey,
 } from "./navigation";
 import "./navigation.css";
+import { useVisualViewport } from "../../shared/viewport";
 
 export function NavigationIcon({
   name,
@@ -103,7 +104,8 @@ function SidebarContent({
     <aside className="sidebar app-sidebar" aria-label="主导航">
       <div className="app-brand-row">
         <div className="app-brand">
-          <span>F</span>FlowHub
+          <span className="app-brand-mark">F</span>
+          <span className="app-brand-name">FlowHub</span>
         </div>
         {mobile && (
           <button
@@ -151,6 +153,7 @@ function SidebarContent({
         </div>
         <button aria-label="退出登录" disabled={busy} onClick={logout}>
           <NavigationIcon name="logout" />
+          <span className="navigation-logout-label">退出登录</span>
         </button>
       </div>
     </aside>
@@ -158,6 +161,7 @@ function SidebarContent({
 }
 
 function MobileNavigation(props: Props) {
+  const viewport = useVisualViewport();
   const root = useRef<HTMLDivElement>(null),
     close = useRef(props.close);
   close.current = props.close;
@@ -220,6 +224,15 @@ function MobileNavigation(props: Props) {
   return createPortal(
     <div
       className="navigation-overlay"
+      data-compact={viewport.width < 220 ? "true" : undefined}
+      style={{
+        left: viewport.left,
+        top: viewport.top,
+        width: viewport.width,
+        height: viewport.height,
+        right: "auto",
+        bottom: "auto",
+      }}
       ref={root}
       onPointerDown={(event) => {
         if (event.target === root.current) props.close();
@@ -228,6 +241,12 @@ function MobileNavigation(props: Props) {
       <div
         id="mobile-navigation"
         className="navigation-drawer"
+        style={{
+          width: Math.min(
+            272,
+            viewport.width < 320 ? viewport.width : viewport.width - 40,
+          ),
+        }}
         role="dialog"
         aria-modal="true"
         aria-label="主导航"

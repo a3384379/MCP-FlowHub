@@ -230,6 +230,7 @@ export async function registerAdmin(
     auth.throttle("vault");
     const b = body(req, ["password"]);
     vault.unlock(b.password);
+    auth.resetThrottle("vault");
     return data({ locked: vault.locked });
   });
   app.post("/api/v1/vault/lock", async () => {
@@ -240,6 +241,7 @@ export async function registerAdmin(
     auth.throttle("vault");
     const b = body(req, ["oldPassword", "newPassword"]);
     vault.changePassword(b.oldPassword, b.newPassword);
+    auth.resetThrottle("vault");
     repo.audit("admin", "vault:change-password", "vault");
     return data({ changed: true });
   });

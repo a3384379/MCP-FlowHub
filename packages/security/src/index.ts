@@ -313,6 +313,9 @@ export class AdminAuth {
       until: Date.now() + 60000,
     });
   }
+  resetThrottle(key: string) {
+    this.attempts.delete(key);
+  }
   login(password: string, username = DEFAULT_ADMIN_USERNAME) {
     this.throttle("login");
     const admin = this.repo.get("settings", "admin");
@@ -322,7 +325,7 @@ export class AdminAuth {
       "Invalid administrator password.",
       401,
     );
-    this.attempts.delete("login");
+    this.resetThrottle("login");
     return this.session();
   }
   session() {

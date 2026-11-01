@@ -145,6 +145,60 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
       () => document.documentElement.scrollWidth - innerWidth,
     ),
   ).toBeLessThanOrEqual(1);
+  const cdp = await page.context().newCDPSession(page);
+  for (const scale of [2, 3]) {
+    await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
+    await expect
+      .poll(() => page.evaluate(() => visualViewport!.width))
+      .toBeCloseTo(320 / scale, 0);
+    await expect
+      .poll(async () =>
+        drawer.evaluate((element) => {
+          const viewport = visualViewport!,
+            panel = element.getBoundingClientRect();
+          return (
+            Math.abs(panel.left - viewport.offsetLeft) +
+            Math.max(0, panel.right - viewport.offsetLeft - viewport.width) +
+            Math.abs(panel.height - viewport.height)
+          );
+        }),
+      )
+      .toBeLessThan(2);
+    const system = drawer.getByRole("button", {
+      name: "系统设置",
+      exact: true,
+    });
+    await system.scrollIntoViewIfNeeded();
+    for (const control of [
+      close,
+      system,
+      drawer.getByRole("button", { name: "退出登录", exact: true }),
+    ]) {
+      const geometry = await control.evaluate((element) => {
+        const box = element.getBoundingClientRect(),
+          viewport = visualViewport!;
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+          viewportLeft: viewport.offsetLeft,
+          viewportTop: viewport.offsetTop,
+          width: viewport.width,
+          height: viewport.height,
+        };
+      });
+      expect(geometry.left).toBeGreaterThanOrEqual(geometry.viewportLeft - 1);
+      expect(geometry.right).toBeLessThanOrEqual(
+        geometry.viewportLeft + geometry.width + 1,
+      );
+      expect(geometry.top).toBeGreaterThanOrEqual(geometry.viewportTop - 1);
+      expect(geometry.bottom).toBeLessThanOrEqual(
+        geometry.viewportTop + geometry.height + 1,
+      );
+    }
+  }
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   await page.setViewportSize({ width: 900, height: 740 });
   await expect(drawer).toHaveCount(0);
   await expect(

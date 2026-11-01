@@ -1697,7 +1697,7 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
-          {page === "models" && <ModelsPage api={api} />}
+          {page === "models" && <ModelsPage api={api} onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })} />}
           {page === "workflows" && (
             <>
               <PageHead
@@ -3524,6 +3524,7 @@ function App() {
         runs={runs}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
+        onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
       />
       {modal && (
         <div
