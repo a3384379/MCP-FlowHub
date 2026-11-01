@@ -200,6 +200,14 @@ export function useDiscovery(api: Api) {
     return () => clearTimeout(timer);
   }, [contextId, kind, query, executor, source, status, load]);
   const tab = (value: string) => {
+    if (value === kind && !query && !executor && !source && !status) return;
+    // Rows belong to the old type until the debounced request returns. Clear
+    // them immediately and invalidate in-flight responses before changing tabs.
+    listEpoch.current++;
+    setItems([]);
+    setCursor(null);
+    setTotal(0);
+    setLoading(Boolean(active.current));
     setKind(value);
     setQuery("");
     setExecutor("");

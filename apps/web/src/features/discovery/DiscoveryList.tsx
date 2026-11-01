@@ -29,7 +29,7 @@ export function DiscoveryList({
         <span />
       </div>
       {items.map((entity) => (
-        <article className="d-cap-row" key={entity.id}>
+        <article className="d-cap-row" key={entity.id} data-entity-id={entity.id} data-entity-kind={entity.entityKind}>
           <div className="d-cap-main">
             <span className={"d-cap-icon " + entity.entityKind}>
               <Icon name={entity.entityKind} />

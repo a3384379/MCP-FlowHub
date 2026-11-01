@@ -130,8 +130,9 @@ async function realDiscovery(page: Page) {
   await page.addInitScript(id => localStorage.setItem("flowhub.discovery.context", id), c.id);
   await page.goto("/discovery"); await expect(page.getByRole("button", { name: "重新扫描", exact: true })).toBeEnabled();
   await page.getByRole("tab", { name: /Skills 技能/ }).click();
-  await expect(page.locator(".d-cap-row")).toHaveCount(1);
-  const open = async () => { await page.locator(".d-cap-row").getByRole("button").click(); await expect(page.getByRole("dialog").locator(".d-detail-title")).toBeVisible(); };
+  const row = page.locator(`.d-cap-row[data-entity-id="${entity.id}"][data-entity-kind="skill"]`);
+  await expect(row).toHaveCount(1);
+  const open = async () => { await row.getByRole("button").click(); await expect(page.getByRole("dialog").locator(".d-detail-title")).toBeVisible(); };
   return { api, root, skill, servers, original, context: c, entity, descriptions, scan, open,
     pendingScan: async () => { await writeFile(hold, "hold"); await page.getByRole("button", { name: "重新扫描", exact: true }).click(); await expect.poll(async () => readFile(marker, "utf8").catch(() => "")).toBe("entered"); },
     release: () => rm(hold, { force: true }), close: async () => { await rm(hold, { force: true }); await rm(root, { recursive: true, force: true }); } };
@@ -209,6 +210,30 @@ for (const change of ["source", "presentation"]) test("a retained description dr
   } finally { await f.close(); }
 });
 
+test("changing capability type hides old rows and rejects a late response from the previous type", async ({ page }) => {
+  const f = await realDiscovery(page), mcp = deferred(), skill = deferred();
+  let mcpWaiting = false, skillWaiting = false;
+  await page.route("**/api/v2/discovery/catalog?*", async route => {
+    const kind = new URL(route.request().url()).searchParams.get("kind");
+    if (kind === "mcp_server") { mcpWaiting = true; await mcp.promise; }
+    if (kind === "skill") { skillWaiting = true; await skill.promise; }
+    await route.continue();
+  });
+  try {
+    await page.getByRole("tab", {name:/MCP 服务/}).click();
+    await expect.poll(() => mcpWaiting).toBe(true);
+    await expect(page.locator(".d-cap-row")).toHaveCount(0);
+    await page.getByRole("tab", {name:/Skills 技能/}).click();
+    await expect.poll(() => skillWaiting).toBe(true);
+    const finished = page.waitForResponse(r => r.url().includes("/discovery/catalog?") && new URL(r.url()).searchParams.get("kind") === "mcp_server");
+    mcp.release(); await finished;
+    await expect(page.locator(".d-cap-row")).toHaveCount(0);
+    skill.release();
+    await expect(page.locator(".d-cap-row .d-cap-icon.skill")).toHaveCount(1);
+    await expect(page.locator(".d-cap-row .d-cap-icon.mcp_server")).toHaveCount(0);
+  } finally { mcp.release(); skill.release(); await f.close(); }
+});
+
 test("Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source", async ({ page }) => {
   const f = await realDiscovery(page);
   try {
@@ -216,11 +241,13 @@ test("Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit
     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
     await dialog.getByLabel("一句话用途", { exact: true }).fill("Esc 保留的旧草稿"); await page.keyboard.press("Escape");
     await writeFile(f.skill, f.original.replace("revision one", "revision two"));
-    await page.getByRole("button", { name: "重新扫描", exact: true }).click();
-    await expect(page.getByRole("button", { name: "重新扫描", exact: true })).toBeEnabled();
+    await f.pendingScan();
+    await expect(page.getByRole("button", { name: "重新扫描", exact: true })).toBeDisabled();
     await f.open(); dialog = page.getByRole("dialog");
     await expect(dialog.getByLabel("一句话用途", { exact: true })).toHaveValue("Esc 保留的旧草稿");
+    await f.release();
     await expect(dialog.getByText(/当前草稿保留开始编辑时的版本/)).toBeVisible();
+    await expect(dialog.getByLabel("一句话用途", { exact: true })).toHaveValue("Esc 保留的旧草稿");
     await dialog.getByRole("button", { name: "取消编辑", exact: true }).click();
     await dialog.getByRole("button", { name: "编辑中文说明", exact: true }).click();
     await dialog.getByLabel("一句话用途", { exact: true }).fill("核对新来源后的新草稿");

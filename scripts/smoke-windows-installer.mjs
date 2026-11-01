@@ -11,6 +11,9 @@ import { verifyBundle } from "./verify-release.mjs";
 import { assertWindowsBuild } from "./windows-installer.mjs";
 import { execWithoutInput } from "../installer/windows/install-helper.mjs";
 import { windowsTestEnvironment } from "./windows-test-environment.mjs";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { TOOL_NAMES, EXECUTION_TOOL_NAMES } from "../dist/packages/contracts/src/index.js";
 
 assertWindowsBuild();
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -96,6 +99,16 @@ async function readDatabaseIdentity(runtime, appDir) {
   });
   return JSON.parse(result.stdout);
 }
+async function verifyExecutionIdentity(runtime, entry, tokenFile, instanceId) {
+  const client = new Client({ name: "native-installed-execution-identity", version: "1" }, { versionNegotiation: { mode: { pin: "2026-07-28" } } });
+  try {
+    await client.connect(new StdioClientTransport({ command: runtime, args: [entry, "mcp", "--stdio", "--data-dir", dataDir, "--token-file", tokenFile], cwd: temporary, env, stderr: "pipe" }), { timeout: 5000 });
+    assert.deepEqual((await client.listTools()).tools.map(tool => tool.name).sort(), [...EXECUTION_TOOL_NAMES].sort());
+    const result = await client.callTool({ name: "workflow_get", arguments: { workflowId: "incident-production" } });
+    assert.notEqual(result.isError, true);
+    assert.equal(result.structuredContent.instanceId, instanceId);
+  } finally { await client.close(); }
+}
 
 try {
   const unrelated = join(temporary, "unrelated");
@@ -146,10 +159,22 @@ try {
   const page = await fetch(`http://127.0.0.1:${endpoint.port}/`);
   assert.match(await page.text(), /assets\/index-/);
   const doctor = await exec(runtime, [entry, "doctor"], { env, windowsHide: true, timeout: 15_000 });
-  assert.equal(JSON.parse(doctor.stdout).tools.length, 7);
+  assert.equal(TOOL_NAMES.length, 21);
+  assert.equal(EXECUTION_TOOL_NAMES.length, 7);
+  assert.deepEqual(JSON.parse(doctor.stdout).tools.sort(), [...TOOL_NAMES].sort());
+  const origin = `http://127.0.0.1:${endpoint.port}`;
+  const bootstrap = await fetch(origin + "/api/v1/auth/bootstrap", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupToken: await readFile(join(dataDir,"admin-setup-token"),"utf8"), password: "Synthetic-native-installer-password" }) });
+  assert.equal(bootstrap.status, 200);
+  const csrf = (await bootstrap.json()).data.csrf, cookie = bootstrap.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+  const executionIdentity = await fetch(origin + "/api/v1/clients", { method: "POST", headers: { "Content-Type": "application/json", Cookie: cookie, "X-CSRF-Token": csrf }, body: JSON.stringify({ label: "Installed restricted execution", workflowAllowlist: ["incident-production"] }) });
+  assert.equal(executionIdentity.status, 200);
+  const executionTokenFile = (await executionIdentity.json()).data.absoluteTokenFile;
+  await verifyExecutionIdentity(runtime, entry, executionTokenFile, endpoint.instanceId);
+  const loggedOut = await fetch(origin + "/api/v1/auth/session", { method: "DELETE", headers: { Cookie: cookie, "X-CSRF-Token": csrf } });
+  assert.ok(loggedOut.ok());
   await runSetup(installDir, 20);
   await runUninstall(20);
-  checks.push("installed daemon, UI and seven tools; active-daemon install/uninstall refusal");
+  checks.push("installed daemon/UI, personal 21-tool identity and restricted seven-tool identity; active-daemon install/uninstall refusal");
   await stopCommand(daemon);
   await assert.rejects(access(join(dataDir, "daemon.lock")), { code: "ENOENT" });
   const executionToken = await readFile(join(dataDir, "execution-token"));
@@ -181,7 +206,8 @@ try {
   const restartedEndpoint = JSON.parse(await readFile(join(dataDir, "endpoint.json"), "utf8"));
   assert.equal(restartedEndpoint.instanceId, endpoint.instanceId);
   const restartedDoctor = await exec(runtime, [entry, "doctor"], { env, windowsHide: true, timeout: 15_000 });
-  assert.equal(JSON.parse(restartedDoctor.stdout).tools.length, 7);
+  assert.deepEqual(JSON.parse(restartedDoctor.stdout).tools.sort(), [...TOOL_NAMES].sort());
+  await verifyExecutionIdentity(runtime, entry, executionTokenFile, endpoint.instanceId);
   await stopCommand(restarted);
   const identityAfterRestart = await readDatabaseIdentity(runtime, appDir);
   assert.equal(identityAfterRestart.instanceId, identityBeforeReinstall.instanceId);
