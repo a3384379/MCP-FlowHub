@@ -171,7 +171,7 @@ try {
   const executionTokenFile = (await executionIdentity.json()).data.absoluteTokenFile;
   await verifyExecutionIdentity(runtime, entry, executionTokenFile, endpoint.instanceId);
   const loggedOut = await fetch(origin + "/api/v1/auth/session", { method: "DELETE", headers: { Cookie: cookie, "X-CSRF-Token": csrf } });
-  assert.ok(loggedOut.ok());
+  assert.ok(loggedOut.ok);
   await runSetup(installDir, 20);
   await runUninstall(20);
   checks.push("installed daemon/UI, personal 21-tool identity and restricted seven-tool identity; active-daemon install/uninstall refusal");
