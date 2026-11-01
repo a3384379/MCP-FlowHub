@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
 import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
-import { CredentialLibrary } from "./features/credentials/CredentialLibrary";
+import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";

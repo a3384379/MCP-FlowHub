@@ -44,5 +44,10 @@
   "sourceCodexConfigModified": false,
   "windowsNative": "UNVERIFIED",
   "realModel": "UNVERIFIED",
-  "enterpriseMcp": "UNVERIFIED"
+  "enterpriseMcp": "UNVERIFIED",
+  "finalSourceDelivery": {
+    "passed": 11,
+    "failed": 0
+  },
+  "directoryOnlyChangePreservedServedBuild": true
 }

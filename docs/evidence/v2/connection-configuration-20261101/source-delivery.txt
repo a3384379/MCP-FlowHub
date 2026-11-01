@@ -1,0 +1,21 @@
+✔ offline source snapshot preserves original build inputs and excludes local state (31.949625ms)
+✔ source verification rejects changed bytes and a replaced source tree identity (19.076584ms)
+▶ runtime contract, example and template contents must match recoverable source
+  ✔ contracts (18.30325ms)
+  ✔ examples (17.148375ms)
+  ✔ templates (16.735583ms)
+✔ runtime contract, example and template contents must match recoverable source (52.622667ms)
+✔ runtime file additions and source manifest path escapes are rejected (17.361667ms)
+▶ source capture refuses symlinks and credential-bearing npm configuration
+  ✔ npm credentials (6.101292ms)
+  ✔ symlink (7.780042ms)
+✔ source capture refuses symlinks and credential-bearing npm configuration (14.192625ms)
+✔ a source edit during packaging requires a fresh candidate (15.898458ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 188.167667

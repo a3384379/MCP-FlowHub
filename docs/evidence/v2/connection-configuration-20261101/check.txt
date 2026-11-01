@@ -5,7 +5,7 @@
 FlowHub design verification
 Root: /Users/sqz/Documents/ChatGPT/mcp管理工具
 自定义静态检查，不是完整 JSON Schema 2020-12 验证；不运行真实 MCP、引擎、数据库或审批。
-[PASS positive] parse all 122 regular JSON artifacts
+[PASS positive] parse all 123 regular JSON artifacts
 [PASS positive] workflow schema uses supported local subset
 [PASS positive] seven-tool schema uses supported local subset
 [PASS positive] mock result schema uses supported local subset
