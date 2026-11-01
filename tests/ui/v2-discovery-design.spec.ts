@@ -331,61 +331,30 @@ test("issue actions open the matching manual connection and credential forms and
         (c: any) => c.name === issue.manual,
       ).tools.length,
     ).toBeGreaterThan(0);
+    const profile = await f.api("/api/v2/model-profiles", "POST", { name: "model-only-" + issue.credential, providerKind: "openai_compatible_chat", baseUrl: "https://synthetic.invalid/v1", model: "synthetic", apiKey: "MODEL_ONLY_SYNTHETIC_KEY", stream: false });
+    await f.api("/api/v1/vault/lock", "POST", {});
     await page.goto("/discovery");
     await page.getByRole("tab", { name: /需处理/ }).click();
-    await row(issue.credential)
-      .getByRole("button", { name: "配置凭据", exact: true })
-      .click();
-    await expect(
-      page
-        .getByRole("dialog")
-        .getByRole("heading", { name: "选择本地凭据引用" }),
-    ).toBeVisible();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "解锁凭据库", exact: true })
-      .click();
-    await expect(
-      page.getByRole("dialog", { name: "解锁凭据库", exact: true }),
-    ).toBeVisible();
-    await page
-      .getByLabel("凭据库口令", { exact: true })
-      .fill("Synthetic-browser-password-041");
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "确认", exact: true })
-      .click();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await page.goto("/discovery");
-    await page.getByRole("tab", { name: /需处理/ }).click();
-    await row(issue.credential)
-      .getByRole("button", { name: "配置凭据", exact: true })
-      .click();
-    await page.getByRole("dialog").getByRole("button", { name: "添加凭据", exact: true }).click();
-    await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.getByLabel("凭据标签", { exact: true })).toHaveValue(issue.credential);
-    await page.getByLabel("凭据值", { exact: true }).fill("SYNTHETIC_SECRET_DO_NOT_DISPLAY");
-    await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await page.goto("/discovery");
-    await page.getByRole("tab", { name: /需处理/ }).click();
-    await row(issue.credential)
-      .getByRole("button", { name: "配置凭据", exact: true })
-      .click();
-    const secret = (await f.api("/api/v1/secrets")).find(
-      (s: any) => s.label === issue.credential,
-    );
-    await page
-      .getByRole("dialog")
-      .getByLabel("SYNTHETIC_AUTH", { exact: true })
-      .selectOption(secret.id);
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "保存连接引用", exact: true })
-      .click();
-    await expect(page.getByRole("dialog").getByRole("status")).toContainText(
-      "凭据引用已保存",
-    );
+    await row(issue.credential).getByRole("button", { name: "连接配置", exact: true }).click();
+    const setup = page.getByRole("dialog");
+    await expect(setup.getByRole("heading", { name: "连接配置", exact: true })).toBeVisible();
+    await setup.getByLabel("凭据库口令", { exact: true }).fill("Synthetic-browser-password-041");
+    await setup.getByRole("button", { name: "解锁凭据库", exact: true }).click();
+    await expect(setup.getByText("本地库已解锁，填写内容已保留。", { exact: true })).toBeVisible();
+    await expect(setup.getByLabel("SYNTHETIC_AUTH", { exact: true }).locator("option[value='" + profile.secretRef + "']")).toHaveCount(0);
+    await setup.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption("");
+    await setup.getByRole("button", { name: "新增并用于此项", exact: true }).click();
+    await expect(page).toHaveURL(/\/discovery$/);
+    await setup.getByLabel("配置类型 · SYNTHETIC_AUTH", { exact: true }).selectOption("credential");
+    await setup.getByLabel("值 · SYNTHETIC_AUTH", { exact: true }).fill("SYNTHETIC_SECRET_DO_NOT_DISPLAY");
+    await setup.getByRole("button", { name: "保存并检测连接", exact: true }).click();
+    await expect(setup.getByText(/本服务连接及目录检测通过/)).toBeVisible();
+    const secret = (await f.api("/api/v1/secrets")).find((s: any) => s.sourceId && s.variable === "SYNTHETIC_AUTH");
+    expect(secret.purpose).toBe("mcp_auth");
+    await expect(setup.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
+    expect((await f.api("/api/v1/secrets")).filter((s: any) => s.variable === "SYNTHETIC_AUTH")).toHaveLength(1);
+    await expect(setup.getByLabel("值 · SYNTHETIC_AUTH", { exact: true })).toHaveCount(0);
+    expect(await page.locator("body").innerText()).not.toContain("SYNTHETIC_SECRET_DO_NOT_DISPLAY");
     await page.keyboard.press("Escape");
     await page
       .getByRole("button", { name: "同步工具目录", exact: true })

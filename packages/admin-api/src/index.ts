@@ -37,6 +37,7 @@ import {
 } from "../../persistence/src/retention.js";
 import { backupDirectory, localBackups, preflightLocalBackup } from "./local-backups.js";
 import { hostIntegration, localCliPath, offlineRestoreInstructions } from "./settings-integration.js";
+import { credentialInventory } from "../../security/src/credential-metadata.js";
 import {
   bindingImpact,
   eventCursor,
@@ -243,20 +244,18 @@ export async function registerAdmin(
     return data({ changed: true });
   });
   app.post("/api/v1/secrets", async (req) => {
-    const b = body(req, ["label", "value"]);
+    const b = body(req, ["label", "value"], ["purpose", "idempotencyKey"]);
     ensure(
-      typeof b.label === "string" && b.label.length <= 128,
+      typeof b.label === "string" && b.label.trim().length > 0 && b.label.length <= 128,
       "INPUT_INVALID",
       "Invalid secret label.",
     );
-    return data(vault.addSecret(b.label, b.value));
+    const save = () => vault.addSecret(b.label, b.value, { purpose: b.purpose });
+    if (b.idempotencyKey !== undefined) ensure(typeof b.idempotencyKey === "string" && b.idempotencyKey.length > 0 && b.idempotencyKey.length <= 256, "INPUT_INVALID", "Invalid idempotency key.");
+    return data(b.idempotencyKey ? repo.command("admin", "secret.create", b.idempotencyKey, b, save) : save());
   });
   app.get("/api/v1/secrets", async () =>
-    data(
-      repo
-        .all("secrets")
-        .map(({ id, label, createdAt }) => ({ id, label, createdAt })),
-    ),
+    data(credentialInventory(repo)),
   );
   app.get("/api/v1/settings", async () => {
     const address = app.server.address();
@@ -359,6 +358,10 @@ export async function registerAdmin(
   app.get("/api/v1/connections", async () =>
     data(repo.all("connections").map((c) => connectors.catalogView(c))),
   );
+  const assertMcpCredentialPurpose = (configuration: Json) => {
+    const refs = [configuration.secretRef, ...Object.values(configuration.envRefs ?? {})];
+    ensure(!credentialInventory(repo).some(item => item.modelCredential && refs.includes(item.id)), "CREDENTIAL_PURPOSE_MISMATCH", "模型专用 Key 不能用于 MCP 连接，请配置对应的连接凭据。", 409);
+  };
   app.post("/api/v1/connections", async (req) => {
     const b = body(
       req,
@@ -429,6 +432,7 @@ export async function registerAdmin(
       tools: [],
       createdAt: now(),
     };
+    assertMcpCredentialPurpose(c);
     repo.insert("connections", c.id, c);
     repo.audit("admin", "connection:create", c.id);
     return data(c);
@@ -475,6 +479,7 @@ export async function registerAdmin(
       verifiedSdk: null,
       tools: [],
     };
+    assertMcpCredentialPurpose(next);
     repo.put("connections", c.id, next, expected);
     for (const binding of repo
       .all("bindings")

@@ -26,8 +26,8 @@ export const issueLabels: Record<string, string> = {
   SKILL_METADATA_INVALID: "技能介绍格式无法解析",
   SKILL_DEPENDENCY_INVALID: "技能依赖声明无法解析",
   CATALOG_NOT_SYNCED: "尚未同步工具目录",
-  CREDENTIALS_REQUIRED: "需要连接凭据",
-  credentials_required: "需要连接凭据",
+  CREDENTIALS_REQUIRED: "需要连接配置",
+  credentials_required: "需要连接配置",
   unreachable: "连接暂不可达",
   unsupported: "需要手动登记连接",
   ambiguous: "服务来源无法唯一对应",
@@ -60,7 +60,7 @@ export function entityStatus(e: Entity) {
     };
   if (e.entityKind === "plugin") return { text: "已安装", tone: "green" };
   if (e.availability === "credentials_required")
-    return { text: "需要连接凭据", tone: "amber" };
+    return { text: "需要连接配置", tone: "amber" };
   if (e.availability === "unsupported")
     return { text: "需手动登记连接", tone: "amber" };
   if (e.availability === "unreachable")

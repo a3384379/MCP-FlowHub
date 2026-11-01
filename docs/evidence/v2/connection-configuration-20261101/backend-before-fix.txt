@@ -1,0 +1,714 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test
+> npm run build && node --test --test-concurrency=1 --test-timeout=60000 dist/tests/poc/*.test.js dist/tests/engine/*.test.js
+
+
+> mcp-flowhub@2.0.0-alpha.2 build
+> npm run build:server && npm run build:web
+
+
+> mcp-flowhub@2.0.0-alpha.2 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 84 management paths.
+
+> mcp-flowhub@2.0.0-alpha.2 build:web
+> tsc -p apps/web/tsconfig.json && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 200 modules transformed.
+rendering chunks...
+computing gzip size...
+web-dist/index.html                   0.45 kB │ gzip:   0.36 kB
+web-dist/assets/index-x87xEVR2.css   65.67 kB │ gzip:  13.66 kB
+web-dist/assets/index-BqqWdRy6.js   664.86 kB │ gzip: 206.50 kB
+
+[MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   ╭─[ node_modules/@xyflow/react/dist/esm/index.js:1:1 ]
+   │
+ 1 │ "use client"
+   │ ──────┬─────
+   │       ╰─────── module level directive may not be preserved
+   │
+   │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+───╯
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 117ms
+✔ run pagination reaches all older history, binds filters, and stays stable when new runs arrive (16.705166ms)
+✔ admin run responses preserve data arrays and paginate events beyond 200 with strict cursor bounds (135.285375ms)
+✔ binding impact resolves drafts, immutable publications and active snapshots without leaking arguments or mutating state (93.433959ms)
+✔ report mappings survive arbitrary node IDs and executed DB with declared fallback (996.440167ms)
+✔ report mappings survive arbitrary node IDs and skipped DB with template node (724.214625ms)
+✖ standard result refs accept non-synthetic local MCP evidence and retain strict mock provenance (508.659333ms)
+✔ seed is atomic at every write and resumes every legacy partial seed without overwriting unrelated records (895.99225ms)
+✖ dispatch checks asynchronous revocation, cancellation, deadlines and locked-vault result handling; production DB is serialized by connection (491.863833ms)
+✔ oversized Agent output is rejected atomically and unused unknown outputSchemaRef is rejected before publication (531.172875ms)
+✖ real SDK catalog rejects credential echoes in schemas, descriptions, metadata and modern discovery before persistence (111.808542ms)
+✔ catalog discovery fails closed when the vault locks or its credential context changes across the SDK exchange (168.953083ms)
+✖ schema changes invalidate verified bindings and connection revisions atomically; unchanged catalogs retain verification (88.093833ms)
+✔ startup quarantines uninspected historical catalogs while the vault is locked (87.336125ms)
+✔ vault password rotation rewraps checkpoint delivery and operational outputs on the same run (413.874ms)
+✖ connection PATCH clears the catalog baseline while live schema drift still invalidates the first verification (197.728333ms)
+✔ configuration metadata distinguishes reviewed config, explicit auth and unknown variables without exposing values (163.153291ms)
+✔ new values and bindings are atomic, idempotent, encrypted, and source files remain unchanged (178.933791ms)
+✔ invalid late fields and stale revisions roll back all new values and do not leave orphan entries (191.167583ms)
+✔ model purpose is derived from real legacy references, not labels, and is enforced server side (195.0655ms)
+✔ explicit normal config remains encrypted, preserves empty source values, and does not corrupt ordinary catalog text (174.685959ms)
+✔ locked Vault and explicitly declared authentication cannot be bypassed with config classification (306.296583ms)
+✔ save then real SDK detection reads only the selected source directory, creates capabilities and never calls tools (330.578542ms)
+✔ detection rejection does not roll back a successful configuration save (198.392084ms)
+✔ detection CAS rejects a late directory result after source change and does not create capabilities (202.219ms)
+✖ HTTP library creates typed entries once, returns metadata only, and preserves IDs and envelopes across restart (634.857625ms)
+✔ shutdown aborts and drains an in-flight source detection before the store can close (198.218833ms)
+✔ migration reconnects chains without touching the source and rejects ambiguous decisions or output dependencies (1.523333ms)
+▶ legacy half-seed catalog quarantine recovers only unchanged built-in Mock scopes
+  ✔ unchanged (20.054709ms)
+  ✔ revoked (14.300917ms)
+  ✔ changed-scope (15.132125ms)
+✔ legacy half-seed catalog quarantine recovers only unchanged built-in Mock scopes (133.211542ms)
+▶ whole object literals/references, nullable targets and local definitions retain schema context
+  ✔ literal-object (131.224084ms)
+  ✔ reference-object (92.448875ms)
+  ✔ nullable (93.938208ms)
+  ✔ definition (95.493708ms)
+✔ whole object literals/references, nullable targets and local definitions retain schema context (413.739375ms)
+✔ array item mappings create arrays and dispatch valid parameters (94.5695ms)
+✔ partial array object mappings must provide required fields at every mapped item (96.531875ms)
+✔ recovery atomically finishes interrupted dispatch attempts without retrying or overwriting known outcomes (94.919666ms)
+✔ optional source references and all missing declared bindings fail publication (87.845458ms)
+✔ known tool failure finishes the attempt and cancellation reports no in-flight call (95.76475ms)
+✔ ordinary Agent outputs can use arbitrary business field names and transform mapped inputs (102.853708ms)
+✔ ordinary from/to strings follow their schema without acquiring date range semantics (94.067958ms)
+✔ declared date-time ranges retain ordering, format and 24-hour limits (93.536542ms)
+▶ non-object Agent payload schemas fail publication and object payloads retain nested scalar types
+  ✔ string (86.490208ms)
+  ✔ array (84.956875ms)
+  ✔ integer (85.268792ms)
+  ✔ number (84.989041ms)
+  ✔ boolean (85.49425ms)
+  ✔ null (85.421333ms)
+  ✔ object (100.281291ms)
+✔ non-object Agent payload schemas fail publication and object payloads retain nested scalar types (613.470084ms)
+✔ object payload compatibility resolves local definitions and schema combinations without accepting scalar-only roots (0.188125ms)
+✔ node validation aggregates safe structured issues with exact mapping and schema paths (86.137084ms)
+✔ missing query template mappings expose nodeId and a machine-readable field path (85.650375ms)
+✔ schema keyword property names and inert const data do not become executable schema keywords (98.908917ms)
+✔ original outputs preserve branch semantics and remain available after vault lock (139.2625ms)
+✔ declared query scope preserves original handoff, password rotation and retention without broadening scope (382.423791ms)
+✔ query parameters from undeclared Agent scope are rejected before publishing (85.03125ms)
+▶ safe read retries honor 0/2 limits and finish every dispatched attempt
+  ✔ maxRetries=0 (91.065708ms)
+  ✔ maxRetries=2 (390.730666ms)
+✔ safe read retries honor 0/2 limits and finish every dispatched attempt (482.330708ms)
+▶ unknown outcomes and policy failures never retry even when configured
+  ✔ OUTCOME_UNKNOWN (120.981042ms)
+  ✔ AUTH_REQUIRED (91.067125ms)
+  ✔ BINDING_REVOKED (90.855416ms)
+  ✔ TOOL_SCHEMA_DRIFT (90.11475ms)
+  ✔ INPUT_INVALID (90.013334ms)
+  ✔ TOOL_TIMEOUT (90.314083ms)
+✔ unknown outcomes and policy failures never retry even when configured (574.160833ms)
+▶ retry backoff observes cancellation and revocation before the next dispatch
+  ✔ cancel (187.730375ms)
+  ✔ revoke (193.141791ms)
+✔ retry backoff observes cancellation and revocation before the next dispatch (381.222583ms)
+✔ nested business JSON keeps types, exact mapping and artifact bytes without a parallel encrypted display value (101.095542ms)
+✔ old encrypted business outputs hydrate the checkpoint and remain readable without rewriting history (139.247375ms)
+✖ external MOCK_VERIFIED results cannot bypass locked-vault execution protection and never replay unknown reads (588.39225ms)
+✔ built-in synthetic MCP remains usable with a locked vault when no credentials are stored (556.291416ms)
+✔ model endpoints normalize complete URLs across protocol changes without duplicate paths (0.671084ms)
+✔ real model catalog uses saved Vault credentials, returns only metadata, and never changes profiles or leaks error bodies (131.445708ms)
+✔ catalog rejects redirects, malformed bodies and remains bounded by AbortSignal (56.079666ms)
+✔ model parameters require the exact official model page and absent fields stay unknown (0.885625ms)
+✔ public model documentation has a fixed official origin, no authentication, byte limits, caching and shutdown cancellation (33.834208ms)
+✔ credential formats in log, query and Agent strings are sanitized without deleting diagnostic fields (1.053833ms)
+✔ long dotted text, URI authorities, assignments and incomplete keys finish under a child-process hard limit (27.414125ms)
+✔ vault redaction matches stored literals anywhere without plaintext persistence or cache (130.579209ms)
+✖ real MCP business results and Agent submissions retain original bytes in run and artifact persistence (570.699625ms)
+✔ publication binds the reviewed binding revisions and preserves previous immutable versions (189.8735ms)
+✔ report evidence accepts canonical template rows and explicit host table rows (1.999459ms)
+✔ report hashes must be bound to each indexed artifact, with no body-hash substitution (0.726208ms)
+✔ report index rejects ambiguous duplicates, undeclared references and invalid lengths (0.323375ms)
+✔ report evidence metadata must describe the actual stored UTF-8 bytes (0.104875ms)
+✔ report chapters and index share visible ATX headings outside fences and comments (0.553875ms)
+✔ AGT-13 invalid report evidence leaves zero reports and a reusable checkpoint; valid retry stores verified bytes (162.774334ms)
+✔ hidden report chapters reject atomically and the same checkpoint accepts visible chapters (111.879084ms)
+✔ retention removes expired result copies before new backups and preserves active runs and recent results (745.233167ms)
+✖ schema regex subset rejects dangerous workflow, Agent and discovered schemas before evaluation (800.398458ms)
+✔ schema-keyword business fields and inert literal data remain valid in workflow input and Agent output (34.207125ms)
+✔ every real schema position retains regex checks while literal data is bounded and inert (0.6395ms)
+✔ official SDK discovery accepts keyword field names and inert annotations but rejects actual regex and remote references (45.692667ms)
+✔ Codex TOML and Claude JSON use actual separate formats and explicit scoped token-file paths (0.943959ms)
+✔ offline restore commands quote spaces, quotes and shell metacharacters without evaluating paths (30.139125ms)
+✔ settings and new/reloaded restricted clients return current-machine paths without token values (562.83475ms)
+✔ backup listing exposes local metadata and preflight leaves original backup and active business state untouched (505.165ms)
+✔ preflight rejects traversal, symlinks, hardlinks, non-files and SQLite sidecars (510.930208ms)
+✔ preflight reports invalid and incompatible snapshots without returning restore commands (501.908833ms)
+▶ LLM-07: one real HTTP response mixes reads and writes, awaits each dispatch, and returns matching call IDs in both protocols
+  ✔ openai_responses (172.722666ms)
+  ✔ openai_compatible_chat (104.244792ms)
+✔ LLM-07: one real HTTP response mixes reads and writes, awaits each dispatch, and returns matching call IDs in both protocols (277.465084ms)
+▶ LLM-08: absent usage stays null, and mixed multi-round usage remains explicitly partial in durable task state
+  ✔ reported then missing (96.672208ms)
+  ✔ missing then reported (96.947ms)
+✔ LLM-08: absent usage stays null, and mixed multi-round usage remains explicitly partial in durable task state (289.745208ms)
+✔ ASST-02: real HTTP tool feedback corrects a schema type error while the exact checkpoint remains unconsumed (111.178959ms)
+✔ ASST-02: analysis worker retries a wrong output type and advances the same checkpoint exactly once (103.402458ms)
+✔ ASST-04: cancellation during a dispatched write retains its real receipt and never dispatches queued calls or replays acceptance (96.181958ms)
+✔ KB-05: editing only a temporary document updates real hashes and line numbers, while an already issued citation remains stale after rebuild (15.181583ms)
+✔ KB-06: a real large report is explicitly bounded in model context, artifact pages keep offsets, and original bytes and hash remain intact (130.804833ms)
+✔ KB-07/KB-08: restricted assistant contexts and project-help tools cannot retrieve another owner's run or artifacts, and ordinary help sends no unrelated data or secrets (110.516042ms)
+✔ shared intent excludes explanations, quoted examples, staging nouns and coordinated negatives (8.009541ms)
+✔ real HTTP task refuses a run proposed for a negative request, and API cannot forge intent (155.270084ms)
+✔ selected workflow and run constrain reads, tests, start and cancellation before dispatch (139.986791ms)
+✔ HTTP contexts and status receipts omit checkpoint credentials and preserve business token values; advance injects server credential (115.545917ms)
+✔ analysis idempotency survives successful advance and deleted receipts never trigger another model call (108.891625ms)
+✔ profile stream probe fallback is honored and provider identity changes invalidate probes (100.893667ms)
+✔ body timeout after headers, SSE timeout, invalid JSON and body budget keep typed errors (2170.062708ms)
+✔ knowledge citations hash actual source ranges, expose stale sources, and history has a real cursor (128.248709ms)
+✔ Responses stateless continuation preserves encrypted reasoning items without displaying them (100.043542ms)
+✔ failed and cancelled analysis acceptance replays original task, while a fresh key can retry (104.751583ms)
+✔ assistant shutdown cancels and drains active HTTP capability probes before returning (109.884375ms)
+✔ session deletion waits for cancelling workers so delayed receipts cannot recreate deleted copies (93.132583ms)
+✔ common, coordinated, postfix and interrogative negatives deny actual run/publish proposals; affirmative combined actions remain executable (170.343042ms)
+✔ real message provenance scopes history by selected run/artifacts and provider; clearing selection never reuses old run answers (130.5325ms)
+✔ analysis correction budgets 1/2/3 count the initial attempt, account usage and retain checkpoint on exhaustion (152.858416ms)
+✔ analysis corrections share one total deadline rather than restarting it per model request (1107.235459ms)
+✔ max intent: information questions without question marks and Chinese single-quoted examples grant no actions (7.590792ms)
+✔ max intent: unmet future conditions never grant present execution; independent draft creation and current commands remain allowed (0.894792ms)
+✔ max intent: hostile model proposals for information questions never dispatch or create actual runs (192.0875ms)
+✔ max intent: provider-proposed starts after future conditions create zero real runs and a requested draft can still be saved (227.694042ms)
+✔ max verbs: run and cancel are isolated in both directions and their allowed paths change real engine state (120.821042ms)
+✔ max verbs: scan and import are isolated in both directions, while each explicit action succeeds (111.635125ms)
+✔ max context: 200 multibyte tools cannot evict selected workflow, run, revision or node (108.872125ms)
+✔ max context: 1000 multibyte tools cannot evict selected workflow, run, revision or node (127.843583ms)
+✔ max context: small selected data and directory retain complete values (94.808167ms)
+✔ max context: 100 selected nodes and heavily escaped partial text fit the final JSON byte budget (259.505625ms)
+✔ max continuation: selecting failed/cancelled A after B/C only injects A and cannot replay its writes (110.889583ms)
+✔ max continuation: source task owner/session/provider/scope/terminal/expiry are checked before any model request (104.124958ms)
+✔ max continuation: run scope and expired source messages, tool receipts and business results cannot be reused (115.650125ms)
+✔ assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes (153.563917ms)
+✔ help mode cannot mutate and half JSON never dispatches (102.797375ms)
+✔ tool validation feedback permits bounded correction and preserves Web revision conflicts (105.970916ms)
+✔ cancellation aborts pending generation with no tool writes (96.214958ms)
+✔ restart marks unfinished durable tasks interrupted and retains tool receipts (91.747ms)
+✔ model profile Key is encrypted and never stored in command or ordinary profile bodies (99.779458ms)
+✔ Chinese help and exact error names retrieve current version sources with real citations (93.801834ms)
+✔ text-only model probes remain useful for help and refuse composition without fake writes (92.916667ms)
+✔ repeated invalid edits stop after three feedback rounds without overwriting a draft (96.310417ms)
+✔ Responses and Chat Completions use separate envelopes and protocol paths (13.879209ms)
+✔ streamed JSON waits for completed finish and interrupted arguments never become a tool call (4.933041ms)
+✔ provider authentication and 429 failures stay typed and bounded (4015.721041ms)
+✔ audit: migration and backup reject FTS replaced by ordinary table before boot writes (24.635333ms)
+✔ audit: migration and backup reject managed table constraints changed before boot writes (15.63525ms)
+✔ audit: Vault rotation preserves v2 continuation and legacy encrypted tool receipts without changing business values (250.477542ms)
+✔ audit: corrupt v2 ciphertext aborts Vault rotation without partially changing keys or records (207.732209ms)
+✔ audit: explicit retention removes expired v2 business copies and preserves active tasks and immutable publications (5.359917ms)
+✔ audit: retention preview detects changed v2 payloads before deleting anything (3.992167ms)
+▶ native limit never overlaps a fixed resource, including nested parent and child paths
+  ✔ /tenantId vs /tenantId (141.320375ms)
+  ✔ /scope/tenantId vs /scope (94.323333ms)
+  ✔ /scope vs /scope/tenantId (93.722416ms)
+✔ native limit never overlaps a fixed resource, including nested parent and child paths (329.911916ms)
+✔ v2 HTTP/service publication requires the shared DTO and reviewed binding CAS (166.446458ms)
+▶ host output contracts cannot be weakened and published checkpoints use immutable capability schemas
+  ✔ incompatible authored schema blocks publication (94.574375ms)
+  ✔ invalid submissions leave the same checkpoint available (101.853083ms)
+✔ host output contracts cannot be weakened and published checkpoints use immutable capability schemas (196.690291ms)
+✔ undo of layout changes keeps semantic revision and later unrelated config fields (95.959875ms)
+▶ accepted test baselines stay stale after same-fixture suite regeneration and capability drift
+  ✔ changing then restoring fixture contents does not renew a run at the same draft revision (181.515459ms)
+  ✔ capability changes compare against the accepted run (188.443292ms)
+✔ accepted test baselines stay stale after same-fixture suite regeneration and capability drift (689.768625ms)
+▶ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector
+  ✔ json_text validates parsed data against the actual discovered schema (271.620209ms)
+✔ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector (1660.926667ms)
+▶ v2 host_tool preserves bounded native object schemas without weakening frozen result checks
+  ✔ omitted additionalProperties (194.59925ms)
+  ✔ explicit open object (191.893417ms)
+  ✔ nonrecursive local definitions (191.115541ms)
+  ✔ local object root reference (197.522292ms)
+  ✔ remote ref (94.2365ms)
+  ✔ dynamic ref (94.730958ms)
+  ✔ reference scope override (93.962125ms)
+  ✔ recursive ref (92.043834ms)
+  ✔ mutually recursive refs (96.856ms)
+  ✔ ref into inert literal (99.115875ms)
+  ✔ unsafe pattern (97.833916ms)
+  ✔ scalar root (98.107167ms)
+  ✔ excessive schema depth (98.58725ms)
+  ✔ excessive ref expansion (97.972083ms)
+  ✔ exponential acyclic ref expansion (97.310792ms)
+  ✔ excessive schema bytes (94.10075ms)
+  ✔ excessive inert literal nodes (92.294ms)
+  ✔ v1 and analysis keep their strict data schema (92.490417ms)
+✔ v2 host_tool preserves bounded native object schemas without weakening frozen result checks (2116.285583ms)
+✔ expired test command replays stay tombstoned and historical CANCELLED remains terminal (180.538166ms)
+✔ authoring creates real drafts, retains idempotency and restricts creation ownership (57.440625ms)
+✔ patch transaction rolls back all mutations and events, CAS and command replay are exact (14.586791ms)
+✔ layout CAS is independent from semantic edits and incomplete legal drafts retain issues (7.976958ms)
+✔ publish freezes v2 snapshot, respects revision and preserves v1 schema restrictions (5.597375ms)
+✔ semantic undo and redo preserve unrelated later fields and reject same-field conflicts (8.194292ms)
+✔ undo cannot remove a node referenced by later user edits (6.309667ms)
+✔ AUTHOR-06 referenced deletion is denied atomically and explicit cascade removes only the dependency closure (8.593416ms)
+✔ runtime inventory separates unscanned, empty, partial and failed; projection excludes credentials and transport data (103.296792ms)
+✔ metadata is never presented as a fully known catalog; stale and host-only capabilities remain distinct (95.251125ms)
+✔ real state is included before help and three turns retain same-scope history without executing tools (105.042459ms)
+✔ conversation page groups per-turn receipts in one batch, paginates, and enforces owner (96.834625ms)
+✔ partial reply survives cancellation and a conversation reload; continuation only reads saved results (98.558834ms)
+✔ streaming promptly releases ordinary short text while protecting checkpoint credentials split across chunks (97.313291ms)
+✔ a follow-up can read the workflow created in this same scoped conversation, but cannot access an unrelated draft (131.708292ms)
+✔ design and advice questions do not grant edit permissions; implementing an agreed plan does (0.162541ms)
+✔ DISC-03/DISC-05: legacy CLI never receives unsupported JSON; same-name static layers stay partial with exact provenance (90.539584ms)
+✔ PLUG-05: unsupported manifest layouts or declared format versions stay partial and are never guessed (295.0365ms)
+✔ PLUG-04/PLUG-06/PLUG-07: installed host Skill is indexed without scripts, hooks, unstable RPCs or fabricated connections (128.943041ms)
+✔ PLUG-08: Skill content drift advances semantic revision, mtime-only refresh does not, and publication stays immutable (213.414709ms)
+✔ CAP-02: the same endpoint with distinct Vault references keeps independent identities and old bindings (437.366417ms)
+✔ discovery issues identify the matching setup flow and source without exposing launch arguments or credentials (105.616667ms)
+✔ real source metadata distinguishes plugin ownership, declared dependencies, mentions and independent Skills (90.067708ms)
+✔ Chinese submission persists through rescan, searches both languages and leaves execution identities and schemas unchanged (136.457083ms)
+✔ description batches are atomic, versioned, idempotent and cannot invent entities, evidence or parameters (84.6325ms)
+✔ manual Chinese edits win over Codex; changed source is stale and cannot silently reuse an old translation (129.375583ms)
+✔ missing/ambiguous dependencies and malformed YAML remain explicit; no dependency URL or Skill instruction executes (176.439084ms)
+✔ restricted owners cannot submit into another owner's snapshot or change context revisions (83.872708ms)
+✔ catalog pages invalidate on localized changes, preserve snapshot during an in-progress scan and reject malformed cursors (135.967834ms)
+✔ cached host tools keep their proven server parent during metadata refresh and become unavailable after parent disable (291.644042ms)
+✔ long documentation paragraphs retain searchable Chinese tail text without widening query budgets (43.097625ms)
+✔ context updates bind the original ID even when another project has the same or a different revision (254.173834ms)
+✔ a same-version explicit CLI registration conflicts, and a target-bound CAS update uses the chosen executable (239.458125ms)
+✔ partial context updates retain the target paths, profile and independent read options; unspecified registration defaults reuse it (223.170708ms)
+✔ explicitly clearing a Profile rejects identity changes without a write, while a separate registration selects the default Profile (218.202709ms)
+✔ explicit empty CLI path resolves PATH instead of retaining the prior executable (different identity) (198.886917ms)
+✔ explicit empty CLI path resolves PATH instead of retaining the prior executable (same version CAS) (215.594459ms)
+✔ concurrent credential saves have one CAS winner and identical idempotent retries reuse that winner (205.735625ms)
+✔ identical requests crossing the resolver barrier produce one connection and one receipt (190.391416ms)
+✔ a delayed identical retry replays a committed receipt even if its own resolver later sees a missing source (197.087ms)
+✔ credential commit rejects disabled state after source resolution starts, without orphan connections or secrets (185.551541ms)
+✔ credential commit rejects stale state after source resolution starts, without orphan connections or secrets (180.33075ms)
+✔ credential commit rejects removed state after source resolution starts, without orphan connections or secrets (183.658791ms)
+✔ credential commit rejects fingerprint state after source resolution starts, without orphan connections or secrets (189.026125ms)
+✔ credential commit rejects rescanned state after source resolution starts, without orphan connections or secrets (184.184667ms)
+✔ credential commit rejects context state after source resolution starts, without orphan connections or secrets (207.541834ms)
+✔ old context snapshots are read only and cannot configure; a fresh scan permits configuration (274.207208ms)
+✔ every Authorization case maps the selected Vault reference and authenticates official SDK catalog discovery (1019.359958ms)
+✔ Authorization duplicate conflicts and missing references fail without persisting credentials (530.638208ms)
+✔ read-only discovery distinguishes installed plugins, disabled components and marketplace entries (87.650417ms)
+✔ real MCP catalog discovery keeps duplicate tool names separate, revisions stable and credentials absent (657.529958ms)
+✔ TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate (34.578209ms)
+✔ metadata scans report broken sources and never store inline credential values (81.0205ms)
+✔ explicit local credential import seals inline env, preserves source, and enables independent catalog (584.257833ms)
+✔ context trust options use CAS and do not silently mutate an existing registration (74.275416ms)
+✔ credential command arguments remain metadata-only and are never copied into connection rows (97.196459ms)
+✔ source and tool disables invalidate old catalog and never reconnect during import (169.215041ms)
+✔ current source revision gets a new connection; successful replay is independent of source and network (162.21925ms)
+✔ older scans and context drift cannot overwrite newer current catalog (185.705458ms)
+✔ command credentials and URL/header forms stay metadata only without plaintext in ordinary records (209.319083ms)
+✔ skill enablement, plugin server overrides and CLI allow/deny policy are effective (77.92075ms)
+✔ HTTP self aliases normalize independently of server label and protocol identity blocks recursion (126.328709ms)
+✔ close aborts a pending catalog, persists terminal state and rejects subsequent work (78.101667ms)
+✔ catalog deadline covers real SDK tools/list and closes the child transport (517.159083ms)
+✔ SQL capability pages exclude schemas, filter sources/environment and reject stale cursors; benchmark 200/1000 (2907.255542ms)
+ℹ {"discoveryPerformance":[{"capabilities":200,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":6.9206250000002},{"capabilities":1000,"schemaBytesPerCapability":30000,"samples":40,"p95Ms":72.87737500000003}]}
+✔ plugin per-server deny rules and custom Skill/app components preserve installed provenance (77.761083ms)
+✔ App Server effective disabled Skill corrects an already indexed path (93.000375ms)
+✔ concurrent source discovery exposes successful sources before a slow one and scan cancel is durable (74.290833ms)
+✔ HTTP discovery validates the same DTO and decodes false query flags (73.881542ms)
+✔ schema-only and description-only catalog drift create immutable connections with matching contracts (376.445958ms)
+✔ unchanged metadata preserves catalog semantics, real draft capability refs and accepted self-test baseline (370.62225ms)
+✔ explicit null and config_only never run PATH Codex or App Server and remain persisted (29.259125ms)
+✔ launcher adapters support Python, Node, uvx and npx while unknown options are unsupported and secrets stay rejected (253.44025ms)
+✔ Skill and host component capabilities have persisted current source refs after metadata refresh (115.559792ms)
+✔ draft three-way merge combines keyed nodes, independent fields, edges and layout using server CAS (1.209291ms)
+✔ same-field conflicts retain both values and independent per-field resolutions persist (0.580875ms)
+✔ node edit/delete is explicit and keyed edge additions are preserved without silent cascade (0.215625ms)
+✔ assistant analysis uses a checkpoint lease and existing advance, retaining business originals (149.533417ms)
+✔ host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key (98.964792ms)
+✔ analysis auth errors do not retry or consume the checkpoint (97.69825ms)
+✖ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (1616.225125ms)
+✔ MCP-05 empty-allowlist author owns its new workflow without gaining existing workflows; execution-only identity keeps seven tools (527.497708ms)
+✔ MCP-06 official SDK rejects unknown tools, wrong types and extra fields without any business or ledger writes (418.756041ms)
+✔ sequential migrations preserve a real v1 layout and immutable snapshot bytes (13.566ms)
+✔ damaged history, missing columns, gaps and future versions never rebuild stores (17.250167ms)
+✔ failed multi-step migration rolls back DDL and history together (9.545375ms)
+✔ v2 to v3 preserves frozen migration bytes and business snapshots; Chinese descriptions survive backup and restore (78.593875ms)
+✔ frozen v1 layout stays compatible and changed FTS module or required shadow/index is rejected (35.843541ms)
+✔ backup creation and offline restore both reject modified schema before changing the target (456.134791ms)
+✔ a write failure rolls the entire Vault rotation back, including v1 and historical v2 envelopes (263.742667ms)
+✔ v2 cleanup expires payloads at seven days, deletes metadata at thirty, and preserves tombstones/configuration/active sessions (6.636375ms)
+✔ daemon shutdown rejects new requests, interrupts generation durably, and waits before closing SQLite (369.103166ms)
+✔ startup listener failure closes Application workers before SQLite and releases the data-directory lock (378.16075ms)
+✔ shutdown hook failure still erases the Vault key and releases SQLite and its lock (460.281167ms)
+✔ real text-only MCP retains raw business content without environment and receives a clamped native limit (446.882459ms)
+✔ real HTTP submit history without legacy provenance has an explicit reviewed cleanup scope while tagged fresh and active history survive (207.719917ms)
+✔ isolated host fixtures freeze capability contracts and distinguish missing/invalid fixtures (348.476917ms)
+✔ missing capability revision is a typed acceptance error before a test run is persisted (13.208916ms)
+✔ generation and run replay recover accepted immutable IDs after draft and suite edits (101.106334ms)
+✔ revoked owners cannot replay accepted test commands (99.230334ms)
+✔ mock connector enforces runtime environment/row contracts and retains raw evidence (278.743833ms)
+✔ deterministic generation drives nested string conditions and reports unvisited branch reasons (450.1305ms)
+✔ terminal testing close interrupts an agent checkpoint, stops later cases and finishes all writes before database close (102.718125ms)
+✔ deterministic generation executes numeric/string boundaries and both boolean branches (1552.869833ms)
+✔ independent assertions reject a proposed success claim (99.524458ms)
+✔ Mock tool results must satisfy the discovered schema instead of trusting proposed fixture shape (101.441042ms)
+✔ complete production guided MCP → Agent → DB → report chain (1034.751666ms)
+✔ complete staging guided MCP → Agent → DB → report chain (878.420292ms)
+✔ branch skips DB, evidence/Agent scope cannot be forged, CAS conflicts and cancel (672.887459ms)
+✔ graph rejects cycles, parallel, environment override, cross-branch dependency (480.148334ms)
+✔ vault restart locks, checkpoints encrypted; run ownership and artifact UTF-8 bounds (798.8895ms)
+✔ admin API rejects CSRF and execution identity; immutable versions and import validation (500.078958ms)
+✔ crash recovery never replays dispatched unknown outcome; revoked binding blocks pending action (694.208917ms)
+✔ per-host token is workflow-scoped, cannot read another owner, and revocation takes effect (648.948208ms)
+✔ vault password rotation rewraps secrets and checkpoint deliveries atomically (868.696709ms)
+✔ deterministic auto flow runs without Agent; duplicate idempotency keys with changed input conflict (690.006458ms)
+✔ consistent SQLite backup and stopped-daemon restore preserve committed workflows (568.821792ms)
+✔ retention preview/commit never deletes active runs (700.013375ms)
+✔ report requires actual chapters/bytes, references and bounded UTF-8 reads (686.411708ms)
+✔ 100 workflows remain a fixed 21-tool server; opaque search cursors bind to filters (660.44025ms)
+✔ malformed STDIO closes transport; cached protocol revision and SDK cannot silently survive edits (5495.128958ms)
+▶ publication and checkpoint adversarial regressions
+  ✔ WF-07 stale draft writes cannot replace a newer revision (1.262291ms)
+  ✔ WF-10 disabled versions cannot start; history remains (1.734458ms)
+  ✔ AGT-02 auto cannot silently execute guided Agent tasks (2.997292ms)
+  ✔ AGT-05 bad token cannot advance (4.363375ms)
+  ✔ AGT-06 unauthorized SQL fields do not consume checkpoint (4.636125ms)
+  ✖ SEC-05 externally registered Mock can never become BINDING_VERIFIED (342.09525ms)
+  ✔ SEC-13 / WF-08 arbitrary code and file nodes cannot be imported (2.905083ms)
+  ✔ SEC-14 server rejects a query interval wider than one day (3.422541ms)
+✖ publication and checkpoint adversarial regressions (1055.014166ms)
+✔ Web-created guided run is owned by the selected restricted host and retains revocation/isolation (693.015208ms)
+✔ legacy migration backs up and copies draft/publication; recovery retires waiting runs and preserves history (873.75575ms)
+✖ verification sends no probe when binding revoked during discovery (10594.72775ms)
+✖ verification sends no probe when connection disabled during connect (10517.836083ms)
+✖ verification sends no probe when binding revoked during SDK preparation (10577.700667ms)
+✔ Draft 2020-12 standards validation: supplied workflows and binding catalog (18.87575ms)
+✔ Draft 2020-12: seven-tool contract rejects eighth tool and forged approval (5.039208ms)
+✔ Draft 2020-12: supplied synthetic log/database results and negative control (3.037125ms)
+✔ default admin/admin initializes once without a setup code and survives restart with its encrypted data (796.81325ms)
+✔ default login never replaces an existing custom administrator or vault (608.792958ms)
+✔ SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets (1002.89325ms)
+✔ draft PUT updates only an existing stable workflow ID and enforces its revision (489.195083ms)
+✔ publish requires the reviewed draft revision and cannot publish a concurrent save (477.680916ms)
+✔ public health, auth and static routes stay available; admin session and schema routes stay protected (517.62125ms)
+✔ MCP route authentication covers encoded and absolute targets and preserves scoped host identity (489.377542ms)
+✔ MCP factory fails closed when the adapter receives no authentication context (1.66725ms)
+✔ daemon shutdown ends active authenticated SSE and removes endpoint and lock without client disconnect (729.119375ms)
+✔ administrator logout immediately closes its SSE and preserves another live session (644.206042ms)
+✔ an expired administrator session stops receiving SSE on the next heartbeat (2484.76825ms)
+✔ SSE backpressure closes without a later heartbeat writing after end, and disconnected clients leave the daemon healthy (2300.463709ms)
+✔ official MCP subscriptions end gracefully on daemon.close while modern and legacy tool calls remain functional (515.825167ms)
+✔ CLI SIGTERM closes an acknowledged official MCP subscription without client abort (665.766166ms)
+✔ NSIS fetch rejects HTML, drains redirects without cancellation and only publishes a checksum-verified ZIP (11.089542ms)
+✔ NSIS fetch retains the prior output and fails closed on corrupt ZIPs or unapproved redirects (1.898875ms)
+✔ NSIS fetch revalidates a trusted local cache without touching the network (0.767125ms)
+✔ core HTTPS adapter preserves the default agent, signal and core response stream (0.648791ms)
+✔ synthetic package smoke separates real child cold-start readiness from the strict modern probe timeout (1628.86525ms)
+✔ synthetic startup failure retains safe stderr and fails before any protocol request (32.725833ms)
+✔ synthetic fixture that never becomes ready fails its startup deadline without sending an MCP probe (6010.380292ms)
+✔ MCP-03/04/13 Mock modern × stdio: discovery, validated call, Unicode, cleanup (340.195791ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub modern × stdio: 21 fixed tools, one daemon, no fake execution (844.029625ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock modern × http: discovery, validated call, Unicode, cleanup (37.572334ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub modern × http: 21 fixed tools, one daemon, no fake execution (390.962792ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2026-07-28","era":"modern","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock legacy × stdio: discovery, validated call, Unicode, cleanup (178.647917ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub legacy × stdio: 21 fixed tools, one daemon, no fake execution (589.849334ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"stdio","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-03/04/13 Mock legacy × http: discovery, validated call, Unicode, cleanup (37.966375ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ MCP-01/13 Hub legacy × http: 21 fixed tools, one daemon, no fake execution (380.363917ms)
+ℹ {"sdkVersion":"2.4.0","protocolVersion":"2025-11-25","era":"legacy","transport":"http","os":"darwin","node":"v24.19.0","synthetic":true}
+✔ ENV-07: two simultaneous bridges observe the same daemon, instance and unchanged database (743.992417ms)
+✔ MCP-15: HTTP 401/403 never cause legacy negotiation or anonymous retry (2.193709ms)
+ℹ HTTP 401: one modern discovery request, no fallback
+ℹ HTTP 403: one modern discovery request, no fallback
+✔ interrupted restore at before-old blocks startup and explicitly recovers the preserved previous database (197.450791ms)
+✔ interrupted restore at after-old blocks startup and explicitly recovers the preserved previous database (170.862458ms)
+✔ interrupted restore at before-new blocks startup and explicitly recovers the preserved previous database (322.787791ms)
+✔ interrupted restore at after-new blocks startup and explicitly recovers the preserved previous database (187.344333ms)
+✔ a restore interrupted after deleting committed WAL blocks stale startup and retains latest data in the previous backup (254.685292ms)
+✔ empty, malformed and unsupported restore markers block new-store initialization and explicit restore archives them (120.992375ms)
+✔ restore rejects changed checksum before replacement and the original daemon can restart (434.360416ms)
+✔ restore rejects unsupported migration before replacement and the original daemon can restart (376.139625ms)
+✔ restore rejects missing migration before replacement and the original daemon can restart (370.2935ms)
+✔ restore rejects missing managed table before replacement and the original daemon can restart (369.896291ms)
+✔ restore rejects incomplete table before replacement and the original daemon can restart (376.409ms)
+✔ restore rejects missing primary key before replacement and the original daemon can restart (367.044041ms)
+✔ restore rejects missing null constraint before replacement and the original daemon can restart (385.88125ms)
+✔ a compatible backup restores and preserves a usable copy of the replaced database (62.091917ms)
+✔ ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate daemon rejected (476.225792ms)
+✔ ENV-03/04: port conflict is actionable; failed startup releases its lock; loopback only (748.321416ms)
+✔ SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial (372.536916ms)
+✔ ENV-08: bridge without daemon fails without creating data or polluting stdout (123.680958ms)
+✔ CLI rejects unknown options, unknown commands and unsafe port inputs (341.157959ms)
+✔ CLI invoked through a directory alias actually runs its entry point (73.833083ms)
+✔ offline source snapshot preserves original build inputs and excludes local state (31.495083ms)
+✔ source verification rejects changed bytes and a replaced source tree identity (18.787291ms)
+▶ runtime contract, example and template contents must match recoverable source
+  ✔ contracts (17.183708ms)
+  ✔ examples (16.236917ms)
+  ✔ templates (16.717833ms)
+✔ runtime contract, example and template contents must match recoverable source (50.500083ms)
+✔ runtime file additions and source manifest path escapes are rejected (15.510541ms)
+▶ source capture refuses symlinks and credential-bearing npm configuration
+  ✔ npm credentials (5.634334ms)
+  ✔ symlink (7.723958ms)
+✔ source capture refuses symlinks and credential-bearing npm configuration (13.617459ms)
+✔ a source edit during packaging requires a fresh candidate (15.061625ms)
+✔ ASST-05: an authenticated real SSE disconnect after successful patch replays later task events without another patch or model call (1099.146958ms)
+✔ installer ownership preserves data and extra files across upgrade and uninstall (12.9945ms)
+✔ install refuses unrelated directories, changed payloads, and extra-file collisions before replacing files (6.877458ms)
+✔ daemon locks and process-inspection failures block every destructive installer operation (4.626083ms)
+✔ Unicode bridge paths, external Node CLI references and options before serve all block replacement (1.795083ms)
+✔ Windows program paths reject drive roots, UNC and program/data overlap (0.309125ms)
+✔ uninstall rejects marker traversal and directory-link replacements without deleting data (5.728959ms)
+✔ uninstaller does not claim or remove an unowned directory (1.487ms)
+✔ compiler archive hash and native PE headers reject substitutes (1.998ms)
+✔ native verification checks the SQLite binding actually loaded while inventorying unused foreign prebuilds (2.514583ms)
+✔ Linux invocation cannot generate a Windows installer (27.786791ms)
+ℹ tests 407
+ℹ suites 0
+ℹ pass 392
+ℹ fail 15
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 150628.362667
+
+✖ failing tests:
+
+test at dist/tests/engine/audit-regressions.test.js:191:1
+✖ standard result refs accept non-synthetic local MCP evidence and retain strict mock provenance (508.659333ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"INTERNAL_ERROR","message":"Request could not be completed."},"requestId":"req_4d668ffc-5024-4b27-b6a4-0303db99daa5"}
+
+  500 !== 200
+
+      at api (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/audit-regressions.test.js:54:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/audit-regressions.test.js:351:26)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/audit-regressions.test.js:530:1
+✖ dispatch checks asynchronous revocation, cancellation, deadlines and locked-vault result handling; production DB is serialized by connection (491.863833ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"INTERNAL_ERROR","message":"Request could not be completed."},"requestId":"req_b10e8959-2a3b-4994-943a-ea32cf705ee6"}
+
+  500 !== 200
+
+      at api (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/audit-regressions.test.js:54:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/audit-regressions.test.js:749:23)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/catalog-security.test.js:65:1
+✖ real SDK catalog rejects credential echoes in schemas, descriptions, metadata and modern discovery before persistence (111.808542ms)
+  TypeError: Cannot read properties of null (reading 'configurationFields')
+      at storedConfigurationFields (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/host-discovery/src/connection-fields.js:79:30)
+      at credentialInventory (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/credential-metadata.js:22:15)
+      at Vault.sensitiveRecords (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:112:26)
+      at Vault.assertCatalogSafe (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:137:20)
+      at Connectors.discover (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/mcp-connectors/src/registry.js:204:28)
+      at async Connectors.sync (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/mcp-connectors/src/registry.js:159:22)
+      at async catalog (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/catalog-security.test.js:57:20)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/catalog-security.test.js:67:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at dist/tests/engine/catalog-security.test.js:116:1
+✖ schema changes invalidate verified bindings and connection revisions atomically; unchanged catalogs retain verification (88.093833ms)
+  TypeError: Cannot read properties of null (reading 'configurationFields')
+      at storedConfigurationFields (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/host-discovery/src/connection-fields.js:79:30)
+      at credentialInventory (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/credential-metadata.js:22:15)
+      at Vault.sensitiveRecords (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:112:26)
+      at Vault.assertCatalogSafe (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:137:20)
+      at Connectors.discover (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/mcp-connectors/src/registry.js:204:28)
+      at async Connectors.sync (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/mcp-connectors/src/registry.js:159:22)
+      at async catalog (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/catalog-security.test.js:57:20)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/catalog-security.test.js:118:19)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at dist/tests/engine/connection-catalog-reset.test.js:15:1
+✖ connection PATCH clears the catalog baseline while live schema drift still invalidates the first verification (197.728333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  500 !== 200
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/connection-catalog-reset.test.js:113:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/connection-configuration.test.js:283:1
+✖ HTTP library creates typed entries once, returns metadata only, and preserves IDs and envelopes across restart (634.857625ms)
+  TypeError: Cannot read properties of undefined (reading '0')
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/connection-configuration.test.js:322:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at dist/tests/engine/mock-vault-lock.test.js:27:1
+✖ external MOCK_VERIFIED results cannot bypass locked-vault execution protection and never replay unknown reads (588.39225ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"INTERNAL_ERROR","message":"Request could not be completed."},"requestId":"req_069246cb-a0a9-4e44-9196-3bf3d7699e12"}
+
+  500 !== 200
+
+      at api (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/mock-vault-lock.test.js:100:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/mock-vault-lock.test.js:128:22)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/output-redaction.test.js:111:1
+✖ real MCP business results and Agent submissions retain original bytes in run and artifact persistence (570.699625ms)
+  AssertionError [ERR_ASSERTION]: synthetic API request failed: /bindings/binding_fcde7c9f-d0a2-4db9-92ae-87377f7dd0c6/verify
+
+  500 !== 200
+
+      at api (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/output-redaction.test.js:139:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/output-redaction.test.js:207:15)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/schema-safety.test.js:124:5
+✖ schema regex subset rejects dangerous workflow, Agent and discovered schemas before evaluation (800.398458ms)
+  AssertionError [ERR_ASSERTION]: AssertionError [ERR_ASSERTION]: input
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async verifySchemaSafety (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/schema-safety.test.js:105:9)
+      at async file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/schema-safety.test.js:112:9 {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of null (reading 'configurationFields')
+        at storedConfigurationFields (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/host-discovery/src/connection-fields.js:79:30)
+        at credentialInventory (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/credential-metadata.js:22:15)
+        at Vault.sensitiveRecords (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:112:26)
+        at Vault.assertCatalogSafe (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/security/src/index.js:137:20)
+        at Connectors.discover (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/packages/mcp-connectors/src/registry.js:204:28)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async verifySchemaSafety (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/schema-safety.test.js:105:9)
+        at async file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/schema-safety.test.js:112:9,
+    expected: [Object],
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/schema-safety.test.js:142:20)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/v2-mcp-selftest.test.js:12:1
+✖ official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state (1616.225125ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"INTERNAL_ERROR","message":"Request could not be completed."},"requestId":"req_0cba0498-a314-4cc0-9d83-fc44e6d34250"}
+
+  500 !== 200
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/v2-mcp-selftest.test.js:51:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/engine/workflow.test.js:618:13
+✖ SEC-05 externally registered Mock can never become BINDING_VERIFIED (342.09525ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  500 !== 200
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/workflow.test.js:659:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/workflow.test.js:618:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/poc/binding-verification-race.test.js:22:5
+✖ verification sends no probe when binding revoked during discovery (10594.72775ms)
+  Error: Verification did not reach delayed discovery/connect
+      at Timeout.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/poc/binding-verification-race.test.js:154:56)
+      at listOnTimeout (node:internal/timers:635:17)
+      at process.processTimers (node:internal/timers:571:7)
+
+test at dist/tests/poc/binding-verification-race.test.js:22:5
+✖ verification sends no probe when connection disabled during connect (10517.836083ms)
+  Error: Verification did not reach delayed discovery/connect
+      at Timeout.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/poc/binding-verification-race.test.js:154:56)
+      at listOnTimeout (node:internal/timers:635:17)
+      at process.processTimers (node:internal/timers:571:7)
+
+test at dist/tests/poc/binding-verification-race.test.js:22:5
+✖ verification sends no probe when binding revoked during SDK preparation (10577.700667ms)
+  Error: Verification did not reach delayed discovery/connect
+      at Timeout.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/poc/binding-verification-race.test.js:154:56)
+      at listOnTimeout (node:internal/timers:635:17)
+      at process.processTimers (node:internal/timers:571:7)

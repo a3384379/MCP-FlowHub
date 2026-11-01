@@ -24,6 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
 import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
+import { CredentialLibrary } from "./features/credentials/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
@@ -467,6 +468,16 @@ function App() {
   const historyIndex = useRef(0),
     restoringHistory = useRef(false);
   const routeGeneration = useRef(0);
+  const credentialLibraryRequested = useRef(false);
+  useEffect(() => {
+    if (path !== "/settings" || !credentialLibraryRequested.current) return;
+    const library = document.getElementById("credential-library");
+    if (library) {
+      credentialLibraryRequested.current = false;
+      library.scrollIntoView({ block: "start" });
+      library.focus({ preventScroll: true });
+    }
+  }, [path]);
   const artifactRequest = useRef(0);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
@@ -481,6 +492,13 @@ function App() {
     setPath("/workflows");
     if (path === "/assistant") setAssistantOpenRequest(value => value + 1);
   }, [path, session]);
+  useEffect(() => {
+    if (!session) return;
+    let alive=true;
+    const changed=()=>{void api("/auth/state").then(value=>{if(alive)setAuth(value);}).catch(()=>{});};
+    window.addEventListener("flowhub-credentials-changed",changed);
+    return ()=>{alive=false;window.removeEventListener("flowhub-credentials-changed",changed);};
+  },[session]);
   const savingRef=useRef(false);
   const [changedByAI,setChangedByAI]=useState<string[]>([]);
   const busyRef = useRef(busy);
@@ -634,11 +652,14 @@ function App() {
         sourceNotice: "来自 Codex 发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
         payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
       });
+    } else if (destination.type === "library") {
+      credentialLibraryRequested.current = true;
+      navigate("/settings");
     } else {
       navigate("/settings");
       setModal(destination.type === "unlock"
         ? { type: "unlock", title: "解锁凭据库", password: "" }
-        : { type: "secret", title: "新增凭据", label: destination.name || "新凭据", value: "" });
+        : { type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
     }
   };
   useEffect(() => {
@@ -1478,11 +1499,13 @@ function App() {
         await api("/vault/password", "POST", m.payload);
       }
       if (m.type === "secret") {
-        await api("/secrets", "POST", { label: m.label, value: m.value });
+        const created = await api("/secrets", "POST", { label: m.label, value: m.value, purpose: m.purpose ?? "unspecified", ...(m.idempotencyKey ? { idempotencyKey: m.idempotencyKey } : {}) });
+        window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
       }
       if (m.type === "unlock") {
         await api("/vault/unlock", "POST", { password: m.password });
         setAuth({ ...auth, vaultLocked: false });
+        window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
         const result = await api("/retention/commit", "POST", {
@@ -3470,7 +3493,7 @@ function App() {
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
                 title="接入设置"
-                text="配置唯一 MCP 入口、独立管理权限与本机加密凭据库。"
+                text="配置唯一 MCP 入口、独立管理权限与本机配置和凭据库。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3499,71 +3522,11 @@ function App() {
                     预览清理范围
                   </button>
                 </section>
-                <section className="panel">
-                  <h2>加密凭据库</h2>
-                  <p>scrypt 派生 · AES-256-GCM · 重启默认锁定</p>
-                  <div className="actions">
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "unlock",
-                          title: "解锁凭据库",
-                          password: "",
-                        })
-                      }
-                    >
-                      解锁
-                    </button>
-                    <button
-                      onClick={() =>
-                        act(async () => {
-                          await api("/vault/lock", "POST", {});
-                          setAuth({ ...auth, vaultLocked: true });
-                        }, "凭据库已锁定")
-                      }
-                    >
-                      立即锁定
-                    </button>
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "secret",
-                          title: "新增凭据",
-                          label: "新凭据",
-                          value: "",
-                        })
-                      }
-                    >
-                      添加凭据
-                    </button>
-                    <button
-                      onClick={() =>
-                        setModal({
-                          type: "rotate",
-                          title: "修改凭据库口令",
-                          payload: { oldPassword: "", newPassword: "" },
-                        })
-                      }
-                    >
-                      修改口令
-                    </button>
-                    <button
-                      onClick={() =>
-                        act(async () =>
-                          showJson(
-                            "凭据引用（不含明文）",
-                            await api("/secrets"),
-                          ),
-                        )
-                      }
-                    >
-                      查看引用
-                    </button>
-                  </div>
-                  <p>
-                    首次创建管理员时使用同一口令初始化凭据库。仅保存密文，不能找回丢失口令。
-                  </p>
-                </section>
+                <CredentialLibrary api={api}
+                  onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
+                  onUnlock={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+                  onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
+                  onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
                   <h2>诊断导出（仅元数据）</h2>
                   <p>
@@ -4032,17 +3995,12 @@ function App() {
               />
             ) : modal.type === "secret" ? (
               <>
-                <Field
-                  label="凭据标签"
-                  value={modal.label}
-                  onChange={(label) => setModal({ ...modal, label })}
-                />
-                <Field
-                  label="凭据值"
-                  type="password"
-                  value={modal.value}
-                  onChange={(value) => setModal({ ...modal, value })}
-                />
+                <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
+                <label>用途<select aria-label="用途" value={modal.purpose ?? "unspecified"} onChange={event => setModal({ ...modal, purpose: event.target.value })}>
+                  <option value="mcp_auth">MCP 认证凭据</option><option value="mcp_config">MCP 普通配置</option><option value="unspecified">用途待确认</option>
+                </select></label>
+                <Field label="保存值" type={modal.purpose === "mcp_config" ? "text" : "password"} value={modal.value} onChange={(value) => setModal({ ...modal, value })} />
+                <p>值在本机加密保存。模型 API Key 请在模型设置中配置。</p>
               </>
             ) : ["connection", "edit-connection"].includes(modal.type) ? (
               <ConnectionForm

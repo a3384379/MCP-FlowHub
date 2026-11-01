@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Value = Record<string, any>;
-type Credential = { id: string; label: string };
+type Credential = { id: string; label: string; modelCredential?: boolean; eligibleForMcp?: boolean };
 type FormProps = {
   value: Value;
   onChange: (value: Value) => void;
@@ -97,10 +97,10 @@ function SecretSelect({
       >
         <option value="">{optional ? "无需凭据" : "请选择已登记凭据"}</option>
         {value &&
-          !credentials.some((credential) => credential.id === value) && (
-            <option value={value}>引用未登记，请重新选择</option>
+          !credentials.some((credential) => credential.id === value && credential.eligibleForMcp !== false && !credential.modelCredential) && (
+            <option value={value}>原引用未登记或为模型专用，请重新选择</option>
           )}
-        {credentials.map((credential) => (
+        {credentials.filter(credential => credential.eligibleForMcp !== false && !credential.modelCredential).map((credential) => (
           <option key={credential.id} value={credential.id}>
             {credential.label} · {credential.id.slice(-8)}
           </option>
@@ -224,7 +224,7 @@ export function connectionFormErrors(
   if (!["modern", "legacy", "auto"].includes(value.protocolEra))
     errors.push("请选择协议代际。");
   const registered = (ref: unknown) =>
-    credentials.some((credential) => credential.id === ref);
+    credentials.some((credential) => credential.id === ref && credential.eligibleForMcp !== false && !credential.modelCredential);
   if (transport === "stdio") {
     if (
       typeof value.command !== "string" ||

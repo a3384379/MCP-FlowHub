@@ -1,0 +1,48 @@
+{
+  "check": "PASS",
+  "fullBackend": {
+    "passed": 407,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullUi": {
+    "passed": 71,
+    "failed": 0
+  },
+  "finalBackendFocused": {
+    "passed": 69,
+    "failed": 0
+  },
+  "finalUiFocused": {
+    "passed": 18,
+    "failed": 0
+  },
+  "newEngineTests": 11,
+  "manualBrowser": {
+    "normalConfigClassification": true,
+    "modelKeyExcluded": true,
+    "inlineUnlockPreservedTypedValue": true,
+    "offlineSameRequestRetry": true,
+    "singleSourceDirectoryTools": 4,
+    "libraryTypedCreate": true,
+    "savedValuesNotInLibraryText": true,
+    "mobileWidths": {
+      "390": 390,
+      "320": 320
+    },
+    "libraryNavigation": {
+      "path": "/settings",
+      "focusedId": "credential-library",
+      "top": 107.828125,
+      "viewport": 806
+    }
+  },
+  "realCodexAppServer": "PASS",
+  "modelTurns": 0,
+  "enterpriseBusinessCalls": 0,
+  "protectedTablesUnchanged": 24,
+  "sourceCodexConfigModified": false,
+  "windowsNative": "UNVERIFIED",
+  "realModel": "UNVERIFIED",
+  "enterpriseMcp": "UNVERIFIED"
+}

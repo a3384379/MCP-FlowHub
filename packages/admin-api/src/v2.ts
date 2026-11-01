@@ -24,6 +24,8 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     return data({...entity,...(entity.capabilityId?{capability:registry.get({capabilityId:entity.capabilityId,includeSchemas:true,includeSkillContent:true})}:{})});
   });
   app.post("/api/v2/discovery/descriptions",async req=>data(registry.catalog.submit(req.body as Json,"admin","manual")));
+  app.get("/api/v2/capability-sources/:id/configuration",async req=>data(registry.sourceConfiguration((req.params as Json).id)));
+  app.post("/api/v2/capability-sources/:id/detect",async req=>{const b=req.body as Json;ensure(b&&Number.isInteger(b.expectedRevision)&&b.expectedRevision>0,"INPUT_INVALID","Source revision required.");return data(await registry.detectSource((req.params as Json).id,b.expectedRevision));});
   app.post("/api/v2/capability-sources/:id/credentials",async req=>data(await registry.configureSource({...req.body as Json,sourceId:(req.params as Json).id})));
   app.get("/api/v2/host-scans/:id",async req=>data(registry.status((req.params as Json).id)));
   app.post("/api/v2/host-scans/:id/cancel",async req=>data(registry.cancel((req.params as Json).id)));

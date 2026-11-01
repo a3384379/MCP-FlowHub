@@ -13,6 +13,7 @@ import {
   HubError,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
+import { credentialInventory } from "./credential-metadata.js";
 import { protectDiagnostic } from "./diagnostics.js";
 const derive = (password: string, salt: string) =>
   scryptSync(password, salt, 32, {
@@ -123,9 +124,10 @@ export class Vault {
       cipher.final(),
     ]).toString("utf8");
   }
-  addSecret(label: string, value: string) {
+  addSecret(label: string, value: string, metadata: Json = {}) {
+    ensure(metadata.purpose === undefined || ["unspecified", "model_api", "mcp_auth", "mcp_config"].includes(metadata.purpose), "INPUT_INVALID", "Invalid credential purpose.");
     ensure(
-      typeof value === "string" && value.length > 0 && value.length < 16384,
+      typeof value === "string" && (value.length > 0 || metadata.purpose === "mcp_config") && value.length < 16384,
       "INPUT_INVALID",
       "Invalid secret.",
     );
@@ -135,6 +137,9 @@ export class Vault {
       label,
       encrypted: this.encrypt(value, ref),
       createdAt: now(),
+      purpose: metadata.purpose ?? "unspecified",
+      ...(metadata.sourceId ? { sourceId: metadata.sourceId } : {}),
+      ...(metadata.variable ? { variable: metadata.variable } : {}),
     });
     this.generation++;
     return { id: ref, label };
@@ -144,12 +149,19 @@ export class Vault {
     ensure(s, "AUTH_REQUIRED", "Secret unavailable.", 401);
     return this.decrypt(s.encrypted, ref);
   }
+  private sensitiveRecords() {
+    const metadata=credentialInventory(this.repo);
+    return this.repo.all("secrets").filter(s=>{
+      const meta=metadata.find(m=>m.id===s.id),normal=s.purpose==="mcp_config"||(!s.purpose||s.purpose==="unspecified")&&meta.usedBy.length>0&&meta.usedBy.every((u:Json)=>u.kind==="mcp_config");
+      return !normal||meta.usedBy.some((u:Json)=>["model_api","mcp_auth"].includes(u.kind));
+    });
+  }
   protectDiagnostic(value: Json): Json {
     // Decrypt only inside this call. No plaintext matcher survives vault lock,
     // password rotation, or the operation that stores the sanitized result.
     const secrets = this.locked
       ? []
-      : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
+      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
     return protectDiagnostic(value, secrets);
   }
   catalogContext() {
@@ -173,7 +185,7 @@ export class Vault {
     // the actual tool contract. Reject the entire catalog instead of rewriting.
     const secrets = this.locked
       ? []
-      : this.repo.all("secrets").map((s) => this.decrypt(s.encrypted, s.id));
+      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
     const inspect = (item: Json, schema = false): void => {
       if (typeof item === "string")
         ensure(

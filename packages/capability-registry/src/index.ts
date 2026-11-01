@@ -4,6 +4,8 @@ import { validArguments, type ToolName } from "../../contracts/src/index.js";
 import { createContext, scanHost, resolveSource, selfSource, sourcePolicy, toolEnabled,type DiscoveryRuntime } from "../../host-discovery/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { DiscoveryCatalog } from "./discovery-catalog.js";
+import { configurationFields, storedConfigurationFields } from "../../host-discovery/src/connection-fields.js";
+import { credentialInventory } from "../../security/src/credential-metadata.js";
 const terminal=["SUCCEEDED","PARTIAL","FAILED","CANCELLED"];
 function input(name:ToolName,a:Json){ensure(validArguments(name,a),"INPUT_INVALID","Arguments do not match the fixed tool contract.");}
 /** HTTP field names are case insensitive; ambiguous credential choices must never win by order. */
@@ -21,7 +23,7 @@ function abortable<T>(work:Promise<T>,signal:AbortSignal):Promise<T> {
 }
 export class CapabilityRegistry {
   readonly catalog: DiscoveryCatalog;
-  private jobs=new Map<string,Promise<void>>();
+  private jobs=new Map<string,Promise<unknown>>();
   private controls=new Map<string,AbortController>();
   private imports=new Map<string,{fingerprint:string;work:Promise<Json>}>();
   private closing=false;
@@ -65,10 +67,22 @@ export class CapabilityRegistry {
     if(!prior)return undefined;
     ensure(prior.request_hash===hash(a),"IDEMPOTENCY_CONFLICT","Key already used with different content.",409);return JSON.parse(prior.response);
   }
+  sourceConfiguration(sourceId:string) {
+    const source=this.repo.get("capability_sources",sourceId),context=source&&this.repo.get("host_contexts",source.contextId);
+    ensure(source&&source.enabled&&!source.self&&!source.stale,"CAPABILITY_STALE","Source unavailable; rescan first.",409);
+    ensure(context?.revision===source.contextRevision,"CONTEXT_CHANGED","Context changed; rescan first.",409);
+    const connection=source.preparedConnectionId?this.repo.get("connections",source.preparedConnectionId):null;
+    const prepared=connection?.sourceFingerprint===source.sourceFingerprint?connection:null;
+    return {sourceId,contextId:source.contextId,revision:source.revision,vaultLocked:this.engine.vault.locked,
+      fields:storedConfigurationFields(source).map(field=>({...field,declaredKind:field.kind,
+        kind:field.kind==="unknown"?(prepared?.configurationKinds?.[field.name]??field.kind):field.kind,
+        selectedRef:field.location==="bearer"?prepared?.secretRef??null:prepared?.envRefs?.[field.name]??null})),
+    };
+  }
   /** Explicit local-admin credential import; scans and MCP tools cannot invoke this. */
   async configureSource(a:Json,owner="admin") {
     ensure(owner==="admin","AUTH_REQUIRED","Use authenticated local connection settings.",403);
-    validate({type:"object",properties:{sourceId:{type:"string"},expectedRevision:{type:"integer"},idempotencyKey:{type:"string",minLength:1},importInlineCredentials:{type:"boolean"},secretRefs:{type:"object",additionalProperties:{type:"string"}}},required:["sourceId","expectedRevision","idempotencyKey"],additionalProperties:false},a);
+    validate({type:"object",properties:{sourceId:{type:"string"},expectedRevision:{type:"integer"},idempotencyKey:{type:"string",minLength:1},importInlineCredentials:{type:"boolean"},secretRefs:{type:"object",additionalProperties:{type:"string"}},entries:{type:"object",maxProperties:128,additionalProperties:{type:"object",required:["mode"],properties:{mode:{enum:["new","existing","source"]},kind:{enum:["config","credential","unknown"]},label:{type:"string",minLength:1,maxLength:128},value:{type:"string",maxLength:16383},secretRef:{type:"string",minLength:1}},additionalProperties:false}}},required:["sourceId","expectedRevision","idempotencyKey"],additionalProperties:false},a);
     const configured=(receipt:Json)=>({...receipt,status:"credentials_configured",next:"Rescan the catalog; resource bindings still require independent verification."});
     const replay=this.replay(owner,"source.configure",a);if(replay)return configured(replay);
     const source=this.repo.get("capability_sources",a.sourceId);
@@ -94,21 +108,91 @@ export class CapabilityRegistry {
       const bearer=bearerCredentials(config);
       ensure(bearer.supported,"CREDENTIAL_IMPORT_UNSUPPORTED","Only Bearer authentication is supported; configure other transports separately.");
       ensure(!bearer.conflict,"AUTHORIZATION_CONFLICT","Source declares conflicting Bearer authorization credentials.",409);
-      const connection=this.connection(config,source.id,a.importInlineCredentials===true),refs={...(a.secretRefs??{})};
-      for(const name of [...(config.env_vars??[]),...Object.values(config.env_http_headers??{})])ensure(refs[String(name)],"CREDENTIALS_REQUIRED","Choose a local Vault reference for "+name);
-      for(const name of Object.keys(config.env??{}))ensure(a.importInlineCredentials||refs[name],"CREDENTIALS_REQUIRED","Explicitly import inline credentials or choose Vault references.");
-      for(const ref of Object.values(refs))this.engine.vault.secret(String(ref));
-      connection.envRefs={...connection.envRefs,...refs};
-      if(bearer.variable){ensure(refs[bearer.variable],"CREDENTIALS_REQUIRED","Choose the Bearer Vault reference.");connection.secretRef=refs[bearer.variable];}
-      if(bearer.token){ensure(a.importInlineCredentials,"CREDENTIALS_REQUIRED","Explicit inline credential import required.");connection.secretRef=this.engine.vault.addSecret("Imported MCP Bearer credential",bearer.token).id;}
+      const fields=configurationFields(config,source.name),declared=new Set(fields.map(field=>field.id));
+      ensure(Object.keys(a.entries??{}).every(key=>declared.has(key)),"INPUT_INVALID","Only declared connection fields may be configured.");
+      ensure(Object.keys(a.secretRefs??{}).every(key=>fields.some(field=>field.location==="env"&&field.name===key)),"INPUT_INVALID","Undeclared environment reference.");
+      const connection=this.connection(config,source.id,false),refs:Json=Object.create(null),entryRefs:Json=Object.create(null),kinds:Json=Object.create(null);
+      const inventory=credentialInventory(this.repo);
+      for(const field of fields) {
+        const legacy=field.location==="env"?a.secretRefs?.[field.name]:undefined;
+        const entry=a.entries?.[field.id]??(legacy?{mode:"existing",secretRef:legacy}:a.importInlineCredentials===true&&field.inline?{mode:"source"}:null);
+        ensure(entry,"CREDENTIALS_REQUIRED","请为 "+field.name+" 填写值、选择已有项或使用来源已有值。");
+        ensure(!legacy||(entry.mode==="existing"&&entry.secretRef===legacy),"INPUT_INVALID","Conflicting field selections.");
+        const kind=entry.kind??field.kind;
+        ensure(field.kind!=="credential"||kind==="credential","INPUT_INVALID","Authentication fields remain credentials.");
+        let ref:string;
+        if(entry.mode==="existing") {
+          ensure(entry.secretRef&&!Object.hasOwn(entry,"value"),"INPUT_INVALID","Choose one existing reference.");
+          const selected=inventory.find(item=>item.id===entry.secretRef);
+          ensure(selected?.eligibleForMcp&&!(kind==="credential"&&selected.purpose==="mcp_config")&&!(kind==="config"&&selected.purpose==="mcp_auth"),"CREDENTIAL_PURPOSE_MISMATCH","模型专用 Key 不能用于此 MCP 字段，请选择或新建对应项。",409);
+          this.engine.vault.secret(entry.secretRef);ref=entry.secretRef;
+        } else {
+          ensure(!Object.hasOwn(entry,"secretRef"),"INPUT_INVALID","Choose one field value source.");
+          const raw=entry.mode==="source"?(field.location==="bearer"?bearer.token:config.env?.[field.name]):entry.value;
+          ensure(entry.mode!=="source"||!Object.hasOwn(entry,"value"),"INPUT_INVALID","Source mode does not accept a replacement value.");
+          ensure(typeof raw==="string","CREDENTIALS_REQUIRED","来源未提供 "+field.name+" 的内联值，请填写或选择已有项。");
+          ref=this.engine.vault.addSecret(entry.label??(source.name+" · "+field.name).slice(0,128),raw,{purpose:kind==="config"?"mcp_config":kind==="credential"?"mcp_auth":"unspecified",sourceId:source.id,variable:field.name}).id;
+        }
+        kinds[field.name]=kind;entryRefs[field.id]=ref;
+        if(field.location==="bearer")connection.secretRef=ref;
+        else {refs[field.name]=ref;if(bearer.variable===field.name)connection.secretRef=ref;}
+      }
+      connection.envRefs=refs;connection.configurationKinds=kinds;
       connection.sourceFingerprint=source.sourceFingerprint;
-      connection.id="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs,connection.secretRef??null]).slice(0,24);
+      connection.id="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs,connection.secretRef??null,connection.configurationKinds]).slice(0,24);
       const previous=this.repo.get("connections",connection.id);connection.revision=(previous?.revision??0)+1;
       if(!previous)this.repo.insert("connections",connection.id,connection);
-      this.repo.put("capability_sources",source.id,{...current,preparedConnectionId:connection.id,revision:current.revision+1},a.expectedRevision);
-      return {connectionId:connection.id};
+      this.repo.put("capability_sources",source.id,{...current,preparedConnectionId:connection.id,revision:current.revision+1,discovery:"metadata_only",availability:"not_checked"},a.expectedRevision);
+      for(const cap of this.contextCapabilities(context.id))if(cap.sourceRefs?.some((r:Json)=>r.sourceId===source.id))this.putCapability({...cap,stale:true,availability:"not_checked"});
+      this.refreshConfigurationCatalog(context);
+      return {connectionId:connection.id,entryRefs:{...entryRefs},revision:current.revision+1};
     });
     return configured(prepared);
+  }
+  private refreshConfigurationCatalog(context:Json) {
+    const job=context.catalogScanId?this.repo.get("discovery_jobs",context.catalogScanId):null;
+    if(job)this.catalog.replace(context,job,this.contextSources(context.id),this.contextCapabilities(context.id));
+  }
+  /** Read only this source's protocol/tool directory; never call a business tool. */
+  detectSource(sourceId:string,expectedRevision:number) {
+    ensure(!this.closing,"SERVICE_CLOSING","Service closing.",503);
+    const key="detect:"+id("request"),work=this.performDetectSource(sourceId,expectedRevision,key).finally(()=>this.jobs.delete(key));
+    this.jobs.set(key,work);return work;
+  }
+  private async performDetectSource(sourceId:string,expectedRevision:number,key:string) {
+    ensure(!this.closing,"SERVICE_CLOSING","Service closing.",503);
+    this.sourceConfiguration(sourceId);
+    const source=this.repo.get("capability_sources",sourceId),context=this.repo.get("host_contexts",source.contextId);
+    ensure(source.revision===expectedRevision,"CAPABILITY_STALE","Source changed; reopen connection settings.",409);
+    const connection=this.repo.get("connections",source.preparedConnectionId??"");
+    ensure(connection?.sourceFingerprint===source.sourceFingerprint,"CREDENTIALS_REQUIRED","Save connection configuration first.");
+    const latest=()=>this.repo.db.prepare("SELECT id FROM discovery_jobs WHERE json_extract(body,'$.contextId')=? ORDER BY json_extract(body,'$.generation') DESC LIMIT 1").get(context.id) as Json;
+    const jobId=latest()?.id,job=jobId&&this.repo.get("discovery_jobs",jobId);
+    ensure(job&&terminal.includes(job.status),"SCAN_IN_PROGRESS","Wait for the current scan to finish.",409);
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),this.options.sourceTimeoutMs??10000);
+    this.controls.set(key,controller);
+    try {
+      const config=await resolveSource(context,source.locator,{signal:controller.signal},this.options.hostRuntime);
+      ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source file changed; rescan first.",409);
+      const result=await this.engine.connectors.discover(connection,{signal:controller.signal,deadline:Date.now()+(this.options.sourceTimeoutMs??10000)});
+      ensure(!controller.signal.aborted&&!this.closing,"DISCOVERY_CANCELLED","Connection detection cancelled or timed out.");
+      ensure(!this.discoveredSelf(result),"SELF_REFERENCE_DENIED","FlowHub cannot be its own downstream.");
+      return this.repo.tx(()=>{
+        ensure(this.repo.get("host_contexts",context.id)?.revision===context.revision&&latest()?.id===jobId,"CONTEXT_CHANGED","Discovery changed during detection; retry with the current source.",409);
+        ensure(hash(this.repo.get("capability_sources",sourceId))===hash(source)&&hash(this.repo.get("connections",connection.id))===hash(connection),"CAPABILITY_STALE","Connection changed during detection.",409);
+        const seen=new Set<string>();
+        for(const tool of result.tools) {
+          const enabled=toolEnabled(config,tool.name),cap=this.putCapability({id:"cap_"+hash([context.id,source.sourceKey,tool.name]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:"mcp_tool",name:tool.name,description:tool.description??"",executor:"hub_direct",availability:enabled?"ready":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",inputSchema:tool.inputSchema,outputSchema:tool.outputSchema??null,tool,sourceRefs:[{sourceId,revision:source.revision}],provenance:{synthetic:false,discovered:true}});seen.add(cap.id);
+        }
+        for(const cap of this.contextCapabilities(context.id))if(cap.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!seen.has(cap.id))this.putCapability({...cap,stale:true});
+        this.repo.put("capability_sources",sourceId,{...source,discovery:"schema_discovered",availability:"ready",lastCatalogAt:now(),lastObservation:{...source.lastObservation,connectionChecked:true,at:now()}});
+        this.refreshConfigurationCatalog(context);
+        this.repo.changed("connection.catalog.checked",{sourceId,contextId:context.id});
+        return {status:"catalog_ready",toolCount:result.tools.length,sourceId,connectionId:connection.id,resourceBindingVerified:false};
+      });
+    } finally {
+      clearTimeout(timer);this.controls.delete(key);
+    }
   }
   scan(a:Json,owner="admin") {
     input("host_scan",a);ensure(!this.closing,"SERVICE_CLOSING","Discovery is shutting down.",503);
@@ -166,7 +250,7 @@ export class CapabilityRegistry {
           connectionSetup:policy.credentialArgs||policy.embeddedUrl||policy.unsupported||!referenceCredentials?"manual":direct?"references":"host",
           enabled:source.enabled,sourceFingerprint,revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,
           self,executor:self?"informational":direct?"hub_direct":"codex_host",discovery:"metadata_only",installation:"installed",
-          availability:!source.enabled?"disabled":policy.credentialArgs||policy.embeddedUrl?"credentials_required":policy.unsupported?"unsupported":policy.requiresCredentials?"credentials_required":"not_checked",credentialPolicyVersion:3,unsupportedReason:policy.unsupportedArgs?"LAUNCHER_ARGUMENTS_UNSUPPORTED":policy.unsupported?"SOURCE_CONFIGURATION_UNSUPPORTED":null,credentialVariables:policy.credentialVariables,discoveredAt:now(),stale:false};
+          availability:!source.enabled?"disabled":policy.credentialArgs||policy.embeddedUrl?"credentials_required":policy.unsupported?"unsupported":policy.requiresCredentials?"credentials_required":"not_checked",credentialPolicyVersion:3,unsupportedReason:policy.unsupportedArgs?"LAUNCHER_ARGUMENTS_UNSUPPORTED":policy.unsupported?"SOURCE_CONFIGURATION_UNSUPPORTED":null,credentialVariables:policy.credentialVariables,configurationFields:configurationFields(source.config,source.name),discoveredAt:now(),stale:false};
         const sameSource=prior?.sourceFingerprint===sourceFingerprint&&prior?.contextRevision===context.revision&&!prior?.stale;
         if(depth==="metadata"&&sameSource) {
           value.discovery=prior.discovery;value.availability=prior.availability;value.self=prior.self;value.executor=prior.executor;

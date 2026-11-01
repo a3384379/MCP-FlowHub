@@ -344,7 +344,13 @@ export class DiscoveryCatalog {
         ? null
         : entities.filter((e) => e.entityKind === kind && !e.stale).length ||
           (job.coverage === "complete" ? 0 : null);
-    const issues = current ? job?.issues ?? [] : [],
+    const issues = current ? (job?.issues ?? []).filter((issue:Json)=>{
+      const source=issue.sourceId?this.repo.get("capability_sources",issue.sourceId):null;
+      if(!source)return true;
+      if(issue.code==="CREDENTIALS_REQUIRED"&&source.preparedConnectionId)return false;
+      if(["CONNECTION_FAILED","AUTH_REQUIRED","CREDENTIAL_LOCKED"].includes(issue.code)&&source.discovery==="schema_discovered"&&source.availability==="ready")return false;
+      return true;
+    }) : [],
       actionable = entities.filter(
         (e) =>
           current &&

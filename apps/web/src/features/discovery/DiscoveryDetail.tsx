@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ConnectionSetup } from "./ConnectionSetup";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
 import {
   displayName,
@@ -87,9 +88,7 @@ export function DiscoveryDetail({
   const [environment, setEnvironment] = useState("test"),
     [lockedArguments, setLockedArguments] = useState("{}"),
     [credentials, setCredentials] = useState(false),
-    [refs, setRefs] = useState<Record<string, string>>({}),
     [secrets, setSecrets] = useState<Entity[]>([]),
-    [importInline, setImportInline] = useState(false),
     [credentialTarget, setCredentialTarget] = useState<{ sourceId: string; revision: number } | null>(null);
   const generation = useRef(0),
     readGeneration = useRef(0),
@@ -106,8 +105,6 @@ export function DiscoveryDetail({
       const values = await api("/secrets");
       if (!ownsActivation()) return;
       setSecrets(values);
-      setRefs({});
-      setImportInline(false);
       setCredentialTarget(target);
       setNotice("");
       setEditing(false);
@@ -264,27 +261,6 @@ export function DiscoveryDetail({
             : "仍需要连接配置：" + (result.missing ?? []).join("、"),
       );
     });
-  const configure = () =>
-    run(async (current) => {
-      if (!credentialTarget) throw new Error("请重新打开连接凭据配置。");
-      const result = await v2(
-        "/capability-sources/" + credentialTarget.sourceId + "/credentials",
-        "POST",
-        {
-          expectedRevision: credentialTarget.revision,
-          secretRefs: Object.fromEntries(
-            Object.entries(refs).filter(([, value]) => value),
-          ),
-          importInlineCredentials: importInline,
-          idempotencyKey: crypto.randomUUID(),
-        },
-      );
-      if (result.status !== "credentials_configured") throw new Error("凭据引用尚未保存。");
-      if (!current()) return;
-      setCredentials(false);
-      setNotice("凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。");
-      await onChanged();
-    });
   const beginCredentials = () =>
     run((current) => activateCredentialForm(entity!, current));
   const canImport = (e: Entity) =>
@@ -305,6 +281,7 @@ export function DiscoveryDetail({
           ? "执行原始技能；中文仅用于阅读。"
           : "工具目录读取成功不等于执行验证。"}
       </span>
+      {!editing && !credentials && !importTarget && !entity.stale && !entity.self && entity.entityKind === "mcp_server" && entity.executor === "hub_direct" && entity.connectionSetup !== "manual" && entity.availability !== "credentials_required" && <button disabled={working} onClick={() => void beginCredentials()}>连接配置</button>}
       {editing ? (
         <div className="d-actions">
           <button
@@ -325,13 +302,10 @@ export function DiscoveryDetail({
           </button>
         </div>
       ) : credentials ? (
-        <button
-          className="primary"
-          disabled={working}
-          onClick={() => void configure()}
-        >
-          保存连接引用
-        </button>
+        <div className="d-actions">
+          <button disabled={working} type="submit" form={"connection-setup-" + entity.id} name="action" value="save">保存配置</button>
+          <button className="primary" disabled={working} type="submit" form={"connection-setup-" + entity.id} name="action" value="detect">{working ? "处理中…" : "保存并检测连接"}</button>
+        </div>
       ) : importTarget ? (
         <button
           className="primary"
@@ -369,7 +343,7 @@ export function DiscoveryDetail({
           disabled={working}
           onClick={() => void beginCredentials()}
         >
-          配置连接凭据
+          连接配置
         </button>
       ) : entity.entityKind === "mcp_server" &&
         !entity.self &&
@@ -481,62 +455,9 @@ export function DiscoveryDetail({
               ))}
             </div>
           ) : credentials ? (
-            <div className="d-edit-form">
-              <h3>选择本地凭据引用</h3>
-              <p>
-                凭据由本地 Vault 加密保存；不会复制 Codex OAuth。Vault
-                锁定时请先到接入设置解锁。
-              </p>
-              {credentialTarget && credentialTarget.revision !== entity.configurationRevision && (
-                <p className="d-notice" role="status">
-                  来源配置已更新，当前凭据草稿保留原配置修订。请保留选择并重新核对；返回详情后可重新打开配置。
-                </p>
-              )}
-              {(entity.credentialVariables ?? []).map((name: string) => (
-                <label key={name}>
-                  {name}
-                  <select
-                    disabled={working}
-                    aria-label={name}
-                    value={refs[name] ?? ""}
-                    onChange={(e) =>
-                      setRefs({ ...refs, [name]: e.target.value })
-                    }
-                  >
-                    <option value="">选择已有凭据</option>
-                    {secrets.map((secret) => (
-                      <option key={secret.id} value={secret.id}>
-                        {secret.label} · {secret.id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-              <label className="d-check">
-                <input
-                  disabled={working}
-                  type="checkbox"
-                  checked={importInline}
-                  onChange={(e) => setImportInline(e.target.checked)}
-                />
-                将来源配置中已有的内联凭据存入本地 Vault
-              </label>
-              <div className="d-actions">
-                <button
-                  disabled={working}
-                  onClick={() => onManage({ type: "vault", name: entity.name })}
-                >
-                  添加凭据
-                </button>
-                <button disabled={working} onClick={() => onManage({ type: "unlock" })}>
-                  解锁凭据库
-                </button>
-              </div>
-              {!secrets.length && (
-                <p>尚无可选凭据。先添加凭据，再返回此处选择对应引用。</p>
-              )}
-              <button disabled={working} onClick={() => setCredentials(false)}>返回详情</button>
-            </div>
+            <ConnectionSetup key={entity.id + ":" + credentialTarget?.revision} api={api} entity={entity} initialSecrets={secrets}
+              formId={"connection-setup-" + entity.id} onBusy={setWorking} onChanged={onChanged}
+              onManage={() => onManage({ type: "library" })} />
           ) : importTarget ? (
             <div className="d-edit-form">
               <h3>导入：{displayName(importTarget, english)}</h3>

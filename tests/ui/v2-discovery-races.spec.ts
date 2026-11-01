@@ -262,10 +262,10 @@ test("description and credential fields remain locked while their save HTTP requ
     });
     await page.getByRole("tab", { name: /需处理/ }).click();
     await expect.poll(() => catalogWaiting).toBe(true);
-    await page.getByRole("button", { name: "配置凭据", exact: true }).click(); dialog = page.getByRole("dialog");
+    await page.getByRole("button", { name: "连接配置", exact: true }).click(); dialog = page.getByRole("dialog");
     await expect.poll(() => secretRequests).toBe(1);
     // A later explicit activation may complete before the initial automatic Vault list.
-    await dialog.getByRole("button", { name: "配置连接凭据", exact: true }).click();
+    await dialog.getByRole("button", { name: "连接配置", exact: true }).click();
     await expect.poll(() => secretRequests).toBe(2); manualSecrets.release();
     await dialog.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption(secret.id);
     const autoFinished = page.waitForEvent("requestfinished", request => new URL(request.url()).pathname === "/api/v1/secrets");
@@ -273,9 +273,9 @@ test("description and credential fields remain locked while their save HTTP requ
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
     await page.route("**/api/v2/capability-sources/*/credentials", async route => { credentialsWaiting = true; await credentials.promise; await route.continue(); });
-    await dialog.getByRole("button", { name: "保存连接引用", exact: true }).click(); await expect.poll(() => credentialsWaiting).toBe(true);
+    await dialog.getByRole("button", { name: "保存配置", exact: true }).click(); await expect.poll(() => credentialsWaiting).toBe(true);
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toBeDisabled();
-    await expect(dialog.getByRole("checkbox", { name: "将来源配置中已有的内联凭据存入本地 Vault" })).toBeDisabled();
+    await expect(dialog.getByRole("checkbox", { name: "使用来源已有配置（加密保存）" })).toBeDisabled();
     // The delayed issue-list snapshot must not reset this same entity's form or pending action.
     const reloaded = page.waitForResponse(r => r.url().endsWith("/api/v2/discovery/entities/" + source.id));
     catalog.release(); await reloaded;
@@ -288,8 +288,8 @@ test("description and credential fields remain locked while their save HTTP requ
     expect(saved.request().postDataJSON()).toMatchObject({ expectedRevision: source.configurationRevision, secretRefs: { SYNTHETIC_AUTH: secret.id } });
     const connection = (await f.api("/api/v1/connections")).find((c: any) => c.id === receipt.connectionId);
     expect(connection).toMatchObject({ id: receipt.connectionId, secretRef: secret.id });
-    await expect(dialog.getByText("凭据引用已保存。请重新同步工具目录，之后再独立验证资源绑定。")).toBeVisible();
-    await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText("连接配置已保存。可检测连接并读取工具目录，资源绑定仍需独立验证。")).toBeVisible();
+    await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
   } finally { description.release(); credentials.release(); catalog.release(); autoSecrets.release(); manualSecrets.release(); await f.close(); }
 });
 
@@ -302,13 +302,13 @@ test("a credential draft keeps its original configuration revision through a sou
       connections = (await f.api("/api/v1/connections")).map((c: any) => c.id);
     await page.getByRole("tab", { name: /需处理/ }).click(); await f.pendingScan();
     await page.getByRole("button", { name: "查看详情", exact: true }).click(); const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: "配置连接凭据", exact: true }).click();
+    await dialog.getByRole("button", { name: "连接配置", exact: true }).click();
     await dialog.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption(secret.id);
     await writeFile(f.servers, (await readFile(f.servers, "utf8")).replace("https://synthetic.invalid/mcp", "https://changed-synthetic.invalid/mcp"));
-    await f.release(); await expect(dialog.getByText(/当前凭据草稿保留原配置修订/)).toBeVisible();
+    await f.release(); await expect(dialog.getByText(/当前填写保留读取时的版本/)).toBeVisible();
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
     const rejectedResponse = page.waitForResponse(r => /\/api\/v2\/capability-sources\/[^/]+\/credentials$/.test(new URL(r.url()).pathname) && r.request().method() === "POST");
-    await dialog.getByRole("button", { name: "保存连接引用", exact: true }).click(); const rejected = await rejectedResponse;
+    await dialog.getByRole("button", { name: "保存配置", exact: true }).click(); const rejected = await rejectedResponse;
     expect(rejected.status()).toBe(409); expect((await rejected.json()).error.code).toBe("CAPABILITY_STALE");
     expect(rejected.request().postDataJSON().expectedRevision).toBe(source.configurationRevision);
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);

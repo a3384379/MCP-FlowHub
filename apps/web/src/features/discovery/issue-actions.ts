@@ -1,5 +1,5 @@
 export type DiscoveryDestination = {
-  type: "connection" | "vault" | "unlock";
+  type: "connection" | "vault" | "unlock" | "library";
   name?: string;
 };
 export type Issue = Record<string, any>;
@@ -35,8 +35,8 @@ export function issueAction(issue: Issue) {
   )
     return {
       type: "credentials",
-      label: "配置凭据",
-      help: "选择本地凭据引用并保存，再同步工具目录。没有凭据时可先添加，凭据库锁定时可直接解锁。",
+      label: "连接配置",
+      help: "在当前抽屉填写配置、选择已有项或就地新增，并解锁本地库。保存后可检测连接和读取本服务工具目录。",
     };
   if (code === "CATALOG_NOT_SYNCED" && issue.executor !== "codex_host")
     return {

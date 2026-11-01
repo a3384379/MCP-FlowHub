@@ -970,6 +970,40 @@
 .d-edit-form .d-check input {
   width: auto;
 }
+.d-config-group {
+  display: grid;
+  gap: 14px;
+}
+.d-config-group h4 {
+  margin: 4px 0;
+}
+.d-config-field, .d-config-unlock {
+  border: 1px solid #dce6f3;
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  background: #fbfdff;
+}
+.d-config-field code {
+  display: block;
+  font-size: 11px;
+  color: #71839b;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.d-config-field label, .d-config-new {
+  display: grid;
+  gap: 8px;
+}
+.d-config-field p {
+  margin: 0;
+}
+.d-vault-status {
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #eef4ff;
+}
 .d-task-label {
   display: block;
   font-size: 12px;

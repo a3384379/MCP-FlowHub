@@ -302,7 +302,7 @@ export function DiscoveryPage({
                 <option value="">全部状态</option>
                 <option value="ready">可导入</option>
                 <option value="host_only">仅宿主</option>
-                <option value="credentials_required">缺凭据</option>
+                <option value="credentials_required">缺连接配置</option>
                 <option value="not_checked">待同步</option>
                 <option value="disabled">已停用</option>
                 <option value="unsupported">需手动登记</option>

@@ -57,7 +57,7 @@ export class AssistantCore {
       ensure(!before?.secretRef||apiKey!==undefined||new URL(before.baseUrl).origin===new URL(value.baseUrl).origin,"MODEL_CREDENTIAL_SCOPE_MISMATCH","A new service origin needs its own API Key.");
       const identityChanged=!!before&&["providerKind","baseUrl","model"].some(key=>before[key]!==value[key])||apiKey!==undefined;
       const profile={...before,...value,id:profileId??id("model"),revision:(before?.revision??0)+1,timeoutMs:value.timeoutMs??before?.timeoutMs??180000,
-        secretRef:apiKey?this.app.engine.vault.addSecret("Model API credential",apiKey).id:before?.secretRef??null,
+        secretRef:apiKey?this.app.engine.vault.addSecret("Model API credential",apiKey,{purpose:"model_api"}).id:before?.secretRef??null,
         lastTestAt:identityChanged?null:before?.lastTestAt??null,capabilities:identityChanged?{text:"unknown",tools:"unknown",stream:"unknown"}:before?.capabilities??{text:"unknown",tools:"unknown",stream:"unknown"},createdAt:before?.createdAt??now()};
       this.repo.put("model_profiles",profile.id,profile,before?.revision);
       return {...profile,keyConfigured:!!profile.secretRef};
