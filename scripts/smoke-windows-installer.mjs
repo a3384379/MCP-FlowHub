@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { once } from "node:events";
 import { promisify } from "node:util";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -125,11 +125,13 @@ try {
   const shortcutsDir = join(process.env.APPDATA, "Microsoft/Windows/Start Menu/Programs/MCP FlowHub");
   const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
   const shortcutResult = await exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
-    "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false); $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:FLOWHUB_SHORTCUT_PATH); @{target=$s.TargetPath;arguments=$s.Arguments}|ConvertTo-Json -Compress"],
+    "$ErrorActionPreference='Stop'; $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:FLOWHUB_SHORTCUT_PATH); $json=@{target=$s.TargetPath;arguments=$s.Arguments}|ConvertTo-Json -Compress; [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($json))"],
   { env: { ...env, FLOWHUB_SHORTCUT_PATH: join(shortcutsDir, "Start FlowHub.lnk") }, windowsHide: true });
-  const shortcut = JSON.parse(shortcutResult.stdout);
-  assert.equal(shortcut.target.toLowerCase(), runtime.toLowerCase());
-  assert.equal(shortcut.arguments, `"${entry}" serve`);
+  const shortcut = JSON.parse(Buffer.from(shortcutResult.stdout.trim(),"base64").toString("utf16le"));
+  assert.equal((await realpath(shortcut.target)).toLowerCase(), (await realpath(runtime)).toLowerCase());
+  const shortcutArguments = /^"([^"]+)" serve$/.exec(shortcut.arguments);
+  assert.ok(shortcutArguments,"Shortcut must launch exactly the installed CLI serve command.");
+  assert.equal((await realpath(shortcutArguments[1])).toLowerCase(), (await realpath(entry)).toLowerCase());
   assert.match(await readFile(join(shortcutsDir, "Open management.url"), "utf8"), /URL=http:\/\/127\.0\.0\.1:18473\//);
   checks.push("native offline install in a Unicode and space path; complete payload integrity");
   checks.push("actual flowhub.cmd launcher and current-user Start Menu targets");

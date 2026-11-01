@@ -683,17 +683,17 @@ for (const scenario of [
           .poll(() => page.evaluate(() => visualViewport!.width))
           .toBeCloseTo(scenario.width / scenario.scale, 0);
         const gesture = await page.evaluate(() => ({
-          // The sidebar intentionally owns menu scrolling. Pan the page's
-          // visible main/header area rather than that independent container.
-          x: Math.min(260, visualViewport!.width - 20), y: 80,
+          x: visualViewport!.width * 0.75,
+          y: visualViewport!.height * 0.35,
         }));
-        await cdp.send("Input.synthesizeScrollGesture", {
-          ...gesture,
-          xDistance: -60,
-          yDistance: -50,
-          gestureSourceType: "touch",
-          speed: 600,
-        });
+        // Dispatch actual touch input. Chromium's synthetic scroll command can
+        // scroll a document/container without panning its zoomed visual viewport.
+        await cdp.send("Input.dispatchTouchEvent", { type:"touchStart", touchPoints:[gesture] });
+        for(let step=1;step<=12;step++) {
+          await cdp.send("Input.dispatchTouchEvent", { type:"touchMove", touchPoints:[{x:gesture.x-50*step/12,y:gesture.y-40*step/12}] });
+          await page.evaluate(() => new Promise(requestAnimationFrame));
+        }
+        await cdp.send("Input.dispatchTouchEvent", { type:"touchEnd", touchPoints:[] });
         await expect
           .poll(() =>
             page.evaluate(
