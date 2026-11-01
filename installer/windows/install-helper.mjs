@@ -91,19 +91,21 @@ export async function inspectWindowsProcesses() {
   const started = Date.now();
   await diagnostic("process-inspection-start");
   try {
-    const { stdout } = await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-InputFormat", "None", "-OutputFormat", "Text", "-Command",
-      "$ErrorActionPreference='Stop'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); @(Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress"],
-    { windowsHide: true, timeout: 30_000, maxBuffer: 16 * 1024 * 1024,
+    const command = "$ErrorActionPreference='Stop'; function Write-Phase($phase) { if($env:FLOWHUB_INSTALLER_DIAGNOSTICS) { try { [IO.File]::AppendAllText($env:FLOWHUB_INSTALLER_DIAGNOSTICS+'.powershell.log',[DateTime]::UtcNow.ToString('o')+' '+$phase+[Environment]::NewLine) } catch {} } }; Write-Phase 'started'; [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); Write-Phase 'query-start'; $records=@(Get-CimInstance -Query 'SELECT ProcessId,ExecutablePath,CommandLine FROM Win32_Process' -ErrorAction Stop | Select-Object ProcessId,ExecutablePath,CommandLine); Write-Phase 'query-complete'; $records | ConvertTo-Json -Compress; Write-Phase 'output-complete'";
+    const execution = execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-InputFormat", "None", "-OutputFormat", "Text", "-Command", command],
+    { windowsHide: true, timeout: 60_000, maxBuffer: 16 * 1024 * 1024,
       // Installer smoke deliberately removes global Node/npm from PATH. Give
       // only this OS probe the Windows utilities and built-in CIM module path.
       env: probeEnv });
+    execution.child.once("exit", (code, signal) => { void diagnostic("process-inspection-exit", { code, signal, elapsedMs: Date.now() - started }); });
+    const { stdout } = await execution;
     const records = JSON.parse(stdout);
     const result = records === null ? [] : Array.isArray(records) ? records : [records];
     if (result.some((p) => !Number.isInteger(p.ProcessId))) throw new Error("Invalid process inventory");
     await diagnostic("process-inspection-complete", { count: result.length, elapsedMs: Date.now() - started });
     return result;
   } catch (error) {
-    await diagnostic("process-inspection-failed", { elapsedMs: Date.now() - started, code: typeof error.code === "number" ? error.code : /^[A-Z_]+$/.test(error.code ?? "") ? error.code : "INVALID_OUTPUT", signal: error.signal ?? null, killed: error.killed === true });
+    await diagnostic("process-inspection-failed", { elapsedMs: Date.now() - started, code: typeof error.code === "number" ? error.code : /^[A-Z_]+$/.test(error.code ?? "") ? error.code : "INVALID_OUTPUT", signal: error.signal ?? null, killed: error.killed === true, stdoutBytes: Buffer.byteLength(error.stdout ?? ""), stderrBytes: Buffer.byteLength(error.stderr ?? "") });
     fail("INSTALL_PROCESS_CHECK_FAILED", "Windows process inspection failed. No files were replaced; allow the approved local PowerShell/CIM check and retry.");
   }
 }

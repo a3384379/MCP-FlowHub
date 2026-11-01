@@ -99,7 +99,7 @@ Section "MCP FlowHub (offline)" SEC_MAIN
   File /oname=node.exe "${FLOWHUB_BUNDLE}\runtime\node.exe"
   File /oname=install-helper.mjs "${FLOWHUB_HELPER}"
   File /oname=payload-manifest.json "${FLOWHUB_MANIFEST}"
-  nsExec::ExecToStack /TIMEOUT=60000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
+  nsExec::ExecToStack /TIMEOUT=90000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
   !insertmacro CheckHelper
   SetOutPath "$PLUGINSDIR\payload"
   File /r "${FLOWHUB_BUNDLE}\*"

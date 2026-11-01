@@ -25,7 +25,9 @@ jobs:
         if: always() && !cancelled()
         with:
           name: windows-process-probe
-          path: ${{ runner.temp }}/flowhub-process-probe.log.node.log
+          path: |
+            ${{ runner.temp }}/flowhub-process-probe.log.node.log
+            ${{ runner.temp }}/flowhub-process-probe.log.powershell.log
           if-no-files-found: warn
           retention-days: 14
   poc:
