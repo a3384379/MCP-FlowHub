@@ -92,9 +92,34 @@ test("Mock text fixtures use the same declared adapter and raw result semantics 
     if(scenario.error)await assert.rejects(f.connectors.call(binding,{id:"read",config},{mode:scenario.mode},5000),{code:scenario.error});
     else {
       const actual=await f.connectors.call(binding,{id:"read",config},{mode:scenario.mode},5000);assert.deepEqual(r.cases[0].outputs.read,actual);
+      if(scenario.adapter==="text"){assert.equal(actual.text,raw.content.map(c=>c.text).join("\n"));assert.deepEqual(actual.content,raw.content);}
       if(scenario.adapter)assert.ok(r.cases[0].artifacts.some((a:Json)=>a.mimeType==="application/mcp+json"));
     }
   }
+  await t.test("text-only MCP output can publish into end and analysis mappings and execute",async sub=>{
+    const h=setup(sub,"guided");
+    h.repo.put("connections",connection.id,connection);h.repo.put("bindings",binding.id,binding);
+    const config={...base,resultAdapterRef:"text"};
+    wire(h,{op:"add_node",nodeId:"read",nodeType:"mcp_tool",title:"read",config},[{op:"set_binding",key:"data",bindingId:binding.id}]);
+    h.app.authoring.patch({workflowId:"reaudit",expectedRevision:2,idempotencyKey:"whole-result",operations:[{op:"update_node",nodeId:"end",changes:{config:{resultRef:{ref:{source:"node",nodeId:"read",pointer:""}}}}}]});
+    assert.deepEqual(h.app.authoring.validate({workflowId:"reaudit",expectedRevision:3,level:"publish"}).issues,[]);
+    h.app.authoring.publish({workflowId:"reaudit",expectedRevision:3,version:"1.0.0",expectedBindingRevisions:{[binding.id]:binding.revision},expectedCapabilityRevisions:{},idempotencyKey:"publish-whole"});
+    const outputSchema={type:"object",properties:{summary:{type:"string"}},required:["summary"],additionalProperties:false};
+    const mapped=h.app.authoring.patch({workflowId:"reaudit",expectedRevision:h.app.authoring.get("reaudit").revision,idempotencyKey:"map-text",operations:[
+      {op:"add_node",nodeId:"analysis",nodeType:"agent_task",title:"analysis",config:{kind:"analysis",executorRef:"codex_host",instructions:"Read the mapped synthetic text",inputMappings:{"/message":{ref:{source:"node",nodeId:"read",pointer:"/text"}}},outputSchema}},
+      {op:"disconnect",source:"read",target:"end",port:"next"},{op:"connect",source:"read",target:"analysis",port:"next"},{op:"connect",source:"analysis",target:"end",port:"next"},
+      {op:"update_node",nodeId:"end",changes:{config:{resultRef:{ref:{source:"node",nodeId:"analysis",pointer:""}}}}}
+    ]});
+    h.app.authoring.publish({workflowId:"reaudit",expectedRevision:mapped.revision,version:"1.0.1",expectedBindingRevisions:{[binding.id]:binding.revision},expectedCapabilityRevisions:{},idempotencyKey:"publish-analysis"});
+    const accepted=h.engine.start({workflowId:"reaudit",version:"1.0.1",mode:"guided",inputs:{},idempotencyKey:"live-text"});
+    let checkpoint:Json;for(let i=0;i<200;i++){checkpoint=h.engine.status(accepted.runId);if(["WAITING_AGENT","FAILED"].includes(checkpoint.state))break;await new Promise(resolve=>setTimeout(resolve,10));}
+    assert.equal(checkpoint!.state,"WAITING_AGENT",JSON.stringify(checkpoint));
+    assert.deepEqual(checkpoint!.checkpoint.inputs,{message:"Synthetic raw text result"});
+    h.engine.advance({runId:accepted.runId,checkpointId:checkpoint!.checkpoint.id,checkpointToken:checkpoint!.checkpoint.token,expectedRevision:checkpoint!.revision,idempotencyKey:"advance-text",submission:{type:"agent_result",payload:{summary:"Synthetic mapped text was received"}}});
+    for(let i=0;i<100&&h.engine.status(accepted.runId).state!=="SUCCEEDED";i++)await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(h.engine.status(accepted.runId).state,"SUCCEEDED");
+    assert.equal(h.repo.get("runs",accepted.runId).outputs.read.text,"Synthetic raw text result");
+  });
   await t.test("json_text validates parsed data against the actual discovered schema",async sub=>{
     const h=setup(sub),out={type:"object",properties:{count:{type:"integer"}},required:["count"],additionalProperties:false},schemaTool={name:"read",inputSchema,outputSchema:out,schemaHash:"sha256:"+hash({inputSchema,outputSchema:out})};
     h.repo.put("connections","metadata",{id:"metadata",revision:1,tools:[schemaTool]});h.repo.put("bindings","binding",{...binding,id:"binding",connectionId:"metadata",connectionRevision:1});

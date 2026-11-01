@@ -1,0 +1,97 @@
+▶ accepted test baselines stay stale after same-fixture suite regeneration and capability drift
+  ✔ changing then restoring fixture contents does not renew a run at the same draft revision (197.085417ms)
+  ✔ capability changes compare against the accepted run (197.36225ms)
+✔ accepted test baselines stay stale after same-fixture suite regeneration and capability drift (748.25475ms)
+▶ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector
+  ✖ text-only MCP output can publish into end and analysis mappings and execute (98.064458ms)
+  ✔ json_text validates parsed data against the actual discovered schema (280.990792ms)
+✖ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector (1813.994458ms)
+▶ v2 host_tool preserves bounded native object schemas without weakening frozen result checks
+  ✔ omitted additionalProperties (200.5495ms)
+  ✔ explicit open object (220.679416ms)
+  ✔ nonrecursive local definitions (195.682833ms)
+  ✔ local object root reference (194.395334ms)
+  ✔ remote ref (94.754917ms)
+  ✔ dynamic ref (93.633291ms)
+  ✔ reference scope override (94.2965ms)
+  ✔ recursive ref (93.900709ms)
+  ✔ mutually recursive refs (95.644667ms)
+  ✔ ref into inert literal (102.046166ms)
+  ✔ unsafe pattern (112.366042ms)
+  ✔ scalar root (97.015458ms)
+  ✔ excessive schema depth (103.041833ms)
+  ✔ excessive ref expansion (97.343209ms)
+  ✔ exponential acyclic ref expansion (101.491292ms)
+  ✔ excessive schema bytes (98.883041ms)
+  ✔ excessive inert literal nodes (94.627333ms)
+  ✔ v1 and analysis keep their strict data schema (93.76875ms)
+✔ v2 host_tool preserves bounded native object schemas without weakening frozen result checks (2185.629333ms)
+✔ expired test command replays stay tombstoned and historical CANCELLED remains terminal (190.41575ms)
+✔ successful vault verification clears attempts while consecutive wrong passwords remain limited (1661.050375ms)
+✔ SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets (945.139709ms)
+✔ draft PUT updates only an existing stable workflow ID and enforces its revision (523.764958ms)
+✖ whole Web draft saves reject unseen layout operations without losing either edit (488.518917ms)
+✔ publish requires the reviewed draft revision and cannot publish a concurrent save (522.862375ms)
+✔ public health, auth and static routes stay available; admin session and schema routes stay protected (582.675791ms)
+✔ MCP route authentication covers encoded and absolute targets and preserves scoped host identity (488.877ms)
+✔ MCP factory fails closed when the adapter receives no authentication context (1.754708ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 31
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5467.003667
+
+✖ failing tests:
+
+test at dist/tests/engine/v2-authoring-reaudit.test.js:121:13
+✖ text-only MCP output can publish into end and analysis mappings and execute (98.064458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + [
+  +   {
+  +     code: 'REFERENCE_INVALID',
+  +     message: 'Reference schema missing.',
+  +     nodeId: 'end',
+  +     path: '/nodes/1/config/resultRef'
+  +   }
+  + ]
+  - []
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/v2-authoring-reaudit.test.js:128:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at TestContext.test (node:internal/test_runner/test:394:20)
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/engine/v2-authoring-reaudit.test.js:121:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { code: 'REFERENCE_INVALID', message: 'Reference schema missing.', nodeId: 'end', path: '/nodes/1/config/resultRef' } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at dist/tests/poc/http-auth.test.js:223:1
+✖ whole Web draft saves reject unseen layout operations without losing either edit (488.518917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  200 !== 409
+
+      at TestContext.<anonymous> (file:///Users/sqz/Documents/ChatGPT/mcp%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7/dist/tests/poc/http-auth.test.js:236:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 409,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

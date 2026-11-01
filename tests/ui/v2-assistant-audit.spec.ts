@@ -16,6 +16,36 @@ const currentSession=(page:any)=>page.getByRole("region",{name:"FlowHub 助手�
 async function newChat(page:any) { const before=await currentSession(page);await page.getByRole("button",{name:"新建会话",exact:true}).click();await expect.poll(()=>currentSession(page)).not.toBe(before); }
 async function chooseChat(page:any,id:string) { await page.getByRole("button",{name:"历史对话",exact:true}).click();await page.getByLabel("助手会话",{exact:true}).selectOption(id); }
 const completed=(page:any)=>page.locator('.assistant-turn[data-status="COMPLETED"]');
+
+test("Web save detects an unseen layout operation and merges before retrying",async({page})=>{
+  const api=await authenticated(page),workflowId="layout-web-"+randomUUID().slice(0,8);
+  await api("/api/v2/workflows","POST",{workflowId,name:"Layout concurrency",environment:"test",mode:"auto",template:"blank",idempotencyKey:randomUUID()});
+  // Model the actual lost/delayed SSE case: the Web draft keeps its old layout.
+  await page.route("**/api/v2/events*",route=>route.abort());
+  await page.goto("/workflows/"+workflowId+"/editor");
+  await page.locator('.react-flow__node[data-id="input"]').click();
+  await page.getByLabel("节点名称",{exact:true}).fill("Retained Web node edit");
+  const initial=await api("/api/v2/workflows/"+workflowId+"/draft");
+  await api("/api/v2/workflows/"+workflowId+"/operations","POST",{expectedRevision:initial.revision,idempotencyKey:randomUUID(),operations:[{op:"move_nodes",expectedLayoutRevision:initial.layoutRevision,positions:[{nodeId:"input",x:180,y:90}]}]},initial.revision);
+  const saved=page.waitForResponse(r=>r.request().method()==="PUT"&&r.url().endsWith("/"+workflowId+"/draft"));
+  await page.getByRole("button",{name:"保存草稿",exact:true}).click();
+  const rejected=await saved;expect(rejected.status()).toBe(409);
+  expect(rejected.request().postDataJSON().expectedLayoutRevision).toBe(initial.layoutRevision);
+  await expect(page.getByRole("region",{name:"草稿冲突处理",exact:true})).toBeVisible();
+  await expect(page.getByLabel("节点名称",{exact:true})).toHaveValue("Retained Web node edit");
+  expect((await api("/api/v2/workflows/"+workflowId+"/draft")).layout.input).toEqual({x:180,y:90});
+  await page.getByRole("button",{name:"重新尝试合并",exact:true}).click();
+  // The initial draft has no persisted positions; choose the remote coordinates
+  // when its first move conflicts with the canvas's default display positions.
+  await page.getByRole("button",{name:"使用服务端：/layout/input/x",exact:true}).click();
+  await page.getByRole("button",{name:"使用服务端：/layout/input/y",exact:true}).click();
+  await expect(page.getByRole("region",{name:"草稿冲突处理",exact:true})).toHaveCount(0);
+  await page.getByRole("button",{name:"保存草稿",exact:true}).click();
+  await expect.poll(async()=>(await api("/api/v2/workflows/"+workflowId+"/draft")).revision).toBe(initial.revision+1);
+  const final=await api("/api/v2/workflows/"+workflowId+"/draft");
+  expect(final.layout.input).toEqual({x:180,y:90});
+  expect(final.draft.nodes.find((n:any)=>n.id==="input").title).toBe("Retained Web node edit");
+});
 test("formal assistant UI rejects negative execution, displays context/config, and deletes session",async({page})=>{
   const api=await authenticated(page),requests:any[]=[],workflowId="intent-ui-"+randomUUID().slice(0,8);
   const server=createServer(async(req,res)=>{let text="";for await(const part of req)text+=part;const body=JSON.parse(text);requests.push(body);res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({choices:[{finish_reason:"tool_calls",message:{content:"",tool_calls:[{id:"forbidden",type:"function",function:{name:"workflow_start",arguments:JSON.stringify({workflowId,version:"1.0.0",mode:"auto",inputs:{},idempotencyKey:randomUUID()})}}]}}]}));});

@@ -3,7 +3,7 @@ export const MCP_RAW_RESULT=Symbol("mcpRawResult");
 /** Preserve the complete protocol result; a declared adapter controls mapping only. */
 export function adaptMcpResult(result:Json, adapter="structured", outputSchema?:Json) {
   ensure(result&&!result.isError,"TOOL_FAILED","Downstream returned an error.");
-  if(result.structuredContent!==undefined) {
+  if(result.structuredContent!==undefined && (outputSchema!==undefined || adapter!=="text")) {
     if(outputSchema)validate(outputSchema,result.structuredContent);
     return {value:result.structuredContent,raw:result};
   }
@@ -14,5 +14,7 @@ export function adaptMcpResult(result:Json, adapter="structured", outputSchema?:
     if(outputSchema)validate(outputSchema,value);return {value,raw:result};
   }
   ensure(adapter==="text","OUTPUT_ADAPTER_REQUIRED","Select text or json_text for a text-only tool result.");
-  return {value:{text,content:result.content},raw:result};
+  const value={text,content:result.content};
+  if(outputSchema)validate(outputSchema,value);
+  return {value,raw:result};
 }

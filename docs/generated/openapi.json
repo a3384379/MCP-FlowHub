@@ -1638,7 +1638,8 @@
                 ],
                 "properties": {
                   "workflow": {},
-                  "layout": {}
+                  "layout": {},
+                  "expectedLayoutRevision": {}
                 },
                 "additionalProperties": false
               }

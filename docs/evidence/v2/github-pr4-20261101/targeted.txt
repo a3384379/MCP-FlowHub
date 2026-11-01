@@ -1,0 +1,45 @@
+▶ accepted test baselines stay stale after same-fixture suite regeneration and capability drift
+  ✔ changing then restoring fixture contents does not renew a run at the same draft revision (201.635583ms)
+  ✔ capability changes compare against the accepted run (201.884541ms)
+✔ accepted test baselines stay stale after same-fixture suite regeneration and capability drift (792.125667ms)
+▶ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector
+  ✔ text-only MCP output can publish into end and analysis mappings and execute (208.214959ms)
+  ✔ json_text validates parsed data against the actual discovered schema (296.406791ms)
+✔ Mock text fixtures use the same declared adapter and raw result semantics as a synthetic SDK connector (2020.0115ms)
+▶ v2 host_tool preserves bounded native object schemas without weakening frozen result checks
+  ✔ omitted additionalProperties (209.429292ms)
+  ✔ explicit open object (207.645917ms)
+  ✔ nonrecursive local definitions (206.4675ms)
+  ✔ local object root reference (248.8ms)
+  ✔ remote ref (125.552ms)
+  ✔ dynamic ref (137.231834ms)
+  ✔ reference scope override (118.50425ms)
+  ✔ recursive ref (126.213583ms)
+  ✔ mutually recursive refs (122.497667ms)
+  ✔ ref into inert literal (109.709ms)
+  ✔ unsafe pattern (101.466958ms)
+  ✔ scalar root (99.114959ms)
+  ✔ excessive schema depth (98.902209ms)
+  ✔ excessive ref expansion (99.816125ms)
+  ✔ exponential acyclic ref expansion (101.411875ms)
+  ✔ excessive schema bytes (100.337833ms)
+  ✔ excessive inert literal nodes (100.025125ms)
+  ✔ v1 and analysis keep their strict data schema (99.33275ms)
+✔ v2 host_tool preserves bounded native object schemas without weakening frozen result checks (2414.3285ms)
+✔ expired test command replays stay tombstoned and historical CANCELLED remains terminal (194.287375ms)
+✔ successful vault verification clears attempts while consecutive wrong passwords remain limited (1768.934916ms)
+✔ SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets (1035.068167ms)
+✔ draft PUT updates only an existing stable workflow ID and enforces its revision (529.651833ms)
+✔ whole Web draft saves reject unseen layout operations without losing either edit (682.68175ms)
+✔ publish requires the reviewed draft revision and cannot publish a concurrent save (640.88025ms)
+✔ public health, auth and static routes stay available; admin session and schema routes stay protected (571.863792ms)
+✔ MCP route authentication covers encoded and absolute targets and preserves scoped host identity (513.424334ms)
+✔ MCP factory fails closed when the adapter receives no authentication context (1.774417ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6004.634

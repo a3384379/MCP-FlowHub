@@ -232,7 +232,7 @@ test("max context: 100 selected nodes and heavily escaped partial text fit the f
       instructions:'带有转义内容\n"中文"'.repeat(500),inputMappings:{},outputSchema:{type:"object",properties:{},additionalProperties:false}},
   })),draft.nodes[1]];
   draft.edges=ids.slice(0,-1).map((source,i)=>({source,target:ids[i+1],port:"next"}));
-  f.app.authoring.saveRaw(draft,record.revision,{});
+  f.app.authoring.saveRaw(draft,record.revision,{},record.layoutRevision??1);
   const revision=f.repo.get("workflows","large-selection").revision,selection={workflowId:"large-selection",revision,selectedNodeIds:ids};
   const partial=('\n"\t中文\\').repeat(10000);
   f.provider.script.push(call("workflow_draft_get",{workflowId:"large-selection"}),(request:Json)=>{

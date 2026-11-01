@@ -18,6 +18,7 @@ import {
 import { schemaAt, assertAssignable, validateMappedLiteral } from "./mapping-schema.js";
 import { protectDiagnostic } from "../../security/src/diagnostics.js";
 import { queryScopes } from "./query-scope.js";
+import { mcpOutputSchema } from "../../contracts/src/mcp-output-schema.js";
 const overlap = pointersOverlap;
 const encodePointer = (key: string) => key.replaceAll("~", "~0").replaceAll("/", "~1");
 type WorkflowIssue = { code: string; message: string; nodeId: string; path: string };
@@ -163,9 +164,9 @@ export function validateWorkflow(
     if (n.type === "condition") return { type: "boolean" };
     if (n.type === "mcp_tool") {
       const b = bindings.find((b) => b.id === w.bindings[n.config.bindingKey]);
-      return connections
+      return mcpOutputSchema(connections
         .find((c) => c.id === b?.connectionId)
-        ?.tools?.find((t: Json) => t.name === n.config.toolName)?.outputSchema;
+        ?.tools?.find((t: Json) => t.name === n.config.toolName)?.outputSchema, n.config.resultAdapterRef);
     }
     return n.config.outputSchema;
   };

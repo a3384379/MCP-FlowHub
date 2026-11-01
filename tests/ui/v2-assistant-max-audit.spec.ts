@@ -682,10 +682,13 @@ for (const scenario of [
         await expect
           .poll(() => page.evaluate(() => visualViewport!.width))
           .toBeCloseTo(scenario.width / scenario.scale, 0);
+        const gesture = await page.evaluate(() => ({
+          // The sidebar intentionally owns menu scrolling. Pan the page's
+          // visible main/header area rather than that independent container.
+          x: Math.min(260, visualViewport!.width - 20), y: 80,
+        }));
         await cdp.send("Input.synthesizeScrollGesture", {
-          // Start below the mobile navigation's horizontal scroll container.
-          x: 100,
-          y: 250,
+          ...gesture,
           xDistance: -60,
           yDistance: -50,
           gestureSourceType: "touch",

@@ -70,13 +70,17 @@ export class AuthoringService {
       return {workflowId,revision:1,layoutRevision:1,issues:this.issues(w)};
     });
   }
-  saveRaw(w: Workflow, expected: number | undefined, layout: Json) {
+  saveRaw(w: Workflow, expected: number | undefined, layout: Json, expectedLayoutRevision?: number) {
     return this.repo.tx(() => {
+      validateWorkflowDocument(w);
       const before=this.repo.get("workflows",w.workflowId);
+      if(before) ensure(expectedLayoutRevision===(before.layoutRevision??1) ||
+        (expectedLayoutRevision===undefined && w.schemaVersion==="flowhub.workflow/v1" && hash(before.layout)===hash(layout)),
+        "REVISION_CONFLICT","Layout changed or its revision is missing. Reload and merge before saving.",409);
       const saved=this.engine.saveDraft(w,expected,layout);
       const next={...saved,createdBy:before?.createdBy ?? "admin",layoutRevision:(before?.layoutRevision ?? 1)+(before && hash(before.layout)!==hash(layout) ? 1:0)};
       this.repo.put("workflows",w.workflowId,next,saved.revision);
-      this.repo.changed("draft.changed",{workflowId:w.workflowId,revision:next.revision});
+      this.repo.changed("draft.changed",{workflowId:w.workflowId,revision:next.revision,layoutRevision:next.layoutRevision});
       return next;
     });
   }

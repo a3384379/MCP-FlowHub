@@ -336,11 +336,22 @@ export class CapabilityRegistry {
     if(a.environment){where.push("EXISTS(SELECT 1 FROM bindings b WHERE json_extract(b.body,'$.sourceCapabilityId')=capabilities.id AND json_extract(b.body,'$.environment')=?)");params.push(a.environment);}
     for(const term of String(a.query).toLowerCase().split(/\s+/).filter(Boolean)){where.push("instr(lower(json_extract(body,'$.name')||' '||coalesce(json_extract(body,'$.description'),'')||' '||coalesce((SELECT json_extract(e.body,'$.searchText') FROM discovery_entities e WHERE e.id=capabilities.id),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'') FROM discovery_entities e JOIN discovery_entities g ON g.id=json_extract(e.body,'$.pluginId') JOIN discovery_presentations p ON json_extract(p.body,'$.entityId')=g.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(g.body,'$.sourceFingerprint') WHERE e.id=capabilities.id ORDER BY p.revision DESC LIMIT 1),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'')||' '||coalesce(json_extract(p.body,'$.description'),'') FROM discovery_presentations p JOIN discovery_entities e ON e.id=capabilities.id WHERE json_extract(p.body,'$.entityId')=capabilities.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(e.body,'$.sourceFingerprint') ORDER BY p.revision DESC LIMIT 1),'')),?)>0");params.push(term);}
     const clause=where.length?" WHERE "+where.join(" AND "):"";
-    const snapshotRow=this.repo.db.prepare("SELECT group_concat(id||':'||revision||':'||coalesce(json_extract(body,'$.stale'),0)) AS v FROM (SELECT id,revision,body FROM capabilities"+clause+" ORDER BY id)").get(...params) as {v:string};
-    const presentations=this.repo.db.prepare("SELECT group_concat(id||':'||revision) AS v FROM (SELECT p.id,p.revision FROM discovery_presentations p WHERE json_extract(p.body,'$.entityId') IN (SELECT id FROM capabilities"+clause+") ORDER BY p.id)").get(...params) as {v:string};
-    const snapshot=hash([snapshotRow.v??"",presentations.v??""]).slice(0,16);if(a.cursor)ensure(cursor!.s===snapshot,"CAPABILITY_STALE","Capability cursor snapshot changed.",409);
-    const rows=this.repo.db.prepare("SELECT json_remove(body,'$.inputSchema','$.outputSchema','$.tool','$.skillContent') AS summary FROM capabilities"+clause+(where.length?" AND ":" WHERE ")+"id>? ORDER BY id LIMIT ?").all(...params,after,limit+1) as {summary:string}[];
-    const items=rows.slice(0,limit).map(r=>{const value=JSON.parse(r.summary),entity=this.repo.get("discovery_entities",value.id);return entity?{...value,discovery:this.catalog.present(entity)}:value;});
+    // Evaluate filters over large schema-bearing rows once, then reuse the small
+    // identity set for both the cursor fingerprint and the bounded result page.
+    const result=this.repo.db.prepare(`WITH filtered AS MATERIALIZED (
+      SELECT id,revision,coalesce(json_extract(body,'$.stale'),0) AS stale FROM capabilities${clause}
+    ) SELECT
+      (SELECT group_concat(id||':'||revision||':'||stale) FROM (SELECT * FROM filtered ORDER BY id)) AS versions,
+      (SELECT group_concat(id||':'||revision) FROM (
+        SELECT p.id,p.revision FROM discovery_presentations p JOIN filtered f ON f.id=json_extract(p.body,'$.entityId') ORDER BY p.id
+      )) AS presentations,
+      (SELECT json_group_array(json(summary)) FROM (
+        SELECT json_remove(c.body,'$.inputSchema','$.outputSchema','$.tool','$.skillContent') AS summary
+        FROM capabilities c JOIN filtered f ON f.id=c.id WHERE c.id>? ORDER BY c.id LIMIT ?
+      )) AS page`).get(...params,after,limit+1) as {versions:string|null;presentations:string|null;page:string};
+    const snapshot=hash([result.versions??"",result.presentations??""]).slice(0,16);if(a.cursor)ensure(cursor!.s===snapshot,"CAPABILITY_STALE","Capability cursor snapshot changed.",409);
+    const rows=JSON.parse(result.page) as Json[];
+    const items=rows.slice(0,limit).map(value=>{const entity=this.repo.get("discovery_entities",value.id);return entity?{...value,discovery:this.catalog.present(entity)}:value;});
     return {items,nextCursor:rows.length>limit?Buffer.from(JSON.stringify({f:fingerprint,s:snapshot,a:items.at(-1).id})).toString("base64url"):null};
   }
   get(a:Json) {

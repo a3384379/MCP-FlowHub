@@ -31,6 +31,7 @@ import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { subscribeEvents } from "./shared/v2";
 import { mergeDraft } from "./shared/draft-merge";
+import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
@@ -1091,7 +1092,7 @@ function App() {
       result = await api(
         "/workflows/" + draft.id + "/draft",
         "PUT",
-        { workflow, layout },
+        { workflow, layout, expectedLayoutRevision: snapshot.layoutRevision ?? 1 },
         snapshot.revision,
       );
     } catch (e) {
@@ -1200,7 +1201,7 @@ function App() {
           title: source.title,
           schema:
             source.type === "mcp_tool"
-              ? tools.find(
+              ? mcpOutputSchema(tools.find(
                   (tool) =>
                     tool.name === source.config.toolName &&
                     tool.connectionId ===
@@ -1209,7 +1210,7 @@ function App() {
                           binding.id ===
                           draft.draft.bindings[source.config.bindingKey],
                       )?.connectionId,
-                )?.outputSchema
+                )?.outputSchema, source.config.resultAdapterRef)
               : source.type === "condition"
                 ? { type: "boolean" }
                 : source.config.outputSchema,

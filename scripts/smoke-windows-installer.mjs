@@ -36,6 +36,8 @@ const env = Object.fromEntries(["SystemRoot", "WINDIR", "TEMP", "TMP", "USERPROF
   .flatMap((key) => process.env[key] ? [[key, process.env[key]]] : []));
 // Installed applications do not get access to a global npm/node executable.
 env.PATH = join(installDir, "app/runtime");
+const helperDiagnostics = join(root, "artifacts/windows-installer-helper.log");
+env.FLOWHUB_INSTALLER_DIAGNOSTICS = helperDiagnostics;
 
 async function within(promise, timeout, description) {
   let timer;
@@ -49,7 +51,8 @@ async function runExe(executable, args, expected = 0) {
   let result;
   try { await exec(executable, args, { env, windowsHide: true, windowsVerbatimArguments: true, timeout: 600_000 }); result = 0; }
   catch (error) { result = error.code; }
-  assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}`);
+  const detail = result === expected ? "" : await readFile(helperDiagnostics,"utf8").catch(()=>"No helper diagnostics were produced.");
+  assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}\n${detail.slice(-16000)}`);
 }
 async function runSetup(directory, expected = 0) {
   // NSIS /D= consumes the unquoted remainder of the native command line and
