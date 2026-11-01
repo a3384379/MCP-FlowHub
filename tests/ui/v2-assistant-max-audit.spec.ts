@@ -665,6 +665,7 @@ for (const scenario of [
       api = await authenticated(page),
       model = await provider((_body, res) => reply(res, "可视区合成回复"));
     try {
+      await page.bringToFront();
       const selected = await profile(
         api,
         model.baseUrl,
@@ -691,7 +692,9 @@ for (const scenario of [
         await cdp.send("Input.dispatchTouchEvent", { type:"touchStart", touchPoints:[gesture] });
         for(let step=1;step<=12;step++) {
           await cdp.send("Input.dispatchTouchEvent", { type:"touchMove", touchPoints:[{x:gesture.x-50*step/12,y:gesture.y-40*step/12}] });
-          await page.evaluate(() => new Promise(requestAnimationFrame));
+          // Pace input in the test process: a backgrounded headless page may
+          // suspend requestAnimationFrame indefinitely during a touch gesture.
+          await new Promise((resolve) => setTimeout(resolve, 20));
         }
         await cdp.send("Input.dispatchTouchEvent", { type:"touchEnd", touchPoints:[] });
         await expect

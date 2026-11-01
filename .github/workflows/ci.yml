@@ -70,5 +70,6 @@ jobs:
             artifacts/*.log
             artifacts/ui-*.png
             artifacts/reports/*
+            test-results/**/trace.zip
           if-no-files-found: warn
           retention-days: 14

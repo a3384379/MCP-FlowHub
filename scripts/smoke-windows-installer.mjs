@@ -51,7 +51,7 @@ async function runExe(executable, args, expected = 0) {
   let result;
   try { await exec(executable, args, { env, windowsHide: true, windowsVerbatimArguments: true, timeout: 600_000 }); result = 0; }
   catch (error) { result = error.code; }
-  const detail = result === expected ? "" : await readFile(helperDiagnostics,"utf8").catch(()=>"No helper diagnostics were produced.");
+  const detail = result === expected ? "" : (await Promise.all([helperDiagnostics, `${helperDiagnostics}.node.log`].map(path => readFile(path,"utf8").catch(()=>"No helper diagnostics were produced.")))).join("\n");
   assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}\n${detail.slice(-16000)}`);
 }
 async function runSetup(directory, expected = 0) {

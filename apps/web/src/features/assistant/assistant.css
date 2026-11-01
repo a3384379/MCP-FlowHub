@@ -5,6 +5,11 @@
   z-index: 39;
   user-select: none;
 }
+.assistant-launcher,
+.assistant-position-toggle {
+  /* Docking must change the painted hit target together with its container. */
+  transition-property: background-color, color, border-color, box-shadow;
+}
 .assistant-launcher {
   width: 54px;
   height: 54px;

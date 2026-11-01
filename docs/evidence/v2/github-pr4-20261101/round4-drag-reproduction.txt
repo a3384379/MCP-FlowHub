@@ -1,0 +1,34 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test tests/ui/v2-floating-chat.spec.ts --grep assistant launcher drags
+
+[WebServer] (node:66985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:66999) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (985ms)
+
+
+  1) tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 22
+    Received: 54
+
+      452 |     expect((await root.boundingBox())!.width).toBeLessThanOrEqual(24);
+      453 |     expect((await root.boundingBox())!.x).toBe(0);
+    > 454 |     expect((await launcher.boundingBox())!.width).toBe(22);
+          |                                                   ^
+      455 |     expect((await launcher.boundingBox())!.height).toBe(42);
+      456 |     await dragTo(1430, 450);
+      457 |     await expect(root).toHaveAttribute("data-side", "right");
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-floating-chat.spec.ts:454:51
+
+    Error Context: test-results/v2-floating-chat-assistant-720b2-keeps-the-same-conversation/error-context.md
+
+  1 failed
+    tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation

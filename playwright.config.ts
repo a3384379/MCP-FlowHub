@@ -20,6 +20,7 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:18479",
     headless: true,
+    trace: "retain-on-failure",
     viewport: { width: 1440, height: 900 },
     launchOptions: {
       ...(executablePath ? { executablePath } : {}),

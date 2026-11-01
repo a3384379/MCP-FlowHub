@@ -428,6 +428,8 @@ test("assistant launcher drags with mouse and touch, docks at either edge, persi
         exact: true,
       });
     const session = await window.getAttribute("data-session-id");
+    // Slow transitions expose geometry races when docking and dragging immediately.
+    await page.addStyleTag({ content: ".assistant-launcher, .assistant-position-toggle { transition-duration: 1s !important; }" });
     await page
       .getByRole("button", { name: "收起聊天窗口", exact: true })
       .click();
@@ -449,6 +451,8 @@ test("assistant launcher drags with mouse and touch, docks at either edge, persi
       .click();
     expect((await root.boundingBox())!.width).toBeLessThanOrEqual(24);
     expect((await root.boundingBox())!.x).toBe(0);
+    expect((await launcher.boundingBox())!.width).toBe(22);
+    expect((await launcher.boundingBox())!.height).toBe(42);
     await dragTo(1430, 450);
     await expect(root).toHaveAttribute("data-side", "right");
     await expect(root).toHaveClass(/is-docked/);
