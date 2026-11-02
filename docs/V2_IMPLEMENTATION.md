@@ -1,5 +1,11 @@
 # FlowHub 2.0 实施记录
 
+## 2026-11-02 工作流删除增量
+
+基线 feat/flowhub-v2@df51c7b（PR #4 已合并主干，同一产品源码），使用原 checkout 的 feat/workflow-delete 分支，保留原有 8 项未跟踪审计资料。原页面只有“停用新启动”，没有删除工作流接口及入口。新增管理员 DELETE /api/v2/workflows/:id，语义/布局双 CAS、幂等和事务事件统一进入 Authoring Service；不新增 MCP 工具，不执行历史级联清理。工作流卡片提供确认删除，错误在确认框内显示，手机窗口适配；跨窗口删除保留未保存的本地图。
+
+验证证据与范围见 docs/evidence/v2/workflow-delete-20261102/verification.md。只在隔离合成库验证删除，不删除正式工作流；本次不自动 push、merge 或 Release。
+
 ## GitHub PR #4 交付复核（2026-11-01）
 
 用户已明确授权提交、推送与合并。PR #4 首次评审新增 Web 整图保存布局 CAS、无 outputSchema 的纯文本 MCP 结果不可映射两项 P2，均已真实复现并补修。Web/API/Authoring 共同检查布局修订，画布和发布校验共用适配器契约；真实 STDIO 结果可映射进 analysis 检查点。

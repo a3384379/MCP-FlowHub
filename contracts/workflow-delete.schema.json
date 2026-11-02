@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["expectedRevision", "expectedLayoutRevision", "idempotencyKey"],
+  "properties": {
+    "expectedRevision": {"type": "integer", "minimum": 1},
+    "expectedLayoutRevision": {"type": "integer", "minimum": 1},
+    "idempotencyKey": {"type": "string", "minLength": 1, "maxLength": 256}
+  },
+  "additionalProperties": false
+}

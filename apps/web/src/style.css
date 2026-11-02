@@ -386,9 +386,16 @@ main {
 }
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
+}
+.card-actions .workflow-delete { margin-right: auto; }
+.modal.workflow-delete-dialog {
+  min-width: 0;
+  width: min(560px, calc(100vw - 32px));
+  overflow-wrap: anywhere;
 }
 .info {
   background: #edf4ff;

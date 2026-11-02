@@ -6,6 +6,7 @@ import type { Engine } from "../../workflow-core/src/engine.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
+const deleteSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/workflow-delete.schema.json"),"utf8"));
 const refs = (w: Workflow): Json[] => w.nodes.flatMap(n => n.config.capabilityRef ? [n.config.capabilityRef] : []);
 const mentions = (value: Json, nodeId: string): boolean => !!value && typeof value === "object" &&
   (value.ref?.nodeId === nodeId || (!Object.hasOwn(value,"value") && Object.values(value).some(v => mentions(v,nodeId))));
@@ -23,7 +24,7 @@ export class AuthoringService {
   get(workflowId: string, owner = "admin") {
     this.authorize(owner, workflowId);
     const record = this.repo.get("workflows",workflowId);
-    ensure(record,"NOT_FOUND","Workflow missing.",404);
+    ensure(record && !record.deletedAt,"NOT_FOUND","工作流不存在或已删除。",404);
     return {...record, workflow:record.draft, layoutRevision:record.layoutRevision ?? 1,
       capabilityRefs:refs(record.draft), issues:this.issues(record.draft)};
   }
@@ -74,6 +75,7 @@ export class AuthoringService {
     return this.repo.tx(() => {
       validateWorkflowDocument(w);
       const before=this.repo.get("workflows",w.workflowId);
+      ensure(!before?.deletedAt,"NOT_FOUND","工作流已删除，不能保存或重新导入相同 ID。",404);
       if(before) ensure(expectedLayoutRevision===(before.layoutRevision??1) ||
         (expectedLayoutRevision===undefined && w.schemaVersion==="flowhub.workflow/v1" && hash(before.layout)===hash(layout)),
         "REVISION_CONFLICT","Layout changed or its revision is missing. Reload and merge before saving.",409);
@@ -82,6 +84,32 @@ export class AuthoringService {
       this.repo.put("workflows",w.workflowId,next,saved.revision);
       this.repo.changed("draft.changed",{workflowId:w.workflowId,revision:next.revision,layoutRevision:next.layoutRevision});
       return next;
+    });
+  }
+  delete(a: Json, owner = "admin") {
+    ensure(owner === "admin", "AUTH_REQUIRED", "只有管理员可以删除工作流。", 403);
+    validate({...deleteSchema,required:[...deleteSchema.required,"workflowId"],properties:{
+      ...deleteSchema.properties,workflowId:{type:"string",minLength:1,maxLength:256},
+    }},a);
+    return this.repo.command(owner,"workflow.delete",a.idempotencyKey,a,()=>{
+      const before=this.get(a.workflowId,owner);
+      ensure(before.revision===a.expectedRevision && before.layoutRevision===a.expectedLayoutRevision,
+        "REVISION_CONFLICT","工作流已被修改，请关闭对话框并刷新列表，核对后再删除。",409);
+      const terminal=new Set(["SUCCEEDED","FAILED","REJECTED","CANCELLED","OUTCOME_UNKNOWN"]);
+      const runs=this.repo.all("runs").filter(r=>r.workflowId===a.workflowId && !terminal.has(r.state));
+      const tests=this.repo.all("workflow_test_runs").filter(r=>r.workflowId===a.workflowId && ["QUEUED","RUNNING"].includes(r.status));
+      const calls=this.repo.all("assistant_tool_calls").filter(c=>c.arguments?.workflowId===a.workflowId);
+      const tasks=this.repo.all("assistant_tasks").filter(t=>["GENERATING","CALLING_TOOL"].includes(t.status) &&
+        (t.context?.workflowId===a.workflowId || t.contextRefs?.workflowId===a.workflowId || calls.some(c=>c.taskId===t.id)));
+      if(runs.length || tests.length || tasks.length) throw new HubError("WORKFLOW_IN_USE",
+        "工作流仍有运行、自测或助手任务进行中，请先结束或取消相关任务后再删除。",409,
+        {runIds:runs.map(r=>r.id),testRunIds:tests.map(r=>r.id),taskIds:tasks.map(t=>t.id)});
+      const deletedAt=now(),revision=before.revision+1;
+      const record=this.repo.get("workflows",a.workflowId);
+      this.repo.put("workflows",a.workflowId,{...record,enabled:false,deletedAt,deletedBy:owner,revision,updatedAt:deletedAt},before.revision);
+      this.repo.audit(owner,"workflow.delete",a.workflowId);
+      this.repo.changed("workflow.deleted",{workflowId:a.workflowId,revision,deletedAt});
+      return {workflowId:a.workflowId,revision,deletedAt,historyPreserved:true};
     });
   }
   patch(a: Json, owner = "admin") {

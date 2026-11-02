@@ -305,7 +305,7 @@ export async function registerAdmin(
         (b.workflowAllowlist.length > 0 || b.authoring === true) &&
         b.workflowAllowlist.length <= 100 &&
         b.workflowAllowlist.every(
-          (w: Json) => typeof w === "string" && repo.get("workflows", w),
+          (w: Json) => typeof w === "string" && repo.get("workflows", w) && !repo.get("workflows", w).deletedAt,
         ),
       "INPUT_INVALID",
       "Label and explicit workflow allowlist required.",
@@ -727,14 +727,14 @@ export async function registerAdmin(
     return data(next);
   });
 
-  app.get("/api/v1/workflows", async () => data(repo.all("workflows")));
+  app.get("/api/v1/workflows", async () => data(repo.all("workflows").filter(w=>!w.deletedAt)));
   app.post("/api/v1/workflows", async (req) => {
     const b = body(req, ["workflow"], ["layout"]);
     return data(authoring.saveRaw(b.workflow, undefined, b.layout ?? {}));
   });
   app.get("/api/v1/workflows/:id/draft", async (req) => {
     const w = repo.get("workflows", param(req));
-    ensure(w, "NOT_FOUND", "Workflow missing.", 404);
+    ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
     return data(w);
   });
   app.put("/api/v1/workflows/:id/draft", async (req) => {
@@ -756,7 +756,7 @@ export async function registerAdmin(
   });
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
-    ensure(w, "NOT_FOUND", "Workflow missing.", 404);
+    ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
     return data(engine.validateDraft(w.draft));
   });
   app.post("/api/v1/workflows/:id/publish", async (req) => {
@@ -797,7 +797,7 @@ export async function registerAdmin(
   });
   app.post("/api/v1/workflows/:id/disable", async (req) => {
     const w = repo.get("workflows", param(req));
-    ensure(w, "NOT_FOUND", "Workflow missing.", 404);
+    ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
     const b = body(req, ["disabled"]);
     ensure(
       typeof b.disabled === "boolean",
@@ -817,6 +817,7 @@ export async function registerAdmin(
   app.post("/api/v1/workflows/:id/select-version", async (req) => {
     const b = body(req, ["version"]),
       w = repo.get("workflows", param(req));
+    ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
     ensure(
       w && repo.get("versions", w.id + "@" + b.version),
       "VERSION_MISMATCH",
@@ -857,7 +858,7 @@ export async function registerAdmin(
   }
   // Import uses the same runtime schema; graph/binding validation is deferred to publish.
   app.get("/api/v1/legacy-workflows", async () => data({
-    workflows: repo.all("workflows").filter(w => w.draft?.nodes?.some((n: Json) => n.type === "approval"))
+    workflows: repo.all("workflows").filter(w => !w.deletedAt && w.draft?.nodes?.some((n: Json) => n.type === "approval"))
       .map(w => ({ workflowId: w.id, revision: w.revision, source: "draft" })),
     versions: repo.all("versions").filter(v => v.snapshot?.workflow?.nodes?.some((n: Json) => n.type === "approval"))
       .map(v => ({ workflowId: v.workflowId, version: v.version, source: "published" })),
@@ -1018,7 +1019,7 @@ export async function registerAdmin(
       generatedDate: new Date().toISOString().slice(0, 10),
       counts: {
         connections: repo.all("connections").length,
-        workflows: repo.all("workflows").length,
+        workflows: repo.all("workflows").filter(w=>!w.deletedAt).length,
         runs: repo.all("runs").length,
       },
       states: repo

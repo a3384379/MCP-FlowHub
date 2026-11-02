@@ -33,3 +33,7 @@ S7本机演练已通过：实际旧程序→v2→停机恢复→实际旧程序�
 迁移1与迁移2的历史DDL/checksum保持原字节。本次加强实际表DDL、约束、虚拟FTS模块和shadow的只读校验；同列普通表替代FTS等损坏库会明确MIGRATION_MISMATCH，不能修历史或重建空库绕过。Vault口令轮换同时事务重包v2 Provider continuation及历史认证交付密文，任一损坏或写失败完整回滚。结果清理范围新增助手、自测和事件副本，必须预览范围/hash再提交；旧无任务归属消息的保守兼容范围见V2_USER_GUIDE。未自动清理用户数据。
 
 本轮再次使用实际45eed03程序完成旧库创建→alpha.2升级→停机恢复→旧程序重启，旧业务行、发布hash和报告字节不变，见evidence/v2/audit/upgrade.txt。Windows与真实用户备份恢复仍属独立验收。
+
+## 2026-11-02 工作流删除兼容性
+
+删除使用既有 workflows JSON 记录中的 deletedAt/deletedBy，并置 enabled=false、语义 revision+1；不改任何表结构、冻结 DDL 或迁移 checksum。记录保留以防旧请求、旧 ID 和种子恢复重新创建同一工作流。发布快照、历史运行/产物、授权记录与凭据均不级联删除；仍由原生命周期策略管理。当前程序的备份/恢复保留这些 JSON 字段，离线 source snapshot 与 contracts 包含新增删除请求契约。旧版程序不认识 deletedAt，离线回滚应按原规则使用升级前备份，不能用旧程序直接重新启用已删除数据。
