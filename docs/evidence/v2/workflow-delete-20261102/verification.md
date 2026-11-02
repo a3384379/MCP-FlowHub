@@ -13,11 +13,13 @@
 
 ## 验证结果
 
-最终结果将在本地交付完成后补齐。专项：后端删除 6/6、浏览器删除 3/3 已通过；首轮完整后端 417/417、完整 UI 77/77 已通过。新增实际等待宿主用例第一次因合成 Vault 未初始化返回 CREDENTIAL_LOCKED；补齐夹具初始化后，该真实取消链路已通过，未放宽产品凭据校验。最终 418 项全量后端和 77 项 UI 复验中。
+最终本机结果：npm run check 退出 0；npm test 418/418、0 失败、0 跳过；npm run test:ui 77/77；删除后端专项 6/6、删除浏览器专项 3/3。新增实际等待宿主用例第一次因合成 Vault 未初始化返回 CREDENTIAL_LOCKED；补齐夹具初始化后，专项及完整回归均已通过，未放宽产品凭据校验。
+
+固定运行时的 npm run package:local、npm run test:package、npm run verify:release 均退出 0，实际执行包内程序、现代/legacy 协议与篡改拒绝。候选包在该提交的干净临时 checkout 构建，build-info.gitSha 与构建提交一致，dirty=false。验证记录提交后重建最终候选，包及源码快照按最终提交再次核对；最终 SHA、归档哈希和清理记录见本机 artifacts/workflow-delete/package-verification.json。macOS 成功不代表本次 Windows 已验证。
 
 命令：npm run check；npm test；npm run test:ui；node --test dist/tests/engine/workflow-deletion.test.js；npm run test:ui -- tests/ui/editor-regressions.spec.ts --grep 'workflow library deletion|stale deletion|external deletion'。离线候选包按 npm run package:local、npm run test:package、npm run verify:release 单独记录。
 
-原始日志、截图及当前提交的包/正式服务保护证明保存在本机 artifacts/workflow-delete/。所有删除测试均使用隔离临时库；没有对正式工作流执行删除。正式服务更新前须核验无活动任务、API 一致性备份和恢复预检，更新后核对受保护业务表。
+原始日志、截图及当前提交的包/正式服务保护证明保存在本机 artifacts/workflow-delete/。所有删除测试均使用隔离临时库；没有对正式工作流执行删除。正式服务从 PID77711 平滑重启至 PID3006、端口18473；前后无活动任务，API 一致性备份及恢复预检均成功，24 张受保护业务表数量和哈希完全一致，Vault 保持原解锁状态。实际提供的 HTML/JS 与新构建字节一致，SSE 断开后健康检查通过。新 DELETE 路由用不存在 ID 且缺少 If-Match 的请求验证返回428，在工作流查找和写入前拒绝。
 
 ## 边界
 
