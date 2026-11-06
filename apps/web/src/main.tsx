@@ -29,6 +29,7 @@ import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
+import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
 import { subscribeEvents } from "./shared/v2";
 import { mergeDraft } from "./shared/draft-merge";
 import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
@@ -446,6 +447,8 @@ function App() {
     [runs, setRuns] = useState<J[]>([]),
     [tools, setTools] = useState<J[]>([]);
   const deletedWorkflows = useRef(new Set<string>());
+  const deletionPendingRef = useRef(false);
+  const [deletionPending,setDeletionPending] = useState(false);
   const [credentials, setCredentials] = useState<J[]>([]);
   const [runsMeta, setRunsMeta] = useState<J>(null),
     [runFilter, setRunFilter] = useState("");
@@ -463,6 +466,7 @@ function App() {
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
+  const closeModal = () => { if(!deletionPendingRef.current) setModal(null); };
   const serverDraftBase=useRef<J>(null),conflictRef=useRef<J>(conflict),remoteSyncRequest=useRef(0),pendingRemoteEvent=useRef<J>(null),syncRemoteRef=useRef<(event:J)=>Promise<void>>(async()=>{});
   conflictRef.current=conflict;
   const pathRef = useRef(path),
@@ -641,6 +645,7 @@ function App() {
     setTools(t);
   }, []);
   const navigate = (next: string, skipDirty = false) => {
+    if(deletionPendingRef.current) return false;
     if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return false;
     setDirty(false);
     jsonTextCache.current.clear();
@@ -677,7 +682,7 @@ function App() {
         return;
       }
       const nextIndex = event.state?.flowhubIndex;
-      if (dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
+      if (deletionPendingRef.current || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
         if (
           typeof nextIndex === "number" &&
           nextIndex !== historyIndex.current
@@ -753,7 +758,7 @@ function App() {
       ).filter((element) => element.offsetParent !== null);
     focusable()[0]?.focus();
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busyRef.current) {
+      if (event.key === "Escape" && !busyRef.current && !deletionPendingRef.current) {
         event.preventDefault();
         setModal(null);
       }
@@ -761,6 +766,11 @@ function App() {
         const items = focusable(),
           first = items[0],
           last = items.at(-1);
+        if (!items.length) {
+          event.preventDefault();
+          panel?.focus();
+          return;
+        }
         if (event.shiftKey && document.activeElement === first) {
           event.preventDefault();
           last?.focus();
@@ -776,6 +786,9 @@ function App() {
       previous?.focus();
     };
   }, [modal?.type, session]);
+  useEffect(()=>{
+    if(deletionPending) modalRef.current?.focus({preventScroll:true});
+  },[deletionPending]);
   useEffect(() => {
     undoStack.current = [];
     redoStack.current = [];
@@ -800,11 +813,11 @@ function App() {
   }, [draft?.draft.nodes]);
   useEffect(() => {
     const listener = (e: BeforeUnloadEvent) => {
-      if (dirty) e.preventDefault();
+      if (dirty || deletionPending) e.preventDefault();
     };
     window.addEventListener("beforeunload", listener);
     return () => window.removeEventListener("beforeunload", listener);
-  }, [dirty]);
+  }, [dirty,deletionPending]);
   const buildCanvas = (record: J, serverBase=false, preserveSelection=false) => {
     assertWorkflowShape(record.draft);
     if(serverBase)serverDraftBase.current=structuredClone(record);
@@ -1337,12 +1350,14 @@ function App() {
     setDirty(true);
   };
   const submitModal = async () => {
+    if(deletionPendingRef.current) return;
     const m = modal;
     const successMessage = m.type==="delete-workflow" ? "工作流已删除，历史运行、报告及发布版本已保留" : ["retention", "publish"].includes(m.type)
       ? undefined
       : "操作已完成";
     await act(async () => {
       if (m.type === "delete-workflow") {
+        deletionPendingRef.current=true;setDeletionPending(true);
         try {
           await api("/api/v2/workflows/"+encodeURIComponent(m.workflow.id),"DELETE",{
             expectedRevision:m.workflow.revision,expectedLayoutRevision:m.workflow.layoutRevision??1,idempotencyKey:m.idempotencyKey,
@@ -1350,6 +1365,8 @@ function App() {
         } catch (e) {
           setModal((current:J)=>current===m?{...m,deleteError:(e as Error).message}:current);
           throw e;
+        } finally {
+          deletionPendingRef.current=false;setDeletionPending(false);
         }
         deletedWorkflows.current.add(m.workflow.id);
         setWorkflows(previous=>previous.filter(w=>w.id!==m.workflow.id));
@@ -1854,7 +1871,7 @@ function App() {
                         </Badge>
                       </div>
                       <div className="card-actions">
-                        <button className="danger workflow-delete" disabled={busy} onClick={()=>setModal({
+                        <button className="danger workflow-delete" disabled={busy || deletionPending} onClick={()=>setModal({
                           type:"delete-workflow",title:"删除工作流",workflow:w,idempotencyKey:uid(),
                         })}>删除</button>
                         <button
@@ -2031,6 +2048,10 @@ function App() {
                   发布版本
                 </button>
               </PageHead>
+              {deletedWorkflows.current.has(draft.id) && <DeletedWorkflowNotice
+                onExport={()=>showJson("已删除流程的本地 DSL",currentWorkflow())}
+                onReturn={()=>navigate("/workflows")}
+              />}
               <div className="editor-toolbar">
                 <Badge tone="green">
                   ◇ {draft.draft.environment} ·{" "}
@@ -3560,11 +3581,18 @@ function App() {
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setModal(null);
+            if (e.target !== e.currentTarget) return;
+            if (deletionPendingRef.current) {
+              e.preventDefault();
+              modalRef.current?.focus({preventScroll:true});
+              return;
+            }
+            closeModal();
           }}
         >
           <section
             ref={modalRef}
+            tabIndex={-1}
             className={"modal " + (modal.type === "detail" ? "wide" : modal.type === "delete-workflow" ? "workflow-delete-dialog" : "")}
             role="dialog"
             aria-modal="true"
@@ -3572,7 +3600,7 @@ function App() {
           >
             <div className="modal-head">
               <h2>{modal.title}</h2>
-              <button aria-label="关闭" onClick={() => setModal(null)}>
+              <button aria-label="关闭" disabled={deletionPending} onClick={closeModal}>
                 ×
               </button>
             </div>
@@ -3587,6 +3615,7 @@ function App() {
                   <li>有运行、自测或助手任务进行中时不能删除。</li>
                 </ul>
                 {modal.deleteError && <p role="alert" className="error">{modal.deleteError}</p>}
+                {deletionPending && <p aria-live="polite">删除请求已提交，正在等待服务端结果，请勿重复操作。</p>}
               </>
             ) : modal.type === "versions" ? (
               <>
@@ -4083,7 +4112,7 @@ function App() {
               </>
             )}
             <div className="modal-actions">
-              <button onClick={() => setModal(null)}>{modal.type==="delete-workflow"?"取消":"关闭"}</button>
+              <button disabled={deletionPending} onClick={closeModal}>{modal.type==="delete-workflow"?"取消":"关闭"}</button>
               {![
                 "detail",
                 "support",
@@ -4095,6 +4124,7 @@ function App() {
                   className={modal.type==="delete-workflow"?"danger":"primary"}
                   disabled={
                     busy ||
+                    deletionPending ||
                     (jsonInvalid && modal.type!=="delete-workflow") ||
                     (modal.type === "retention" &&
                       !retentionScopeKeys.some(

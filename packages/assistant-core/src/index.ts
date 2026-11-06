@@ -338,16 +338,16 @@ export class AssistantCore {
           tools:receipts.map(c=>({name:c.name,status:c.status,isError:!!c.isError,receiptRef:c.id,result:modelReceipt(c.result)}))}];
       }
       save({inheritedWorkflowIds:context.conversationCreatedWorkflows.map((w:Json)=>w.workflowId)});
-      if(task.context.workflowId)context.workflow={...this.app.authoring.get(task.context.workflowId,task.owner),workflowId:task.context.workflowId};
       if(task.context.runId) {
+        // Run explanations use the immutable definition that actually ran,
+        // including after its editable workflow has been changed or deleted.
         context.run=modelReceipt(this.app.engine.status(task.context.runId,task.owner));
-        if(!context.workflow) {
-          const snapshot=this.repo.get("runs",task.context.runId)?.snapshot?.workflow;
-          if(snapshot)context.workflow={workflowId:snapshot.workflowId,version:context.run.version,source:"selected_run_snapshot",draft:snapshot};
-        }
+        ensure(!task.context.workflowId||task.context.workflowId===context.run.workflowId,"INTENT_NOT_ALLOWED","Selected run belongs to another workflow.",403);
+        const snapshot=this.repo.get("runs",task.context.runId)?.snapshot?.workflow;
+        if(snapshot)context.workflow={workflowId:snapshot.workflowId,version:context.run.version,source:"selected_run_snapshot",draft:snapshot};
         context.artifacts=[];
         for(const artifactId of task.context.artifactRefs??[])context.artifacts.push(this.app.engine.readArtifact({runId:task.context.runId,artifactId,offset:0,maxBytes:16000},task.owner));
-      }
+      } else if(task.context.workflowId)context.workflow={...this.app.authoring.get(task.context.workflowId,task.owner),workflowId:task.context.workflowId};
       const credentials=new Set<string>();
       for(const run of this.repo.all("runs").filter(r=>r.owner===task.owner&&r.checkpoint?.delivery))if(!this.app.engine.vault.locked)credentials.add(this.app.engine.vault.decrypt(run.checkpoint.delivery,run.id+":"+run.checkpoint.id));
       const relatedTasks=new Set(this.repo.all("assistant_tasks").filter(t=>t.sessionId===task.sessionId).map(t=>t.id));

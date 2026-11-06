@@ -32,6 +32,24 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
     await expect(
       page.getByRole("heading", { name: label, exact: true }),
     ).toBeVisible();
+    if (label === "系统设置") {
+      await expect(page.getByRole("heading", {name:"配置与凭据库",exact:true})).toBeVisible();
+      const add=page.getByRole("button",{name:"新增配置或凭据",exact:true});
+      await expect(add).toBeVisible();await add.click();
+      const unlock=page.getByRole("dialog",{name:"解锁凭据库",exact:true});
+      if(await unlock.count()) {
+        await unlock.getByLabel("凭据库口令",{exact:true}).fill(password);
+        await unlock.getByRole("button",{name:"确认",exact:true}).click();
+        await expect(unlock).toHaveCount(0);await add.click();
+      }
+      const credential=page.getByRole("dialog",{name:"新增配置或凭据",exact:true});
+      await expect(credential.getByLabel("名称",{exact:true})).toBeVisible();
+      await credential.getByLabel("用途",{exact:true}).selectOption("mcp_config");
+      await expect(credential.getByLabel("保存值",{exact:true})).toHaveAttribute("type","text");
+      await credential.getByLabel("用途",{exact:true}).selectOption("mcp_auth");
+      await expect(credential.getByLabel("保存值",{exact:true})).toHaveAttribute("type","password");
+      await credential.getByRole("button",{name:"关闭",exact:true}).last().click();
+    }
   }
   await page.goto("/tools");
   await expect(

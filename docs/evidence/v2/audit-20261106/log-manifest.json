@@ -1,0 +1,70 @@
+{
+  "scope": "local ignored artifacts/audit-20261106 logs; no enterprise or model acceptance claim",
+  "logs": [
+    {
+      "file": "backend-before-context-fix.log",
+      "bytes": 49767,
+      "sha256": "fcd0cf10a0156a1e9e1b56656056bc227eccc163614bdb8b1620e4b572f49a19"
+    },
+    {
+      "file": "backend.log",
+      "bytes": 48348,
+      "sha256": "6319d8738064e45c12524eebbab5a47dc2df376b1daaee027bf105d5b042415f"
+    },
+    {
+      "file": "check.log",
+      "bytes": 6652,
+      "sha256": "48f773d4ea9d0d709ee345b8ddb90f7b3844d9a2be83d4a66eca456c15eebfa1"
+    },
+    {
+      "file": "codex.log",
+      "bytes": 1193,
+      "sha256": "b443da9409ccd96f285e70334f0ecdcbe15ac7af3aa69e64648f163f3039e031"
+    },
+    {
+      "file": "context-final.log",
+      "bytes": 2138,
+      "sha256": "920934d4e4b2478b08321eab1128a6ed841a46885fc6f7fb798f59f12a7ddd1c"
+    },
+    {
+      "file": "context-tests.log",
+      "bytes": 2138,
+      "sha256": "920934d4e4b2478b08321eab1128a6ed841a46885fc6f7fb798f59f12a7ddd1c"
+    },
+    {
+      "file": "lifecycle-final.log",
+      "bytes": 695,
+      "sha256": "12d35814f61d68d2ad8bc29121876367b14120ea85395454e8ed3402a82c2bf4"
+    },
+    {
+      "file": "restart-tests.log",
+      "bytes": 695,
+      "sha256": "12d35814f61d68d2ad8bc29121876367b14120ea85395454e8ed3402a82c2bf4"
+    },
+    {
+      "file": "ui-before.log",
+      "bytes": 3088,
+      "sha256": "0e889589771020f2ed4d09acb3809b3c02cdf46a2c27ad6b6fa4226e0d92dd10"
+    },
+    {
+      "file": "ui-targeted.log",
+      "bytes": 669,
+      "sha256": "43e22c01ef7f58fa5a69e6da7fbe946817e3de3354133d8479a2f0f9f6dd89a8"
+    },
+    {
+      "file": "ui.log",
+      "bytes": 12786,
+      "sha256": "77b0f7ccf58166e72df575194c4d97a42534c91d4ff7a6d41edce4b9e503dd1d"
+    },
+    {
+      "file": "upgrade-before.log",
+      "bytes": 415,
+      "sha256": "c42dba4e49de281b4dc6234b796aaf440299527a6755a7931dc579fdd86249c4"
+    },
+    {
+      "file": "upgrade.log",
+      "bytes": 912,
+      "sha256": "fbf90d4ad09318ef3a37e745cf9d81546ecb50212348801a5916d866194bef4b"
+    }
+  ]
+}

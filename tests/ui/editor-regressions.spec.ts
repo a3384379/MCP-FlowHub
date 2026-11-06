@@ -4,6 +4,38 @@ import { randomUUID } from "node:crypto";
 
 const password = "Synthetic-browser-password-041";
 
+test("pending deletion cannot be dismissed and a lost response retries the same request",async({page})=>{
+  const api=await admin(page),id=await newWorkflow(page,"blank","test");
+  await page.getByRole("button",{name:"工作流",exact:true}).click();
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;}),requests:any[]=[];
+  await page.route("**/api/v2/workflows/"+id,async route=>{
+    requests.push(route.request().postDataJSON());
+    if(requests.length===1){await gate;const committed=await route.fetch();expect(committed.status()).toBe(200);await route.abort("failed");}
+    else {const response=await route.fetch();await route.fulfill({response});}
+  });
+  const card=page.locator(`[data-workflow-id="${id}"]`);
+  await card.getByRole("button",{name:"删除",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"删除工作流"});
+  try{
+    await dialog.getByRole("button",{name:"确认删除",exact:true}).click();await expect.poll(()=>requests.length).toBe(1);
+    await expect(dialog.getByRole("button",{name:"取消",exact:true})).toBeDisabled();
+    await expect(dialog.getByRole("button",{name:"关闭",exact:true})).toBeDisabled();
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press("Tab");await expect(dialog).toBeFocused();
+    await page.keyboard.press("Shift+Tab");await expect(dialog).toBeFocused();
+    await page.locator(".modal-backdrop").click({position:{x:2,y:2}});
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press("Escape");await expect(dialog).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/workflows$/);await expect(dialog).toBeVisible();
+    release();await expect(dialog.getByRole("alert")).toContainText(/fetch|network|请求|Failed/i);
+    const missing=await page.request.get("/api/v2/workflows/"+id+"/draft");expect(missing.status()).toBe(404);
+    await dialog.getByRole("button",{name:"确认删除",exact:true}).click();
+    await expect(dialog).toHaveCount(0);expect(requests).toHaveLength(2);expect(requests[1]).toEqual(requests[0]);
+    await expect(card).toHaveCount(0);expect((await api("/workflows")).some((w:any)=>w.id===id)).toBe(false);
+  }finally{release();}
+});
+
 test("workflow library deletion confirms intent, survives refresh, keeps published history and prevents duplicate pending submits",async({page})=>{
   const api=await admin(page),id=await newWorkflow(page,"blank","test");
   await publish(page);await expect(page.getByRole("status")).toContainText("不可变版本已发布");
@@ -62,6 +94,13 @@ test("external deletion leaves unsaved canvas content available and blocks later
   await expect(page.getByLabel("节点名称",{exact:true})).toHaveValue("删除时仍保留的本地编辑");
   await expect(page.getByRole("button",{name:"保存草稿",exact:true})).toBeDisabled();
   await expect(page.getByRole("button",{name:"发布版本",exact:true})).toBeDisabled();
+  const deletedNotice=page.getByRole("region",{name:"已删除工作流",exact:true});
+  await expect(deletedNotice).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0,{timeout:8000});
+  await expect(deletedNotice).toBeVisible();
+  await deletedNotice.getByRole("button",{name:"查看并复制本地 DSL",exact:true}).click();
+  await expect(page.getByRole("dialog")).toContainText("删除时仍保留的本地编辑");
+  await page.getByRole("dialog").getByRole("button",{name:"关闭",exact:true}).last().click();
   await page.getByRole("button",{name:"查看 DSL",exact:true}).click();
   await expect(page.getByRole("dialog")).toContainText("删除时仍保留的本地编辑");
 });

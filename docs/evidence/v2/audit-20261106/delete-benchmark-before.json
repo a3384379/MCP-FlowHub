@@ -1,0 +1,46 @@
+{
+  "phase": "before",
+  "node": "24.19.0",
+  "history": [
+    {
+      "table": "runs",
+      "rows": 200,
+      "bodyBytes": 26250890
+    },
+    {
+      "table": "workflow_test_runs",
+      "rows": 200,
+      "bodyBytes": 26243490
+    },
+    {
+      "table": "assistant_tool_calls",
+      "rows": 200,
+      "bodyBytes": 26247780
+    },
+    {
+      "table": "assistant_tasks",
+      "rows": 200,
+      "bodyBytes": 3302690
+    }
+  ],
+  "samples": [
+    {
+      "elapsedMs": 460.9261660000002,
+      "historyBodiesDecoded": 800,
+      "heapGrowthMiB": 61.23816680908203,
+      "rssGrowthMiB": 8.984375
+    },
+    {
+      "elapsedMs": 938.444958,
+      "historyBodiesDecoded": 800,
+      "heapGrowthMiB": 70.7265625,
+      "rssGrowthMiB": 36.171875
+    },
+    {
+      "elapsedMs": 338.46450000000004,
+      "historyBodiesDecoded": 800,
+      "heapGrowthMiB": 70.7386703491211,
+      "rssGrowthMiB": 151.453125
+    }
+  ]
+}

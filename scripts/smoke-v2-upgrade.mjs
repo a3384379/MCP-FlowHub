@@ -40,7 +40,7 @@ try{
   const report=status.artifacts.find(a=>a.mimeType==='text/markdown');assert.ok(report);const oldReport=await call(oldClient,'artifact_read',{runId:run.runId,artifactId:report.id,offset:0,maxBytes:262144});
   const backup=await api('/backups',{});assert.equal(inspectBackup(backup.path).compatible,true);await oldClient.close();await stopOld();
   let db=new Database(join(dataDir,'flowhub.sqlite'),{readonly:true});assert.equal(validateMigrations(db,false,[MIGRATIONS[0]]),1);const original=rows(db),oldHash=JSON.parse(original.versions.find(v=>v.id==='v1-user-flow@1.0.0').body).contentHash;db.close();stages.push({stage:'actual_v1_program_create_publish_run_report_backup',status:'PASS',baseline,oldSnapshotHash:oldHash});
-  daemon=await startDaemon({dataDir,port:0});assert.equal(validateMigrations(daemon.engine.repo.db),2);assert.deepEqual(rows(daemon.engine.repo.db),original);
+  daemon=await startDaemon({dataDir,port:0});assert.equal(validateMigrations(daemon.engine.repo.db),MIGRATIONS.length);assert.deepEqual(rows(daemon.engine.repo.db),original);
   const backups=await readdir(join(dataDir,'backups'));assert.ok(backups.some(name=>name.startsWith('pre-v2-')));assert.ok(daemon.engine.repo.db.prepare('SELECT count(*) AS n FROM knowledge_chunks').get().n>0);
   const upgraded=await clientFor(await readEndpoint(dataDir));assert.equal((await upgraded.listTools()).tools.length,21);const sameReport=await call(upgraded,'artifact_read',{runId:run.runId,artifactId:report.id,offset:0,maxBytes:262144});assert.equal(sameReport.content,oldReport.content);
   await call(upgraded,'workflow_draft_create',{workflowId:'v2-only',name:'v2 persisted draft',environment:'test',mode:'auto',template:'blank',idempotencyKey:'v2-create'});

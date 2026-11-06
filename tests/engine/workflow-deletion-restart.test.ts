@@ -1,0 +1,51 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { startDaemon } from "../../apps/daemon/src/index.js";
+import { inspectBackup, restoreBackup } from "../../packages/persistence/src/maintenance.js";
+import { hash } from "../../packages/contracts/src/domain.js";
+
+test("deleted workflows and original owner history survive real daemon restart and stopped-database restore", async t => {
+  const root=await mkdtemp(join(tmpdir(),"flowhub-deletion-restart-")),dataDir=join(root,"data"),backup=join(root,"deleted.sqlite");
+  let daemon:Awaited<ReturnType<typeof startDaemon>>|undefined;
+  t.after(async()=>{await daemon?.close();await rm(root,{recursive:true,force:true});});
+  daemon=await startDaemon({dataDir,port:0});
+  const repo=daemon.engine.repo,authoring=daemon.application.authoring,workflowId="deleted-after-restart";
+  daemon.engine.vault.initialize("Synthetic-deletion-restore-password");
+  const secret=daemon.engine.vault.addSecret("Synthetic retained credential","Synthetic-secret-value");
+  authoring.create({workflowId,name:"Retained synthetic history",environment:"test",mode:"auto",template:"blank",idempotencyKey:"create"});
+  authoring.publish({workflowId,expectedRevision:1,version:"1.0.0",expectedBindingRevisions:{},expectedCapabilityRevisions:{},idempotencyKey:"publish"});
+  repo.put("clients","retained-owner",{id:"retained-owner",revision:1,revoked:false,scopes:["workflow:execute"],workflowAllowlist:[workflowId]});
+  const {runId}=daemon.engine.start({workflowId,version:"1.0.0",mode:"auto",inputs:{},idempotencyKey:"start"},"retained-owner");
+  for(let i=0;i<200&&daemon.engine.status(runId,"retained-owner").state!=="SUCCEEDED";i++)await new Promise(r=>setTimeout(r,10));
+  assert.equal(daemon.engine.status(runId,"retained-owner").state,"SUCCEEDED");
+  const content="Synthetic report with unchanged email: user@example.test";
+  repo.insert("artifacts","retained-report",{id:"retained-report",runId,nodeId:"end",content,sha256:hash(content),mimeType:"text/plain",byteLength:Buffer.byteLength(content),expiresAt:Date.now()+600000});
+  const current=authoring.get(workflowId);
+  authoring.delete({workflowId,expectedRevision:current.revision,expectedLayoutRevision:current.layoutRevision,idempotencyKey:"delete"});
+  const original=hash([repo.get("workflows",workflowId),repo.all("versions"),repo.get("runs",runId),repo.get("artifacts","retained-report"),repo.get("clients","retained-owner"),repo.get("secrets",secret.id)]),
+    migrations=repo.db.prepare("SELECT * FROM schema_migrations ORDER BY version").all(),instanceId=daemon.instanceId;
+  await repo.backup(backup);assert.equal(inspectBackup(backup).compatible,true);
+  const verify=()=>{
+    assert.ok(daemon);
+    const r=daemon.engine.repo;
+    assert.equal(daemon.instanceId,instanceId);
+    assert.equal(hash([r.get("workflows",workflowId),r.all("versions"),r.get("runs",runId),r.get("artifacts","retained-report"),r.get("clients","retained-owner"),r.get("secrets",secret.id)]),original);
+    assert.deepEqual(r.db.prepare("SELECT * FROM schema_migrations ORDER BY version").all(),migrations);
+    assert.throws(()=>daemon!.application.authoring.get(workflowId),{code:"NOT_FOUND"});
+    assert.equal(daemon.engine.status(runId,"retained-owner").state,"SUCCEEDED");
+    assert.equal(daemon.engine.readArtifact({runId,artifactId:"retained-report"},"retained-owner").content,content);
+    assert.throws(()=>daemon!.engine.status(runId,"execution"),{code:"WORKFLOW_NOT_AVAILABLE"});
+    assert.throws(()=>daemon!.engine.start({workflowId,version:"1.0.0",mode:"auto",inputs:{},idempotencyKey:"new-start"},"retained-owner"),{code:"WORKFLOW_NOT_AVAILABLE"});
+  };
+  await daemon.close();daemon=undefined;
+  daemon=await startDaemon({dataDir,port:0});verify();
+  daemon.application.authoring.create({workflowId:"after-backup",name:"Post-backup marker",environment:"test",mode:"auto",template:"blank",idempotencyKey:"later"});
+  await daemon.close();daemon=undefined;
+  await restoreBackup(dataDir,backup);
+  daemon=await startDaemon({dataDir,port:0});verify();
+  assert.equal(daemon.engine.repo.get("workflows","after-backup"),undefined);
+  assert.equal(daemon.engine.vault.locked,true);
+});

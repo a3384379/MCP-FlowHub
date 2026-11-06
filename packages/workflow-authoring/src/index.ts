@@ -53,8 +53,13 @@ export class AuthoringService {
       ensure(!this.repo.get("workflows",workflowId),"VERSION_MISMATCH","Workflow already exists.",409);
       let w: Workflow;
       if (a.template === "incident") {
-        w=clone(this.repo.get("workflows","incident-staging").draft);
-        w.bindings={}; // Never silently bind production to a staging template.
+        // Templates are shipped source, never another owner's editable draft.
+        w=JSON.parse(readFileSync(resolve(projectRoot,"examples/incident-staging.json"),"utf8"));
+        w.bindings={};
+        for(const node of w.nodes) if(node.type==="mcp_tool") {
+          node.config.toolName="unconfigured";
+          node.config.toolSchemaHash="placeholder:unconfigured";
+        }
       } else w={schemaVersion:"flowhub.workflow/v2",workflowId,name:a.name,description:"FlowHub workflow",version:"1.0.0",
         environment:a.environment,mode:a.mode,tags:[],inputSchema:{type:"object",properties:{},additionalProperties:false},bindings:{},
         nodes:[{id:"input",title:"输入",type:"input",config:{}},{id:"end",title:"结束",type:"end",config:{resultRef:{ref:{source:"input",pointer:""}}}}],
@@ -92,25 +97,61 @@ export class AuthoringService {
       ...deleteSchema.properties,workflowId:{type:"string",minLength:1,maxLength:256},
     }},a);
     return this.repo.command(owner,"workflow.delete",a.idempotencyKey,a,()=>{
-      const before=this.get(a.workflowId,owner);
-      ensure(before.revision===a.expectedRevision && before.layoutRevision===a.expectedLayoutRevision,
+      // Deletion uses lifecycle metadata, not graph validity or historical results.
+      const before=this.repo.get("workflows",a.workflowId);
+      ensure(before && !before.deletedAt,"NOT_FOUND","工作流不存在或已删除。",404);
+      ensure(before.revision===a.expectedRevision && (before.layoutRevision??1)===a.expectedLayoutRevision,
         "REVISION_CONFLICT","工作流已被修改，请关闭对话框并刷新列表，核对后再删除。",409);
-      const terminal=new Set(["SUCCEEDED","FAILED","REJECTED","CANCELLED","OUTCOME_UNKNOWN"]);
-      const runs=this.repo.all("runs").filter(r=>r.workflowId===a.workflowId && !terminal.has(r.state));
-      const tests=this.repo.all("workflow_test_runs").filter(r=>r.workflowId===a.workflowId && ["QUEUED","RUNNING"].includes(r.status));
-      const calls=this.repo.all("assistant_tool_calls").filter(c=>c.arguments?.workflowId===a.workflowId);
-      const tasks=this.repo.all("assistant_tasks").filter(t=>["GENERATING","CALLING_TOOL"].includes(t.status) &&
-        (t.context?.workflowId===a.workflowId || t.contextRefs?.workflowId===a.workflowId || calls.some(c=>c.taskId===t.id)));
+      const {runs,tests,tasks}=this.activeWorkflowUsage(a.workflowId);
       if(runs.length || tests.length || tasks.length) throw new HubError("WORKFLOW_IN_USE",
         "工作流仍有运行、自测或助手任务进行中，请先结束或取消相关任务后再删除。",409,
         {runIds:runs.map(r=>r.id),testRunIds:tests.map(r=>r.id),taskIds:tasks.map(t=>t.id)});
       const deletedAt=now(),revision=before.revision+1;
-      const record=this.repo.get("workflows",a.workflowId);
-      this.repo.put("workflows",a.workflowId,{...record,enabled:false,deletedAt,deletedBy:owner,revision,updatedAt:deletedAt},before.revision);
+      this.repo.put("workflows",a.workflowId,{...before,enabled:false,deletedAt,deletedBy:owner,revision,updatedAt:deletedAt},before.revision);
       this.repo.audit(owner,"workflow.delete",a.workflowId);
       this.repo.changed("workflow.deleted",{workflowId:a.workflowId,revision,deletedAt});
       return {workflowId:a.workflowId,revision,deletedAt,historyPreserved:true};
     });
+  }
+  private activeWorkflowUsage(workflowId:string) {
+    const db=this.repo.db,parameters={workflowId};
+    const runs=db.prepare(`SELECT id FROM runs WHERE json_extract(body,'$.workflowId')=@workflowId
+      AND coalesce(json_extract(body,'$.state'),'') NOT IN ('SUCCEEDED','FAILED','REJECTED','CANCELLED','OUTCOME_UNKNOWN')`).all(parameters) as {id:string}[];
+    const tests=db.prepare(`SELECT r.id FROM workflow_test_runs r
+      LEFT JOIN workflow_test_suites s ON s.id=json_extract(r.body,'$.suiteId')
+      WHERE @workflowId IN (json_extract(r.body,'$.workflowId'),json_extract(r.body,'$.acceptedSuite.workflowId'),json_extract(s.body,'$.workflowId'))
+      AND coalesce(json_extract(r.body,'$.status'),'') NOT IN ('SUCCEEDED','FAILED','CANCELLED','PARTIAL','INTERRUPTED')`).all(parameters) as {id:string}[];
+    const activeTaskIds=(db.prepare(`SELECT id FROM assistant_tasks
+      WHERE coalesce(json_extract(body,'$.status'),'') NOT IN ('COMPLETED','FAILED','CANCELLED','INTERRUPTED')`).all() as {id:string}[]).map(t=>t.id);
+    if(!activeTaskIds.length) return {runs,tests,tasks:[] as {id:string}[]};
+    // Project only IDs and explicit association fields. Large past answers,
+    // test traces and tool results never become JavaScript objects here.
+    const tasks=db.prepare(`WITH active_tasks AS MATERIALIZED (
+      SELECT id,json_extract(body,'$.context.workflowId') AS contextWorkflowId,
+        json_extract(body,'$.contextRefs.workflowId') AS referenceWorkflowId,
+        json_extract(body,'$.context.runId') AS contextRunId,json_extract(body,'$.contextRefs.runId') AS referenceRunId,
+        json_extract(body,'$.createdWorkflowIds') AS createdWorkflowIds,json_extract(body,'$.inheritedWorkflowIds') AS inheritedWorkflowIds
+      FROM assistant_tasks WHERE id IN (SELECT value FROM json_each(@activeTaskIds))
+    ), active_calls AS MATERIALIZED (
+      SELECT json_extract(c.body,'$.taskId') AS taskId,
+        json_extract(c.body,'$.arguments.workflowId') AS workflowId,json_extract(c.body,'$.result.workflowId') AS resultWorkflowId,
+        json_extract(c.body,'$.arguments.runId') AS runId,json_extract(c.body,'$.result.runId') AS resultRunId,
+        json_extract(c.body,'$.arguments.suiteId') AS suiteId,json_extract(c.body,'$.result.suiteId') AS resultSuiteId,
+        json_extract(c.body,'$.arguments.testRunId') AS testRunId,json_extract(c.body,'$.result.testRunId') AS resultTestRunId
+      FROM assistant_tool_calls c JOIN active_tasks t ON t.id=json_extract(c.body,'$.taskId')
+    ) SELECT t.id FROM active_tasks t WHERE
+      @workflowId IN (t.contextWorkflowId,t.referenceWorkflowId)
+      OR EXISTS (SELECT 1 FROM json_each(t.createdWorkflowIds) WHERE value=@workflowId)
+      OR EXISTS (SELECT 1 FROM json_each(t.inheritedWorkflowIds) WHERE value=@workflowId)
+      OR EXISTS (SELECT 1 FROM runs r WHERE r.id IN (t.contextRunId,t.referenceRunId) AND json_extract(r.body,'$.workflowId')=@workflowId)
+      OR EXISTS (SELECT 1 FROM active_calls c WHERE c.taskId=t.id AND (
+        @workflowId IN (c.workflowId,c.resultWorkflowId)
+        OR EXISTS (SELECT 1 FROM runs r WHERE r.id IN (c.runId,c.resultRunId) AND json_extract(r.body,'$.workflowId')=@workflowId)
+        OR EXISTS (SELECT 1 FROM workflow_test_suites s WHERE s.id IN (c.suiteId,c.resultSuiteId) AND json_extract(s.body,'$.workflowId')=@workflowId)
+        OR EXISTS (SELECT 1 FROM workflow_test_runs r LEFT JOIN workflow_test_suites s ON s.id=json_extract(r.body,'$.suiteId')
+          WHERE r.id IN (c.testRunId,c.resultTestRunId) AND @workflowId IN (json_extract(r.body,'$.workflowId'),json_extract(r.body,'$.acceptedSuite.workflowId'),json_extract(s.body,'$.workflowId')))
+      ))`).all({...parameters,activeTaskIds:JSON.stringify(activeTaskIds)}) as {id:string}[];
+    return {runs,tests,tasks};
   }
   patch(a: Json, owner = "admin") {
     validate(batchSchema,a);

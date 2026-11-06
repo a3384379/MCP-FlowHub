@@ -13,10 +13,11 @@ import { Application } from "../../packages/application/src/index.js";
 import { registerAdmin } from "../../packages/admin-api/src/index.js";
 import { hash, type Json } from "../../packages/contracts/src/domain.js";
 import { TOOL_NAMES } from "../../packages/contracts/src/index.js";
+import type { ProviderFactory } from "../../packages/llm-providers/src/index.js";
 
-function fixture(t: any) {
+function fixture(t: any, providerFactory?:ProviderFactory) {
   const db=new Database(":memory:"),repo=new Repository(db),vault=new Vault(repo),
-    engine=new Engine(repo,vault,new Connectors(repo,vault)),app=new Application(engine);
+    engine=new Engine(repo,vault,new Connectors(repo,vault)),app=new Application(engine,providerFactory?{providerFactory}:{});
   const create=(workflowId="delete-demo")=>app.authoring.create({workflowId,name:"可删除合成流程",environment:"test",mode:"auto",template:"blank",idempotencyKey:"create-"+workflowId});
   const deletion=(workflowId="delete-demo",key=crypto.randomUUID())=>{
     const w=repo.get("workflows",workflowId);
@@ -78,9 +79,11 @@ test("active runs, isolated selftests and selected or dispatched assistant work 
   const f=fixture(t);f.create();
   const cases:[any,string,Json][]=[
     ...["QUEUED","RUNNING","WAITING_AGENT","BLOCKED","CANCEL_REQUESTED","UNRECOGNIZED"].map(state=>["runs","active",{workflowId:"delete-demo",state}] as [any,string,Json]),
-    ...["QUEUED","RUNNING"].map(status=>["workflow_test_runs","active",{workflowId:"delete-demo",status}] as [any,string,Json]),
+    ...["QUEUED","RUNNING","UNRECOGNIZED",null,undefined].map(status=>["workflow_test_runs","active",{workflowId:"delete-demo",status}] as [any,string,Json]),
     ["assistant_tasks","active",{status:"GENERATING",context:{workflowId:"delete-demo"}}],
     ["assistant_tasks","active",{status:"CALLING_TOOL",contextRefs:{workflowId:"delete-demo"}}],
+    ["assistant_tasks","active",{status:"UNRECOGNIZED",context:{workflowId:"delete-demo"}}],
+    ["assistant_tasks","active",{context:{workflowId:"delete-demo"}}],
   ];
   for(const [table,id,value] of cases){
     f.repo.put(table,id,{...value,id});const before=f.repo.get("workflows","delete-demo"),events=f.repo.changes().length;
@@ -91,6 +94,78 @@ test("active runs, isolated selftests and selected or dispatched assistant work 
   f.repo.put("assistant_tool_calls","call",{id:"call",taskId:"dispatched",arguments:{workflowId:"delete-demo"}});
   assert.throws(()=>f.app.authoring.delete(f.deletion()),{code:"WORKFLOW_IN_USE"});
   f.repo.put("assistant_tasks","dispatched",{id:"dispatched",status:"COMPLETED",context:{}});
+  assert.equal(f.app.authoring.delete(f.deletion()).historyPreserved,true);
+});
+
+test("incident templates never disclose another owner's modified or deleted draft and remain available without seeded workflows",async t=>{
+  const f=fixture(t),marker="PRIVATE_SYNTHETIC_EXISTING_FLOW_INSTRUCTIONS";
+  f.repo.put("clients","restricted",{id:"restricted",revision:1,scopes:["workflow:execute","workflow:author"],workflowAllowlist:[],revoked:false});
+  const create=(workflowId:string)=>f.app.authoring.create({workflowId,name:"合成排查新流程",environment:"test",mode:"guided",template:"incident",idempotencyKey:"template-"+workflowId},"restricted");
+  create("without-seed");assert.equal(f.repo.get("workflows","incident-staging"),undefined);
+  await f.engine.seed();
+  const source=f.app.authoring.get("incident-staging"),node=source.draft.nodes.find((n:Json)=>n.type==="agent_task");
+  f.app.authoring.patch({workflowId:source.id,expectedRevision:source.revision,idempotencyKey:"private-source-edit",operations:[
+    {op:"update_node",nodeId:node.id,changes:{config:{...node.config,instructions:marker}}},
+  ]});
+  assert.throws(()=>f.app.authoring.get(source.id,"restricted"),{code:"AUTH_REQUIRED"});
+  for(const state of ["modified","deleted"]) {
+    if(state==="deleted")f.app.authoring.delete(f.deletion(source.id));
+    const workflowId="isolated-"+state;create(workflowId);
+    const own=f.app.authoring.get(workflowId,"restricted");
+    assert.equal(JSON.stringify(own.draft).includes(marker),false);
+    assert.deepEqual(own.draft.bindings,{});assert.equal(own.draft.environment,"test");
+    assert.ok(own.draft.nodes.some((n:Json)=>n.type==="agent_task"));
+    assert.ok(own.draft.nodes.filter((n:Json)=>n.type==="mcp_tool").every((n:Json)=>n.config.toolName==="unconfigured"&&n.config.toolSchemaHash==="placeholder:unconfigured"));
+    assert.throws(()=>f.app.authoring.get(source.id,"restricted"),{code:"AUTH_REQUIRED"});
+  }
+  assert.deepEqual(f.repo.get("clients","restricted").workflowAllowlist,["without-seed","isolated-modified","isolated-deleted"]);
+  assert.ok(JSON.stringify(f.repo.get("workflows",source.id).draft).includes(marker));
+});
+
+test("auto-generated and inherited assistant workflow IDs block deletion through real pending model turns",async t=>{
+  let firstRelease!:()=>void,secondRelease!:()=>void,turns=0;
+  const firstGate=new Promise<void>(resolve=>{firstRelease=resolve;}),secondGate=new Promise<void>(resolve=>{secondRelease=resolve;});
+  const f=fixture(t,()=>({complete:async()=>{
+    const turn=++turns;
+    if(turn===1)return {text:"",calls:[{id:"auto-create",name:"workflow_draft_create",arguments:JSON.stringify({name:"合成自动编号流程",environment:"test",mode:"auto",template:"blank",idempotencyKey:"model-create"})}],usage:null};
+    await (turn===2?firstGate:secondGate);return {text:"合成回复已完成。",calls:[],usage:null};
+  }}));
+  f.vault.initialize("Synthetic-pending-creation-password");
+  const profile=f.app.assistant.saveProfile({name:"Synthetic",providerKind:"openai_compatible_chat",baseUrl:"https://synthetic.invalid/v1",model:"synthetic"}),session=f.app.assistant.session();
+  try {
+    const created=f.app.assistant.submit(session.id,{text:"现在创建一个新的工作流草稿",mode:"compose",context:{},modelProfileId:profile.id,requestedActions:["edit_draft"],idempotencyKey:"create-turn"});
+    for(let i=0;i<200&&turns<2;i++)await new Promise(r=>setTimeout(r,5));
+    assert.equal(turns,2);const task=f.repo.get("assistant_tasks",created.taskId),workflowId=task.createdWorkflowIds[0];
+    assert.equal(task.status,"GENERATING");assert.deepEqual(task.context,{});
+    assert.throws(()=>f.app.authoring.delete(f.deletion(workflowId)),{code:"WORKFLOW_IN_USE"});
+    firstRelease();await f.app.assistant.settled();
+    const continuation=f.app.assistant.submit(session.id,{text:"继续解释这个流程",mode:"help",context:{},modelProfileId:profile.id,requestedActions:[],idempotencyKey:"inherited-turn"});
+    for(let i=0;i<200&&turns<3;i++)await new Promise(r=>setTimeout(r,5));
+    assert.equal(turns,3);assert.ok(f.repo.get("assistant_tasks",continuation.taskId).inheritedWorkflowIds.includes(workflowId));
+    assert.throws(()=>f.app.authoring.delete(f.deletion(workflowId)),{code:"WORKFLOW_IN_USE"});
+    f.app.assistant.cancel(continuation.taskId);secondRelease();await f.app.assistant.settled();
+    assert.equal(f.app.authoring.delete(f.deletion(workflowId)).historyPreserved,true);
+  } finally {firstRelease();secondRelease();await f.app.assistant.settled();}
+});
+
+test("legacy task, receipt and selftest metadata preserve activity references without decoding historical payloads",async t=>{
+  const f=fixture(t);f.create();
+  f.repo.insert("workflow_test_suites","legacy-suite",{id:"legacy-suite",workflowId:"delete-demo"});
+  f.repo.insert("runs","past-run",{id:"past-run",workflowId:"delete-demo",state:"SUCCEEDED"});
+  const activeTests=[{acceptedSuite:{workflowId:"delete-demo"},status:"RUNNING"},{suiteId:"legacy-suite",status:"RUNNING"}];
+  for(const record of activeTests){f.repo.put("workflow_test_runs","legacy-test",{id:"legacy-test",...record});assert.throws(()=>f.app.authoring.delete(f.deletion()),{code:"WORKFLOW_IN_USE"});f.repo.remove("workflow_test_runs","legacy-test");}
+  f.repo.put("workflow_test_runs","past-test",{id:"past-test",suiteId:"legacy-suite",status:"SUCCEEDED",acceptedSuite:{workflowId:"delete-demo"}});
+  const contexts=[{context:{runId:"past-run"}},{contextRefs:{runId:"past-run"}}];
+  for(const context of contexts){f.repo.put("assistant_tasks","legacy-task",{id:"legacy-task",status:"GENERATING",...context});assert.throws(()=>f.app.authoring.delete(f.deletion()),{code:"WORKFLOW_IN_USE"});f.repo.remove("assistant_tasks","legacy-task");}
+  f.repo.put("assistant_tasks","receipt-task",{id:"receipt-task",status:"GENERATING",context:{}});
+  for(const receipt of [{result:{workflowId:"delete-demo"}},{arguments:{runId:"past-run"}},{result:{runId:"past-run"}},{arguments:{suiteId:"legacy-suite"}},{arguments:{testRunId:"past-test"}},{result:{testRunId:"past-test"}}]){
+    f.repo.put("assistant_tool_calls","receipt",{id:"receipt",taskId:"receipt-task",status:"COMPLETED",...receipt});
+    assert.throws(()=>f.app.authoring.delete(f.deletion()),{code:"WORKFLOW_IN_USE"});f.repo.remove("assistant_tool_calls","receipt");
+  }
+  f.repo.put("assistant_tasks","receipt-task",{id:"receipt-task",status:"COMPLETED"});
+  f.repo.put("assistant_tasks","unrelated-active",{id:"unrelated-active",status:"GENERATING",context:{workflowId:"another-workflow"}});
+  const readAll=f.repo.all.bind(f.repo);
+  f.repo.all=(table)=>{assert.ok(!["runs","workflow_test_runs","assistant_tasks","assistant_tool_calls","bindings","connections"].includes(table),"Deletion must not load full history or validate the graph");return readAll(table);};
   assert.equal(f.app.authoring.delete(f.deletion()).historyPreserved,true);
 });
 
