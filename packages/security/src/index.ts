@@ -164,6 +164,29 @@ export class Vault {
       : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
     return protectDiagnostic(value, secrets);
   }
+  /** Reject known authentication values without rewriting ordinary business data. */
+  assertNoCredentialLeak(value: Json, errorCode: string) {
+    this.catalogContext();
+    // Match decoded strings directly. Serializing JSON first would escape quotes,
+    // newlines and backslashes in credentials, and miss those literal values.
+    const secrets = this.locked
+      ? []
+      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
+    const pending: Json[] = [value];
+    while (pending.length) {
+      const item = pending.pop();
+      if (typeof item === "string")
+        ensure(
+          !secrets.some((secret) => secret.length > 0 && item.includes(secret)),
+          errorCode,
+          "Model data contains a protected credential.",
+        );
+      else if (Array.isArray(item))
+        for (const child of item) pending.push(child);
+      else if (item && typeof item === "object")
+        for (const [key, child] of Object.entries(item)) pending.push(key, child);
+    }
+  }
   catalogContext() {
     ensure(
       !this.locked || this.repo.all("secrets").length === 0,

@@ -449,11 +449,7 @@ export class Connectors {
           toolDefinition: live,
         },
       );
-      ensure(
-        !value.isError,
-        "TOOL_FAILED",
-        "Downstream tool returned an error.",
-      );
+      if(value.isError)throw new HubError("TOOL_FAILED","Downstream tool returned an error.",422,{dispatched:true,outcomeKnown:true});
       const {value:out}=adaptMcpResult(value,node.config.resultAdapterRef??"structured",live.outputSchema);
       ensure(
         out.environment === undefined || out.environment === binding.environment,

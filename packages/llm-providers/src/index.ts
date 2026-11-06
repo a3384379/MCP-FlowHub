@@ -1,7 +1,7 @@
 import { ensure, HubError, type Json } from "../../contracts/src/domain.js";
 export type ModelCall={id:string;name:string;arguments:string};
 export type ModelTurn={text:string;calls:ModelCall[];usage:Json;continuation?:Json[]};
-export type ModelRequest={messages:Json[];tools:Json[];signal:AbortSignal;stream:boolean;continuation?:Json[];onDelta?:(text:string)=>void};
+export type ModelRequest={messages:Json[];tools:Json[];signal:AbortSignal;stream:boolean;maxAttempts?:number;continuation?:Json[];onDelta?:(text:string)=>void};
 export interface ModelProvider { complete(request:ModelRequest):Promise<ModelTurn>; }
 export type ProviderFactory=(profile:Json,key:string)=>ModelProvider;
 
@@ -81,6 +81,8 @@ async function retryDelay(ms:number,signal:AbortSignal) {
 export class HttpModelProvider implements ModelProvider {
   constructor(readonly profile:Json,readonly key:string) {}
   async complete(request:ModelRequest):Promise<ModelTurn> {
+    const maxAttempts=request.maxAttempts??3;
+    ensure(Number.isSafeInteger(maxAttempts)&&maxAttempts>=1&&maxAttempts<=3,"INPUT_INVALID","Model requests allow one to three HTTP attempts.");
     const timeout=AbortSignal.timeout(this.profile.timeoutMs??180000),signal=AbortSignal.any([request.signal,timeout]);
     try {
     const responses=this.profile.providerKind==="openai_responses";
@@ -96,7 +98,7 @@ export class HttpModelProvider implements ModelProvider {
       if(response.ok)break;
       const failure=await modelServiceFailure(response,attempt+1);
       const raw=response.headers.get("retry-after"),retryMs=raw===null?250:/^\d+(?:\.\d+)?$/.test(raw)?Number(raw)*1000:Math.max(0,Date.parse(raw)-Date.now());
-      if(failure.code==="MODEL_RATE_LIMITED"&&attempt<2&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
+      if(failure.code==="MODEL_RATE_LIMITED"&&attempt+1<maxAttempts&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
       throw failure;
     }
     if(!request.stream) {

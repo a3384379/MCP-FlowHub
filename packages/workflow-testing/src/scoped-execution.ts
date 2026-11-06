@@ -1,4 +1,4 @@
-import {clone,ensure,hash,id,now,type Json} from "../../contracts/src/domain.js";
+import {clone,ensure,hash,HubError,id,now,type Json} from "../../contracts/src/domain.js";
 import type {AuthoringService} from "../../workflow-authoring/src/index.js";
 import {connectionBaseline} from "./execution-baseline.js";
 
@@ -23,6 +23,7 @@ export class ScopedExecution {
     for(const [key,value] of Object.entries(this.snapshot.authorization.connections))ensure(connectionBaseline(this.repo.get("connections",key))===value,"TEST_BASELINE_STALE","Test connection changed.",409);
     const current=this.repo.get("workflow_test_runs",this.testRunId);
     ensure(current&&!current.cancelRequested&&!current.resultsExpiredAt,"TASK_CANCELLED","The test stopped or expired.");
+    ensure(!current.outcomeUnknown,"OUTCOME_UNKNOWN","A dispatched test call has an unknown outcome; no later call may be dispatched.");
     if(bindingId)ensure(this.accepted.scope.allowedBindingIds.includes(bindingId),"TEST_SCOPE_VIOLATION","This binding is outside the selected test scope.");
   }
   private usage(key:"toolCalls"|"catalogChecks") {
@@ -62,15 +63,16 @@ export class ScopedExecution {
     ensure(frozen&&hash(frozen)===hash(binding),"TEST_SCOPE_VIOLATION","The executed binding differs from the accepted scope.");
     ensure((this.repo.get("workflow_test_runs",this.testRunId).toolCalls??0)<this.accepted.scope.budgets.maxCalls,"BUDGET_EXCEEDED","The explicit test call budget is exhausted before connection preparation.");
     const effective=Math.min(timeout,Math.max(1,this.deadline-Date.now()));
-    const dispatchId=id("test_dispatch");let dispatched=false,completed=false;
+    const dispatchId=id("test_dispatch");let dispatched=false,outcomeKnown=false;
     try{return await this.authoring.engine.connectors.call(binding,node,args,effective,()=>{
       this.repo.tx(()=>{this.guard(binding.id);ensure(!this.authoring.engine.vault.locked,"CREDENTIAL_LOCKED","Vault locked before dispatch.",423);this.usage("toolCalls");beforeDispatch();
         const current=this.repo.get("workflow_test_runs",this.testRunId);
         this.repo.put("workflow_test_runs",this.testRunId,{...current,pendingDispatches:[...new Set([...(current.pendingDispatches??[]),dispatchId])]});dispatched=true;
         this.repo.changed("test.tool.dispatched",{testRunId:this.testRunId,nodeId:node.id,bindingId:binding.id,at:now()});});
-    },{signal:this.signal}).then(value=>{completed=true;return value;});}
+    },{signal:this.signal}).then(value=>{outcomeKnown=true;return value;});}
+    catch(error){if(error instanceof HubError&&(error.details?.outcomeKnown===true||error.details?.dispatched===false))outcomeKnown=true;throw error;}
     finally{if(dispatched){const current=this.repo.get("workflow_test_runs",this.testRunId);
-      this.repo.put("workflow_test_runs",this.testRunId,{...current,pendingDispatches:(current.pendingDispatches??[]).filter((value:string)=>value!==dispatchId),outcomeUnknown:current.outcomeUnknown||!completed});}}
+      this.repo.put("workflow_test_runs",this.testRunId,{...current,pendingDispatches:(current.pendingDispatches??[]).filter((value:string)=>value!==dispatchId),outcomeUnknown:current.outcomeUnknown||!outcomeKnown});}}
   }
 }
 

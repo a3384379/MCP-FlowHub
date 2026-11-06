@@ -92,5 +92,7 @@ test("live cancellation and timeout abort an actual pending MCP request, retain 
   for(let i=0;i<200&&f.state.calls.length===0;i++)await new Promise(r=>setTimeout(r,5));assert.equal(f.state.calls.length,1);
   f.app.testing.cancel(receipt.testRunId);await f.app.testing.idle();const cancelled=f.app.testing.status(receipt.testRunId);assert.equal(cancelled.status,"CANCELLED");assert.equal(cancelled.toolCalls,1);assert.equal(cancelled.outcomeUnknown,true);assert.ok(cancelled.cases[0].trace.length);assert.notEqual(cancelled.cases[0].executionState,"SUCCEEDED");
   f.app.testing.run(args);await f.app.testing.idle();assert.equal(f.state.calls.length,1);
-  const timed=await f.execute(f.request("live",{budgets:{maxCalls:1,timeoutMs:1000}}));assert.equal(timed.status,"FAILED");assert.ok(timed.errorCode==="TEST_TIMEOUT"||timed.cases?.some((c:Json)=>c.errorCode==="BUDGET_EXCEEDED"));assert.equal(timed.toolCalls,1);
+  const timed=await f.execute(f.request("live",{budgets:{maxCalls:1,timeoutMs:1000}}));assert.equal(timed.status,"FAILED");
+  assert.ok(["TEST_TIMEOUT","OUTCOME_UNKNOWN"].includes(timed.errorCode));assert.equal(timed.outcomeUnknown,true);
+  assert.equal(timed.cases[0].executionState,"OUTCOME_UNKNOWN");assert.equal(timed.cases[0].trace.length,1);assert.equal(timed.toolCalls,1);
 });

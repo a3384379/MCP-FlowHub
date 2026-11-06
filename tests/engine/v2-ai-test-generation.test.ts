@@ -113,12 +113,14 @@ test("AI generation missing model credentials is explicit while deterministic ge
   assert.equal(f.app.testing.getSuite(deterministic.suiteId).cases.length,1);
 });
 
-test("AI generation locked Vault and failed Provider do not leak credential material or create partial suites",async t=>{
+test("AI generation rejects a locked Vault before task persistence while deterministic generation remains available",async t=>{
   const f=fixture(t,[]),key="SYNTHETIC-PRIVATE-API-KEY";
   f.app.assistant.saveProfile({name:"Encrypted synthetic",providerKind:"openai_responses",baseUrl:"https://example.invalid/v1",model:"synthetic",apiKey:key,expectedRevision:1},f.profile.id);f.vault.lock();
-  const accepted=f.app.testing.generate(f.request({expectedModelRevision:2}));await f.app.testing.idle();const result=f.app.testing.status(accepted.testRunId);
-  assert.equal(result.status,"FAILED");assert.equal(result.errorCode,"CREDENTIAL_LOCKED");assert.equal(result.modelCalls,0);assert.equal(f.provider.requests.length,0);assert.equal(f.repo.all("workflow_test_suites").length,0);
-  assert.ok(!JSON.stringify(result).includes(key));assert.ok(!JSON.stringify(f.repo.all("workflow_test_runs")).includes(key));
+  assert.throws(()=>f.app.testing.generate(f.request({expectedModelRevision:2})),{code:"CREDENTIAL_LOCKED"});
+  await f.app.testing.idle();assert.equal(f.provider.requests.length,0);assert.equal(f.repo.all("workflow_test_suites").length,0);assert.equal(f.repo.all("workflow_test_runs").length,0);
+  assert.ok(!JSON.stringify(f.repo.all("workflow_test_runs")).includes(key));
+  const deterministic=f.app.testing.generate({workflowId:"generate",expectedRevision:1,strategy:"deterministic",idempotencyKey:"locked-no-key"});
+  assert.equal(f.app.testing.getSuite(deterministic.suiteId).cases.length,1);
 });
 
 test("AI generation bounds context before acceptance and response before suite creation",async t=>{

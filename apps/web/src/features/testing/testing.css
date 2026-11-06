@@ -8,4 +8,6 @@
 .v2-testing .testing-budgets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .v2-testing .testing-budgets .field{min-width:0}
 .v2-testing .testing-task{padding:8px 0}
+.v2-testing .testing-draft-notice{margin:12px 0;overflow-wrap:anywhere}
+.v2-testing .testing-draft-notice button{margin:4px 8px 4px 0;max-width:100%;white-space:normal}
 @media(max-width:680px){.v2-testing .testing-budgets{grid-template-columns:1fr;gap:0}}

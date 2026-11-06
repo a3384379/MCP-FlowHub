@@ -69,6 +69,7 @@ export class AiTestGenerator {
       ensure(Buffer.byteLength(JSON.stringify(context))<=65536,"BUDGET_EXCEEDED","Generation context exceeds 64 KiB; narrow the workflow or hints.");
       const vault=this.authoring.engine.vault;
       const catalog=generationCatalog(context);if(catalog.length)vault.assertCatalogSafe(catalog,vault.catalogContext());
+      vault.assertNoCredentialLeak(context,"MODEL_CONTEXT_SENSITIVE");
       const generationId=id("generation");
       this.repo.insert("workflow_test_runs",generationId,{id:generationId,kind:"generation",mode:"generation",owner,workflowId:request.workflowId,modelProfileId:request.modelProfileId,
         modelBaseline:model,sourceBaseline:source.baseline,sourceSnapshot:context,request:clone(request),status:"QUEUED",cases:[],gaps:[],createdAt:now(),draftRevision:request.expectedRevision,

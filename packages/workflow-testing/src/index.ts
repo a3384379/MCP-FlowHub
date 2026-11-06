@@ -45,7 +45,10 @@ export class WorkflowTesting {
       const {modelProfileId,expectedModelRevision,...base}=request;
       const result=this.generate({...base,strategy:"agent_proposed",proposedCases:cases,idempotencyKey:"generated:"+generationId},owner);
       const suite=this.repo.get("workflow_test_suites",result.suiteId);
-      this.repo.put("workflow_test_suites",suite.id,{...suite,generatedBy:"ai_assisted",generationRef:generationId});
+      const source={generatedBy:"ai_assisted",generationRef:generationId};
+      this.repo.put("workflow_test_suites",suite.id,{...suite,generatedBy:"ai_assisted",generationRef:generationId,
+        generationSource:suite.suiteRevision===1?source:suite.generationSource,
+        revisionSources:suite.revisionSources.map((revision:Json)=>revision.suiteRevision===suite.suiteRevision?{...revision,...source}:revision)});
       return result;
     });
   }
@@ -104,13 +107,31 @@ export class WorkflowTesting {
       }
       const base=a.baseSuiteId?this.repo.get("workflow_test_suites",a.baseSuiteId):null;
       ensure(!a.baseSuiteId||(base&&base.owner===owner&&base.suiteRevision===a.expectedSuiteRevision&&base.workflowId===a.workflowId),"REVISION_CONFLICT","Test suite changed.",409);
-      const suiteId=base?.id??id("suite"),suite={id:suiteId,workflowId:a.workflowId,draftRevision:a.expectedRevision,suiteRevision:(base?.suiteRevision??0)+1,
-        capabilityRevisions:Object.fromEntries(record.capabilityRefs.map((c:Json)=>[c.capabilityId,c.revision])),fixtureHash:"sha256:"+hash(cases),generatedBy:a.strategy,mode:"mock",cases};
+      const previousSource=base?{generatedBy:base.generatedBy,...(base.generationRef?{generationRef:base.generationRef}:{})}:null;
+      const suiteId=base?.id??id("suite"),suiteRevision=(base?.suiteRevision??0)+1,suite={id:suiteId,workflowId:a.workflowId,draftRevision:a.expectedRevision,suiteRevision,
+        capabilityRevisions:Object.fromEntries(record.capabilityRefs.map((c:Json)=>[c.capabilityId,c.revision])),fixtureHash:"sha256:"+hash(cases),generatedBy:a.strategy,mode:"mock",cases,
+        ...(base?.generationRef?{generationRef:base.generationRef}:{}),generationSource:clone(base?.generationSource??previousSource??{generatedBy:a.strategy}),
+        revisionSources:[...clone(base?.revisionSources??(base?[{suiteRevision:base.suiteRevision,...previousSource}]:[])),{suiteRevision,generatedBy:a.strategy}]};
       validate(suiteSchema,suite);
       ensure(new Set(cases.map(c=>c.id)).size===cases.length,"INPUT_INVALID","Duplicate test case IDs.");
+      this.validateTargets(record.draft,cases);
       this.repo.put("workflow_test_suites",suiteId,{...suite,owner,revision:suite.suiteRevision,createdAt:base?.createdAt??now(),updatedAt:now()});
       return {suiteId,suiteRevision:suite.suiteRevision,caseCount:cases.length,gaps:[...this.gaps(record.draft,cases),...generationGaps]};
     });
+  }
+  private validateTargets(workflow:Json,cases:Json[]) {
+    const nodes=new Map<string,Json>(workflow.nodes.map((node:Json)=>[node.id,node]));
+    for(const c of cases) {
+      for(const fixture of c.mockResults)ensure(nodes.get(fixture.nodeId)?.type==="mcp_tool","INPUT_INVALID","Mock fixture must target an existing MCP node: "+fixture.nodeId);
+      for(const submission of c.agentSubmissions)ensure(nodes.get(submission.nodeId)?.type==="agent_task","INPUT_INVALID","Agent fixture must target an existing Agent node: "+submission.nodeId);
+      for(const assertion of c.assertions)if(assertion.nodeId!==undefined) {
+        const node=nodes.get(assertion.nodeId);
+        ensure(node,"INPUT_INVALID","Assertion must target an existing node: "+assertion.nodeId);
+        if(["tool_called","tool_not_called","tool_call_count","argument_equals"].includes(assertion.kind))
+          ensure(node.type==="mcp_tool","INPUT_INVALID","Tool assertions must target an MCP node: "+assertion.nodeId);
+        if(assertion.kind==="artifact_contains")ensure(["mcp_tool","report_template","agent_task"].includes(node.type),"INPUT_INVALID","Artifact assertions must target an artifact-producing node: "+assertion.nodeId);
+      }
+    }
   }
   private gaps(workflow:Json,cases:Json[]) {
     return workflow.nodes.filter((n:Json)=>n.type==="mcp_tool"||n.type==="agent_task").flatMap((n:Json)=>cases.filter(c=>!c.expectedValidationErrors.length&&
@@ -171,6 +192,9 @@ export class WorkflowTesting {
 
       ensure(!a.caseIds || (a.caseIds.length>0&&new Set(a.caseIds).size===a.caseIds.length&&a.caseIds.every((key:string)=>suite.cases.some((c:Json)=>c.id===key))),"INPUT_INVALID","Select existing, unique test case IDs.");
       this.assertBaseline(suite);
+      // The same contract and target checks protect edited/legacy suites as newly generated ones.
+      validate(suiteSchema,{...Object.fromEntries(Object.keys(suiteSchema.properties).filter(key=>Object.hasOwn(suite,key)).map(key=>[key,suite[key]]))});
+      this.validateTargets(this.repo.get("workflows",suite.workflowId).draft,suite.cases);
       const executionSnapshot=this.executionSnapshot(suite,a.mode!=="mock"),scope=validateScope(a,suite,executionSnapshot),testRunId=id("test");
       if(a.mode==="live")ensure(!this.authoring.engine.vault.locked,"CREDENTIAL_LOCKED","Unlock the vault before live execution.",423);
       this.repo.insert("workflow_test_runs",testRunId,{id:testRunId,suiteId:suite.id,workflowId:suite.workflowId,owner,mode:a.mode,scope,scopeHash:scope?hash(scope):null,snapshotHash:"sha256:"+hash(executionSnapshot),validationLevel:a.mode,toolCalls:0,catalogChecks:0,credentialReadAccounting:a.mode==="mock"?"none":"not_instrumented",syntheticBindings:executionSnapshot.bindings.filter((b:Json)=>b.simulationOnly||b.fixtureRequiresSynthetic).map((b:Json)=>b.id),status:"QUEUED",cases:[],gaps:[],createdAt:now(),draftRevision:suite.draftRevision,capabilityRevisions:clone(suite.capabilityRevisions),fixtureHash:suite.fixtureHash,suiteRevision:suite.suiteRevision,
@@ -200,7 +224,8 @@ export class WorkflowTesting {
       json_extract(body,'$.draftRevision') AS draftRevision,json_extract(body,'$.suiteRevision') AS suiteRevision
       FROM workflow_test_runs WHERE json_extract(body,'$.workflowId')=@workflowId
       AND (@owner='admin' OR json_extract(body,'$.owner')=@owner) AND json_extract(body,'$.resultsExpiredAt') IS NULL
-      ORDER BY json_extract(body,'$.createdAt') DESC,id DESC LIMIT 50`).all({workflowId,owner});
+      ORDER BY CASE WHEN json_extract(body,'$.status') IN ('QUEUED','RUNNING') THEN 0 ELSE 1 END,
+      json_extract(body,'$.createdAt') DESC,id DESC LIMIT 50`).all({workflowId,owner});
   }
   status(testRunId:string,owner="admin") {
     const run=this.repo.get("workflow_test_runs",testRunId);ensure(run&&(owner==="admin"||run.owner===owner),"NOT_FOUND","Test run missing.",404);
@@ -246,7 +271,7 @@ export class WorkflowTesting {
     return {draft,connections,bindings,capabilities};
   }
   private async perform(testRunId:string,suite:Json,snapshot:Json,signal:AbortSignal,caseIds?:string[]) {
-    const results:Json[]=[];
+    const results:Json[]=[],selectedCases=suite.cases.filter((item:Json)=>!caseIds||caseIds.includes(item.id));
     try {
       const accepted=this.repo.get("workflow_test_runs",testRunId),draft=snapshot.draft;
       const scoped=accepted.mode!=="mock"?new ScopedExecution(this.authoring,testRunId,accepted,snapshot,signal):undefined;
@@ -258,9 +283,15 @@ export class WorkflowTesting {
           summary:{checked:schemaChecks.length,failed},gaps:[],completedAt:now(),simulationOnly:false,validationLevel:"contract",provenance:"mcp_catalog_only",toolCalls:0,networkCalls:null,realSecretReads:null});
         this.repo.changed("test.completed",{testRunId,status:failed?"FAILED":"SUCCEEDED",mode:"contract"});return;
       }
-      for(const c of suite.cases.filter((item:Json)=>!caseIds||caseIds.includes(item.id))) {
+      for(const c of selectedCases) {
         this.ensureRunning(signal);
-        const result=await this.case(snapshot,c,signal,scoped);results.push(result);
+        const result:Json=await this.case(snapshot,c,signal,scoped);results.push(result);
+        if(scoped&&(result.executionState==="OUTCOME_UNKNOWN"||this.repo.get("workflow_test_runs",testRunId).outcomeUnknown)) {
+          // Matching a negative assertion never authorizes continuing after an uncertain dispatch.
+          result.status="FAILED";result.outcomeUnknown=true;
+          this.repo.put("workflow_test_runs",testRunId,{...this.repo.get("workflow_test_runs",testRunId),outcomeUnknown:true});
+          throw new HubError("OUTCOME_UNKNOWN","A live tool outcome is unknown; remaining cases were not executed.");
+        }
         this.ensureRunning(signal);
         this.repo.put("workflow_test_runs",testRunId,{...this.repo.get("workflow_test_runs",testRunId),status:"RUNNING",cases:results});
         this.repo.changed("test.progress",{testRunId,caseId:c.id,status:result.status});
@@ -274,7 +305,9 @@ export class WorkflowTesting {
       this.repo.changed("test.completed",{testRunId,status:this.repo.get("workflow_test_runs",testRunId).status,mode:accepted.mode});
     }catch(e){const current=this.repo.get("workflow_test_runs",testRunId),cancelled=current.cancelRequested===true;
       const errorCode=this.closing?"TASK_INTERRUPTED":cancelled?"TASK_CANCELLED":signal.reason?.name==="TimeoutError"?"TEST_TIMEOUT":e instanceof HubError?e.code:"TEST_FAILED";
+      if(current.outcomeUnknown)for(const c of selectedCases.filter((c:Json)=>!results.some(result=>result.id===c.id)))results.push({id:c.id,name:c.name,status:"NOT_RUN",errorCode:"OUTCOME_UNKNOWN",reason:"A prior dispatched live call has an unknown outcome; automatic continuation is prohibited.",assertions:c.assertions.map((assertion:Json)=>({...assertion,actual:null,passed:false,evaluated:false,errorCode:"ASSERTION_NOT_EVALUATED"})),trace:[],outputs:{},artifacts:[],events:[],executionState:null,gaps:[{code:"TEST_STOPPED_OUTCOME_UNKNOWN"}],validationLevel:current.mode,provenance:"not_executed"});
       this.repo.put("workflow_test_runs",testRunId,{...current,status:this.closing?"INTERRUPTED":cancelled?"CANCELLED":"FAILED",errorCode,cases:results,
+        summary:{passed:results.filter(c=>c.status==="PASSED").length,failed:results.filter(c=>c.status==="FAILED").length,uncovered:results.filter(c=>c.status==="UNCOVERED").length,notRun:results.filter(c=>c.status==="NOT_RUN").length,total:results.length},
         gaps:[{code:errorCode}],completedAt:now(),simulationOnly:current.mode==="mock",networkCalls:current.mode==="mock"?0:null,realSecretReads:current.mode==="mock"?0:null,toolCalls:current.mode==="mock"?results.reduce((sum,c)=>sum+c.trace.length,0):current.toolCalls});
       this.repo.changed("test.completed",{testRunId,status:this.repo.get("workflow_test_runs",testRunId).status,mode:current.mode});
     }
@@ -348,16 +381,18 @@ export class WorkflowTesting {
         const calls=trace.filter(x=>!assertion.nodeId||x.nodeId===assertion.nodeId);
         try {switch(assertion.kind){
           case "terminal_state":actual=run?.state??"VALIDATION_FAILED";break;
-          case "node_state":actual=run?.steps?.[assertion.nodeId]??null;break;
+          case "node_state":ensure(run?.steps&&Object.hasOwn(run.steps,assertion.nodeId),"ASSERTION_VALUE_MISSING","Node state is unavailable.");actual=run.steps[assertion.nodeId];break;
           case "tool_called":actual=calls.length>0;break;
           case "tool_not_called":actual=calls.length===0;break;
           case "tool_call_count":actual=calls.length;break;
-          case "argument_equals":actual=calls.length?get(calls[0].arguments,assertion.pointer??""):null;break;
-          case "output_equals":actual=get(outputs[assertion.nodeId],assertion.pointer??"");break;
+          case "argument_equals":ensure(calls.length,"ASSERTION_VALUE_MISSING","The target tool was not called.");actual=get(calls[0].arguments,assertion.pointer??"");break;
+          case "output_equals":ensure(Object.hasOwn(outputs,assertion.nodeId),"ASSERTION_VALUE_MISSING","Node output is unavailable.");actual=get(outputs[assertion.nodeId],assertion.pointer??"");break;
           case "artifact_contains":actual=artifacts.some(a=>(!assertion.nodeId||a.nodeId===assertion.nodeId)&&String(a.content??"").includes(String(assertion.expected)));return {...assertion,actual,passed:actual===true};
           case "error_code":actual=errorCode;break;
-          default:actual=null;
-        }}catch{actual=null;}
+          default:throw new HubError("ASSERTION_INVALID","Unknown assertion kind.");
+        }
+        ensure(actual!==undefined,"ASSERTION_VALUE_MISSING","Assertion value is unavailable.");
+        }catch(error){return {...assertion,actual:null,passed:false,evaluated:false,errorCode:error instanceof HubError?error.code:"ASSERTION_EVALUATION_FAILED"};}
         return {...assertion,actual,passed:hash([actual])===hash([assertion.expected])};
       });
       const expectedValidation=c.expectedValidationErrors.length?c.expectedValidationErrors.includes(errorCode):!errorCode||c.assertions.some((a:Json)=>a.kind==="error_code"&&a.expected===errorCode);

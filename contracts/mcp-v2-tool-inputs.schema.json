@@ -1613,7 +1613,126 @@
                     "kind",
                     "expected"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "node_state",
+                              "argument_equals",
+                              "output_equals"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "nodeId"
+                        ],
+                        "properties": {
+                          "nodeId": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "terminal_state",
+                              "node_state"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "expected": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "tool_called",
+                              "tool_not_called"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "expected": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "const": "tool_call_count"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "expected": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "const": "artifact_contains"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "expected": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "kind": {
+                            "const": "error_code"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "expected": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               },
               "expectedValidationErrors": {
