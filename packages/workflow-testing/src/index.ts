@@ -45,7 +45,7 @@ export class WorkflowTesting {
     return this.repo.command(owner,"test.generate",a.idempotencyKey,a,()=>{
       const record=this.authoring.get(a.workflowId,owner);
       ensure(record.revision===a.expectedRevision,"REVISION_CONFLICT","Draft changed.",409);
-      ensure(a.strategy!=="ai_assisted","MODEL_NOT_CONFIGURED","Use a configured assistant to propose cases, or agent_proposed without a Key.");
+      ensure(a.strategy!=="ai_assisted","TEST_STRATEGY_UNSUPPORTED","当前尚不支持直接使用 ai_assisted 策略。请让聊天助手生成用例，或通过 agent_proposed 提交用例；配置模型不会启用此独立策略。");
       let cases:Json[]=a.proposedCases;const generationGaps:Json[]=[];
       if(a.strategy==="agent_proposed")ensure(Array.isArray(cases)&&cases.length,"INPUT_INVALID","Proposed test cases required.");
       else {

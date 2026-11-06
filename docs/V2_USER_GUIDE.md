@@ -63,6 +63,7 @@ Codex 能力发现页首次扫描本机上下文，后续优先读取完成快�
 ## 用例生成与自测
 
 workflow_test_generate(strategy=deterministic) 根据输入 Schema 产生基准用例；agent_proposed 接收 Codex 提供的合成 Fixture 和断言，不需要模型 Key。
+内置聊天助手也可设计用例，再通过同一 agent_proposed 入口提交。直接 strategy=ai_assisted 尚未实现，返回 TEST_STRATEGY_UNSUPPORTED；配置模型不会启用这个独立策略，请使用聊天助手或 agent_proposed。
 确定性生成覆盖必填/类型、数字与字符串/数组边界、枚举和布尔输入；布尔分支可独立统计true/false。复杂pattern等无法由采样器满足时返回INPUT_SAMPLE_REQUIRED，需补合法Schema example；超出200例或过大边界报告GENERATION_LIMIT，不承诺自动穷尽。Mock入参和输出也校验已发现Schema。
 workflow_test_run 默认 mock；在隔离库通过同一引擎与注入连接器执行，不读取真实 Secret、不连接真实业务服务。缺 Fixture 为 FIXTURE_MISSING/未覆盖；断言失败显示 expected/actual。修改草稿、能力或 Fixture 后旧基线显示 stale，需要重新生成/运行。
 contract/live 请求目前明确返回 TEST_MODE_UNSUPPORTED，不静默切换真实环境。

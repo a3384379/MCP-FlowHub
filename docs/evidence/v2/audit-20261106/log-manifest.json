@@ -2,19 +2,24 @@
   "scope": "local ignored artifacts/audit-20261106 logs; no enterprise or model acceptance claim",
   "logs": [
     {
+      "file": "backend-426.log",
+      "bytes": 48348,
+      "sha256": "6319d8738064e45c12524eebbab5a47dc2df376b1daaee027bf105d5b042415f"
+    },
+    {
       "file": "backend-before-context-fix.log",
       "bytes": 49767,
       "sha256": "fcd0cf10a0156a1e9e1b56656056bc227eccc163614bdb8b1620e4b572f49a19"
     },
     {
       "file": "backend.log",
-      "bytes": 48348,
-      "sha256": "6319d8738064e45c12524eebbab5a47dc2df376b1daaee027bf105d5b042415f"
+      "bytes": 48387,
+      "sha256": "1035e27fa232fc85273802e00376a4d3922afa435bcca4d7bf61cd76302b525a"
     },
     {
       "file": "check.log",
       "bytes": 6652,
-      "sha256": "48f773d4ea9d0d709ee345b8ddb90f7b3844d9a2be83d4a66eca456c15eebfa1"
+      "sha256": "8007df91a20bd30fad0ba5cbcf1bb39d93eb974484f738e774f719f57b96e86c"
     },
     {
       "file": "codex.log",
@@ -42,6 +47,16 @@
       "sha256": "12d35814f61d68d2ad8bc29121876367b14120ea85395454e8ed3402a82c2bf4"
     },
     {
+      "file": "strategy-before.log",
+      "bytes": 2495,
+      "sha256": "4d616997fa112af09a26a976c1ce3d6991c0433475d50399e1921f53d18c1a47"
+    },
+    {
+      "file": "ui-78-first.log",
+      "bytes": 12786,
+      "sha256": "77b0f7ccf58166e72df575194c4d97a42534c91d4ff7a6d41edce4b9e503dd1d"
+    },
+    {
       "file": "ui-before.log",
       "bytes": 3088,
       "sha256": "0e889589771020f2ed4d09acb3809b3c02cdf46a2c27ad6b6fa4226e0d92dd10"
@@ -53,8 +68,8 @@
     },
     {
       "file": "ui.log",
-      "bytes": 12786,
-      "sha256": "77b0f7ccf58166e72df575194c4d97a42534c91d4ff7a6d41edce4b9e503dd1d"
+      "bytes": 12796,
+      "sha256": "5915d6635bfde5f610fb7930d638da81f8b3da177dadb006f619ee87084f4fa8"
     },
     {
       "file": "upgrade-before.log",

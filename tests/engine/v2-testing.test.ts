@@ -8,6 +8,23 @@ import {Engine} from '../../packages/workflow-core/src/engine.js';
 import {Application} from '../../packages/application/src/index.js';
 import {hash} from '../../packages/contracts/src/domain.js';
 function setup(t:any){const db=new Database(':memory:'),repo=new Repository(db),vault=new Vault(repo),engine=new Engine(repo,vault,new Connectors(repo,vault)),app=new Application(engine);t.after(async()=>{await app.close();await engine.close();db.close();});app.authoring.create({workflowId:'testing',name:'testing',environment:'test',mode:'auto',template:'blank',idempotencyKey:'create'});return {repo,engine,app};}
+test('unsupported direct ai_assisted generation reports the strategy limit with or without a configured model',async t=>{
+  const f=setup(t);
+  for(const configured of [false,true]) {
+    if(configured) {
+      f.engine.vault.initialize('Synthetic-generation-password');
+      const profile=f.app.assistant.saveProfile({name:'Synthetic configured model',providerKind:'openai_responses',baseUrl:'https://example.invalid/v1',model:'synthetic',apiKey:'SYNTHETIC-KEY-NO-NETWORK'});
+      assert.equal(profile.keyConfigured,true);
+    }
+    const before=hash([f.repo.all('workflows'),f.repo.all('workflow_test_suites'),f.repo.all('authoring_commands')]);
+    assert.throws(()=>f.app.testing.generate({workflowId:'testing',expectedRevision:1,strategy:'ai_assisted',idempotencyKey:'unsupported-'+configured}),
+      (e:any)=>e.code==='TEST_STRATEGY_UNSUPPORTED'&&e.message.includes('agent_proposed'));
+    assert.equal(hash([f.repo.all('workflows'),f.repo.all('workflow_test_suites'),f.repo.all('authoring_commands')]),before);
+  }
+  const generated=f.app.testing.generate({workflowId:'testing',expectedRevision:1,strategy:'agent_proposed',idempotencyKey:'supported',proposedCases:[{id:'normal',name:'Existing supported path',inputs:{},mockResults:[],agentSubmissions:[],assertions:[{kind:'terminal_state',expected:'SUCCEEDED'}],expectedValidationErrors:[]}]});
+  const run=f.app.testing.run({suiteId:generated.suiteId,expectedSuiteRevision:1,mode:'mock',idempotencyKey:'supported-run'});await f.app.testing.idle();
+  assert.equal(f.app.testing.status(run.testRunId).status,'SUCCEEDED');
+});
 test('deterministic generation executes numeric/string boundaries and both boolean branches',async t=>{
   const f=setup(t),schema={type:'object',properties:{amount:{type:'integer',minimum:1,maximum:2},label:{type:'string',minLength:1,maxLength:3},flag:{type:'boolean'}},required:['amount','label','flag'],additionalProperties:false};
   f.app.authoring.patch({workflowId:'testing',expectedRevision:1,idempotencyKey:'patch',operations:[{op:'set_input_schema',schema},{op:'add_node',nodeId:'branch',nodeType:'condition',title:'branch',config:{expression:{op:'eq',left:{ref:{source:'input',pointer:'/flag'}},right:{value:true}}}},{op:'disconnect',source:'input',target:'end',port:'next'},{op:'connect',source:'input',target:'branch',port:'next'},{op:'connect',source:'branch',target:'end',port:'true'},{op:'connect',source:'branch',target:'end',port:'false'}]});
