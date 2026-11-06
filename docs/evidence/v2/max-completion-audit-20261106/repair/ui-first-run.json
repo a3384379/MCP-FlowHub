@@ -1,0 +1,12 @@
+{
+  "tests": 11,
+  "passed": 9,
+  "failed": 2,
+  "exitCode": 1,
+  "productSourceChangedAfterRun": false,
+  "fixtureCorrections": [
+    "Valid nine chapter synthetic report Markdown for host_skill",
+    "Fixed environment in counted MCP binding and input schema"
+  ],
+  "originalModeTestsPassed": 3
+}

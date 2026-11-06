@@ -1,0 +1,10 @@
+{
+  "tests": 2,
+  "passed": 1,
+  "failed": 1,
+  "exitCode": 1,
+  "mockSimulatedCount": 1,
+  "realSdkToolCalls": 0,
+  "remainingFixtureError": "Skill report lacks required tenth chapter: 运行版本与限制",
+  "productSourceChangedAfterRun": false
+}

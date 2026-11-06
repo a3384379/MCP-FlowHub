@@ -1,0 +1,130 @@
+{
+  "head": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "runtime": "v24.19.0",
+  "scope": "in-memory SQLite and local synthetic Provider",
+  "findings": [
+    {
+      "id": "AI-01",
+      "title": "JSON Unicode escapes bypass the protected model credential check",
+      "control": {
+        "escaped": false,
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "modelCalls": 1,
+        "httpRequests": 1,
+        "contextContainedKey": false,
+        "suiteCreated": false,
+        "protectedKeyStoredPlaintext": false
+      },
+      "actual": {
+        "escaped": true,
+        "status": "SUCCEEDED",
+        "errorCode": null,
+        "modelCalls": 1,
+        "httpRequests": 1,
+        "contextContainedKey": false,
+        "suiteCreated": true,
+        "protectedKeyStoredPlaintext": true
+      }
+    },
+    {
+      "id": "AI-02",
+      "title": "One-request counter and budget count a Provider call, while the adapter dispatches three HTTP attempts",
+      "actual": {
+        "status": "SUCCEEDED",
+        "modelCalls": 1,
+        "httpRequests": 3,
+        "modelRequestedEvents": 1
+      }
+    },
+    {
+      "id": "AI-03",
+      "title": "Missing assertion target and invalid reference are converted to null and counted as passed",
+      "actual": {
+        "generationStatus": "SUCCEEDED",
+        "testStatus": "SUCCEEDED",
+        "summary": {
+          "passed": 1,
+          "failed": 0,
+          "uncovered": 0,
+          "total": 1
+        },
+        "assertions": [
+          {
+            "kind": "node_state",
+            "expected": null,
+            "actual": null,
+            "passed": true
+          },
+          {
+            "kind": "output_equals",
+            "nodeId": "ghost",
+            "pointer": "/field",
+            "expected": null,
+            "actual": null,
+            "passed": true
+          }
+        ],
+        "workflowNodeIds": [
+          "input",
+          "end"
+        ]
+      }
+    }
+  ],
+  "controls": [
+    {
+      "kind": "model_same_revision",
+      "status": "FAILED",
+      "errorCode": "REVISION_CONFLICT",
+      "modelCalls": 1
+    },
+    {
+      "kind": "owner_revoked",
+      "status": "FAILED",
+      "errorCode": "AUTH_REQUIRED",
+      "modelCalls": 1
+    },
+    {
+      "kind": "base_suite_cas",
+      "status": "FAILED",
+      "errorCode": "REVISION_CONFLICT",
+      "modelCalls": 1
+    },
+    {
+      "kind": "cancel_late",
+      "status": "CANCELLED",
+      "errorCode": "TASK_CANCELLED",
+      "modelCalls": 1
+    },
+    {
+      "kind": "shutdown_restart",
+      "status": "INTERRUPTED",
+      "errorCode": "TASK_INTERRUPTED",
+      "modelCalls": 1
+    },
+    {
+      "kind": "expired_replay",
+      "actual": "30-day deletion retains idempotency tombstone; replay returns RESULT_EXPIRED",
+      "modelCalls": 1
+    }
+  ],
+  "observations": [
+    {
+      "id": "AI-OBS-01",
+      "title": "Saving unchanged AI fixtures via the same DTO as PUT replaces source metadata",
+      "before": {
+        "generatedBy": "ai_assisted",
+        "generationRefPresent": true,
+        "suiteRevision": 1
+      },
+      "after": {
+        "generatedBy": "agent_proposed",
+        "generationRefPresent": false,
+        "suiteRevision": 2
+      },
+      "generationStatusStale": false,
+      "note": "Confirmed behavior; preserve original lineage separately if retaining source across suite revisions is the intended contract."
+    }
+  ]
+}

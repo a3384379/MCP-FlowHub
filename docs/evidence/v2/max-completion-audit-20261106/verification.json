@@ -1,0 +1,143 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "platform": "darwin-arm64"
+  },
+  "commands": [
+    {
+      "command": "npm test",
+      "startedAt": "2026-11-06T15:23:31.510669+00:00",
+      "durationSeconds": 151.888,
+      "exitCode": 0,
+      "log": "root/full-test.log"
+    },
+    {
+      "command": "npm run test:ui",
+      "startedAt": "2026-11-06T15:27:00.511181+00:00",
+      "durationSeconds": 148.973,
+      "exitCode": 1,
+      "log": "root/full-ui.log"
+    },
+    {
+      "command": "npm run test:ui",
+      "startedAt": "2026-11-06T15:31:58.765655+00:00",
+      "durationSeconds": 169.041,
+      "exitCode": 0,
+      "log": "root/full-ui-final.log"
+    },
+    {
+      "command": "npm run check",
+      "startedAt": "2026-11-06T15:27:25.032725+00:00",
+      "durationSeconds": 1.377,
+      "exitCode": 0,
+      "log": "root/check-final.log"
+    },
+    {
+      "command": "node scripts/smoke-codex-v2.mjs",
+      "startedAt": "2026-11-06T15:27:26.409889+00:00",
+      "durationSeconds": 1.722,
+      "exitCode": 0,
+      "log": "root/codex-protocol.log"
+    },
+    {
+      "command": "node scripts/smoke-v2-upgrade.mjs",
+      "startedAt": "2026-11-06T15:27:28.131895+00:00",
+      "durationSeconds": 2.555,
+      "exitCode": 0,
+      "log": "root/upgrade.log"
+    }
+  ],
+  "initialChecks": [
+    {
+      "command": "baseline four-file targeted tests",
+      "passed": 34,
+      "total": 34,
+      "exitCode": 0,
+      "log": "root/baseline-targeted.log"
+    },
+    {
+      "command": "new and existing eight-file targeted tests",
+      "passed": 68,
+      "total": 69,
+      "exitCode": 1,
+      "log": "root/targeted.log",
+      "note": "Old timeout assertion updated to require failed/unknown/one actual trace; final full backend includes it"
+    },
+    {
+      "command": "first combined UI targeted",
+      "passed": 9,
+      "total": 11,
+      "exitCode": 1,
+      "note": "Fixture corrections only; detailed first/second/third runs in repair/ui-verification.json"
+    }
+  ],
+  "final": {
+    "checkExitCode": 0,
+    "backend": {
+      "passed": 485,
+      "total": 485,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "ui": {
+      "passed": 89,
+      "total": 89,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "newTests": {
+      "backend": 28,
+      "ui": 8
+    },
+    "independent": {
+      "ai": 21,
+      "scoped": 8,
+      "browser": 4,
+      "driftPlusCombos": 8,
+      "exitCodes": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "specifiedCombinations": {
+      "passed": 3,
+      "total": 3
+    },
+    "codexProtocolExitCode": 0,
+    "v1UpgradeRestoreExitCode": 0
+  },
+  "findings": {
+    "P1": 2,
+    "P2": 10,
+    "closed": 12,
+    "openConfirmed": 0
+  },
+  "scope": "Local synthetic selftest and real browser/protocol paths; not complete formal 2.0 acceptance",
+  "realModelCalls": 0,
+  "enterpriseCalls": 0,
+  "unverified": [
+    "real model 30 scenarios and quality",
+    "enterprise read-only permissions and business correctness",
+    "actual host-only Skill/plugin and personal Desktop configuration merge",
+    "native Windows, company device, real phone and new machine",
+    "old browser tab automatic cross-database-generation recovery",
+    "other historical 101 ledger entries"
+  ],
+  "push": false,
+  "merge": false,
+  "release": false,
+  "sourceCommit": "aa41a5424185727aaaa42c7d9ac6f3a562c63e76",
+  "formalRuntime": "runtime-summary.json",
+  "finalPackageRecord": "artifacts/max-completion-audit-20261106/package-verification-final.json (generated after final documentation commit to avoid self-referencing build hashes)",
+  "deliveryCheck": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "log": "root/check-delivery.log"
+  }
+}

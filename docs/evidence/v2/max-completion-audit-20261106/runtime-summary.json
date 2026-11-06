@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "aa41a5424185727aaaa42c7d9ac6f3a562c63e76",
+  "url": "http://127.0.0.1:18473",
+  "oldPid": 91391,
+  "newPid": 80820,
+  "signal": "SIGTERM",
+  "backupPreflightPassed": true,
+  "integrity": "ok",
+  "protectedTableCount": 24,
+  "changedProtectedTables": [],
+  "vaultLocked": false,
+  "previousVaultStatePreserved": true,
+  "activeRuns": 0,
+  "activeAssistantTasks": 0,
+  "formalWorkflowMutations": 0,
+  "servedFrontendMatchesBuild": true,
+  "servedIndexSha256": "eff7b9874a4c613980d5d8b9168efb4943414bc5c11dd0b6257ad782c598ba1b",
+  "servedAssetSha256": "59da5034d0bb4020108a5b8b7c3dd85bf6e16b711696e54e255046f162ea2c61",
+  "sseReadBytes": 65272,
+  "healthAfterSseDisconnect": {
+    "status": "ok",
+    "version": "2.0.0-alpha.2",
+    "phase": "ALPHA",
+    "syntheticOnly": false
+  },
+  "privateCredentialValuesPrinted": false,
+  "formalRealModelOrBusinessCalls": 0
+}

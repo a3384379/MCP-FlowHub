@@ -1,0 +1,260 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "runtime": "v24.19.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "syntheticOnly": true,
+  "buildLog": "../root/build-server.log",
+  "buildExitNote": "Build log has no explicit exitCode; root owns the executed build result.",
+  "hashes": {
+    "packages/assistant-core/src/index.ts": "8434c0f106309ea28deef6dc2caca621adfefd306befbe87c55fea2706acf160",
+    "packages/security/src/index.ts": "f8e522edc01ecf59cdcafe9a7661a5fa6c14b19c1c9631034a2f38b2e2e7bd84",
+    "packages/workflow-testing/src/ai-generation.ts": "a95cf68627d69e16babb352a48286abfd1cdfc96ae3703781327b6d006adb57e",
+    "packages/workflow-testing/src/index.ts": "c2e616a7cf40c3f8a068352644e279ee40eb51b25a9918b279aa4bebe6483dde",
+    "packages/llm-providers/src/index.ts": "4d0f4655b5b21a20990ce9e66bf913765d2afe36d9eec38feac8c0a864f2cefb",
+    "contracts/test-suite.schema.json": "28e9ce2e6a456978bed3f3ae7e789221dfde8048381a9d99c20852fb7768a4ae",
+    "dist/packages/assistant-core/src/index.js": "32b6d6881ed091e5405727f9fcd00a937c6b8074f46a3d9e146001a92341a13b",
+    "dist/packages/security/src/index.js": "17b7343bd3f8410e67eb18a44023cab137ca9971a3a9b140470e9ace5cc1ff89",
+    "dist/packages/workflow-testing/src/ai-generation.js": "169c5a1a7d3710c48359f384c6089bfd8d7cca16bca3b3e9d37cfd33a21ee449",
+    "dist/packages/workflow-testing/src/index.js": "5237e1597aef911994a327ca981a556b971ec83ec889739675c4373cf0a5e574",
+    "dist/packages/llm-providers/src/index.js": "000b710be490307721a4e93974bf480c095886ceb6e5023afaf5368538e1144c"
+  },
+  "checks": [
+    {
+      "name": "AI-01/model-key/literal/tool",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/model-key/literal/text",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/model-key/unicode/tool",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/model-key/unicode/text",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/model-key/mixed/tool",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/model-key/mixed/text",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "suites": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/managed-auth/nested-value",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/managed-auth/nested-key",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/managed-auth/legacy-auth",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/managed-auth/config-used-as-auth",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_OUTPUT_INVALID",
+        "httpRequests": 1,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/business-and-mcp_config-preserved",
+      "status": "PASS",
+      "actual": {
+        "status": "SUCCEEDED",
+        "casesPreservedExactly": true,
+        "selectedBusinessContextSent": true,
+        "internalMaxAttemptsNotSent": true
+      }
+    },
+    {
+      "name": "AI-01/context-before-task/workflow-name",
+      "status": "PASS",
+      "actual": {
+        "errorCode": "MODEL_CONTEXT_SENSITIVE",
+        "httpRequests": 0,
+        "tasks": 0,
+        "commands": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/context-before-task/workflow-schema-key",
+      "status": "PASS",
+      "actual": {
+        "errorCode": "MODEL_CONTEXT_SENSITIVE",
+        "httpRequests": 0,
+        "tasks": 0,
+        "commands": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-01/context-before-task/scenario-hint",
+      "status": "PASS",
+      "actual": {
+        "errorCode": "MODEL_CONTEXT_SENSITIVE",
+        "httpRequests": 0,
+        "tasks": 0,
+        "commands": 0,
+        "protectedCopies": 0
+      }
+    },
+    {
+      "name": "AI-02/ai-one-http-attempt-and-idempotent-replay",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "MODEL_RATE_LIMITED",
+        "modelCalls": 1,
+        "httpRequests": 1,
+        "replayHttpRequests": 0
+      }
+    },
+    {
+      "name": "AI-02/ordinary-assistant-default-three-http-attempts",
+      "status": "PASS",
+      "actual": {
+        "status": "COMPLETED",
+        "httpRequests": 3
+      }
+    },
+    {
+      "name": "AI-02/default-ceiling-and-cancellation-during-retry",
+      "status": "PASS",
+      "actual": {
+        "defaultRequests": 3,
+        "invalidBudgetsDispatched": 0,
+        "cancelledRetryRequests": 1
+      }
+    },
+    {
+      "name": "AI-03/reject-proposal/node_state",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "INPUT_INVALID",
+        "suites": 0
+      }
+    },
+    {
+      "name": "AI-03/reject-proposal/output_equals",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "errorCode": "INPUT_INVALID",
+        "suites": 0
+      }
+    },
+    {
+      "name": "AI-03/missing-runtime-output-cannot-pass-null",
+      "status": "PASS",
+      "actual": {
+        "status": "FAILED",
+        "assertion": {
+          "kind": "output_equals",
+          "nodeId": "input",
+          "pointer": "/missing",
+          "expected": null,
+          "actual": null,
+          "passed": false,
+          "evaluated": false,
+          "errorCode": "REFERENCE_MISSING"
+        }
+      }
+    },
+    {
+      "name": "AI-OBS-01/source-preserved-through-fixture-edit",
+      "status": "PASS",
+      "actual": {
+        "latestStrategy": "agent_proposed",
+        "initialSource": "ai_assisted",
+        "initialGenerationRefPreserved": true,
+        "revisionSources": [
+          {
+            "suiteRevision": 1,
+            "generatedBy": "ai_assisted"
+          },
+          {
+            "suiteRevision": 2,
+            "generatedBy": "agent_proposed"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 21,
+    "failed": 0,
+    "total": 21
+  }
+}

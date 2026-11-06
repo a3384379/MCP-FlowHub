@@ -1,0 +1,18 @@
+{
+  "before/ai-findings.json": "cd0cdd3b957c28ea0ce2331c312e474bcc10e61cb53b3dfb5a06e02944411b73",
+  "before/ai-results.json": "638d86cf3d943f0a31dfd5ee118822a32458df5a0cf356312f3de7e8fd61512f",
+  "after/ai-results.json": "7b21092a9e3af8c9e41d6e33c80ec89fce2322cf9edea6ff7eb54b53b1981e28",
+  "after/AI复审.md": "039b96182b08a2759cfa0f697d389bac699625a7363cbc5385b3a2a1791971a7",
+  "before/unknown-outcome.json": "35baf4d098f0ec5a10f26410de8c3d03acfc7987ba37b637a05c16dcb7d0534a",
+  "before/known-error.json": "d92ac5d4bd1ca322216b87bf0691716ff471694860045e2b9b1f16b256eeeeb9",
+  "after/scoped-results.json": "d24a93dafc5cb3e3676e48ede9f34b5e497f92e2253466c3af5093b4658cd8c6",
+  "after/执行边界复审.md": "5195254144358aa9f30f7615c7c6d8f25d9213f09043353f784d1d04e9f39291",
+  "before/hidden-active-generation.json": "4837f5b0132073880ddeecb5b3b7e4795d3d6750b940fbccac7f77457e0700ed",
+  "before/ui-capability-findings.json": "44711aaf6327ead104d9dc7efa3581ecf2f33b7aa275a86413f2a2f66bc22b5c",
+  "before/ui-results.json": "be5007065efe4143b34b182390ee2a8bb3ab258dd5e0e2d39b503217759395da",
+  "before/schema-drift.json": "cb6afbdd19686a30d0df18cb15116b7be4023152b07ad257450f9bf283a0b173",
+  "after/ui-results.json": "deaa3a781b75c8083c32dd4fb22aab44b493e02b9428494e0298c5750420553a",
+  "after/schema-drift.json": "9f1c713327d9eba7f5ebca52b2a7554b14ef3802aeba47a323f346cd6af2696e",
+  "after/ui-findings.json": "827108fee55c77e7e4be107da05ba0e7cc2a79065e04cc303676ef42303149eb",
+  "after/界面与组合复审.md": "89c566960c3bdce9760bad18ddb36f01e2c65e0d5395f8aeb87b702c7d271ef3"
+}

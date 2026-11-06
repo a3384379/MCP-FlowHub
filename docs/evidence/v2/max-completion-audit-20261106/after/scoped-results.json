@@ -1,0 +1,1698 @@
+{
+  "head": "71579a5288a95d7d09a66e0d43bac3088e79a79c plus uncommitted scoped repair",
+  "node": "v24.19.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "scope": "memory SQLite; disposable authenticated loopback MCP only",
+  "runtimeHashes": {
+    "packages/workflow-testing/src/index.js": "5237e1597aef911994a327ca981a556b971ec83ec889739675c4373cf0a5e574",
+    "packages/workflow-testing/src/scoped-execution.js": "a7221bc7d98e174946ebad004d6dcd3ae56743b321135beaca83b800f1238452",
+    "packages/mcp-connectors/src/registry.js": "7c15618cad7f589eb4ba7eb34f88f1811cf2bf6c596921030f23331d142b2c88"
+  },
+  "results": [
+    {
+      "name": "unknown outcome stops later live case and replay/reconstruction",
+      "status": "PASS",
+      "actual": {
+        "request": {
+          "suiteId": "suite_43dada46-056a-4fbd-a13b-6ec717c68957",
+          "expectedSuiteRevision": 1,
+          "mode": "live",
+          "idempotencyKey": "63f421f3-3fcd-4bd0-8a3a-6bfff77aae00",
+          "allowedBindingIds": [
+            "audit-scope-binding"
+          ],
+          "budgets": {
+            "maxCalls": 5,
+            "timeoutMs": 5000
+          },
+          "inputScope": {
+            "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+            "caseInputs": [
+              {
+                "caseId": "first",
+                "inputs": {
+                  "value": "first"
+                }
+              },
+              {
+                "caseId": "second",
+                "inputs": {
+                  "value": "second"
+                }
+              }
+            ]
+          }
+        },
+        "receipt": {
+          "testRunId": "test_284f66f5-f3e9-4aa3-8821-e9a7364798e3",
+          "status": "QUEUED"
+        },
+        "run": {
+          "id": "test_284f66f5-f3e9-4aa3-8821-e9a7364798e3",
+          "suiteId": "suite_43dada46-056a-4fbd-a13b-6ec717c68957",
+          "workflowId": "audit-scoped-flow",
+          "owner": "admin",
+          "mode": "live",
+          "scope": {
+            "allowedBindingIds": [
+              "audit-scope-binding"
+            ],
+            "budgets": {
+              "maxCalls": 5,
+              "timeoutMs": 5000
+            },
+            "inputScope": {
+              "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+              "caseInputs": [
+                {
+                  "caseId": "first",
+                  "inputs": {
+                    "value": "first"
+                  }
+                },
+                {
+                  "caseId": "second",
+                  "inputs": {
+                    "value": "second"
+                  }
+                }
+              ]
+            }
+          },
+          "scopeHash": "7f256994a1c08691e2e071e2a43a2505e445976573f290d5cae9f20dec8b846e",
+          "snapshotHash": "sha256:399e65ad18cac60a8ffcf0d0e2123c1b7416c2adae84f3a1cfd5dd283cfd1574",
+          "validationLevel": "live",
+          "toolCalls": 1,
+          "catalogChecks": 0,
+          "credentialReadAccounting": "not_instrumented",
+          "syntheticBindings": [],
+          "status": "FAILED",
+          "cases": [
+            {
+              "id": "first",
+              "name": "first",
+              "status": "FAILED",
+              "assertions": [
+                {
+                  "kind": "error_code",
+                  "expected": "OUTCOME_UNKNOWN",
+                  "actual": "OUTCOME_UNKNOWN",
+                  "passed": true
+                },
+                {
+                  "kind": "terminal_state",
+                  "expected": "OUTCOME_UNKNOWN",
+                  "actual": "OUTCOME_UNKNOWN",
+                  "passed": true
+                }
+              ],
+              "errorCode": "OUTCOME_UNKNOWN",
+              "trace": [
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "first",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                }
+              ],
+              "outputs": {
+                "input": {
+                  "value": "first"
+                }
+              },
+              "artifacts": [],
+              "events": [
+                {
+                  "seq": 1,
+                  "type": "RUN_CREATED",
+                  "workflowId": "audit-scoped-flow",
+                  "environment": "test",
+                  "createdAt": "2026-11-06T15:13:59.755Z"
+                },
+                {
+                  "seq": 2,
+                  "type": "NODE_SUCCEEDED",
+                  "nodeId": "input",
+                  "createdAt": "2026-11-06T15:13:59.755Z"
+                },
+                {
+                  "seq": 3,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:13:59.755Z"
+                },
+                {
+                  "seq": 4,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:13:59.755Z"
+                },
+                {
+                  "seq": 5,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:13:59.765Z"
+                },
+                {
+                  "seq": 6,
+                  "type": "RUN_OUTCOME_UNKNOWN",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:00.762Z"
+                }
+              ],
+              "provenance": "scoped_live_mcp",
+              "validationLevel": "live",
+              "gaps": [],
+              "executionState": "OUTCOME_UNKNOWN",
+              "outcomeUnknown": true
+            },
+            {
+              "id": "second",
+              "name": "second",
+              "status": "NOT_RUN",
+              "errorCode": "OUTCOME_UNKNOWN",
+              "reason": "A prior dispatched live call has an unknown outcome; automatic continuation is prohibited.",
+              "assertions": [
+                {
+                  "kind": "terminal_state",
+                  "expected": "SUCCEEDED",
+                  "actual": null,
+                  "passed": false,
+                  "evaluated": false,
+                  "errorCode": "ASSERTION_NOT_EVALUATED"
+                }
+              ],
+              "trace": [],
+              "outputs": {},
+              "artifacts": [],
+              "events": [],
+              "executionState": null,
+              "gaps": [
+                {
+                  "code": "TEST_STOPPED_OUTCOME_UNKNOWN"
+                }
+              ],
+              "validationLevel": "live",
+              "provenance": "not_executed"
+            }
+          ],
+          "gaps": [
+            {
+              "code": "OUTCOME_UNKNOWN"
+            }
+          ],
+          "createdAt": "2026-11-06T15:13:59.661Z",
+          "draftRevision": 2,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+          "suiteRevision": 1,
+          "startedAt": "2026-11-06T15:13:59.661Z",
+          "pendingDispatches": [],
+          "outcomeUnknown": true,
+          "errorCode": "OUTCOME_UNKNOWN",
+          "summary": {
+            "passed": 0,
+            "failed": 1,
+            "uncovered": 0,
+            "notRun": 1,
+            "total": 2
+          },
+          "completedAt": "2026-11-06T15:14:00.764Z",
+          "simulationOnly": false,
+          "networkCalls": null,
+          "realSecretReads": null,
+          "stale": false
+        },
+        "calls": [
+          {
+            "args": {
+              "value": "first",
+              "environment": "test"
+            },
+            "at": 1793978039769
+          }
+        ]
+      }
+    },
+    {
+      "name": "acknowledged isError remains expected negative and allows next selected case",
+      "status": "PASS",
+      "actual": {
+        "run": {
+          "id": "test_4d3b479b-e341-4dfd-b774-b7ff9be0241e",
+          "suiteId": "suite_e268a5f3-c953-4e73-abc2-04e3a5cd32c3",
+          "workflowId": "audit-scoped-flow",
+          "owner": "admin",
+          "mode": "live",
+          "scope": {
+            "allowedBindingIds": [
+              "audit-scope-binding"
+            ],
+            "budgets": {
+              "maxCalls": 2,
+              "timeoutMs": 5000
+            },
+            "inputScope": {
+              "fixtureHash": "sha256:a94c3f8bccedd1b45b58bc72eff25feb71aad54bcf5d0310a58cbf1bbc706ab3",
+              "caseInputs": [
+                {
+                  "caseId": "known",
+                  "inputs": {
+                    "value": "known"
+                  }
+                },
+                {
+                  "caseId": "next",
+                  "inputs": {
+                    "value": "next"
+                  }
+                }
+              ]
+            }
+          },
+          "scopeHash": "bf6a639b55709351ba2746243332ac69ef2d9a61938375498580ce437cc782ef",
+          "snapshotHash": "sha256:1c2e6caa54d00ba56df41044fd09792020681d0ec95915536df09b022896b867",
+          "validationLevel": "live",
+          "toolCalls": 2,
+          "catalogChecks": 0,
+          "credentialReadAccounting": "not_instrumented",
+          "syntheticBindings": [],
+          "status": "SUCCEEDED",
+          "cases": [
+            {
+              "id": "known",
+              "name": "known",
+              "status": "PASSED",
+              "assertions": [
+                {
+                  "kind": "error_code",
+                  "expected": "TOOL_FAILED",
+                  "actual": "TOOL_FAILED",
+                  "passed": true
+                },
+                {
+                  "kind": "terminal_state",
+                  "expected": "FAILED",
+                  "actual": "FAILED",
+                  "passed": true
+                }
+              ],
+              "errorCode": "TOOL_FAILED",
+              "trace": [
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "known",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                }
+              ],
+              "outputs": {
+                "input": {
+                  "value": "known"
+                }
+              },
+              "artifacts": [],
+              "events": [
+                {
+                  "seq": 1,
+                  "type": "RUN_CREATED",
+                  "workflowId": "audit-scoped-flow",
+                  "environment": "test",
+                  "createdAt": "2026-11-06T15:14:00.991Z"
+                },
+                {
+                  "seq": 2,
+                  "type": "NODE_SUCCEEDED",
+                  "nodeId": "input",
+                  "createdAt": "2026-11-06T15:14:00.991Z"
+                },
+                {
+                  "seq": 3,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:14:00.991Z"
+                },
+                {
+                  "seq": 4,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:00.992Z"
+                },
+                {
+                  "seq": 5,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.001Z"
+                },
+                {
+                  "seq": 6,
+                  "type": "RUN_FAILED",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.005Z"
+                }
+              ],
+              "provenance": "scoped_live_mcp",
+              "validationLevel": "live",
+              "gaps": [],
+              "executionState": "FAILED"
+            },
+            {
+              "id": "next",
+              "name": "next",
+              "status": "PASSED",
+              "assertions": [
+                {
+                  "kind": "terminal_state",
+                  "expected": "SUCCEEDED",
+                  "actual": "SUCCEEDED",
+                  "passed": true
+                }
+              ],
+              "errorCode": null,
+              "trace": [
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "next",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                }
+              ],
+              "outputs": {
+                "input": {
+                  "value": "next"
+                },
+                "read": {
+                  "environment": "test",
+                  "value": "next"
+                }
+              },
+              "artifacts": [
+                {
+                  "id": "art_50348348-6147-45de-aa7d-8445a0f163fb",
+                  "runId": "run_7b36b539-64cd-410d-b77d-836aa96dd2b4",
+                  "nodeId": "read",
+                  "content": "{\n  \"environment\": \"test\",\n  \"value\": \"next\"\n}",
+                  "mimeType": "application/json",
+                  "sha256": "cadabe4ca2d1ce13ca7676a8becc6ad66293099dde4686eaa099676cf40f5a58",
+                  "byteLength": 46,
+                  "createdAt": "2026-11-06T15:14:01.105Z",
+                  "expiresAt": 1794582841105,
+                  "verification": {
+                    "contentStored": true,
+                    "synthetic": false,
+                    "truncated": false
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "type": "RUN_CREATED",
+                  "workflowId": "audit-scoped-flow",
+                  "environment": "test",
+                  "createdAt": "2026-11-06T15:14:01.097Z"
+                },
+                {
+                  "seq": 2,
+                  "type": "NODE_SUCCEEDED",
+                  "nodeId": "input",
+                  "createdAt": "2026-11-06T15:14:01.097Z"
+                },
+                {
+                  "seq": 3,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:14:01.097Z"
+                },
+                {
+                  "seq": 4,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.097Z"
+                },
+                {
+                  "seq": 5,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.101Z"
+                },
+                {
+                  "seq": 6,
+                  "type": "TOOL_SUCCEEDED",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.105Z"
+                },
+                {
+                  "seq": 7,
+                  "type": "RUN_SUCCEEDED",
+                  "nodeId": "end",
+                  "createdAt": "2026-11-06T15:14:01.105Z"
+                }
+              ],
+              "provenance": "scoped_live_mcp",
+              "validationLevel": "live",
+              "gaps": [],
+              "executionState": "SUCCEEDED"
+            }
+          ],
+          "gaps": [],
+          "createdAt": "2026-11-06T15:14:00.900Z",
+          "draftRevision": 2,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:a94c3f8bccedd1b45b58bc72eff25feb71aad54bcf5d0310a58cbf1bbc706ab3",
+          "suiteRevision": 1,
+          "startedAt": "2026-11-06T15:14:00.901Z",
+          "pendingDispatches": [],
+          "outcomeUnknown": false,
+          "summary": {
+            "passed": 2,
+            "failed": 0,
+            "uncovered": 0,
+            "total": 2
+          },
+          "completedAt": "2026-11-06T15:14:01.107Z",
+          "simulationOnly": false,
+          "networkCalls": null,
+          "realSecretReads": null,
+          "provenance": "scoped_live_mcp",
+          "branchCoverage": [],
+          "stale": false
+        },
+        "calls": [
+          {
+            "args": {
+              "value": "known",
+              "environment": "test"
+            },
+            "at": 1793978041003
+          },
+          {
+            "args": {
+              "value": "next",
+              "environment": "test"
+            },
+            "at": 1793978041104
+          }
+        ]
+      }
+    },
+    {
+      "name": "known safe-read retry shares global call budget",
+      "status": "PASS",
+      "actual": {
+        "run": {
+          "id": "test_0645bcf5-f234-4d88-87a8-1a6170ff6185",
+          "suiteId": "suite_ff41599d-2f5e-4788-9f49-bc1a5317aa99",
+          "workflowId": "audit-scoped-flow",
+          "owner": "admin",
+          "mode": "live",
+          "scope": {
+            "allowedBindingIds": [
+              "audit-scope-binding"
+            ],
+            "budgets": {
+              "maxCalls": 2,
+              "timeoutMs": 5000
+            },
+            "inputScope": {
+              "fixtureHash": "sha256:441a1b554a5ea4861ddfdbd4b80c4b93b28a67a31da32d981e592118b8dbc98c",
+              "caseInputs": [
+                {
+                  "caseId": "retry",
+                  "inputs": {
+                    "value": "retry"
+                  }
+                }
+              ]
+            }
+          },
+          "scopeHash": "8124c06acab8288fb3c7f03e4124aea59a7b85cd091eb17597ef0b8b1d8d2f68",
+          "snapshotHash": "sha256:80ba19d1d23686b53ccbf1e1956a9917ae8922041f0a5f113bb7b9c47823e28d",
+          "validationLevel": "live",
+          "toolCalls": 2,
+          "catalogChecks": 0,
+          "credentialReadAccounting": "not_instrumented",
+          "syntheticBindings": [],
+          "status": "SUCCEEDED",
+          "cases": [
+            {
+              "id": "retry",
+              "name": "retry",
+              "status": "PASSED",
+              "assertions": [
+                {
+                  "kind": "terminal_state",
+                  "expected": "SUCCEEDED",
+                  "actual": "SUCCEEDED",
+                  "passed": true
+                }
+              ],
+              "errorCode": null,
+              "trace": [
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "retry",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                },
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "retry",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                }
+              ],
+              "outputs": {
+                "input": {
+                  "value": "retry"
+                },
+                "read": {
+                  "environment": "test",
+                  "value": "retry"
+                }
+              },
+              "artifacts": [
+                {
+                  "id": "art_ccb727ca-7c93-44ae-beb5-3be9d0a01d3a",
+                  "runId": "run_00047de8-b8e3-4cf5-b091-76328983b73e",
+                  "nodeId": "read",
+                  "content": "{\n  \"environment\": \"test\",\n  \"value\": \"retry\"\n}",
+                  "mimeType": "application/json",
+                  "sha256": "5ded4e48aab35ec244e712a03b28d3f7b401cedea23cc67f42c6b8fcdaf5707b",
+                  "byteLength": 47,
+                  "createdAt": "2026-11-06T15:14:01.421Z",
+                  "expiresAt": 1794582841421,
+                  "verification": {
+                    "contentStored": true,
+                    "synthetic": false,
+                    "truncated": false
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "type": "RUN_CREATED",
+                  "workflowId": "audit-scoped-flow",
+                  "environment": "test",
+                  "createdAt": "2026-11-06T15:14:01.303Z"
+                },
+                {
+                  "seq": 2,
+                  "type": "NODE_SUCCEEDED",
+                  "nodeId": "input",
+                  "createdAt": "2026-11-06T15:14:01.303Z"
+                },
+                {
+                  "seq": 3,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:14:01.303Z"
+                },
+                {
+                  "seq": 4,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.303Z"
+                },
+                {
+                  "seq": 5,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.308Z"
+                },
+                {
+                  "seq": 6,
+                  "type": "TOOL_FAILED",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.312Z"
+                },
+                {
+                  "seq": 7,
+                  "type": "TOOL_RETRY_SCHEDULED",
+                  "nodeId": "read",
+                  "errorCode": "TOOL_FAILED",
+                  "attempt": 2,
+                  "backoffMs": 100,
+                  "createdAt": "2026-11-06T15:14:01.312Z"
+                },
+                {
+                  "seq": 8,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:14:01.412Z"
+                },
+                {
+                  "seq": 9,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.412Z"
+                },
+                {
+                  "seq": 10,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.417Z"
+                },
+                {
+                  "seq": 11,
+                  "type": "TOOL_SUCCEEDED",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.421Z"
+                },
+                {
+                  "seq": 12,
+                  "type": "RUN_SUCCEEDED",
+                  "nodeId": "end",
+                  "createdAt": "2026-11-06T15:14:01.421Z"
+                }
+              ],
+              "provenance": "scoped_live_mcp",
+              "validationLevel": "live",
+              "gaps": [],
+              "executionState": "SUCCEEDED"
+            }
+          ],
+          "gaps": [],
+          "createdAt": "2026-11-06T15:14:01.213Z",
+          "draftRevision": 2,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:441a1b554a5ea4861ddfdbd4b80c4b93b28a67a31da32d981e592118b8dbc98c",
+          "suiteRevision": 1,
+          "startedAt": "2026-11-06T15:14:01.213Z",
+          "pendingDispatches": [],
+          "outcomeUnknown": false,
+          "summary": {
+            "passed": 1,
+            "failed": 0,
+            "uncovered": 0,
+            "total": 1
+          },
+          "completedAt": "2026-11-06T15:14:01.421Z",
+          "simulationOnly": false,
+          "networkCalls": null,
+          "realSecretReads": null,
+          "provenance": "scoped_live_mcp",
+          "branchCoverage": [],
+          "stale": false
+        },
+        "calls": [
+          {
+            "args": {
+              "value": "retry",
+              "environment": "test"
+            },
+            "at": 1793978041311
+          },
+          {
+            "args": {
+              "value": "retry",
+              "environment": "test"
+            },
+            "at": 1793978041420
+          }
+        ]
+      }
+    },
+    {
+      "name": "shared contracts and graph-target checks reject ghost/wrong-kind assertions before calls",
+      "status": "PASS",
+      "actual": {
+        "rejected": [
+          {
+            "kind": "output_equals",
+            "expected": null
+          },
+          {
+            "kind": "argument_equals",
+            "expected": null
+          },
+          {
+            "kind": "node_state",
+            "expected": "SKIPPED"
+          },
+          {
+            "kind": "tool_call_count",
+            "expected": -1
+          },
+          {
+            "kind": "artifact_contains",
+            "expected": null
+          },
+          {
+            "kind": "tool_called",
+            "expected": "true"
+          },
+          {
+            "kind": "node_state",
+            "nodeId": "read",
+            "expected": null
+          },
+          {
+            "kind": "tool_not_called",
+            "nodeId": "typo_read",
+            "expected": true
+          },
+          {
+            "kind": "tool_call_count",
+            "nodeId": "typo_read",
+            "expected": 0
+          },
+          {
+            "kind": "node_state",
+            "nodeId": "typo_read",
+            "expected": "SKIPPED"
+          },
+          {
+            "kind": "output_equals",
+            "nodeId": "typo_read",
+            "pointer": "/value",
+            "expected": null
+          },
+          {
+            "kind": "tool_called",
+            "nodeId": "input",
+            "expected": false
+          }
+        ],
+        "suiteRuns": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "name": "missing pointer is not null while a real null remains evaluated",
+      "status": "PASS",
+      "actual": {
+        "run": {
+          "id": "test_e2f9b932-85a2-4c2b-8d5e-9174fe6c6e71",
+          "suiteId": "suite_f2ca15b5-41cf-4566-94a7-ee539ca973bd",
+          "workflowId": "audit-scoped-flow",
+          "owner": "admin",
+          "mode": "live",
+          "scope": {
+            "allowedBindingIds": [
+              "audit-scope-binding"
+            ],
+            "budgets": {
+              "maxCalls": 5,
+              "timeoutMs": 5000
+            },
+            "inputScope": {
+              "fixtureHash": "sha256:7742bd09dde6eb4289dc3bf374c6b3e0fe6f11121623fcef74280e7c046c8e33",
+              "caseInputs": [
+                {
+                  "caseId": "missing",
+                  "inputs": {
+                    "value": "present",
+                    "nullable": null
+                  }
+                }
+              ]
+            }
+          },
+          "scopeHash": "4eb8b607321e3639c6198033fb2810fbd7c24be1489627fb3de11f14cacd7c2d",
+          "snapshotHash": "sha256:906b0aae59e2283deec72c0fcb26517faaf83f6857204a53de1837014fb9d123",
+          "validationLevel": "live",
+          "toolCalls": 1,
+          "catalogChecks": 0,
+          "credentialReadAccounting": "not_instrumented",
+          "syntheticBindings": [],
+          "status": "FAILED",
+          "cases": [
+            {
+              "id": "missing",
+              "name": "missing",
+              "status": "FAILED",
+              "assertions": [
+                {
+                  "kind": "output_equals",
+                  "nodeId": "read",
+                  "pointer": "/absent",
+                  "expected": null,
+                  "actual": null,
+                  "passed": false,
+                  "evaluated": false,
+                  "errorCode": "REFERENCE_MISSING"
+                },
+                {
+                  "kind": "argument_equals",
+                  "nodeId": "read",
+                  "pointer": "/absent",
+                  "expected": null,
+                  "actual": null,
+                  "passed": false,
+                  "evaluated": false,
+                  "errorCode": "REFERENCE_MISSING"
+                },
+                {
+                  "kind": "output_equals",
+                  "nodeId": "input",
+                  "pointer": "/nullable",
+                  "expected": null,
+                  "actual": null,
+                  "passed": true
+                },
+                {
+                  "kind": "output_equals",
+                  "nodeId": "read",
+                  "pointer": "/value",
+                  "expected": "present",
+                  "actual": "present",
+                  "passed": true
+                }
+              ],
+              "errorCode": null,
+              "trace": [
+                {
+                  "nodeId": "read",
+                  "arguments": {
+                    "value": "present",
+                    "environment": "test"
+                  },
+                  "provenance": "live_mcp"
+                }
+              ],
+              "outputs": {
+                "input": {
+                  "value": "present",
+                  "nullable": null
+                },
+                "read": {
+                  "environment": "test",
+                  "value": "present"
+                }
+              },
+              "artifacts": [
+                {
+                  "id": "art_9f89a24f-4603-410e-9d6b-d08cb0158e48",
+                  "runId": "run_1de212e4-cabb-4451-89f2-663efd582ae3",
+                  "nodeId": "read",
+                  "content": "{\n  \"environment\": \"test\",\n  \"value\": \"present\"\n}",
+                  "mimeType": "application/json",
+                  "sha256": "e66d8d58272d5cad13aa1eecf61cea318821922d1a5fa60c62793e90d4c85626",
+                  "byteLength": 49,
+                  "createdAt": "2026-11-06T15:14:01.737Z",
+                  "expiresAt": 1794582841737,
+                  "verification": {
+                    "contentStored": true,
+                    "synthetic": false,
+                    "truncated": false
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "type": "RUN_CREATED",
+                  "workflowId": "audit-scoped-flow",
+                  "environment": "test",
+                  "createdAt": "2026-11-06T15:14:01.730Z"
+                },
+                {
+                  "seq": 2,
+                  "type": "NODE_SUCCEEDED",
+                  "nodeId": "input",
+                  "createdAt": "2026-11-06T15:14:01.730Z"
+                },
+                {
+                  "seq": 3,
+                  "type": "TOOL_LIMIT_ENFORCEMENT",
+                  "nodeId": "read",
+                  "status": "unsupported",
+                  "argumentPointer": null,
+                  "effectiveLimit": null,
+                  "postResultRowBudget": 10,
+                  "createdAt": "2026-11-06T15:14:01.730Z"
+                },
+                {
+                  "seq": 4,
+                  "type": "TOOL_PREPARING",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.730Z"
+                },
+                {
+                  "seq": 5,
+                  "type": "TOOL_DISPATCH",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.734Z"
+                },
+                {
+                  "seq": 6,
+                  "type": "TOOL_SUCCEEDED",
+                  "nodeId": "read",
+                  "createdAt": "2026-11-06T15:14:01.737Z"
+                },
+                {
+                  "seq": 7,
+                  "type": "RUN_SUCCEEDED",
+                  "nodeId": "end",
+                  "createdAt": "2026-11-06T15:14:01.737Z"
+                }
+              ],
+              "provenance": "scoped_live_mcp",
+              "validationLevel": "live",
+              "gaps": [],
+              "executionState": "SUCCEEDED"
+            }
+          ],
+          "gaps": [],
+          "createdAt": "2026-11-06T15:14:01.639Z",
+          "draftRevision": 3,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:7742bd09dde6eb4289dc3bf374c6b3e0fe6f11121623fcef74280e7c046c8e33",
+          "suiteRevision": 1,
+          "startedAt": "2026-11-06T15:14:01.640Z",
+          "pendingDispatches": [],
+          "outcomeUnknown": false,
+          "summary": {
+            "passed": 0,
+            "failed": 1,
+            "uncovered": 0,
+            "total": 1
+          },
+          "completedAt": "2026-11-06T15:14:01.739Z",
+          "simulationOnly": false,
+          "networkCalls": null,
+          "realSecretReads": null,
+          "provenance": "scoped_live_mcp",
+          "branchCoverage": [],
+          "stale": false
+        },
+        "calls": [
+          {
+            "args": {
+              "value": "present",
+              "environment": "test"
+            },
+            "at": 1793978041736
+          }
+        ]
+      }
+    },
+    {
+      "name": "contract same-connection cache still produces zero tools/call",
+      "status": "PASS",
+      "actual": {
+        "run": {
+          "id": "test_b0c9817e-4754-455c-b7df-a5cafb81f9cb",
+          "suiteId": "suite_e3f074ea-ebfd-4fc8-a712-b0d9e627ced3",
+          "workflowId": "audit-scoped-flow",
+          "owner": "admin",
+          "mode": "contract",
+          "scope": {
+            "allowedBindingIds": [
+              "audit-scope-binding",
+              "after-second"
+            ],
+            "budgets": {
+              "maxCalls": 1,
+              "timeoutMs": 3000
+            }
+          },
+          "scopeHash": "6832b9575c2c08f2318170e0cb78d328808df546ffb03197cdf846935fbb39d5",
+          "snapshotHash": "sha256:26fc4fcea9e10137d93f0609abab4dc6991ec3b751e857207a3221aa4178381f",
+          "validationLevel": "contract",
+          "toolCalls": 0,
+          "catalogChecks": 1,
+          "credentialReadAccounting": "not_instrumented",
+          "syntheticBindings": [],
+          "status": "SUCCEEDED",
+          "cases": [],
+          "gaps": [],
+          "createdAt": "2026-11-06T15:14:01.843Z",
+          "draftRevision": 3,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:358ee1c4ccf457ee795e93119e6af5473f0371056117b1128d4150753e74aaba",
+          "suiteRevision": 1,
+          "startedAt": "2026-11-06T15:14:01.843Z",
+          "schemaChecks": [
+            {
+              "bindingId": "audit-scope-binding",
+              "connectionId": "audit-scope",
+              "nodeId": "read",
+              "toolName": "read",
+              "expectedSchemaHash": "sha256:b155ff77eedeae5e02242904093c764b7567772dd22bb4a3a12dba42a01db071",
+              "actualSchemaHash": "sha256:b155ff77eedeae5e02242904093c764b7567772dd22bb4a3a12dba42a01db071",
+              "passed": true
+            },
+            {
+              "bindingId": "after-second",
+              "connectionId": "audit-scope",
+              "nodeId": "read_two",
+              "toolName": "read",
+              "expectedSchemaHash": "sha256:b155ff77eedeae5e02242904093c764b7567772dd22bb4a3a12dba42a01db071",
+              "actualSchemaHash": "sha256:b155ff77eedeae5e02242904093c764b7567772dd22bb4a3a12dba42a01db071",
+              "passed": true
+            }
+          ],
+          "summary": {
+            "checked": 2,
+            "failed": 0
+          },
+          "completedAt": "2026-11-06T15:14:01.849Z",
+          "simulationOnly": false,
+          "provenance": "mcp_catalog_only",
+          "networkCalls": null,
+          "realSecretReads": null,
+          "stale": false
+        }
+      }
+    },
+    {
+      "name": "active metadata remains visible ahead of 60 newer terminal records with owner and expiry filters",
+      "status": "PASS",
+      "actual": {
+        "list": [
+          {
+            "id": "other-active",
+            "kind": null,
+            "mode": null,
+            "status": "QUEUED",
+            "suiteId": null,
+            "createdAt": "2000-01-01T00:00:00Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "older-active",
+            "kind": "generation",
+            "mode": "generation",
+            "status": "RUNNING",
+            "suiteId": null,
+            "createdAt": "2000-01-01T00:00:00Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-59",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:59Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-58",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:58Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-57",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:57Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-56",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:56Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-55",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:55Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-54",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:54Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-53",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:53Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-52",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:52Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-51",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:51Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-50",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:50Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-49",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:49Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-48",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:48Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-47",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:47Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-46",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:46Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-45",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:45Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-44",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:44Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-43",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:43Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-42",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:42Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-41",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:41Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-40",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:40Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-39",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:39Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-38",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:38Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-37",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:37Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-36",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:36Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-35",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:35Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-34",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:34Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-33",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:33Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-32",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:32Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-31",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:31Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-30",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:30Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-29",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:29Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-28",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:28Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-27",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:27Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-26",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:26Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-25",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:25Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-24",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:24Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-23",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:23Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-22",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:22Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-21",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:21Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-20",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:20Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-19",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:19Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-18",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:18Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-17",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:17Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-16",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:16Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-15",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:15Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-14",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:14Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-13",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:13Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          },
+          {
+            "id": "terminal-12",
+            "kind": null,
+            "mode": null,
+            "status": "SUCCEEDED",
+            "suiteId": null,
+            "createdAt": "2099-01-01T00:00:12Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          }
+        ],
+        "other": [
+          {
+            "id": "other-active",
+            "kind": null,
+            "mode": null,
+            "status": "QUEUED",
+            "suiteId": null,
+            "createdAt": "2000-01-01T00:00:00Z",
+            "draftRevision": null,
+            "suiteRevision": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "AI/manual/AI/manual suite lineage retains origin and each generation receipt",
+      "status": "PASS",
+      "actual": {
+        "first": {
+          "testRunId": "generation_9db378d4-4dfd-4b05-972e-54e2afe584e3",
+          "generationId": "generation_9db378d4-4dfd-4b05-972e-54e2afe584e3",
+          "status": "QUEUED"
+        },
+        "second": {
+          "suiteId": "suite_687332aa-6d74-42f5-a59b-05c152d0d182",
+          "suiteRevision": 2,
+          "caseCount": 1,
+          "gaps": [
+            {
+              "caseId": "manual-2",
+              "nodeId": "read",
+              "code": "FIXTURE_MISSING"
+            }
+          ]
+        },
+        "third": {
+          "testRunId": "generation_e0369945-f27a-4616-b1a1-f290abca1a80",
+          "generationId": "generation_e0369945-f27a-4616-b1a1-f290abca1a80",
+          "status": "QUEUED"
+        },
+        "suite": {
+          "id": "suite_687332aa-6d74-42f5-a59b-05c152d0d182",
+          "workflowId": "audit-scoped-flow",
+          "draftRevision": 2,
+          "suiteRevision": 4,
+          "capabilityRevisions": {},
+          "fixtureHash": "sha256:7ae17e8365aef3431092467bbcd98554be08717388aee811815faf9c0b6da9eb",
+          "generatedBy": "agent_proposed",
+          "mode": "mock",
+          "cases": [
+            {
+              "id": "manual-4",
+              "name": "manual-4",
+              "inputs": {
+                "value": "manual"
+              },
+              "mockResults": [],
+              "agentSubmissions": [],
+              "assertions": [
+                {
+                  "kind": "terminal_state",
+                  "expected": "SUCCEEDED"
+                }
+              ],
+              "expectedValidationErrors": []
+            }
+          ],
+          "generationRef": "generation_e0369945-f27a-4616-b1a1-f290abca1a80",
+          "generationSource": {
+            "generatedBy": "ai_assisted",
+            "generationRef": "generation_9db378d4-4dfd-4b05-972e-54e2afe584e3"
+          },
+          "revisionSources": [
+            {
+              "suiteRevision": 1,
+              "generatedBy": "ai_assisted",
+              "generationRef": "generation_9db378d4-4dfd-4b05-972e-54e2afe584e3"
+            },
+            {
+              "suiteRevision": 2,
+              "generatedBy": "agent_proposed"
+            },
+            {
+              "suiteRevision": 3,
+              "generatedBy": "ai_assisted",
+              "generationRef": "generation_e0369945-f27a-4616-b1a1-f290abca1a80"
+            },
+            {
+              "suiteRevision": 4,
+              "generatedBy": "agent_proposed"
+            }
+          ],
+          "owner": "admin",
+          "revision": 4,
+          "createdAt": "2026-11-06T15:14:02.095Z",
+          "updatedAt": "2026-11-06T15:14:02.098Z"
+        }
+      }
+    }
+  ]
+}

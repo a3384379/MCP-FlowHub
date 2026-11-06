@@ -1,0 +1,47 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "scope": "local synthetic combination scenarios; not whole 104 ledger",
+  "independentAfter": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "log": "ui-combos/after-combined.log",
+    "sha256": "f2a14232b6437bc241b1507b7dd76d6ae78d6c6eb488ae2677b1594bb97a840f",
+    "includes": [
+      "5 schema drift cases",
+      "3 combination cases"
+    ]
+  },
+  "currentFullBackend": {
+    "passed": 485,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "log": "root/full-test.log",
+    "sha256": "8c9e8cc9759d7d9416148c8b2651631d0c0fd403e85b0c3c91bad1eb9d25e3f5"
+  },
+  "scenarios": [
+    {
+      "id": "DISC-03",
+      "status": "PASS",
+      "scope": "host-effective vs user/project/Profile declaration source chain, untrusted project and legacy candidates",
+      "test": "tests/engine/v2-combined-acceptance.test.ts"
+    },
+    {
+      "id": "CAP-07",
+      "status": "PASS",
+      "scope": "actual local SDK catalog parameter drift, node/field mapping diagnostics, authoring repair and republish, original version unchanged",
+      "test": "tests/engine/v2-combined-acceptance.test.ts"
+    },
+    {
+      "id": "AUTHOR-08",
+      "status": "PASS",
+      "scope": "simultaneous capability/binding drift, partial review failures atomic, exact retry preserves old publication",
+      "test": "tests/engine/v2-combined-acceptance.test.ts"
+    }
+  ],
+  "realModelCalls": 0,
+  "enterpriseCalls": 0,
+  "otherLedgerItemsRevalidated": false
+}

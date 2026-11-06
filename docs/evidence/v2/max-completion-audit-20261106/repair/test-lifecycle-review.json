@@ -1,0 +1,18 @@
+{
+  "reviewer": "independent max UI/combo auditor",
+  "type": "read-only source review after first full UI failure",
+  "productSourceChanged": false,
+  "testPath": "tests/ui/v2-testing-max-audit.spec.ts",
+  "testSha256": "5809185752b6bc0f1af395dfad56a0e25f005b59996a1e3bdeff556aa23b5f69",
+  "originalBehavioralTests": 8,
+  "keyAssertionsPreserved": true,
+  "addedRetries": false,
+  "addedSkips": false,
+  "productSessionCap": 64,
+  "productCapChanged": false,
+  "logout": "GET current session and DELETE current cookie session with its CSRF; no global reset",
+  "routes": "three pre-created shared gates; release before unrouteAll(wait); no observed new gate deadlock path",
+  "ranBrowser": false,
+  "build": false,
+  "finalFullUi": "root/full-ui-final.log; current run result tracked separately"
+}
