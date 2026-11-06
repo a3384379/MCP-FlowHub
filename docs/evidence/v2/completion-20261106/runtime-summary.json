@@ -1,0 +1,15 @@
+{
+  "sourceCodeCommit": "a30ce9bf4498052f1b930c8e9920dacf0733277e",
+  "localOrigin": "http://127.0.0.1:18473",
+  "protectedTableCount": 24,
+  "changedProtectedTables": [],
+  "integrity": "ok",
+  "backupPreflightPassed": true,
+  "priorUnlockedVaultStatePreserved": true,
+  "servedFrontendMatchesBuild": true,
+  "servedIndexSha256": "7bc47634360baef76f1edb3052f39535d2cdc9a8f2263d2ee86fd91d37377f2d",
+  "servedAssetSha256": "2834bf96681f108c0b5327211dd95b7e24c22fd6e288e635f15f4429915235d9",
+  "healthAfterSseDisconnect": "ok",
+  "formalWorkflowMutations": 0,
+  "realModelCalls": 0
+}

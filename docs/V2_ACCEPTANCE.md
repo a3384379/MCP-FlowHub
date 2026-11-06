@@ -2,7 +2,7 @@
 
 ## 2026-11-06 自测补齐增量（当前）
 
-独立 ai_assisted、contract/live 现已实现；三个指定的本地组合验收 PASS，证据见 [本轮开发与验收](evidence/v2/completion-20261106/开发与验收.md) 与 [组合映射](evidence/v2/completion-20261106/combined-acceptance.json)。生成成功与自测成功、协议检查与业务执行分别展示。最终完整源码的测试/打包结果以本轮 verification 为准；下节是补齐前的审计，不再代表这三项功能仍缺失。
+独立 ai_assisted、contract/live 现已实现；三个指定的本地组合验收 PASS，check、后端 457/457、浏览器 81/81，最终新增 UI 3/3 复验。证据见 [本轮开发与验收](evidence/v2/completion-20261106/开发与验收.md) 与 [组合映射](evidence/v2/completion-20261106/combined-acceptance.json)。生成成功与自测成功、协议检查与业务执行分别展示。打包结果以最终 HEAD 的本机门禁记录为准；下节是补齐前的审计，不再代表这三项功能仍缺失。
 
 真实模型效果、企业权限、真实 host-only、Windows/公司设备及新机验收仍未完成；旧浏览器跨旧备份恢复代际仍需完整重载。历史 104 项矩阵未整体重验，不能由新增测试总数推定全部设计验收通过。
 
