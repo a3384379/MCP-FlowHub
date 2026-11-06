@@ -172,7 +172,7 @@ export class AssistantCore {
       const response=await provider.complete({messages:[{role:"user",content:kind==="tools"?"Call flowhub_probe with value ok.":"Reply ok."}],tools:kind==="tools"?[{name:"flowhub_probe",description:"Synthetic connection probe",parameters:{type:"object",properties:{value:{type:"string"}},required:["value"],additionalProperties:false}}]:[],signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)]),stream:kind==="stream"});
       const validProbe=response.calls.length===1&&response.calls[0]!.name==="flowhub_probe"&&hash(JSON.parse(response.calls[0]!.arguments))===hash({value:"ok"});
       results[kind]={status:kind==="tools"&&!validProbe?"unsupported":"passed",testedAt:now()};
-    }catch(e){const code=e instanceof HubError?e.code:"MODEL_CONNECTION_FAILED";results[kind]={status:"failed",errorCode:code,message:modelErrorHint(code),...(e instanceof HubError&&e.details?{httpStatus:e.details.status,providerCode:e.details.providerCode}:{}),testedAt:now()};}
+    }catch(e){const code=e instanceof HubError?e.code:"MODEL_CONNECTION_FAILED";results[kind]={status:kind==="tools"&&code==="MODEL_UNSUPPORTED_TOOLS"?"unsupported":"failed",errorCode:code,message:modelErrorHint(code),...(e instanceof HubError&&e.details?{httpStatus:e.details.status,providerCode:e.details.providerCode}:{}),testedAt:now()};}
     ensure(!controller.signal.aborted,"SERVICE_STOPPING","Model probe was cancelled because the assistant is stopping.",503);
     this.repo.put("model_profiles",profileId,{...profile,capabilities:results,lastTestAt:now(),revision:profile.revision+1},profile.revision);return results;
     })().finally(()=>{this.controllers.delete(probeId);this.jobs.delete(probeId);});
@@ -368,7 +368,7 @@ export class AssistantCore {
     const save=(patch:Json)=>this.repo.put("assistant_tasks",taskId,{...this.repo.get("assistant_tasks",taskId),...patch,updatedAt:now()});
     const emit=(type:string,data:Json={})=>this.repo.changed(type,{taskId,workflowId:task.context.workflowId,data});
     try {
-      const profile=this.repo.get("model_profiles",task.modelProfileId),provider=this.provider(profile),tools=this.tools(task);
+      const profile=this.repo.get("model_profiles",task.modelProfileId),provider=this.provider(profile),tools=task.mode==="help"&&profile.capabilities?.tools?.status==="unsupported"?[]:this.tools(task);
       ensure(task.mode!=="compose"||profile.capabilities?.tools?.status!=="unsupported","MODEL_UNSUPPORTED_TOOLS","This model does not support workflow tool calls.");
       // Recheck source scope and provider identity immediately before a model request.
       const continuationSource=this.continuationSource({...task,providerIdentity:this.providerIdentity(profile)});

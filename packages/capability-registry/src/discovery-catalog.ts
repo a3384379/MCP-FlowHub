@@ -140,14 +140,17 @@ export class DiscoveryCatalog {
         description: component.description ?? "",
         enabled: component.enabled,
         executor: "informational",
-        availability: "installed",
-        installation: "installed",
+        availability: component.installed === false ? component.availability : "installed",
+        installation: component.installed === false ? "available_only" : "installed",
         sourceKey: component.sourceKey,
         path: component.path,
         version: component.version,
         manifestHash: component.manifestHash ?? null,
+        ...(component.marketplaceRefs ? { marketplaceRefs: component.marketplaceRefs } : {}),
+        ...(component.marketplaceSources ? { marketplaceSources: component.marketplaceSources, marketplaceFingerprint: component.marketplaceFingerprint, marketplaceConflict: component.marketplaceConflict } : {}),
+        ...(component.marketplacePolicy ? { marketplacePolicy: component.marketplacePolicy } : {}),
         stale: false,
-        evidenceRefs: ["plugin:manifest"],
+        evidenceRefs: [component.installed === false ? "plugin:marketplace" : "plugin:manifest"],
       });
     for (const source of sources.filter((s) => s.kind === "mcp_server"))
       add({
@@ -342,7 +345,7 @@ export class DiscoveryCatalog {
     const count = (kind: string) =>
       !job || !current
         ? null
-        : entities.filter((e) => e.entityKind === kind && !e.stale).length ||
+        : entities.filter((e) => e.entityKind === kind && !e.stale && (kind !== "plugin" || e.installation === "installed")).length ||
           (job.coverage === "complete" ? 0 : null);
     const issues = current ? (job?.issues ?? []).filter((issue:Json)=>{
       const source=issue.sourceId?this.repo.get("capability_sources",issue.sourceId):null;
@@ -416,6 +419,7 @@ export class DiscoveryCatalog {
         plugin: count("plugin"),
         issues: job ? problems.length : null,
       },
+      availablePluginCount: !job || !current ? null : entities.filter(e => e.entityKind === "plugin" && !e.stale && e.installation === "available_only" && e.availability === "available_only").length || (job.coverage === "complete" ? 0 : null),
       issues: problems,
       localization: {
         pending: entities.filter(

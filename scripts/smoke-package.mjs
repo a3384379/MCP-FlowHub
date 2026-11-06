@@ -225,6 +225,9 @@ try {
       assert.equal(draft.structuredContent.revision,1);
       const help=await client.callTool({name:"project_help_search",arguments:{query:"试运行数据库绑定",limit:3}});
       assert.ok(help.structuredContent.citations.some(c=>c.sourcePath.endsWith("V2_USER_GUIDE.md")));
+      const localizedHelp=await client.callTool({name:"project_help_search",arguments:{query:"expectedPresentationRevision 中文说明 来源指纹",limit:10}});
+      assert.notEqual(localizedHelp.isError,true);
+      assert.ok(localizedHelp.structuredContent.citations.some(c=>c.sourcePath==="docs/DISCOVERY_LOCALIZATION.md"),"Packaged discovery help must be indexed, not merely included in the source snapshot.");
       const response = await client.callTool({
         name: "workflow_get",
         arguments: { workflowId: "incident-production" },

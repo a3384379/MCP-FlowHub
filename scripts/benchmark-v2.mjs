@@ -13,9 +13,9 @@ const root=await realpath(await mkdtemp(join(tmpdir(),'flowhub-v2-benchmark-')))
 const p95=values=>[...values].sort((a,b)=>a-b)[Math.ceil(values.length*.95)-1];
 try{
   author.create({workflowId:'benchmark',name:'synthetic benchmark',environment:'test',mode:'auto',template:'blank',idempotencyKey:'create'});
-  const workflow=structuredClone(author.get('benchmark').draft),ids=['input',...Array.from({length:98},(_,i)=>'condition-'+i),'end'];
+  const baseline=author.get('benchmark'),workflow=structuredClone(baseline.draft),ids=['input',...Array.from({length:98},(_,i)=>'condition-'+i),'end'];
   workflow.nodes=[workflow.nodes[0],...ids.slice(1,-1).map(id=>({id,type:'condition',title:id,config:{expression:{op:'eq',left:{value:1},right:{value:1}}}})),workflow.nodes[1]];
-  workflow.edges=ids.slice(0,-1).flatMap((id,index)=>(index===0?['next']:['true','false']).map(port=>({source:id,target:ids[index+1],port})));author.saveRaw(workflow,1,{});
+  workflow.edges=ids.slice(0,-1).flatMap((id,index)=>(index===0?['next']:['true','false']).map(port=>({source:id,target:ids[index+1],port})));author.saveRaw(workflow,baseline.revision,baseline.layout,baseline.layoutRevision);
   const validation=[];for(let i=0;i<55;i++){const started=performance.now();const result=author.validate({workflowId:'benchmark',expectedRevision:2,level:'publish'});assert.equal(result.valid,true);if(i>=5)validation.push(performance.now()-started);}
   const home=join(root,'codex'),skills=join(home,'skills'),cli=join(root,'codex-fixture.mjs');await mkdir(skills,{recursive:true});await writeFile(join(home,'config.toml'),'');
   await writeFile(cli,'const args=process.argv.slice(2);console.log(args.includes("--version")?"codex-cli synthetic":args.includes("--help")?"--json":"[]");\n');

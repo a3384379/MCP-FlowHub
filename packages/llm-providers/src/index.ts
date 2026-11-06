@@ -48,11 +48,13 @@ export async function modelServiceFailure(response:Response,attempts=1):Promise<
   let body:Json;try{body=await bodyJson(response);}catch{body=null;}
   const providerCode=safeProviderCodes.has(body?.error?.code)?body.error.code:null;
   const parameter=["model","tools","stream","parallel_tool_calls","messages","input"].includes(body?.error?.param)?body.error.param:null;
+  // The rejected field alone does not distinguish unsupported tools from a bad schema or server failure.
+  const unsupportedTools=response.status===400&&parameter==="tools"&&["unsupported_parameter","unsupported_value"].includes(providerCode);
   const code=response.status===401||response.status===403?"MODEL_AUTH_FAILED":
     providerCode==="model_not_found"?"MODEL_NOT_AVAILABLE":
     ["insufficient_quota","billing_hard_limit_reached"].includes(providerCode)?"MODEL_QUOTA_EXCEEDED":
     response.status===404?"MODEL_ENDPOINT_NOT_FOUND":response.status===429?"MODEL_RATE_LIMITED":
-    parameter==="tools"?"MODEL_UNSUPPORTED_TOOLS":response.status===400?"MODEL_INVALID_CONFIGURATION":"MODEL_REQUEST_FAILED";
+    unsupportedTools?"MODEL_UNSUPPORTED_TOOLS":response.status===400?"MODEL_INVALID_CONFIGURATION":"MODEL_REQUEST_FAILED";
   return new HubError(code,"Model service rejected the request.",422,{status:response.status,providerCode,parameter,attempts});
 }
 export async function fetchModelCatalog(baseUrl:string,key:string,signal:AbortSignal) {

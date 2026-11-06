@@ -205,6 +205,9 @@ export function DiscoveryPage({
           </button>
         ))}
       </div>
+      {d.catalog?.availablePluginCount != null && d.catalog.availablePluginCount > 0 && (
+        <p className="d-notice">另有 {d.catalog.availablePluginCount} 个市场可用插件尚未安装，可在“插件与关系”查看。</p>
+      )}
       <section className="d-main-card" aria-label="发现结果">
         <div className="d-tabs">
           <div

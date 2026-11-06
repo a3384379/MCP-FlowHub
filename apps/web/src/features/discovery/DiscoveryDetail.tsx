@@ -277,7 +277,7 @@ export function DiscoveryDetail({
   const footer = entity && (
     <>
       <span className="d-muted">
-        {entity.entityKind === "skill"
+        {entity.installation === "available_only" ? "此项尚未安装；请在 Codex 中安装后重新扫描。" : entity.entityKind === "skill"
           ? "执行原始技能；中文仅用于阅读。"
           : "工具目录读取成功不等于执行验证。"}
       </span>
@@ -759,8 +759,21 @@ export function DiscoveryDetail({
                     </div>
                   ))}
                   {!entity.children.length && (
-                    <p>未读取到受支持的组件，数量保持未知。</p>
+                    <p>{entity.installation === "available_only" ? "仅有市场介绍，尚未安装或读取插件组件。" : "未读取到受支持的组件，数量保持未知。"}</p>
                   )}
+                </div>
+              )}
+              {entity.entityKind === "plugin" && entity.marketplaceSources?.length > 0 && (
+                <div className="d-detail-section">
+                  <h3>市场来源{entity.marketplaceConflict ? "差异" : "记录"}</h3>
+                  {entity.marketplaceConflict && <p role="status">不同来源的市场资料存在冲突，尚未判定覆盖关系。安装状态仍依据实际安装清单。</p>}
+                  {entity.marketplaceSources.map((source: Entity) => (
+                    <div className="d-source-box" key={source.path}>
+                      <p>来源：<code>{source.path}</code></p>
+                      <p>介绍：{source.description || "来源未提供介绍"}</p>
+                      <p>类别：{source.category} · 安装策略：{source.marketplacePolicy} · 认证时机：{source.authenticationPolicy}</p>
+                    </div>
+                  ))}
                 </div>
               )}
               {(entity.entityKind !== "mcp_server" || tab === "source") && (

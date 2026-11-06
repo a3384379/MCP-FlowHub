@@ -3,11 +3,12 @@ import { promisify } from "node:util";
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { delimiter, basename, dirname, isAbsolute, join, resolve, relative } from "node:path";
-import { parse } from "smol-toml";
+import { parse, TomlError } from "smol-toml";
 import { ensure, hash, HubError, type Json } from "../../contracts/src/domain.js";
 import { readAppServer } from "./app-server.js";
 import {discoveryCommand,type DiscoveryRuntime} from "./runtime.js";
 import { skillMetadata } from "./metadata.js";
+import { addLocalMarketplaces } from "./marketplace.js";
 export type {DiscoveryRuntime} from "./runtime.js";
 const exec=promisify(execFile);
 export const executionLocation=process.platform==="win32"?"windows_native":process.platform==="darwin"?"macos":process.env.WSL_DISTRO_NAME?"wsl":"linux";
@@ -81,10 +82,10 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
   const skillOverrides=new Map<string,boolean>();
   const overrides=(c:Json)=>{for(const value of c.skills?.config??[])if(typeof value.path==="string")skillOverrides.set(resolve(value.path),value.enabled!==false);};
   const userPath=join(context.codexHome,"config.toml"),projectPath=join(context.canonicalCwd,".codex","config.toml");
-  try{config=await readConfig(userPath);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(userPath,"CONFIG_PARSE_ERROR");}
+  try{config=await readConfig(userPath);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(userPath,e instanceof TomlError?"CONFIG_PARSE_ERROR":"SOURCE_UNREADABLE");}
   overrides(config);
   let project:Json={};
-  if(context.projectTrusted)try{project=await readConfig(projectPath);overrides(project);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(projectPath,"CONFIG_PARSE_ERROR");}
+  if(context.projectTrusted)try{project=await readConfig(projectPath);overrides(project);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(projectPath,e instanceof TomlError?"CONFIG_PARSE_ERROR":"SOURCE_UNREADABLE");}
   // These are observed declarations in read order, not a home-grown precedence
   // resolver. Only the host CLI may declare an effective merged configuration.
   const declarations=(name:string)=>[
@@ -195,6 +196,7 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
       }catch{report(item.root,"PLUGIN_MANIFEST_UNSUPPORTED");}
     }
   }
+  await addLocalMarketplaces(context,components,report);
   if(context.useAppServer&&context.codexPath&&context.discoveryMode!=="config_only")try{
     const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
     for(const group of response.data??[])for(const skill of group.skills??[]) {

@@ -147,7 +147,9 @@ export function PluginRelations({
               </div>
               <Status entity={plugin} />
             </div>
-            {children[plugin.id] ? (
+            {plugin.installation === "available_only" ? (
+              <p className="d-tree">{plugin.marketplaceConflict ? "市场来源存在差异，尚未安装；查看详情逐项比较。" : "仅显示市场介绍，尚未安装或读取插件组件。"}</p>
+            ) : children[plugin.id] ? (
               <div className="d-tree">
                 {["mcp_server", "skill"].map((kind) => (
                   <div className="d-tree-group" key={kind}>
@@ -188,7 +190,7 @@ export function PluginRelations({
             )}
             <footer>
               <span>
-                包含关系依据安装清单；Skill 的 MCP 依赖在详情中单独展示。
+                {plugin.installation === "available_only" ? "市场可用项不会自动安装；在 Codex 中安装后重新扫描。" : "包含关系依据安装清单；Skill 的 MCP 依赖在详情中单独展示。"}
               </span>
               <button onClick={() => onDetail(plugin.id)}>
                 插件详情 <Icon name="chevron" />

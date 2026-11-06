@@ -4,6 +4,9 @@
 
 发现结果按 MCP 服务、MCP 工具、Skill、插件保存稳定身份。插件包含关系来自安装清单；Skill 的 MCP 依赖来自 `agents/openai.yaml` 的 `dependencies.tools`。说明中 `mcp__服务名__工具名` 只表示提及。多个同名来源保留独立身份，无法唯一匹配时返回 ambiguous，不按名称相似度或翻译结果猜关系。
 
+本地市场候选只作为 informational 插件元数据展示：installation=available_only，不展开能力或导入连接；与同身份的已安装项合并时以安装证据为准。已安装统计不含市场候选，可用统计不含市场策略 NOT_AVAILABLE 的条目。只读取已登记用户或可信项目内的文档化目录文件，不跟随候选源码，也不读取越出该根目录的符号链接。
+同名多来源保留 marketplaceSources 和整体指纹；策略或介绍冲突产生 PLUGIN_MARKETPLACE_AMBIGUOUS 与 partial，候选标 ambiguous。安装事实和已导入绑定不随市场元数据改变。后续来源的变化同样递增显示实体修订；原样重扫不递增。
+
 `GET /api/v2/discovery/catalog?contextId=...&kind=mcp_server` 返回同一完成快照的统计与分页结果。支持 kind、query、executor、source、status、parentId、limit、cursor。翻页条件或结果版本改变时从第一页重读。部分扫描未确认的旧来源保留到“需处理”；读取失败的数量为未知。`GET /api/v2/discovery/entities/:id` 返回介绍、关系与选定能力的实际Schema/原始技能内容。统计不是当前分页条数。
 
 ## Codex 路径（固定21工具）
