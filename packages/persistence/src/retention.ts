@@ -211,7 +211,8 @@ export function commitRetention(
     expire("assistant_tasks",preview.assistantResultTasks,[...common,"sessionId","modelProfileId","mode","rounds","toolCalls","usage"]);
     expire("assistant_messages",[...preview.assistantResultMessages,...preview.assistantLegacyResultMessages],[...common,"sessionId","taskId","role"]);
     expire("assistant_tool_calls",preview.assistantResultToolCalls,[...common,"sessionId","taskId","callId","name","argumentsHash","requestHash"]);
-    expire("workflow_test_runs",preview.workflowTestResultRuns,[...common,"suiteId","workflowId","draftRevision","suiteRevision","fixtureHash","capabilityRevisions","snapshotHash","summary","simulationOnly","networkCalls","realSecretReads"]);
+    expire("workflow_test_runs",preview.workflowTestResultRuns,[...common,"kind","mode","validationLevel","verificationLevel","provenance","suiteId","workflowId","draftRevision","suiteRevision","fixtureHash","capabilityRevisions","snapshotHash","summary","simulationOnly","networkCalls","realSecretReads",
+      "modelProfileId","requestHash","modelCalls","usage","usageAccounting","businessServiceCalls","caseCount","toolCalls","catalogChecks","credentialReadAccounting","scopeHash"]);
     for(const [table,ids] of [["assistant_sessions",preview.assistantSessions],["assistant_tasks",preview.assistantTasks],["assistant_messages",preview.assistantMessages],["assistant_tool_calls",preview.assistantToolCalls],["workflow_test_runs",preview.workflowTestRuns]] as const)
       for(const id of ids)repo.remove(table,id);
     for(const eventId of preview.applicationResultEvents) {

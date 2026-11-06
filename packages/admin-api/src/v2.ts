@@ -86,6 +86,8 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     });
     app.post("/api/v2/test-suites/:id/runs",async req=>data(application.testing.run({...req.body as Json,suiteId:(req.params as Json).id})));
     app.get("/api/v2/test-runs/:id",async req=>data(application.testing.status((req.params as Json).id)));
+    app.get("/api/v2/workflows/:id/test-runs",async req=>data(application.testing.listRuns((req.params as Json).id)));
+    app.post("/api/v2/test-runs/:id/cancel",async req=>data(application.testing.cancel((req.params as Json).id)));
     app.get("/api/v2/help/source",async req=>{const source=application.knowledge.source(req.query);ensure(source,"NOT_FOUND","Knowledge source missing.",404);return data(source);});
     app.get("/api/v2/help/search",async req=>data(application.knowledge.search(req.query)));
   }

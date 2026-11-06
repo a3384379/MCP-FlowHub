@@ -4,6 +4,7 @@ import { projectRoot, inputContract } from "../../contracts/src/index.js";
 import { clone, ensure, hash, id, now, validate, HubError, type Json, type Workflow } from "../../contracts/src/domain.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { driftIssue } from "./capability-drift.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
 const deleteSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/workflow-delete.schema.json"),"utf8"));
@@ -36,7 +37,7 @@ export class AuthoringService {
       const ref=n.config.capabilityRef,cap=this.repo.get("capabilities",ref.capabilityId);
       if(!cap || cap.stale || cap.revision!==ref.revision ||
         (n.type==="mcp_tool" && (cap.name!==n.config.toolName || cap.tool?.schemaHash!==n.config.toolSchemaHash)))
-        issues.push({code:"CAPABILITY_STALE",message:"Capability and node definition differ.",nodeId:n.id});
+        issues.push(driftIssue(n,ref,this.repo.get("capability_revisions",ref.capabilityId+"@"+ref.revision),cap,w.nodes.indexOf(n)));
       if(n.config.kind==="host_tool"&&(!cap||cap.kind!=="mcp_tool"||cap.executor!=="codex_host"||!cap.inputSchema||!cap.outputSchema))
         issues.push({code:"HOST_CAPABILITY_UNAVAILABLE",message:"Host tool requires a discovered input/output contract.",nodeId:n.id});
     }

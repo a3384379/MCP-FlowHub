@@ -1649,6 +1649,15 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "modelProfileId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expectedModelRevision": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [
@@ -1658,7 +1667,33 @@
         "idempotencyKey"
       ],
       "additionalProperties": false,
-      "description": "Generate product test suite. agent_proposed accepts Codex fixtures without any model Key; assertions are independently evaluated."
+      "description": "Generate a suite deterministically or from agent proposals; ai_assisted accepts a persisted generation task using an explicitly selected model profile. Poll workflow_test_status with the returned testRunId for suiteId.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "ai_assisted"
+              }
+            },
+            "required": [
+              "strategy"
+            ]
+          },
+          "then": {
+            "properties": {
+              "modelProfileId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "modelProfileId"
+            ]
+          }
+        }
+      ]
     },
     "workflow_test_run": {
       "type": "object",
@@ -1692,6 +1727,74 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "allowedBindingIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "budgets": {
+          "type": "object",
+          "properties": {
+            "maxCalls": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 60000
+            }
+          },
+          "required": [
+            "maxCalls",
+            "timeoutMs"
+          ],
+          "additionalProperties": false
+        },
+        "inputScope": {
+          "type": "object",
+          "properties": {
+            "fixtureHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "caseInputs": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 200,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "caseId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "inputs": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "caseId",
+                  "inputs"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "fixtureHash",
+            "caseInputs"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1701,7 +1804,119 @@
         "idempotencyKey"
       ],
       "additionalProperties": false,
-      "description": "Run isolated mock tests through the same engine; missing fixtures are uncovered. Never fall back to live."
+      "description": "Default mock is isolated and never reads credentials or uses business networks. contract checks selected binding catalogs only. live requires exact allowedBindingIds, frozen case inputs, and finite budgets; never upgrade modes implicitly.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "contract",
+                  "live"
+                ]
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "allowedBindingIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true
+              },
+              "budgets": {
+                "type": "object",
+                "properties": {
+                  "maxCalls": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 60000
+                  }
+                },
+                "required": [
+                  "maxCalls",
+                  "timeoutMs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "allowedBindingIds",
+              "budgets"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "live"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "inputScope": {
+                "type": "object",
+                "properties": {
+                  "fixtureHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "caseInputs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "caseId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        "inputs": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "caseId",
+                        "inputs"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "fixtureHash",
+                  "caseInputs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "inputScope"
+            ]
+          }
+        }
+      ]
     },
     "workflow_test_status": {
       "type": "object",

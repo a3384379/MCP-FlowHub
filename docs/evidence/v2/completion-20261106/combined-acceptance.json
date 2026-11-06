@@ -1,0 +1,132 @@
+{
+  "format": "flowhub.v2.combined-acceptance/1",
+  "assessedAt": "2026-11-06",
+  "sourceBaseline": "abd1661c7bda4ec32a542154a733f72b1f674993",
+  "executionSource": "Current modified working tree, compiled by the root task; final commit identity is recorded by the final delivery report.",
+  "scope": [
+    "DISC-03",
+    "CAP-07",
+    "AUTHOR-08"
+  ],
+  "method": "通过实际执行的独立组合测试核对本文件列明的要求；根据精确测试名确认通过，不依据全套测试数、历史计数或源码说明推定验收。",
+  "execution": {
+    "runtime": "Node 24.19.0; darwin-arm64",
+    "primaryLog": "artifacts/completion-20261106/targeted.log",
+    "selection": "Match the exact testName strings below. The main log may be replaced by later successful runs; no line numbers or whole-suite count form this evidence.",
+    "preservedLog": "artifacts/completion-20261106/combined-acceptance-execution.log",
+    "preservedLogSha256": "f41a5613649a80ca98d6f8736071b3b9fe558cbf6289b9db3f00db5df2fdc319",
+    "selectedTestResults": {
+      "DISC-03": "PASS",
+      "CAP-07": "PASS",
+      "AUTHOR-08": "PASS"
+    },
+    "reproductionCommand": "node --test dist/tests/engine/v2-ai-test-generation.test.js dist/tests/engine/v2-combined-acceptance.test.js dist/tests/engine/v2-scoped-testing.test.js dist/tests/engine/v2-testing.test.js",
+    "invocationRecord": "Actual run was coordinated by the root task; final exact command/flags are recorded in the overall completion evidence."
+  },
+  "sourceSha256": {
+    "packages/host-discovery/src/index.ts": "f91769793bf7c90445dfee85d46209d244f92a333aba1b1dc390305f7e484779",
+    "packages/capability-registry/src/index.ts": "fefe978e3ce27b933546d9243776a8625ec268a8d3724ca8102a32ab2d336454",
+    "packages/workflow-authoring/src/index.ts": "9a8825a50814fc2544c7fcf607aecd9ddf2eca4a0c2a2fa4119b61de98353d47",
+    "packages/workflow-authoring/src/capability-drift.ts": "02c1635ccb0987cacb8a47c46fc5d57f7dc5aa195439af38c9977c85877ad936",
+    "tests/engine/v2-combined-acceptance.test.ts": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+  },
+  "historicalLedger": {
+    "path": "docs/evidence/v2/acceptance-results.json",
+    "sha256": "eeee1b4d4e464b942d659349552df8bc35bd370b60fae7ee256966c07ec08f65",
+    "modifiedByThisReview": false
+  },
+  "items": [
+    {
+      "id": "DISC-03",
+      "status": "PASS",
+      "testName": "DISC-03 combined: user/project/Profile conflicts retain host-effective results, persisted declaration evidence and conservative untrusted/legacy candidates",
+      "source": "tests/engine/v2-combined-acceptance.test.ts",
+      "evidenceLevel": "real_child_process_synthetic_codex_cli_and_toml_fixtures",
+      "requirement": "同名 MCP 不同配置层：正确取得有效配置并保存来源链；无法证明有效结果时保持部分覆盖。",
+      "observed": [
+        "同一隔离 home/project 中为 user、可信 project、selected Profile 声明同名 MCP 和不同 URL。",
+        "synthetic CLI 作为真实子进程分别返回默认与选定 Profile 的明确有效结果，扫描准确保留 CLI 返回的配置，并将选定 Profile 传给明确支持该选项的 CLI。",
+        "读取到的声明路径、层类型、selected Profile 与 host_effective 证据持久化后重新读取一致；sourceChain 的声明列表明确是读取顺序，不声称覆盖优先级或精确获胜源。",
+        "未信任项目存在配置时，避免经 CLI 间接带入其配置，只保留 user/Profile 独立候选并报告 partial；修改信任选项使用已有 context 的 revision CAS。",
+        "旧 CLI help 未声明 --profile 时，不发送该参数、不执行依赖该 Profile 的 effective JSON 请求，保留三个独立静态候选且 partial；源文件字节未改变。"
+      ],
+      "implementation": [
+        "按实际 help 检测 Profile 参数支持并在 resolveSource 使用同一 Profile。",
+        "来源增加 resolutionEvidence：host_effective/static_candidate/plugin_component；declarationOrder 明确不表示 precedence。",
+        "capability_sources 持久化 resolutionEvidence；保留来源身份，不合并同名静态候选。"
+      ],
+      "limits": [
+        "有效结果是合成 CLI 的协议/进程证据，不是当前个人 Desktop 会话的真实配置覆盖验收。",
+        "静态读取不推断真实覆盖优先级；host_effective 仅陈述宿主返回值，声明列表不证明哪一文件最终胜出。"
+      ]
+    },
+    {
+      "id": "CAP-07",
+      "status": "PASS",
+      "testName": "CAP-07 combined: real MCP parameter type drift locates an existing draft node/field, repairs through authoring and republishes without changing v1",
+      "source": "tests/engine/v2-combined-acceptance.test.ts",
+      "evidenceLevel": "official_sdk_real_stdio_mcp_process_with_synthetic_tool_contract",
+      "requirement": "工具入参改变类型：能力修订递增，既有草稿定位节点和参数，修复后重新发布且旧版本不变。",
+      "observed": [
+        "真实 SDK STDIO 工具将同一 count 参数由 string 改为 integer，重新读取目录后同一 capability ID 的 revision 从 1 变 2。",
+        "既有 v1 发布和草稿仍引用旧契约；草稿 CAPABILITY_STALE 包含 read 节点、/count 参数、/properties/count schemaPath、前后类型及修订。",
+        "诊断 path 与 mappingPath 使用实际 DSL JSONPointer；测试通过 get 真实解析到原 capabilityRef 和原 /count 映射。",
+        "导入新连接、显式执行隔离合成环境验证，更新节点能力/绑定后，旧 string 输入引用产生 TYPE_MISMATCH 并精确定位 read/count。",
+        "经同一 AuthoringService 修正映射后校验通过并发布新版本；原发布字节和旧连接记录不变。目录读取从未 tools/call，仅两次显式 synthetic binding probe 执行业务工具。"
+      ],
+      "implementation": [
+        "新增有界 capability-drift 诊断：每份 Schema 使用结构访问预算，最大递归深度 24，最多输出 64 项差异，超限显式 truncated。",
+        "差异仅报告结构/类型/必填元信息，不复制 Schema default/example 原值；完整契约继续从目录获取。",
+        "修改只增加问题定位，不放松发布校验、资源权限或 MCP 结果验证。"
+      ],
+      "limits": [
+        "这条 PASS 覆盖当前计数参数的完整组合场景，不宣称任意复杂 JSON Schema 语义差异均能穷尽定位。",
+        "诊断为有界结构分析；复杂组合/不可解析引用仍以节点级失效提示为准，发布继续使用原完整校验器。",
+        "使用本机合成 MCP 和合成环境证据，不能据此认证企业生产账号只读权限。"
+      ]
+    },
+    {
+      "id": "AUTHOR-08",
+      "status": "PASS",
+      "testName": "AUTHOR-08 combined: simultaneous capability/binding drift rejects partial reviews atomically and exact retry preserves previous publication",
+      "source": "tests/engine/v2-combined-acceptance.test.ts",
+      "evidenceLevel": "real_sdk_catalog_drift_plus_transactional_authoring_and_isolated_repository",
+      "requirement": "校验后绑定和能力变化：拒绝过期或不完整 review 发布，无副作用，旧版本不变。",
+      "observed": [
+        "先创建、校验并发布 v1，记录待发草稿/review。真实 SDK 目录说明变更提升 capability revision，同时夹具模拟外部管理员递增 binding revision。",
+        "旧 capability/binding maps、仅更新 binding、仅更新 capability 但尚未修复草稿引用均拒绝发布。",
+        "显式修复草稿 capabilityRef 后，旧 binding review 仍 REVISION_CONFLICT，旧 capability review 仍 CAPABILITY_STALE。",
+        "每次拒绝前后 draft、版本、bindings、capabilities、能力历史、authoring_commands、幂等 commands、application_events 和 audit_events 整体哈希相等；没有候选新版本。",
+        "两类 review 与草稿引用均更新后发布成功，新快照冻结正确 revision；相同请求精确重放不增加记录或事件，旧 v1 字节保持相等。"
+      ],
+      "implementation": [
+        "新增同一场景联动测试；现有 capability→validate→binding 检查顺序与 repo.command 事务已经满足拒绝边界，无为通过测试放宽 CAS。"
+      ],
+      "limits": [
+        "binding 漂移在隔离 repository 夹具中模拟外部管理员更新；不是两个真实浏览器竞争的验收。",
+        "真实 MCP 目录为合成服务；不代表任何企业连接被授权或验证。"
+      ]
+    }
+  ],
+  "originalFailures": [
+    {
+      "path": "artifacts/completion-20261106/initial-targeted.log",
+      "scope": "首次 DISC-03 组合夹具错误地重新登记既有 context 的不同 trust 选项，返回 CONTEXT_REGISTRATION_CONFLICT；修为带 expectedRevision 的 context CAS 更新，产品注册边界未放宽。"
+    }
+  ],
+  "summary": {
+    "selectedPass": 3,
+    "selectedPartial": 0,
+    "selectedUnverified": 0,
+    "otherAcceptanceItemsNotReassessed": 101,
+    "changesToHistoricalStatuses": false
+  },
+  "externalAcceptance": {
+    "realModelScenarios": "UNVERIFIED",
+    "actualPersonalCodexProfileResolution": "UNVERIFIED",
+    "enterpriseReadOnlyPermissions": "UNVERIFIED",
+    "nativeWindows": "UNVERIFIED",
+    "actualHostOnlySkillExecution": "UNVERIFIED"
+  },
+  "claim": "仅上述三项在列明合成/真实协议层级通过；本文件不重验另外 101 项，不把三项 PASS 自动加算成完整 104 项全通过。"
+}

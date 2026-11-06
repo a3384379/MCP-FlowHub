@@ -1,0 +1,31 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "stages": [
+    {
+      "stage": "actual_v1_program_create_publish_run_report_backup",
+      "status": "PASS",
+      "baseline": "45eed03ee9f6f513a5c67e854d3d42e16afee636",
+      "oldSnapshotHash": "sha256:8ad35f7232e3c1f463eba7434aa5ef1b0d949dbc21f403da9fd5d3ab10927491"
+    },
+    {
+      "stage": "upgrade_to_v2_preserves_every_v1_row_and_report",
+      "status": "PASS",
+      "automaticPreMigrationBackup": true,
+      "v2BackupPreflight": true,
+      "corruptNewTableRejected": true,
+      "liveRestoreDenied": true
+    },
+    {
+      "stage": "stopped_restore_and_actual_old_program_restart",
+      "status": "PASS",
+      "v1RowsEqual": true,
+      "publishedHashUnchanged": true,
+      "reportBytesUnchanged": true
+    }
+  ],
+  "formalUserDataAccessed": false,
+  "externalBusinessCalls": 0,
+  "nativeWindowsAcceptance": "UNVERIFIED"
+}

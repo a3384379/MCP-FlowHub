@@ -18,6 +18,7 @@ export class Application {
   constructor(readonly engine:Engine,options:{providerFactory?:ProviderFactory;hostDiscoveryRuntime?:DiscoveryRuntime}={}) {
     this.authoring=new AuthoringService(engine);this.registry=new CapabilityRegistry(engine,options.hostDiscoveryRuntime?{hostRuntime:options.hostDiscoveryRuntime}:{});this.testing=new WorkflowTesting(this.authoring);this.knowledge=new ProjectKnowledge(engine.repo);
     this.assistant=new AssistantCore(this,options.providerFactory);
+    this.testing.configureAi((request,signal,owner)=>this.assistant.proposeTestCases(request,signal,owner));
   }
   async handle(name:ToolName,args:Json,owner="execution"):Promise<Json> {
     ensure(validArguments(name,args),"INPUT_INVALID","Arguments do not match the fixed tool contract.");

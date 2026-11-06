@@ -8,7 +8,7 @@ import {Engine} from '../../packages/workflow-core/src/engine.js';
 import {Application} from '../../packages/application/src/index.js';
 import {hash} from '../../packages/contracts/src/domain.js';
 function setup(t:any){const db=new Database(':memory:'),repo=new Repository(db),vault=new Vault(repo),engine=new Engine(repo,vault,new Connectors(repo,vault)),app=new Application(engine);t.after(async()=>{await app.close();await engine.close();db.close();});app.authoring.create({workflowId:'testing',name:'testing',environment:'test',mode:'auto',template:'blank',idempotencyKey:'create'});return {repo,engine,app};}
-test('unsupported direct ai_assisted generation reports the strategy limit with or without a configured model',async t=>{
+test('AI-assisted generation requires explicit model selection instead of inferring any configured profile',async t=>{
   const f=setup(t);
   for(const configured of [false,true]) {
     if(configured) {
@@ -18,7 +18,7 @@ test('unsupported direct ai_assisted generation reports the strategy limit with 
     }
     const before=hash([f.repo.all('workflows'),f.repo.all('workflow_test_suites'),f.repo.all('authoring_commands')]);
     assert.throws(()=>f.app.testing.generate({workflowId:'testing',expectedRevision:1,strategy:'ai_assisted',idempotencyKey:'unsupported-'+configured}),
-      (e:any)=>e.code==='TEST_STRATEGY_UNSUPPORTED'&&e.message.includes('agent_proposed'));
+      (e:any)=>e.code==='INPUT_INVALID');
     assert.equal(hash([f.repo.all('workflows'),f.repo.all('workflow_test_suites'),f.repo.all('authoring_commands')]),before);
   }
   const generated=f.app.testing.generate({workflowId:'testing',expectedRevision:1,strategy:'agent_proposed',idempotencyKey:'supported',proposedCases:[{id:'normal',name:'Existing supported path',inputs:{},mockResults:[],agentSubmissions:[],assertions:[{kind:'terminal_state',expected:'SUCCEEDED'}],expectedValidationErrors:[]}]});

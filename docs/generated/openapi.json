@@ -5093,6 +5093,220 @@
           "429": {
             "description": "Rate limited"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "strategy": {
+                    "enum": [
+                      "deterministic",
+                      "agent_proposed",
+                      "ai_assisted"
+                    ]
+                  },
+                  "scenarioHints": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "proposedCases": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "inputs": {
+                          "type": "object"
+                        },
+                        "mockResults": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "nodeId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "capabilityId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "responseMode": {
+                                "enum": [
+                                  "structured",
+                                  "text",
+                                  "error",
+                                  "timeout"
+                                ]
+                              },
+                              "result": {}
+                            },
+                            "required": [
+                              "nodeId",
+                              "capabilityId",
+                              "responseMode",
+                              "result"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "agentSubmissions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "nodeId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "payload": {
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "nodeId",
+                              "payload"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "assertions": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "terminal_state",
+                                  "node_state",
+                                  "tool_called",
+                                  "tool_not_called",
+                                  "argument_equals",
+                                  "output_equals",
+                                  "artifact_contains",
+                                  "error_code",
+                                  "tool_call_count"
+                                ]
+                              },
+                              "nodeId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                              },
+                              "expected": {}
+                            },
+                            "required": [
+                              "kind",
+                              "expected"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "expectedValidationErrors": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "inputs",
+                        "mockResults",
+                        "agentSubmissions",
+                        "assertions",
+                        "expectedValidationErrors"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "baseSuiteId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "expectedSuiteRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "modelProfileId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "expectedModelRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expectedRevision",
+                  "strategy",
+                  "idempotencyKey"
+                ],
+                "additionalProperties": false,
+                "description": "Generate a suite deterministically or from agent proposals; ai_assisted accepts a persisted generation task using an explicitly selected model profile. Poll workflow_test_status with the returned testRunId for suiteId.",
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "strategy": {
+                          "const": "ai_assisted"
+                        }
+                      },
+                      "required": [
+                        "strategy"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "modelProfileId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "modelProfileId"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
         }
       },
       "get": {
@@ -5293,6 +5507,230 @@
           "429": {
             "description": "Rate limited"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedSuiteRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "mode": {
+                    "enum": [
+                      "mock",
+                      "contract",
+                      "live"
+                    ]
+                  },
+                  "caseIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "maxItems": 200
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "allowedBindingIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "uniqueItems": true
+                  },
+                  "budgets": {
+                    "type": "object",
+                    "properties": {
+                      "maxCalls": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 1000,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "maxCalls",
+                      "timeoutMs"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "inputScope": {
+                    "type": "object",
+                    "properties": {
+                      "fixtureHash": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "caseInputs": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "caseId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "inputs": {
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "caseId",
+                            "inputs"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "fixtureHash",
+                      "caseInputs"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "expectedSuiteRevision",
+                  "mode",
+                  "idempotencyKey"
+                ],
+                "additionalProperties": false,
+                "description": "Default mock is isolated and never reads credentials or uses business networks. contract checks selected binding catalogs only. live requires exact allowedBindingIds, frozen case inputs, and finite budgets; never upgrade modes implicitly.",
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "mode": {
+                          "enum": [
+                            "contract",
+                            "live"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "mode"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "allowedBindingIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "minItems": 1,
+                          "maxItems": 100,
+                          "uniqueItems": true
+                        },
+                        "budgets": {
+                          "type": "object",
+                          "properties": {
+                            "maxCalls": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 50
+                            },
+                            "timeoutMs": {
+                              "type": "integer",
+                              "minimum": 1000,
+                              "maximum": 60000
+                            }
+                          },
+                          "required": [
+                            "maxCalls",
+                            "timeoutMs"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "allowedBindingIds",
+                        "budgets"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "mode": {
+                          "const": "live"
+                        }
+                      },
+                      "required": [
+                        "mode"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "inputScope": {
+                          "type": "object",
+                          "properties": {
+                            "fixtureHash": {
+                              "type": "string",
+                              "pattern": "^sha256:[a-f0-9]{64}$"
+                            },
+                            "caseInputs": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 200,
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "caseId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 256
+                                  },
+                                  "inputs": {
+                                    "type": "object"
+                                  }
+                                },
+                                "required": [
+                                  "caseId",
+                                  "inputs"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "fixtureHash",
+                            "caseInputs"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "inputScope"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -5308,6 +5746,108 @@
           {
             "name": "id",
             "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v2/workflows/{id}/test-runs": {
+      "get": {
+        "summary": "GET /api/v2/workflows/:id/test-runs",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v2/test-runs/{id}/cancel": {
+      "post": {
+        "summary": "POST /api/v2/test-runs/:id/cancel",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
             "required": true,
             "schema": {
               "type": "string"

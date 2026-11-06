@@ -63,10 +63,20 @@ Codex 能力发现页首次扫描本机上下文，后续优先读取完成快�
 ## 用例生成与自测
 
 workflow_test_generate(strategy=deterministic) 根据输入 Schema 产生基准用例；agent_proposed 接收 Codex 提供的合成 Fixture 和断言，不需要模型 Key。
-内置聊天助手也可设计用例，再通过同一 agent_proposed 入口提交。直接 strategy=ai_assisted 尚未实现，返回 TEST_STRATEGY_UNSUPPORTED；配置模型不会启用这个独立策略，请使用聊天助手或 agent_proposed。
+内置聊天助手也可设计用例，再通过同一 agent_proposed 入口提交。自测面板还可选择“AI 辅助生成”，明确选择已有模型配置后发送；MCP 对应 strategy=ai_assisted，必须提供 modelProfileId，可携带 expectedModelRevision。返回 generationId/testRunId 是已接受的生成任务，不代表自测通过；通过 workflow_test_status 或 GET /api/v2/test-runs/:id 查询，SUCCEEDED 后才有 suiteId。套件保留 generatedBy=ai_assisted 和生成来源，用例仍需独立运行与断言。未配Key不影响前两种生成方式。
 确定性生成覆盖必填/类型、数字与字符串/数组边界、枚举和布尔输入；布尔分支可独立统计true/false。复杂pattern等无法由采样器满足时返回INPUT_SAMPLE_REQUIRED，需补合法Schema example；超出200例或过大边界报告GENERATION_LIMIT，不承诺自动穷尽。Mock入参和输出也校验已发现Schema。
 workflow_test_run 默认 mock；在隔离库通过同一引擎与注入连接器执行，不读取真实 Secret、不连接真实业务服务。缺 Fixture 为 FIXTURE_MISSING/未覆盖；断言失败显示 expected/actual。修改草稿、能力或 Fixture 后旧基线显示 stale，需要重新生成/运行。
-contract/live 请求目前明确返回 TEST_MODE_UNSUPPORTED，不静默切换真实环境。
+自测面板默认 Mock，切换验证级别不会自动发送请求。支持三种明确级别：
+
+- Mock：隔离数据流、夹具与断言，不读取真实凭据或调用真实业务服务。
+- Contract：明确选择当前流程引用的绑定和预算，仅经官方 SDK 协商、读取工具目录、比对已冻结 Schema。不执行 tools/call、不运行业务断言、不改变绑定验证状态；协议检查成功不代表业务运行成功。
+- Live：明确选择当前流程引用的绑定、套件用例及固定输入，提交 allowedBindingIds、inputScope 和 budgets。inputScope 包含 fixtureHash 和 caseInputs（caseId/inputs），必须与选中的已保存用例完全一致；maxCalls 为全任务工具调用上限（1–50），timeoutMs 为任务时限（1000–60000 ms）。执行仍在隔离运行库内使用同一引擎，但经已登记连接真实调用所选 MCP，不复制凭据到测试库。草稿、权限、绑定、连接或能力变化会阻止后续派发。
+
+Live 的 analysis 夹具只证明数据流，结果标记 AGENT_EXECUTION_UNVERIFIED；host-only 节点不会由夹具冒充真实宿主。调用合成绑定会明确保留 syntheticBindings，不能当企业验收。真实生产只读仍依赖服务端权限，不以工具 annotations 或本机哈希替代。
+
+面板可取消生成或执行任务，管理接口为 POST /api/v2/test-runs/:id/cancel。已派发的远端调用可能仍在执行；outcomeUnknown 表示结果未知，不能把本地 CANCELLED 理解为远端已撤销，也不会自动重放。服务重启后未完成任务标为 INTERRUPTED。丢失接受回执时保留原幂等请求，重试不会产生第二次模型调用、套件或真实工具调用。
+
+生成只调用明确选择的模型，限单轮、64 KiB 上下文、512 KiB 提案及模型配置的超时；不派发模型提出的其他工具。聊天中的普通“自测”只运行 Mock，不能由模型自行填范围升级为 Contract/Live；需要这两级时从面板显式选择，或从 MCP 提交带完整范围的请求。实际工具调用数和目录检查数分别展示；未完整计量的网络或凭据读取数显示未知，不写成 0。
 
 ## 常见错误
 

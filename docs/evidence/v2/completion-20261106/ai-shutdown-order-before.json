@@ -1,0 +1,12 @@
+{
+  "fixture": "delayed-other-engine-disposal",
+  "node": "24.19.0",
+  "model": "ScriptedModelProvider",
+  "modelRequests": 1,
+  "externalModelCalls": 0,
+  "businessCalls": 0,
+  "status": "FAILED",
+  "errorCode": "TASK_CANCELLED",
+  "suites": 0,
+  "workflowTestingDistSha256": "ce5aa913bdaf60daecda13e0c64686eaa56a6141e36536351c0f7162709a6eb9"
+}

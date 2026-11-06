@@ -88,6 +88,13 @@ for (let i = 0; i < declarations.length; i++) {
     operation.responses[428] = {description:"If-Match and expectedRevision must agree"};
     operation.summary = "Delete a workflow from the library; preserve published snapshots and execution history";
   }
+  if(method==="post" && ["/api/v2/workflows/:id/test-suites","/api/v2/test-suites/:id/runs"].includes(route)) {
+    const definitions=JSON.parse(await readFile("contracts/mcp-v2-tool-inputs.schema.json","utf8")).$defs;
+    const schema=structuredClone(definitions[route.endsWith("/runs")?"workflow_test_run":"workflow_test_generate"]);
+    const pathKey=route.endsWith("/runs")?"suiteId":"workflowId";
+    delete schema.properties[pathKey];schema.required=schema.required.filter(key=>key!==pathKey);
+    operation.requestBody={required:true,content:{"application/json":{schema}}};
+  }
   if (route.endsWith("/events"))
     operation.responses[200] = {
       description: "Authenticated event stream; Last-Event-ID or after cursor",

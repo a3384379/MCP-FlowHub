@@ -83,30 +83,50 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
   const userPath=join(context.codexHome,"config.toml"),projectPath=join(context.canonicalCwd,".codex","config.toml");
   try{config=await readConfig(userPath);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(userPath,"CONFIG_PARSE_ERROR");}
   overrides(config);
+  let project:Json={};
+  if(context.projectTrusted)try{project=await readConfig(projectPath);overrides(project);}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(projectPath,"CONFIG_PARSE_ERROR");}
+  // These are observed declarations in read order, not a home-grown precedence
+  // resolver. Only the host CLI may declare an effective merged configuration.
+  const declarations=(name:string)=>[
+    ...(Object.hasOwn(config.mcp_servers??{},name)?[{path:userPath,layer:"user"}]:[]),
+    ...(Object.hasOwn(project.mcp_servers??{},name)?[{path:projectPath,layer:"trusted_project"}]:[]),
+    ...(context.profile&&Object.hasOwn(config.profiles?.[context.profile]?.mcp_servers??{},name)?[{path:userPath+"#profile:"+context.profile,layer:"profile"}]:[]),
+  ];
   const addServers=(servers:Json,path:string,locator:Json,enabled=true,serverOverrides:Json={})=>{
     for(const [name,raw] of Object.entries(servers??{}) as [string,Json][]) {
       const config={...raw,...serverOverrides[name],enabled:enabled&&raw.enabled!==false&&serverOverrides[name]?.enabled!==false};
-      sources.push({sourceKey:path+"#"+name,name,kind:"mcp_server",config,locator:{...locator,name,path},enabled:config.enabled,sourceChain:[path]});
+      sources.push({sourceKey:path+"#"+name,name,kind:"mcp_server",config,locator:{...locator,name,path},enabled:config.enabled,sourceChain:[path],
+        resolutionEvidence:locator.kind==="plugin"
+          ?{kind:"plugin_component",declarations:[{path,layer:"installed_plugin"}],declarationOrder:"not_applicable"}
+          :{kind:"static_candidate",profile:context.profile??null,declarations:declarations(name),declarationOrder:"read_order_not_precedence"}});
     }
   };
   let effective=false;
   if(context.executionLocation!==executionLocation)report(context.id,"EXECUTION_LOCATION_UNSUPPORTED");
   else if(context.codexPath&&context.discoveryMode!=="config_only")try{
     const help=await output(context,["mcp","list","--help"],control,runtime);
-    if(help.includes("--json") && !context.profile) {
-      const servers=JSON.parse(await output(context,["mcp","list","--json"],control,runtime));
+    // The local reading choice must not silently let an untrusted project's
+    // config enter through the CLI's own trust settings. Without a documented
+    // no-project flag, retain conservative static candidates in that case.
+    let untrustedProject=false;
+    if(!context.projectTrusted)try{untrustedProject=(await stat(projectPath)).isFile();}catch{}
+    if(untrustedProject)report(projectPath,"PROJECT_CONFIGURATION_NOT_TRUSTED");
+    const profileSupported=!context.profile||/(?:^|\s)--profile(?:[=\s,<]|$)/m.test(await output(context,["--help"],control,runtime));
+    if(help.includes("--json") && profileSupported && !untrustedProject) {
+      const args=context.profile?["--profile",context.profile,"mcp","list","--json"]:["mcp","list","--json"];
+      const servers=JSON.parse(await output(context,args,control,runtime));
       ensure(Array.isArray(servers),"CONFIG_PARSE_ERROR","CLI server list must be an array.");
       for(const server of servers)sources.push({sourceKey:"effective#"+server.name,name:server.name,kind:"mcp_server",enabled:server.enabled!==false,
-        config:normalizedServer(server),sourceChain:["host CLI effective configuration"],locator:{kind:"cli",name:server.name,path:userPath}});
+        config:normalizedServer(server),sourceChain:["host CLI effective configuration",...declarations(server.name).map(d=>d.path)],
+        resolutionEvidence:{kind:"host_effective",profile:context.profile??null,declarations:declarations(server.name),declarationOrder:"read_order_not_precedence"},
+        locator:{kind:"cli",name:server.name,path:userPath,...(context.profile?{profile:context.profile}:{})}});
       effective=true;quality="host_effective";
     }
   }catch{report(context.codexPath,"SOURCE_UNREADABLE");}
   else if(context.discoveryMode!=="config_only")report(context.id,"CODEX_NOT_FOUND");
-  if(context.projectTrusted)try{overrides(await readConfig(projectPath));}catch{}
   if(!effective) {
     addServers(config.mcp_servers,userPath,{kind:"config"});
-    if(context.projectTrusted)try{const project=await readConfig(projectPath);overrides(project);addServers(project.mcp_servers,projectPath,{kind:"config"});}
-      catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")report(projectPath,"CONFIG_PARSE_ERROR");}
+    if(context.projectTrusted)addServers(project.mcp_servers,projectPath,{kind:"config"});
     if(context.profile) {
       const profile=config.profiles?.[context.profile];
       if(profile?.mcp_servers)addServers(profile.mcp_servers,userPath+"#profile:"+context.profile,{kind:"profile",profile:context.profile});
@@ -202,7 +222,8 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
 /** Re-read the selected source only; no credentials are persisted in the public directory. */
 export async function resolveSource(context:Json,locator:Json,control:DiscoveryControl={},runtime:DiscoveryRuntime={}):Promise<Json> {
   if(locator.kind==="cli") {
-    const list=JSON.parse(await output(context,["mcp","list","--json"],control,runtime));const server=list.find((s:Json)=>s.name===locator.name);
+    const args=locator.profile?["--profile",locator.profile,"mcp","list","--json"]:["mcp","list","--json"];
+    const list=JSON.parse(await output(context,args,control,runtime));const server=list.find((s:Json)=>s.name===locator.name);
     ensure(server,"CAPABILITY_STALE","Source disappeared.",409);return normalizedServer(server);
   }
   if(locator.kind==="plugin") {
