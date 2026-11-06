@@ -1,0 +1,50 @@
+
+> mcp-flowhub@2.0.0-alpha.2 package:local
+> npm run build && node scripts/package.mjs
+
+
+> mcp-flowhub@2.0.0-alpha.2 build
+> npm run build:server && npm run build:web
+
+
+> mcp-flowhub@2.0.0-alpha.2 build:server
+> node scripts/generate-openapi.mjs && tsc -p tsconfig.json
+
+Generated OpenAPI: 87 management paths.
+
+> mcp-flowhub@2.0.0-alpha.2 build:web
+> tsc -p apps/web/tsconfig.json && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 209 modules transformed.
+rendering chunks...
+computing gzip size...
+web-dist/index.html                   0.45 kB │ gzip:   0.36 kB
+web-dist/assets/index-IFGAOBZi.css   68.88 kB │ gzip:  14.38 kB
+web-dist/assets/index-BXQn5CVg.js   691.38 kB │ gzip: 214.92 kB
+
+[33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "../../../Users/sqz/Documents/ChatGPT/mcp管理工具/node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m ../../../Users/sqz/Documents/ChatGPT/mcp管理工具/node_modules/@xyflow/react/dist/esm/index.js:1:1 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m1 │[0m "use client"
+ [38;5;240m  │[0m ──────┬─────  
+ [38;5;240m  │[0m       ╰─────── module level directive may not be preserved
+ [38;5;240m  │[0m 
+ [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[38;5;246m───╯[0m
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 241ms
+added 96 packages in 3s
+Bundle verified: 6423 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{
+  "bundle": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z",
+  "archive": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z.tar.gz",
+  "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+  "components": 96
+}

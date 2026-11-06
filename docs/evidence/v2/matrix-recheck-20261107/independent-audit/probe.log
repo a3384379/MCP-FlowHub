@@ -1,0 +1,110 @@
+(node:44048) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "results": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/probe-results.json",
+  "node": "v24.19.0",
+  "sourceBindings": 5,
+  "modelCases": [
+    {
+      "name": "explicit_unsupported",
+      "classifiedCode": "MODEL_UNSUPPORTED_TOOLS",
+      "toolProbe": "unsupported",
+      "help": "COMPLETED",
+      "helpToolsPresent": false,
+      "writes": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      }
+    },
+    {
+      "name": "unknown_400_tools",
+      "classifiedCode": "MODEL_UNSUPPORTED_TOOLS",
+      "toolProbe": "unsupported",
+      "help": "COMPLETED",
+      "helpToolsPresent": false,
+      "writes": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      }
+    },
+    {
+      "name": "unknown_400_no_param",
+      "classifiedCode": "MODEL_INVALID_CONFIGURATION",
+      "toolProbe": "failed",
+      "help": "FAILED",
+      "helpToolsPresent": true,
+      "writes": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      }
+    },
+    {
+      "name": "auth_401_tools",
+      "classifiedCode": "MODEL_AUTH_FAILED",
+      "toolProbe": "failed",
+      "help": "FAILED",
+      "helpToolsPresent": true,
+      "writes": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      }
+    },
+    {
+      "name": "server_500_tools",
+      "classifiedCode": "MODEL_UNSUPPORTED_TOOLS",
+      "toolProbe": "unsupported",
+      "help": "COMPLETED",
+      "helpToolsPresent": false,
+      "writes": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      }
+    }
+  ],
+  "marketplaceCases": [
+    {
+      "name": "distinct_market_identity",
+      "count": 2,
+      "policy": [
+        "AVAILABLE",
+        "NOT_AVAILABLE"
+      ],
+      "issues": []
+    },
+    {
+      "name": "same_market_name_conflicting_sources",
+      "count": 1,
+      "policy": [
+        "AVAILABLE"
+      ],
+      "issues": []
+    },
+    {
+      "name": "same_market_second_source_changed",
+      "count": 1,
+      "policy": [
+        "AVAILABLE"
+      ],
+      "issues": []
+    },
+    {
+      "name": "escaping_file_symlink",
+      "count": 1,
+      "policy": [
+        "AVAILABLE"
+      ],
+      "issues": [
+        {
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-0j8Emz/.agents/plugins/marketplace.json",
+          "code": "SOURCE_UNREADABLE"
+        }
+      ]
+    }
+  ],
+  "marketplaceSecondSourceFingerprintUnchanged": true
+}

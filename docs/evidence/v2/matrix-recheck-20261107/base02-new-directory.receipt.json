@@ -1,0 +1,65 @@
+{
+  "id": "BASE-02",
+  "status": "PASS",
+  "setup": "daemon starts in an actually empty isolated data directory",
+  "history": [
+    {
+      "version": 1,
+      "checksum": "39b4d8eab1f40befe28a3c7642a8e6b2b9398e1aa6a7e3895f74d572c4c88784",
+      "applied_at": "2026-11-06T16:59:59.546Z"
+    },
+    {
+      "version": 2,
+      "checksum": "09dca3fd026255a64d14f259ef94fbef53880e5d6f3e80a78a2750f1c288d301",
+      "applied_at": "2026-11-06T16:59:59.547Z"
+    },
+    {
+      "version": 3,
+      "checksum": "99e75caa56008e07bc3bd800147c4a372b79c378c246874a56b9e0657af9b7d4",
+      "applied_at": "2026-11-06T16:59:59.547Z"
+    }
+  ],
+  "expectedVersions": [
+    1,
+    2,
+    3
+  ],
+  "allManagedTablesVerified": [
+    "settings",
+    "connections",
+    "bindings",
+    "workflows",
+    "versions",
+    "runs",
+    "artifacts",
+    "approvals",
+    "secrets",
+    "attempts",
+    "clients",
+    "commands",
+    "run_events",
+    "audit_events",
+    "host_contexts",
+    "discovery_jobs",
+    "capability_sources",
+    "capabilities",
+    "capability_revisions",
+    "authoring_commands",
+    "workflow_test_suites",
+    "workflow_test_runs",
+    "model_profiles",
+    "assistant_sessions",
+    "assistant_messages",
+    "assistant_tasks",
+    "assistant_tool_calls",
+    "knowledge_documents",
+    "knowledge_chunks",
+    "application_events",
+    "knowledge_fts",
+    "discovery_entities",
+    "discovery_presentations"
+  ],
+  "healthStatus": 200,
+  "survivedStoppedReopen": true,
+  "formalDataAccessed": false
+}

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "ownedDaemon": {
+    "pid": 76927,
+    "port": 50243
+  },
+  "checks": [
+    "Real rendered conflict candidate card and installed card",
+    "Detail displays both source paths, descriptions and policies without precedence",
+    "Conflicting candidate excluded from available count",
+    "Real UI rescan clears conflict after second-source metadata is made equal",
+    "Installed manifest, disabled state and Skill identity retained",
+    "Reload retains resolved state",
+    "No model profile, external request, business run or candidate hook"
+  ],
+  "screenshots": [
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/02-conflict-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/03-candidate-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/04-installed-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/05-resolved-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/06-resolved-candidate-detail.png"
+  ],
+  "cleanup": {
+    "browserClosed": true,
+    "daemon": {
+      "code": 0,
+      "signal": null
+    },
+    "temporaryDataRemoved": true
+  },
+  "evidence": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/receipt.json"
+}

@@ -1,0 +1,1886 @@
+{
+  "format": "flowhub.v2.matrix-recheck.assistant-ui.v1",
+  "baseHead": "194c0b17f63846cb00d4e7fe217c80e6d342f4ed",
+  "assessedAt": "2026-11-06T16:51:50.772946+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "method": "Full expected-by-expected assertion review, then exact named-test and captured-source-hash binding to completed local backend and browser runs. Old PASS labels and suite totals are not treated as item proof.",
+  "summary": {
+    "PASS": 32,
+    "PARTIAL": 0,
+    "UNVERIFIED": 0
+  },
+  "items": [
+    {
+      "id": "LLM-01",
+      "status": "PASS",
+      "expected": "Codex/手工功能可用，内置推理明确未配置",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-01 matrix: zero model profiles still allow actual draft editing and deterministic Mock tests, while inference fails explicitly",
+          "assertionLines": [
+            54,
+            61,
+            62,
+            64,
+            65
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Zero ModelProfiles: manual create/patch and deterministic suite+Mock really complete, inference records MODEL_NOT_CONFIGURED and zero model requests.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-02",
+      "status": "PASS",
+      "expected": "MODEL_AUTH_FAILED，无Key明文日志",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-02 matrix: real HTTP 401 diagnostics containing a Key never enter the public task, message, event or ordinary storage",
+          "assertionLines": [
+            73,
+            75,
+            76
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Real loopback HTTP 401 with a synthetic Key inside the private error body becomes MODEL_AUTH_FAILED; public task, messages, events, commands, profiles and encrypted secret rows contain neither Key nor private diagnostic.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "diagnosticLogScan": "artifacts/matrix-recheck-20261106/assistant-ui/diagnostics-scan.json",
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-03",
+      "status": "PASS",
+      "expected": "有界重试和可取消，不无限请求",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-03 matrix: Retry-After controls a bounded three-attempt retry and cancellation interrupts the actual retry wait",
+          "assertionLines": [
+            84,
+            85,
+            88,
+            90,
+            91
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Nonzero Retry-After is awaited twice before exactly three failed HTTP attempts; cancelling the assistant during a one-second retry wait promptly persists CANCELLED and no later HTTP request appears.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-04",
+      "status": "PASS",
+      "expected": "调用正确协议路径，不强发Responses",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "Responses and Chat Completions use separate envelopes and protocol paths",
+          "assertionLines": [
+            92,
+            94
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "The two real loopback protocols use exactly /v1/responses and /v1/chat/completions, with input vs messages envelopes and no doubled suffix.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-05",
+      "status": "PASS",
+      "expected": "问答可用，编排显示不支持而非假执行",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-05 matrix: a real text-only HTTP service can answer help after rejecting tools, and composition fails before another request",
+          "assertionLines": [
+            102,
+            104,
+            105,
+            107,
+            108
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-05 matrix: authentication, tool-schema errors and server failures never mark tool support absent or trigger a text-only fallback",
+          "assertionLines": [
+            132,
+            133,
+            136,
+            138,
+            139
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Real HTTP 400 + tools + unsupported_parameter/unsupported_value alone establishes unsupported tool capability: text-only help omits tools and completes, compose is refused before another model request. HTTP 400 invalid_request_error/unknown tools, HTTP 500/503 (even with unsupported code), HTTP 422, and 401/403 remain typed failures; help and compose retain tool definitions, dispatch exactly once through the selected Chat Completions path, and perform zero writes. Existing ordinary bounded 429, cancellation and AI single-HTTP budget tests are unchanged and pass.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed.",
+        "Only HTTP 400 with the two explicit unsupported codes is classified as unsupported tools; no heuristic from a rejected tools field or server failure is used."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "independentRetest": "artifacts/matrix-recheck-20261106/independent-audit/probe-after-provider-fix.results.json",
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-06",
+      "status": "PASS",
+      "expected": "完整且验证前不执行任何写工具",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "LLM-06 matrix: both HTTP protocols keep partial and even valid-but-unfinished streamed arguments away from every write",
+          "assertionLines": [
+            169,
+            171,
+            173,
+            174
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Both real streaming protocols are held first with partial JSON and then valid JSON before terminal completion: workflows, tool ledger and authoring writes remain zero at both barriers; after completion exactly one draft creation occurs.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-07",
+      "status": "PASS",
+      "expected": "逐一对应，写工具串行且结果不串线",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "LLM-07: one real HTTP response mixes reads and writes, awaits each dispatch, and returns matching call IDs in both protocols",
+          "assertionLines": [
+            81,
+            83,
+            85,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Both real HTTP protocols return five interleaved reads/writes; dispatch is awaited with max concurrency one; all call IDs, revisions and real ledger results match in continuation.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "LLM-08",
+      "status": "PASS",
+      "expected": "显示未知，不能当作免费或0花费",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "LLM-08: absent usage stays null, and mixed multi-round usage remains explicitly partial in durable task state",
+          "assertionLines": [
+            95,
+            100,
+            101
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/ui/v2-assistant-audit.spec.ts",
+          "name": "formal assistant UI rejects negative execution, displays context/config, and deletes session",
+          "assertionLines": [
+            55,
+            56,
+            57,
+            59,
+            60,
+            61,
+            62
+          ],
+          "sourceSha256": "38b08ec48280fc8d6c4866bfbebf06cc487f068fc9257fd9c1e0c5ddc7d1c0bb",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "602ea2e5b90655e1d994-25f4f8ca2cf82491be1e",
+          "observedStartedAt": "2026-11-06T16:33:22.237Z"
+        }
+      ],
+      "actual": "Missing usage persists null/partial_or_unknown; mixed rounds retain only reported tokens and mark accounting partial. Browser activity exposes usage unknown.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        },
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full",
+        "ui-full"
+      ]
+    },
+    {
+      "id": "ASST-01",
+      "status": "PASS",
+      "expected": "调用服务且持久化，不只返回JSON文本",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes",
+          "assertionLines": [
+            29,
+            30,
+            31
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "tool validation feedback permits bounded correction and preserves Web revision conflicts",
+          "assertionLines": [
+            44,
+            45
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "UI-03/UI-05 matrix: an AI batch only places new nodes, and browser undo restores its graph while preserving manual layout and immutable publication",
+          "assertionLines": [
+            50,
+            52,
+            54,
+            56,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            66,
+            67,
+            68,
+            69
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-aa4c6b9aa37d406ecca8",
+          "observedStartedAt": "2026-11-06T16:34:58.843Z"
+        }
+      ],
+      "actual": "Shared authoring creates and patches actual drafts, persists tool receipts and serves refreshed graph state; duplicate call IDs do not repeat writes.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        },
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full",
+        "ui-full"
+      ]
+    },
+    {
+      "id": "ASST-02",
+      "status": "PASS",
+      "expected": "按错误纠正，原checkpoint不被误消费",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "ASST-02 matrix: actual TYPE_MISMATCH feedback repairs the next patch while an already waiting checkpoint remains identical",
+          "assertionLines": [
+            202,
+            203,
+            218,
+            221,
+            223,
+            224,
+            225,
+            226
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "ASST-02: real HTTP tool feedback corrects a schema type error while the exact checkpoint remains unconsumed",
+          "assertionLines": [
+            110,
+            111,
+            112,
+            117,
+            118,
+            119,
+            120
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "ASST-02: analysis worker retries a wrong output type and advances the same checkpoint exactly once",
+          "assertionLines": [
+            126,
+            130,
+            132
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Literal TYPE_MISMATCH in a real tool receipt is fed to the next model request; the second patch corrects the mapping while an existing checkpoint id/token/revision and publication stay unchanged. Separate output-type tests prove one successful advance after correction.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "ASST-03",
+      "status": "PASS",
+      "expected": "停止并给未完成原因，保留草稿",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "repeated invalid edits stop after three feedback rounds without overwriting a draft",
+          "assertionLines": [
+            80
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "name": "analysis correction budgets 1/2/3 count the initial attempt, account usage and retain checkpoint on exhaustion",
+          "assertionLines": [
+            190,
+            194,
+            196
+          ],
+          "sourceSha256": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Three repeated invalid patches stop with BUDGET_EXCEEDED, exactly three requests and original draft revision. Analysis retries obey exact 1/2/3 budgets and retain checkpoint on exhaustion.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "ASST-04",
+      "status": "PASS",
+      "expected": "停止后续动作，不盲重放已派发调用",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "cancellation aborts pending generation with no tool writes",
+          "assertionLines": [
+            50
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "ASST-04: cancellation during a dispatched write retains its real receipt and never dispatches queued calls or replays acceptance",
+          "assertionLines": [
+            141,
+            143,
+            146,
+            147
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Cancellation aborts pending generation without writes; cancellation during a dispatched async write retains its real completed receipt, skips queued calls, and idempotent restart/acceptance never replays it.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "ASST-05",
+      "status": "PASS",
+      "expected": "恢复事件，不重复执行patch",
+      "exactTests": [
+        {
+          "file": "tests/poc/v2-assistant-sse-replay.test.ts",
+          "name": "ASST-05: an authenticated real SSE disconnect after successful patch replays later task events without another patch or model call",
+          "assertionLines": [
+            41,
+            45,
+            56,
+            79,
+            80,
+            81,
+            86,
+            92,
+            93,
+            94,
+            95,
+            97,
+            99,
+            100
+          ],
+          "sourceSha256": "05014413675ae8993e9f6439b996a2228f299835f4cc4e1ee2294241df75dce7",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "ASST-05 matrix: browser offline recovery replays completion after a saved patch without issuing another model call or write",
+          "assertionLines": [
+            153,
+            154,
+            156,
+            158,
+            160,
+            161,
+            162
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-ade4f415a7d96b2e29c5",
+          "observedStartedAt": "2026-11-06T16:35:06.216Z"
+        }
+      ],
+      "actual": "Authenticated SSE drops its actual TCP response after a committed patch and replays ordered filtered later events from Last-Event-ID without new writes. Browser offline/online completion also retains one receipt and revision two.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        },
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full",
+        "ui-full"
+      ]
+    },
+    {
+      "id": "ASST-06",
+      "status": "PASS",
+      "expected": "task标INTERRUPTED，已有结果不丢不重做",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "ASST-06 matrix: hard daemon termination after a committed patch preserves its disk receipt, interrupts the task and never replays it on restart",
+          "assertionLines": [
+            250,
+            251,
+            258,
+            262,
+            263,
+            265,
+            266,
+            267,
+            268,
+            269,
+            270
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "A real disposable daemon process is SIGKILLed after the patch is on disk and its second model call waits. After verifying its exact PID is gone and removing only its stale lock, a new daemon reports INTERRUPTED/TASK_INTERRUPTED with byte-equivalent receipt and unchanged draft; duplicate acceptance causes no further model/write.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed.",
+        "Hard-crash recovery follows the documented exact-PID/stale-lock step in the test-owned temporary directory; this is not a graceful-restart assertion or a real-model claim."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "ASST-07",
+      "status": "PASS",
+      "expected": "不传写工具，不创建或执行流程",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "help mode cannot mutate and half JSON never dispatches",
+          "assertionLines": [
+            35,
+            36,
+            38
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "name": "real HTTP task refuses a run proposed for a negative request, and API cannot forge intent",
+          "assertionLines": [
+            49,
+            50
+          ],
+          "sourceSha256": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Help has no write tools; an adversarial create/run proposal fails INTENT_NOT_ALLOWED before dispatch, and no workflow/run is created.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "ASST-08",
+      "status": "PASS",
+      "expected": "分别执行预期动作，不加人工审批",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant.test.ts",
+          "name": "assistant really calls shared authoring and persists receipts; duplicate call IDs do not repeat writes",
+          "assertionLines": [
+            29,
+            30,
+            31
+          ],
+          "sourceSha256": "276b6b90a9f0343990df97ca21a75dbe4f1467fe276df4868334b3f2b15d8b32",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "name": "common, coordinated, postfix and interrogative negatives deny actual run/publish proposals; affirmative combined actions remain executable",
+          "assertionLines": [
+            159,
+            160,
+            161,
+            162,
+            163
+          ],
+          "sourceSha256": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Save-only creates a draft with zero publication/run, while explicit create+publish+run produces real versions and a run; negative/interrogative intentions reject proposed publish/run before dispatch.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-01",
+      "status": "PASS",
+      "expected": "引用当前产品文档，不把计划文档当已实现",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "KB-01/02/03/04 matrix: current-version TopK excerpts provide exact Chinese binding, type-error repair and unsupported-loop evidence",
+          "assertionLines": [
+            188,
+            189,
+            191,
+            192
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "name": "knowledge citations hash actual source ranges, expose stale sources, and history has a real cursor",
+          "assertionLines": [
+            112,
+            113,
+            114,
+            116
+          ],
+          "sourceSha256": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Each returned citation carries current VERSION, availability implemented and an allowlisted product path; source line range and content hash are checked against actual current source, excluding upgrade plans.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-02",
+      "status": "PASS",
+      "expected": "相关章节进入TopK，人工核查引用片段",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "KB-01/02/03/04 matrix: current-version TopK excerpts provide exact Chinese binding, type-error repair and unsupported-loop evidence",
+          "assertionLines": [
+            188,
+            189,
+            191,
+            192
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "The exact Chinese query retrieves the implemented sentence about staging database binding within Top5; its source range and hash are verified and the actual guide excerpt was manually reviewed.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed.",
+        "The indexed excerpt and its provenance are verified; natural-language quality of a paid target model remains unverified."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-03",
+      "status": "PASS",
+      "expected": "精确定位定义和修复说明",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "KB-01/02/03/04 matrix: current-version TopK excerpts provide exact Chinese binding, type-error repair and unsupported-loop evidence",
+          "assertionLines": [
+            188,
+            189,
+            191,
+            192
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "TYPE_MISMATCH Top5 contains the exact definition and repair instructions covering target JSON Pointer and source field; citation hash/version/range match the current guide.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed.",
+        "The indexed excerpt and its provenance are verified; natural-language quality of a paid target model remains unverified."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-04",
+      "status": "PASS",
+      "expected": "明确未支持，不生成虚假按钮/接口",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-assistant.test.ts",
+          "name": "KB-01/02/03/04 matrix: current-version TopK excerpts provide exact Chinese binding, type-error repair and unsupported-loop evidence",
+          "assertionLines": [
+            188,
+            189,
+            191,
+            192
+          ],
+          "sourceSha256": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Top5 for unsupported loops contains the current explicit serial/exclusive-only boundary and absence of loops/parallel/scripts; it is current implemented documentation rather than a planned design.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed.",
+        "The indexed excerpt and its provenance are verified; natural-language quality of a paid target model remains unverified."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-05",
+      "status": "PASS",
+      "expected": "hash与行号更新；旧引用可识别过期",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "KB-05: editing only a temporary document updates real hashes and line numbers, while an already issued citation remains stale after rebuild",
+          "assertionLines": [
+            156,
+            158,
+            159,
+            160,
+            161,
+            162
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/ui/v2-assistant-audit.spec.ts",
+          "name": "historical knowledge citation sends its original hash and range so the real source viewer reports staleness",
+          "assertionLines": [
+            157,
+            163,
+            164,
+            165,
+            166
+          ],
+          "sourceSha256": "38b08ec48280fc8d6c4866bfbebf06cc487f068fc9257fd9c1e0c5ddc7d1c0bb",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "602ea2e5b90655e1d994-3a9be1b0624aad0d9cc5",
+          "observedStartedAt": "2026-11-06T16:33:32.012Z"
+        }
+      ],
+      "actual": "Changing only a temporary real file and rebuilding changes hash/range/chunk identity; original citation is still detectably stale. Browser sends its historical range/hash to the actual source viewer and shows stale.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        },
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full",
+        "ui-full"
+      ]
+    },
+    {
+      "id": "KB-06",
+      "status": "PASS",
+      "expected": "分页/截断明确标注，原产物保持完整",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "KB-06: a real large report is explicitly bounded in model context, artifact pages keep offsets, and original bytes and hash remain intact",
+          "assertionLines": [
+            175,
+            179,
+            181,
+            182,
+            183,
+            184,
+            185,
+            186,
+            187,
+            188,
+            190,
+            191
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "A real >64KB engine report enters an explicitly bounded UTF-8 context with truncation/range/retrieval metadata; later artifact pages reconstruct byte length and original hash exactly.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-07",
+      "status": "PASS",
+      "expected": "没有自动附加全部运行数据或Key",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "KB-07/KB-08: restricted assistant contexts and project-help tools cannot retrieve another owner's run or artifacts, and ordinary help sends no unrelated data or secrets",
+          "assertionLines": [
+            205,
+            206,
+            207,
+            208,
+            209,
+            210,
+            211,
+            212,
+            213
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        },
+        {
+          "file": "tests/engine/v2-assistant-audit-regressions.test.ts",
+          "name": "real message provenance scopes history by selected run/artifacts and provider; clearing selection never reuses old run answers",
+          "assertionLines": [
+            170,
+            173,
+            174,
+            176,
+            177,
+            178,
+            179,
+            180,
+            183,
+            184
+          ],
+          "sourceSha256": "8397d475bcf959321619b0be832e943d9a9206dd5e41a4d16c859b7b0ac48ef2",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Ordinary help sends no selected run/artifacts, unrelated business output or model/connection Key. Clearing run selection or switching provider cannot reuse prior scoped answers.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "KB-08",
+      "status": "PASS",
+      "expected": "沿用owner检查，不经检索旁路读取",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-assistant-acceptance.test.ts",
+          "name": "KB-07/KB-08: restricted assistant contexts and project-help tools cannot retrieve another owner's run or artifacts, and ordinary help sends no unrelated data or secrets",
+          "assertionLines": [
+            205,
+            206,
+            207,
+            208,
+            209,
+            210,
+            211,
+            212,
+            213
+          ],
+          "sourceSha256": "d3d3d48332d07f9ea3614c4e3eda8e0645618a5fe8731a042f3278c635c53c5d",
+          "runId": "backend-full",
+          "observedStatus": "PASS",
+          "attempts": 1
+        }
+      ],
+      "actual": "Other-owner run context is denied before a model request; wrong artifact and scoped tool access fail; project_help_search cannot expose the private run/artifact contents.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic",
+      "commands": [
+        {
+          "runId": "backend-full",
+          "command": "npm test",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+          "sha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+          "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "backend-full"
+      ]
+    },
+    {
+      "id": "UI-01",
+      "status": "PASS",
+      "expected": "文案准确，未知不显示0项已安装",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-capability-acceptance.spec.ts",
+          "name": "UI-01: real discovery displays loading, complete empty, partial and registration error states",
+          "assertionLines": [
+            120,
+            121,
+            122,
+            123,
+            124,
+            126
+          ],
+          "sourceSha256": "cc8ff981fc4dc6a1520c131b461abd16b0c35495437d332bed27260085db106c",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "414ce15b6c1a8d3ba43e-b77bb3c961a538de7661",
+          "observedStartedAt": "2026-11-06T16:33:55.799Z"
+        },
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "PLUG-01/UI-01 matrix: ten market entries remain two installed plugins and eight visible informational candidates without importing their components",
+          "assertionLines": [
+            94,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-27c3978ba250f8d43eff",
+          "observedStartedAt": "2026-11-06T16:35:03.673Z"
+        }
+      ],
+      "actual": "Browser renders real loading, complete empty, malformed-source partial and registration-error states; unknown count never becomes zero installed. Marketplace additionally keeps two installed and eight explicitly informational uninstalled candidates.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-02",
+      "status": "PASS",
+      "expected": "生成真实节点，刷新后存在",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-capability-acceptance.spec.ts",
+          "name": "UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references",
+          "assertionLines": [
+            52,
+            53,
+            54,
+            56,
+            59,
+            61,
+            62,
+            64,
+            65,
+            67,
+            73,
+            74,
+            76,
+            77,
+            79,
+            81,
+            82,
+            88,
+            89,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96
+          ],
+          "sourceSha256": "cc8ff981fc4dc6a1520c131b461abd16b0c35495437d332bed27260085db106c",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "414ce15b6c1a8d3ba43e-3efc29bba1daf505f2b3",
+          "observedStartedAt": "2026-11-06T16:33:47.728Z"
+        }
+      ],
+      "actual": "Actual SDK discovery/import and CapabilityPicker create real tool nodes with binding/capability/schema hash; reload preserves direct and host Skill nodes; direct bindings remain UNVERIFIED rather than pretending live acceptance.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-03",
+      "status": "PASS",
+      "expected": "只布局新节点，不移动无关节点",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "UI-03/UI-05 matrix: an AI batch only places new nodes, and browser undo restores its graph while preserving manual layout and immutable publication",
+          "assertionLines": [
+            50,
+            52,
+            54,
+            56,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            66,
+            67,
+            68,
+            69
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-aa4c6b9aa37d406ecca8",
+          "observedStartedAt": "2026-11-06T16:34:58.843Z"
+        }
+      ],
+      "actual": "With saved manual input/end coordinates, an actual assistant batch adds a branch while both old coordinates, original node definitions and rendered transforms remain equal; reload preserves the new node.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-04",
+      "status": "PASS",
+      "expected": "保留两份值，不能覆盖用户焦点文本",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-assistant-audit.spec.ts",
+          "name": "editor merges independent fields, resolves actual field conflicts, protects raw JSON focus and rejects stale reads",
+          "assertionLines": [
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            91
+          ],
+          "sourceSha256": "38b08ec48280fc8d6c4866bfbebf06cc487f068fc9257fd9c1e0c5ddc7d1c0bb",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "602ea2e5b90655e1d994-4f0c8b578803d99be7af",
+          "observedStartedAt": "2026-11-06T16:33:25.748Z"
+        }
+      ],
+      "actual": "Independent edits merge; same-field conflict exposes both values; focused title/raw JSON stays intact during remote changes and delayed reads, then explicit per-field resolution works.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-05",
+      "status": "PASS",
+      "expected": "反向operation正确，发布历史不变",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "UI-03/UI-05 matrix: an AI batch only places new nodes, and browser undo restores its graph while preserving manual layout and immutable publication",
+          "assertionLines": [
+            50,
+            52,
+            54,
+            56,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            66,
+            67,
+            68,
+            69
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-aa4c6b9aa37d406ecca8",
+          "observedStartedAt": "2026-11-06T16:34:58.843Z"
+        }
+      ],
+      "actual": "One real AI five-operation graph batch is undone through the actual undo API; the inverse receipt restores the original draft/layout and increments revision, while the complete published record remains equal before patch, after patch and after undo/reload.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-06",
+      "status": "PASS",
+      "expected": "仅配置状态，不在localStorage/页面回显Key",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "name": "UI-06 matrix: saving a synthetic model Key and reopening its form only exposes configuration status",
+          "assertionLines": [
+            76,
+            77,
+            78,
+            79,
+            80,
+            81
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "d2b061d0c2c3b9a87395-787584454870dd89540a",
+          "observedStartedAt": "2026-11-06T16:35:02.399Z"
+        }
+      ],
+      "actual": "A synthetic Key is saved through model settings; page reload/edit reopens a blank dedicated input with configured placeholder. Profile API, HTML/input values and local/session storage contain no Key.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-07",
+      "status": "PASS",
+      "expected": "原测试标stale，不继续全绿",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-capability-acceptance.spec.ts",
+          "name": "UI-07: successful real Mock evidence becomes stale after a browser draft edit",
+          "assertionLines": [
+            103,
+            105,
+            106,
+            109,
+            110,
+            111,
+            112,
+            113
+          ],
+          "sourceSha256": "cc8ff981fc4dc6a1520c131b461abd16b0c35495437d332bed27260085db106c",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "414ce15b6c1a8d3ba43e-ece543055db24d479bdf",
+          "observedStartedAt": "2026-11-06T16:33:53.760Z"
+        }
+      ],
+      "actual": "A real successful Mock run becomes stale after a browser edit; API retains success with stale=true, UI marks receipt expired and disables rerun until regeneration, including after reload.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    },
+    {
+      "id": "UI-08",
+      "status": "PASS",
+      "expected": "按钮可用、label可访问、无整页横溢出",
+      "exactTests": [
+        {
+          "file": "tests/ui/v2-upgrade.spec.ts",
+          "name": "real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest",
+          "assertionLines": [
+            9,
+            11,
+            22,
+            23,
+            24,
+            25,
+            29,
+            31,
+            32,
+            33,
+            36,
+            38,
+            40,
+            41
+          ],
+          "sourceSha256": "f4767ca9d7043800209a6aa9f7b0b8f0066e1e8ee366f5d4266cac92812bc21c",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "155ac7b87d7eedd737f7-ce297e52b8a076f22a08",
+          "observedStartedAt": "2026-11-06T16:35:30.517Z"
+        },
+        {
+          "file": "tests/ui/responsive.spec.ts",
+          "name": "run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes",
+          "assertionLines": [
+            24,
+            30,
+            32,
+            45,
+            47,
+            48,
+            49,
+            50,
+            51,
+            66,
+            70,
+            74,
+            77,
+            81,
+            97,
+            99,
+            100,
+            105,
+            109,
+            113,
+            115,
+            116,
+            117,
+            122,
+            129,
+            132,
+            133,
+            136,
+            137,
+            140,
+            143,
+            191,
+            192,
+            195,
+            196,
+            203,
+            204,
+            207,
+            212,
+            221,
+            226,
+            231,
+            232,
+            234,
+            241,
+            242,
+            254,
+            255
+          ],
+          "sourceSha256": "b75974ea2f3f560cecd8c652cf56017cf22007e031595aba00d198dca7a7f02e",
+          "runId": "ui-full",
+          "observedStatus": "PASS",
+          "attempts": 1,
+          "namedResultId": "e0223b006feb3d306446-5d584372123bddd5c4d5",
+          "observedStartedAt": "2026-11-06T16:33:17.305Z"
+        }
+      ],
+      "actual": "1440 desktop, 1366 assistant and 390 mobile are exercised alongside boundary widths; labelled buttons and drawers remain usable and page overflow <=1px is asserted.",
+      "limits": [
+        "Synthetic local verification on macOS arm64; no paid target model, enterprise endpoint or native Windows result is claimed."
+      ],
+      "evidenceLevel": "synthetic_browser",
+      "commands": [
+        {
+          "runId": "ui-full",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "sha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f"
+        }
+      ],
+      "pending": [],
+      "runIds": [
+        "ui-full"
+      ]
+    }
+  ],
+  "currentSourceHashes": {
+    "packages/assistant-core/src/index.ts": "5154f01d0f8e1ecb604260227e9037825d4aa1f7e1970c314ee37dee82a4f5b8",
+    "packages/llm-providers/src/index.ts": "c0be7e0d5e90d62a5423d75139db23f8487998c79042d17435180f13232f0504",
+    "tests/engine/v2-matrix-assistant.test.ts": "f5cee5d56a6e95492163ec7c7af7674c195d3eb3286105b444b423956fd804e9",
+    "tests/ui/v2-matrix-ui.spec.ts": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144"
+  },
+  "followupValidation": {
+    "at": "2026-11-06T16:24:54.440221+00:00",
+    "finding": "Provider tools parameter misclassified schema/server failures as unsupported capability",
+    "compileReceipt": "artifacts/matrix-recheck-20261106/assistant-ui/provider-classification-compile.receipt.json",
+    "beforeReceipt": "artifacts/matrix-recheck-20261106/assistant-ui/provider-classification-before.receipt.json",
+    "afterReceipt": "artifacts/matrix-recheck-20261106/assistant-ui/provider-classification-after.receipt.json",
+    "result": "20 targeted tests passed; 0 failed; no shared build or port used",
+    "independentRetest": "artifacts/matrix-recheck-20261106/independent-audit/probe-after-provider-fix.results.json",
+    "finalCompleteSuiteBinding": "All referenced tests now matched to the first complete root runs (538/538 backend, 94/94 UI); root can replace backend-full/ui-full with its final post-benchmark-CAS run receipts."
+  },
+  "runEvidence": {
+    "backend-full": {
+      "phase": "first complete run; stable runId for final replacement",
+      "command": "npm test",
+      "startedAt": "2026-11-06T16:29:07.487619+00:00",
+      "exitCode": 0,
+      "receiptFile": "artifacts/matrix-recheck-20261106/root/npm-test-first.receipt.json",
+      "receiptSha256": "ed0631b6464b44e8e7af1f81e6e46785a8a8c1aff0cadfca5c79a29ca19c7333",
+      "namedResults": "artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+      "namedResultsSha256": "3d6a9bef6bd48782a52ecc527c7ba1428e428caecee7b050ad48d5d6ef767885",
+      "executionSnapshot": "first flowhub:execution_snapshot record of artifacts/matrix-recheck-20261106/root/backend-first.jsonl",
+      "executionSnapshotCapturedAt": "2026-11-06T16:29:08.953Z",
+      "log": "artifacts/matrix-recheck-20261106/root/npm-test-first.log",
+      "logSha256": "70385a628ade54bb7b47442c88129ebfe9e08fd2c4ebb58a2672faf13264a80e",
+      "summary": {
+        "passed": 538,
+        "failed": 0,
+        "skipped": 0,
+        "cancelled": 0,
+        "todo": 0
+      }
+    },
+    "ui-full": {
+      "phase": "first complete run; stable runId for final replacement",
+      "command": "npm run test:ui -- --reporter=list,json",
+      "startedAt": "2026-11-06T16:32:42.094913+00:00",
+      "exitCode": 0,
+      "receiptFile": "artifacts/matrix-recheck-20261106/root/ui-full.receipt.json",
+      "receiptSha256": "74241fde1a7ba2890a7e3fa6328faa25200da5fe2a2bcc9ba14ec762bede2af6",
+      "namedResults": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+      "namedResultsSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f",
+      "executionSnapshot": "artifacts/matrix-recheck-20261106/root/ui-execution-snapshot.json",
+      "executionSnapshotSha256": "2108f43db7670f1d0018cb337f949e844a0bdb641fc7114eb887c8ec7635c484",
+      "executionSnapshotCapturedAt": "2026-11-06T16:32:42.089Z",
+      "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+      "logSha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+      "summary": {
+        "passed": 94,
+        "failed": 0,
+        "skipped": 0,
+        "flaky": 0
+      }
+    }
+  },
+  "completeRunBinding": {
+    "verifiedAt": "2026-11-06T16:51:50.772946+00:00",
+    "method": "Each exact file and complete standard test title matched individually against the named successful results; each reviewed test source hash matches both current file and the captured execution snapshot. Counts alone are not used to establish a matrix item.",
+    "totalItems": 32,
+    "exactTestReferences": 48,
+    "backendReferences": 34,
+    "browserReferences": 14,
+    "previouslyUnverifiedItemsNowVerified": [
+      "LLM-08",
+      "ASST-01",
+      "ASST-05",
+      "KB-05",
+      "UI-01",
+      "UI-02",
+      "UI-03",
+      "UI-04",
+      "UI-05",
+      "UI-06",
+      "UI-07",
+      "UI-08"
+    ],
+    "allAssertionsExist": true,
+    "allExactNamesMatched": true,
+    "allReferencedTestSourceHashesMatched": true,
+    "replacementContract": {
+      "stableRunIds": [
+        "backend-full",
+        "ui-full"
+      ],
+      "instruction": "Root may replace these logical runIds with its final normalized complete-suite receipts after the benchmark-only CAS fix; preserve file/name/sourceSha256/assertionLines and recheck named PASS matches. This ledger currently points to the first completed 538/538 backend and 94/94 UI runs."
+    }
+  }
+}

@@ -1,0 +1,148 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:ui
+> playwright test --reporter=list,json
+
+[WebServer] (node:85002) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 94 tests using 1 worker
+
+(node:85102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/automation.spec.ts:64:1 › automatic incident run has no approval controls and a restricted host completes the Web-started chain (5.5s)
+  ✓   2 tests/ui/automation.spec.ts:193:1 › run details distinguish failure and cancellation without obsolete action buttons (1.6s)
+  ✓   3 tests/ui/connection-binding-forms.spec.ts:37:1 › labelled STDIO registration, discovery, explicit environment binding and an approved Mock probe need no whole-configuration JSON (5.1s)
+  ✓   4 tests/ui/connection-binding-forms.spec.ts:212:1 › HTTP registration accepts only registered credential references and keeps protocol separate from transport (860ms)
+  ✓   5 tests/ui/default-login.spec.ts:7:1 › a fresh installation logs in with admin/admin without a setup-code step (3.5s)
+  ✓   6 tests/ui/editor-regressions.spec.ts:7:1 › pending deletion cannot be dismissed and a lost response retries the same request (1.2s)
+  ✓   7 tests/ui/editor-regressions.spec.ts:39:1 › workflow library deletion confirms intent, survives refresh, keeps published history and prevents duplicate pending submits (1.4s)
+  ✓   8 tests/ui/editor-regressions.spec.ts:71:1 › a stale deletion dialog shows the real revision conflict and requires a fresh review (1.1s)
+  ✓   9 tests/ui/editor-regressions.spec.ts:86:1 › external deletion leaves unsaved canvas content available and blocks later saves (6.4s)
+  ✓  10 tests/ui/editor-regressions.spec.ts:172:1 › blank workflow requires an explicit environment and can save, publish and run without a binding (1.4s)
+  ✓  11 tests/ui/editor-regressions.spec.ts:228:1 › incident creation ignores modified source drafts and requires explicit binding and tool choices before publication (2.5s)
+  ✓  12 tests/ui/editor-regressions.spec.ts:295:1 › deterministic creation supports production, explicit tools, and selecting then deleting a saved edge (3.1s)
+  ✓  13 tests/ui/editor-regressions.spec.ts:403:1 › reviewed publication rejects a concurrent edit and offers comparison and a separate unbound draft (3.7s)
+  ✓  14 tests/ui/editor-regressions.spec.ts:465:1 › a slow draft response cannot replace the workflow reached through navigation (4.0s)
+  ✓  15 tests/ui/editor-regressions.spec.ts:511:1 › a delayed save preserves newer edits and undo keeps the latest server revision (1.7s)
+  ✓  16 tests/ui/editor-regressions.spec.ts:572:1 › a save finishing after navigation cannot replace another workflow (2.8s)
+  ✓  17 tests/ui/editor-regressions.spec.ts:622:1 › session expiry retains focused JSON text while a wrong vault password leaves the admin session active (2.1s)
+  ✓  18 tests/ui/editor-regressions.spec.ts:694:1 › schema fields, finite conditions and invalid mapping literals preserve the selected node (1.6s)
+  ✓  19 tests/ui/editor-regressions.spec.ts:754:1 › invalid JSON cannot submit the previous business inputs or replace the workflow with null (1.5s)
+  ✓  20 tests/ui/editor-regressions.spec.ts:793:1 › invalid node JSON and literal text remain blocking after selecting another node (1.5s)
+  ✓  21 tests/ui/editor-regressions.spec.ts:855:1 › an earlier node preview cannot consume raw text from a remounted editor (1.6s)
+  ✓  22 tests/ui/management.spec.ts:4:1 › bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff (5.7s)
+  ✓  23 tests/ui/management.spec.ts:109:1 › a pending auth-state request never exposes a consumed setup-token field (400ms)
+  ✓  24 tests/ui/model-services.spec.ts:12:1 › model service fills official URL, offers queried models and ignores stale catalog replies after switching service (1.3s)
+  ✓  25 tests/ui/model-services.spec.ts:40:1 › real compatible catalog selects and persists an actual ID, reuses its saved Key, and explains model rejection (1.5s)
+  ✓  26 tests/ui/published-start.spec.ts:60:1 › unpublished environment, mode and input changes cannot alter a published start (2.2s)
+  ✓  27 tests/ui/published-start.spec.ts:136:1 › rollback preview and submission stay bound to the selected immutable version (1.9s)
+  ✓  28 tests/ui/published-start.spec.ts:223:1 › missing immutable default fails closed without opening a draft-based preview (966ms)
+  ✓  29 tests/ui/responsive.spec.ts:4:1 › run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes (8.2s)
+  ✓  30 tests/ui/retention.spec.ts:4:1 › cleanup preview shows every result-copy scope and submits only the reviewed hash (1.7s)
+  ✓  31 tests/ui/v2-assistant-audit.spec.ts:20:1 › Web save detects an unseen layout operation and merges before retrying (821ms)
+  ✓  32 tests/ui/v2-assistant-audit.spec.ts:49:1 › formal assistant UI rejects negative execution, displays context/config, and deletes session (2.9s)
+  ✓  33 tests/ui/v2-assistant-audit.spec.ts:66:1 › analysis UI reports auth failure, retries with a valid profile, and resets for the next checkpoint (3.0s)
+  ✓  34 tests/ui/v2-assistant-audit.spec.ts:79:1 › editor merges independent fields, resolves actual field conflicts, protects raw JSON focus and rejects stale reads (2.0s)
+  ✓  35 tests/ui/v2-assistant-audit.spec.ts:94:1 › turn receipts remain attached while delayed conversation and acceptance cannot replace another session (2.5s)
+  ✓  36 tests/ui/v2-assistant-audit.spec.ts:117:1 › assistant UI labels past run provenance while clearing run and changing provider excludes that history (2.1s)
+  ✓  37 tests/ui/v2-assistant-audit.spec.ts:131:1 › late analysis status and cancel receipts cannot disable the next checkpoint (3.0s)
+  ✓  38 tests/ui/v2-assistant-audit.spec.ts:156:1 › historical knowledge citation sends its original hash and range so the real source viewer reports staleness (2.2s)
+  ✓  39 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A success cannot discard B's key after SSE recovery and a lost B receipt (3.0s)
+  ✓  40 tests/ui/v2-assistant-max-audit.spec.ts:144:3 › late A failure cannot discard B's key after SSE recovery and a lost B receipt (2.8s)
+  ✓  41 tests/ui/v2-assistant-max-audit.spec.ts:269:1 › a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input (3.0s)
+  ✓  42 tests/ui/v2-assistant-max-audit.spec.ts:326:1 › continue on historical cancelled A sends A's task/context and only explains its receipt after B/C (3.8s)
+  ✓  43 tests/ui/v2-assistant-max-audit.spec.ts:472:1 › read-only workflow status does not claim a saved draft while a real authoring patch still does (3.2s)
+  ✓  44 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: landscape single line (5.1s)
+  ✓  45 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: short mobile multiline (6.8s)
+  ✓  46 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan (6.6s)
+  ✓  47 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan (5.3s)
+  ✓  48 tests/ui/v2-assistant-max-audit.spec.ts:655:3 › assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan (7.6s)
+  ✓  49 tests/ui/v2-capability-acceptance.spec.ts:47:1 › UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references (11.6s)
+  ✓  50 tests/ui/v2-capability-acceptance.spec.ts:100:1 › UI-07: successful real Mock evidence becomes stale after a browser draft edit (1.9s)
+  ✓  51 tests/ui/v2-capability-acceptance.spec.ts:116:1 › UI-01: real discovery displays loading, complete empty, partial and registration error states (3.5s)
+  ✓  52 tests/ui/v2-discovery-design.spec.ts:205:1 › typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships (14.6s)
+  ✘  53 tests/ui/v2-discovery-design.spec.ts:285:1 › issue actions open the matching manual connection and credential forms and complete real directory sync (21.4s)
+(node:89771) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  54 tests/ui/v2-discovery-design.spec.ts:381:1 › issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat (5.2s)
+  ✓  55 tests/ui/v2-discovery-design.spec.ts:443:1 › manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions (17.6s)
+  ✓  56 tests/ui/v2-discovery-design.spec.ts:509:1 › MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification (9.3s)
+  ✓  57 tests/ui/v2-discovery-design.spec.ts:555:1 › real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task (7.2s)
+  ✓  58 tests/ui/v2-discovery-design.spec.ts:592:1 › a late catalog search response cannot replace the user's newer Chinese query results (5.6s)
+  ✓  59 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration success cannot change the selected context or show an abandoned error (1.5s)
+  ✓  60 tests/ui/v2-discovery-races.spec.ts:47:38 › late context registration error cannot change the selected context or show an abandoned error (1.6s)
+  ✓  61 tests/ui/v2-discovery-races.spec.ts:71:1 › registration context-list response cannot revive an old selection after the POST has completed (1.5s)
+  ✓  62 tests/ui/v2-discovery-races.spec.ts:89:1 › a newer registration after selecting another context owns the UI and navigation invalidates the older request (1.8s)
+  ✓  63 tests/ui/v2-discovery-races.spec.ts:141:1 › clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately (3.8s)
+  ✓  64 tests/ui/v2-discovery-races.spec.ts:173:1 › clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path (2.7s)
+  ✓  65 tests/ui/v2-discovery-races.spec.ts:190:50 › a retained description draft keeps its original baseline across a pending scan and source change (2.8s)
+  ✓  66 tests/ui/v2-discovery-races.spec.ts:190:50 › a retained description draft keeps its original baseline across a pending scan and presentation change (2.5s)
+  ✓  67 tests/ui/v2-discovery-races.spec.ts:213:1 › changing capability type hides old rows and rejects a late response from the previous type (2.6s)
+  ✓  68 tests/ui/v2-discovery-races.spec.ts:237:1 › Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source (4.1s)
+  ✓  69 tests/ui/v2-discovery-races.spec.ts:264:1 › description and credential fields remain locked while their save HTTP requests are pending (4.2s)
+  ✓  70 tests/ui/v2-discovery-races.spec.ts:323:1 › a credential draft keeps its original configuration revision through a source-changing snapshot refresh (4.1s)
+  ✓  71 tests/ui/v2-discovery-reaudit.spec.ts:6:1 › discovery accepts an explicit executable and remembers configuration-only selection without launching Codex (3.5s)
+  ✓  72 tests/ui/v2-floating-chat.spec.ts:100:1 › locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked (2.6s)
+  ✓  73 tests/ui/v2-floating-chat.spec.ts:139:1 › floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up (4.8s)
+  ✓  74 tests/ui/v2-floating-chat.spec.ts:232:1 › minimizing leaves a real streaming request active; stop and refresh preserve partial answer (5.1s)
+  ✓  75 tests/ui/v2-floating-chat.spec.ts:297:1 › lost acceptance retries the original idempotency key without a second draft write or model loop (1.8s)
+  ✓  76 tests/ui/v2-floating-chat.spec.ts:387:1 › missing-model chat retains local help and does not send a fabricated answer (3.6s)
+  ✓  77 tests/ui/v2-floating-chat.spec.ts:417:1 › assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation (4.9s)
+  ✓  78 tests/ui/v2-matrix-ui.spec.ts:28:1 › UI-03/UI-05 matrix: an AI batch only places new nodes, and browser undo restores its graph while preserving manual layout and immutable publication (9.6s)
+  ✓  79 tests/ui/v2-matrix-ui.spec.ts:73:1 › UI-06 matrix: saving a synthetic model Key and reopening its form only exposes configuration status (8.9s)
+  ✓  80 tests/ui/v2-matrix-ui.spec.ts:84:1 › PLUG-01/UI-01 matrix: ten market entries remain two installed plugins and eight visible informational candidates without importing their components (9.1s)
+  ✓  81 tests/ui/v2-matrix-ui.spec.ts:110:1 › RUN-07 matrix: a real waiting host-only run explains the Codex requirement while a configured model Key dispatches no call (3.4s)
+  ✓  82 tests/ui/v2-matrix-ui.spec.ts:141:1 › ASST-05 matrix: browser offline recovery replays completion after a saved patch without issuing another model call or write (10.8s)
+  ✓  83 tests/ui/v2-testing-max-audit.spec.ts:42:1 › UI-01: exact lost run retries keep their key; an equal body targeting another suite gets a distinct key (4.7s)
+  ✓  84 tests/ui/v2-testing-max-audit.spec.ts:58:1 › UI-01: identical PUT content for distinct suites cannot inherit a lost receipt key (2.7s)
+  ✓  85 tests/ui/v2-testing-max-audit.spec.ts:74:1 › UI-02: late AI suite receipts lock loading and preserve, switch and restore an existing dirty fixture draft (3.2s)
+  ✓  86 tests/ui/v2-testing-max-audit.spec.ts:92:1 › UI-02: recovered successful generation keeps editing locked until its real suite receipt arrives (3.2s)
+  ✓  87 tests/ui/v2-testing-max-audit.spec.ts:105:1 › UI-03: external suite updates refresh terminal stale evidence while dirty JSON survives and no run POST repeats (2.6s)
+  ✓  88 tests/ui/v2-testing-max-audit.spec.ts:115:1 › UI-03: a delayed read of an old suite cannot roll back a newer same-workflow fixture save (1.3s)
+  ✓  89 tests/ui/v2-testing-max-audit.spec.ts:125:1 › UI-03: discovered Skill changes stale terminal Mock evidence without changing draft revision or posting another run (3.3s)
+  ✓  90 tests/ui/v2-testing-max-audit.spec.ts:141:1 › Mock call evidence is labelled simulated even when one fixture tool was traced and the real local service received zero calls (1.4s)
+{"scopedUiPhases":[{"phase":"verified_first_live","elapsedMs":2131},{"phase":"cancel_outcome_displayed","elapsedMs":2609},{"phase":"start_fixture_close","elapsedMs":2631},{"phase":"fixture_closed","elapsedMs":2631}]}
+  ✓  91 tests/ui/v2-testing-modes.spec.ts:39:1 › testing UI keeps Mock default, Contract catalog-only and Live explicitly scoped through real MCP (2.7s)
+  ✓  92 tests/ui/v2-testing-modes.spec.ts:76:1 › testing UI uses configured synthetic Provider for asynchronous AI suite generation and cancel (2.8s)
+  ✓  93 tests/ui/v2-testing-modes.spec.ts:100:1 › lost AI acceptance retries its original command after viewing another validation level without another model call (1.6s)
+  ✓  94 tests/ui/v2-upgrade.spec.ts:6:1 › real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest (6.9s)
+
+
+  1) tests/ui/v2-discovery-design.spec.ts:285:1 › issue actions open the matching manual connection and credential forms and complete real directory sync 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })
+    Expected substring: "已验证协议"
+    Received string:    "⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) }) with timeout 5000ms
+      - waiting for locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })
+        13 × locator resolved to <section class="panel">…</section>
+           - unexpected value "⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用"
+
+
+      326 |       });
+      327 |     await card.getByRole("button", { name: "检测与同步", exact: true }).click();
+    > 328 |     await expect(card).toContainText("已验证协议");
+          |                        ^
+      329 |     expect(
+      330 |       (await f.api("/api/v1/connections")).find(
+      331 |         (c: any) => c.name === issue.manual,
+        at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:328:24
+
+    Error Context: test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/ui/v2-discovery-design.spec.ts:285:1 › issue actions open the matching manual connection and credential forms and complete real directory sync 
+  93 passed (6.7m)

@@ -1,0 +1,99 @@
+{
+  "id": "RUN-07",
+  "status": "PASS_LOCAL_HOST_SEGMENT",
+  "codexVersion": "codex-cli 0.166.0-alpha.5.1",
+  "codexUserAgent": "Codex Desktop/0.166.0-alpha.5.1 (Mac OS 26.6.2; arm64) dumb (flowhub-host-handoff-audit; 2.0.0-alpha.2)",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "generatedSchemaSha256": "7039a7583a1cbf38e9e0f5fe6398ff3711acd4d654b81b0be562514087fce6ba",
+  "workflowId": "actual-host-handoff",
+  "runId": "run_6ddc2f74-2cea-46f0-b5d2-b153e895408e",
+  "draftRevision": 2,
+  "terminalState": "SUCCEEDED",
+  "requiresCodex": true,
+  "webModelProfileKeyConfigured": true,
+  "webAnalysisError": "HOST_CAPABILITY_UNAVAILABLE",
+  "webAnalysisMessage": "This checkpoint requires Codex, or is not an analysis node.",
+  "modelRequests": 0,
+  "codexHostToolCalls": 1,
+  "hostVerification": "host_reported",
+  "hostOutputSha256": "e51756b77c3c5d4a2c4bcec7cfab07563157b1d8976116c4023c4a08f7b06a1c",
+  "rpcTrace": [
+    {
+      "at": "2026-11-06T17:00:36.066Z",
+      "method": "initialize"
+    },
+    {
+      "at": "2026-11-06T17:00:36.408Z",
+      "method": "thread/start"
+    },
+    {
+      "at": "2026-11-06T17:00:36.453Z",
+      "method": "mcpServerStatus/list"
+    },
+    {
+      "at": "2026-11-06T17:00:37.306Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_draft_create"
+    },
+    {
+      "at": "2026-11-06T17:00:37.343Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_draft_patch"
+    },
+    {
+      "at": "2026-11-06T17:00:37.402Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_draft_get"
+    },
+    {
+      "at": "2026-11-06T17:00:37.450Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_draft_publish"
+    },
+    {
+      "at": "2026-11-06T17:00:37.509Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_start"
+    },
+    {
+      "at": "2026-11-06T17:00:37.536Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_status"
+    },
+    {
+      "at": "2026-11-06T17:00:37.568Z",
+      "method": "mcpServer/tool/call",
+      "server": "owned_host",
+      "tool": "read_synthetic_host"
+    },
+    {
+      "at": "2026-11-06T17:00:37.596Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_advance"
+    },
+    {
+      "at": "2026-11-06T17:00:37.632Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_advance"
+    },
+    {
+      "at": "2026-11-06T17:00:37.640Z",
+      "method": "mcpServer/tool/call",
+      "server": "flowhub_runtime",
+      "tool": "workflow_status"
+    }
+  ],
+  "fixtureBoundary": "Actual installed Codex and actual MCP protocol with an owned synthetic host tool. Capability reference is seeded from Codex inventory; no enterprise plugin permissions or natural-language model turn is claimed.",
+  "personalCodexConfigTouched": false,
+  "externalBusinessCalls": 0
+}

@@ -1,0 +1,17 @@
+{
+  "phase": "a",
+  "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+  "dirty": false,
+  "sourceFilesComparedToGit": 670,
+  "allIncludedSourceBytesMatchGit": true,
+  "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+  "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+  "packageLocalExit": 0,
+  "packageSmokeExit": 0,
+  "verifyReleaseExit": 0,
+  "nativeWindowsAcceptance": "UNVERIFIED",
+  "enterpriseAcceptance": "UNVERIFIED",
+  "push": false,
+  "merge": false,
+  "release": false
+}

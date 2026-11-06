@@ -1,0 +1,11 @@
+{
+  "oldPid": 80820,
+  "newPid": 98413,
+  "healthy": true,
+  "previousVaultStatePreserved": true,
+  "backupPreflightPassed": true,
+  "sourceBase": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+  "testedWorkingTree": true,
+  "signal": "SIGTERM",
+  "formalWorkflowMutations": 0
+}

@@ -1,0 +1,3515 @@
+{
+  "config": {
+    "argv": [
+      "/private/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+      "/Users/sqz/Documents/ChatGPT/mcp管理工具/node_modules/.bin/playwright",
+      "test",
+      "--reporter=list,json"
+    ],
+    "configFile": "/Users/sqz/Documents/ChatGPT/mcp管理工具/playwright.config.ts",
+    "rootDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "snapshotDir": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:18479",
+          "headless": true,
+          "trace": "retain-on-failure",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "launchOptions": {
+            "args": [
+              "--no-sandbox"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "command": "node scripts/ui-server.mjs",
+      "url": "http://127.0.0.1:18479/api/v1/health",
+      "reuseExistingServer": false,
+      "timeout": 20000
+    }
+  },
+  "suites": [
+    {
+      "title": "automation.spec.ts",
+      "file": "automation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "automatic incident run has no approval controls and a restricted host completes the Web-started chain",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5458,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:12.142Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af7144226575376c6417-e5a5769eefbd8efc263e",
+          "file": "automation.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "run details distinguish failure and cancellation without obsolete action buttons",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1631,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:18.208Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af7144226575376c6417-f9c918ec0029f819b538",
+          "file": "automation.spec.ts",
+          "line": 193,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "connection-binding-forms.spec.ts",
+      "file": "connection-binding-forms.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "labelled STDIO registration, discovery, explicit environment binding and an approved Mock probe need no whole-configuration JSON",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5125,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:19.870Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95e2d29d8cbf6af91b65-5e8fa6d9da3a28e897fe",
+          "file": "connection-binding-forms.spec.ts",
+          "line": 37,
+          "column": 1
+        },
+        {
+          "title": "HTTP registration accepts only registered credential references and keeps protocol separate from transport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 860,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:25.004Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95e2d29d8cbf6af91b65-342922bd55466f96c6f7",
+          "file": "connection-binding-forms.spec.ts",
+          "line": 212,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "default-login.spec.ts",
+      "file": "default-login.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a fresh installation logs in with admin/admin without a setup-code step",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3467,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:25.879Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5547acd060430926b3a5-735d8f02916a6326ef5e",
+          "file": "default-login.spec.ts",
+          "line": 7,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "editor-regressions.spec.ts",
+      "file": "editor-regressions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "pending deletion cannot be dismissed and a lost response retries the same request",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1155,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:29.378Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-45a700f3450d2ab45388",
+          "file": "editor-regressions.spec.ts",
+          "line": 7,
+          "column": 1
+        },
+        {
+          "title": "workflow library deletion confirms intent, survives refresh, keeps published history and prevents duplicate pending submits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1447,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:30.541Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-2246a9fe9b6920d5dd12",
+          "file": "editor-regressions.spec.ts",
+          "line": 39,
+          "column": 1
+        },
+        {
+          "title": "a stale deletion dialog shows the real revision conflict and requires a fresh review",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1108,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:31.998Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-a2723e9e3bfa9d174ab6",
+          "file": "editor-regressions.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "external deletion leaves unsaved canvas content available and blocks later saves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6367,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:33.113Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-ffc2fb3163785e60c5aa",
+          "file": "editor-regressions.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "blank workflow requires an explicit environment and can save, publish and run without a binding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1444,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:39.500Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-2296f8503a52837039b5",
+          "file": "editor-regressions.spec.ts",
+          "line": 172,
+          "column": 1
+        },
+        {
+          "title": "incident creation ignores modified source drafts and requires explicit binding and tool choices before publication",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2480,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:40.965Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-94aa333225c271971e5a",
+          "file": "editor-regressions.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "deterministic creation supports production, explicit tools, and selecting then deleting a saved edge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3079,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:43.482Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "saved-edge-geometry",
+                      "contentType": "application/json",
+                      "body": "ewogICJsZW5ndGgiOiA1NSwKICAiYmJveCI6IHsKICAgICJ4IjogMzYwLAogICAgInkiOiA4MywKICAgICJ3aWR0aCI6IDAsCiAgICAiaGVpZ2h0IjogNTUKICB9LAogICJlZGdlUmVjdCI6IHsKICAgICJ4IjogNzY0LAogICAgInkiOiA1MzAuMzQzNzUsCiAgICAid2lkdGgiOiAwLAogICAgImhlaWdodCI6IDgyLjUKICB9LAogICJjYW52YXNSZWN0IjogewogICAgIngiOiA0MjcsCiAgICAieSI6IDM0OS41OTM3NSwKICAgICJ3aWR0aCI6IDY3NCwKICAgICJoZWlnaHQiOiA2NTQKICB9LAogICJwb2ludCI6IHsKICAgICJ4IjogNzY0LAogICAgInkiOiA1NzEuNTkzNzUKICB9LAogICJoaXRDbGFzcyI6ICJyZWFjdC1mbG93X19lZGdlLWludGVyYWN0aW9uIiwKICAicmVhY2hhYmxlIjogdHJ1ZQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-eac1d9c90c98bc4ea692",
+          "file": "editor-regressions.spec.ts",
+          "line": 295,
+          "column": 1
+        },
+        {
+          "title": "reviewed publication rejects a concurrent edit and offers comparison and a separate unbound draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3748,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:46.576Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-c68288678658ac7e3d17",
+          "file": "editor-regressions.spec.ts",
+          "line": 403,
+          "column": 1
+        },
+        {
+          "title": "a slow draft response cannot replace the workflow reached through navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:50.431Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-8ee0bdd099313868193c",
+          "file": "editor-regressions.spec.ts",
+          "line": 465,
+          "column": 1
+        },
+        {
+          "title": "a delayed save preserves newer edits and undo keeps the latest server revision",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1673,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:54.494Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-2a64545c20f19df44445",
+          "file": "editor-regressions.spec.ts",
+          "line": 511,
+          "column": 1
+        },
+        {
+          "title": "a save finishing after navigation cannot replace another workflow",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2834,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:56.180Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-c535fd254bc918a8805a",
+          "file": "editor-regressions.spec.ts",
+          "line": 572,
+          "column": 1
+        },
+        {
+          "title": "session expiry retains focused JSON text while a wrong vault password leaves the admin session active",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2061,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:49:59.021Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-3a30f0239a878be1e10e",
+          "file": "editor-regressions.spec.ts",
+          "line": 622,
+          "column": 1
+        },
+        {
+          "title": "schema fields, finite conditions and invalid mapping literals preserve the selected node",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1602,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:01.097Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-48e62eb4e9c9a9ced0f7",
+          "file": "editor-regressions.spec.ts",
+          "line": 694,
+          "column": 1
+        },
+        {
+          "title": "invalid JSON cannot submit the previous business inputs or replace the workflow with null",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1478,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:02.717Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-069dbbcab34deed39cdc",
+          "file": "editor-regressions.spec.ts",
+          "line": 754,
+          "column": 1
+        },
+        {
+          "title": "invalid node JSON and literal text remain blocking after selecting another node",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1541,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:04.202Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-3d7e1ee387ce06408ba6",
+          "file": "editor-regressions.spec.ts",
+          "line": 793,
+          "column": 1
+        },
+        {
+          "title": "an earlier node preview cannot consume raw text from a remounted editor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1578,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:05.758Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e8f94a575be567f7ddd-b0bf31495ec03db4e740",
+          "file": "editor-regressions.spec.ts",
+          "line": 855,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "management.spec.ts",
+      "file": "management.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5659,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:07.365Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a9916703f81b98e496f1-75219b40fd47886c9f60",
+          "file": "management.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "a pending auth-state request never exposes a consumed setup-token field",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 400,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:13.042Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a9916703f81b98e496f1-56ec28eb622c9f4fd963",
+          "file": "management.spec.ts",
+          "line": 109,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "model-services.spec.ts",
+      "file": "model-services.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "model service fills official URL, offers queried models and ignores stale catalog replies after switching service",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1294,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:13.465Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "551ef023442b7331281c-c39fab77bfb1e59ba658",
+          "file": "model-services.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "real compatible catalog selects and persists an actual ID, reuses its saved Key, and explains model rejection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1533,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:14.776Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "551ef023442b7331281c-e022c2bf6c787a818f83",
+          "file": "model-services.spec.ts",
+          "line": 40,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "published-start.spec.ts",
+      "file": "published-start.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "unpublished environment, mode and input changes cannot alter a published start",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2228,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:16.319Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2423bc27d516ae4d368-bf5dd35880bfbaeea62a",
+          "file": "published-start.spec.ts",
+          "line": 60,
+          "column": 1
+        },
+        {
+          "title": "rollback preview and submission stay bound to the selected immutable version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1896,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:18.556Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2423bc27d516ae4d368-f851afff7a89d1a4d984",
+          "file": "published-start.spec.ts",
+          "line": 136,
+          "column": 1
+        },
+        {
+          "title": "missing immutable default fails closed without opening a draft-based preview",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 966,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:20.473Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2423bc27d516ae4d368-a55082507eb0e8a4f402",
+          "file": "published-start.spec.ts",
+          "line": 223,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "responsive.spec.ts",
+      "file": "responsive.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "run and settings actions fit desktop, boundary and mobile viewports, and the mobile inspector closes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:21.464Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e0223b006feb3d306446-5d584372123bddd5c4d5",
+          "file": "responsive.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "retention.spec.ts",
+      "file": "retention.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "cleanup preview shows every result-copy scope and submits only the reviewed hash",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1658,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:29.702Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fd7df1e842de82579ae3-b7fcc320a4bb109bb2d9",
+          "file": "retention.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-assistant-audit.spec.ts",
+      "file": "v2-assistant-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Web save detects an unseen layout operation and merges before retrying",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 821,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:31.381Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-63773a885ef6db71512b",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 20,
+          "column": 1
+        },
+        {
+          "title": "formal assistant UI rejects negative execution, displays context/config, and deletes session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2913,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:32.209Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-25f4f8ca2cf82491be1e",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "analysis UI reports auth failure, retries with a valid profile, and resets for the next checkpoint",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2966,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:35.134Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-0c34736faa4b9267be8d",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "editor merges independent fields, resolves actual field conflicts, protects raw JSON focus and rejects stale reads",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:38.110Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-4f0c8b578803d99be7af",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 79,
+          "column": 1
+        },
+        {
+          "title": "turn receipts remain attached while delayed conversation and acceptance cannot replace another session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2490,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:40.086Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-ebad9653064faf81bc45",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 94,
+          "column": 1
+        },
+        {
+          "title": "assistant UI labels past run provenance while clearing run and changing provider excludes that history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2149,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:42.587Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-33032e8bc9c7983ddcfd",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 117,
+          "column": 1
+        },
+        {
+          "title": "late analysis status and cancel receipts cannot disable the next checkpoint",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:44.747Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-d7c23b9a4b1ecc072475",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "historical knowledge citation sends its original hash and range so the real source viewer reports staleness",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2159,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:47.805Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "602ea2e5b90655e1d994-3a9be1b0624aad0d9cc5",
+          "file": "v2-assistant-audit.spec.ts",
+          "line": 156,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-assistant-max-audit.spec.ts",
+      "file": "v2-assistant-max-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "late A success cannot discard B's key after SSE recovery and a lost B receipt",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2968,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:49.994Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-5d9c8ea816d7cd7814ca",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 144,
+          "column": 3
+        },
+        {
+          "title": "late A failure cannot discard B's key after SSE recovery and a lost B receipt",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2789,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:52.976Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-08c6574af7bebdfd788c",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 144,
+          "column": 3
+        },
+        {
+          "title": "a definitive 422 releases the rejected request while preserving text and allowing a corrected model/input",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2990,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:55.773Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-5bc7d97e883ec6c7723b",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "continue on historical cancelled A sends A's task/context and only explains its receipt after B/C",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3825,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:50:58.771Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-137aac27f3f24f2da6f2",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 326,
+          "column": 1
+        },
+        {
+          "title": "read-only workflow status does not claim a saved draft while a real authoring patch still does",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:02.605Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-f6a91ae6059d71507793",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 472,
+          "column": 1
+        },
+        {
+          "title": "assistant controls remain visible and clickable on both sides: landscape single line",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5075,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:05.860Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-1a4bc86d4c179eeace26",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 655,
+          "column": 3
+        },
+        {
+          "title": "assistant controls remain visible and clickable on both sides: short mobile multiline",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6845,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:10.948Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-60765ea7def7c80db88d",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 655,
+          "column": 3
+        },
+        {
+          "title": "assistant controls remain visible and clickable on both sides: desktop real pinch 2x and pan",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6619,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:17.809Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-a2e6e1ef917bdc5607a5",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 655,
+          "column": 3
+        },
+        {
+          "title": "assistant controls remain visible and clickable on both sides: mobile real pinch 2x and pan",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5278,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:24.443Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-b7c86fa206a737322f59",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 655,
+          "column": 3
+        },
+        {
+          "title": "assistant controls remain visible and clickable on both sides: desktop real pinch 3x and pan",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7575,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:29.742Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da8ba20801b376373b25-b368c226222595981272",
+          "file": "v2-assistant-max-audit.spec.ts",
+          "line": 655,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "v2-capability-acceptance.spec.ts",
+      "file": "v2-capability-acceptance.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11561,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:37.347Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "414ce15b6c1a8d3ba43e-3efc29bba1daf505f2b3",
+          "file": "v2-capability-acceptance.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "UI-07: successful real Mock evidence becomes stale after a browser draft edit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1947,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:48.918Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "414ce15b6c1a8d3ba43e-ece543055db24d479bdf",
+          "file": "v2-capability-acceptance.spec.ts",
+          "line": 100,
+          "column": 1
+        },
+        {
+          "title": "UI-01: real discovery displays loading, complete empty, partial and registration error states",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3517,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:50.875Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "414ce15b6c1a8d3ba43e-b77bb3c961a538de7661",
+          "file": "v2-capability-acceptance.spec.ts",
+          "line": 116,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-discovery-design.spec.ts",
+      "file": "v2-discovery-design.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "typed discovery uses real catalog, Chinese descriptions and evidenced plugin/Skill relationships",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14557,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:51:54.415Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-4e490a4fd7ac5e563fb1",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 205,
+          "column": 1
+        },
+        {
+          "title": "issue actions open the matching manual connection and credential forms and complete real directory sync",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 21391,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\nExpected substring: \u001b[32m\"已验证协议\"\u001b[39m\nReceived string:    \u001b[31m\"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) }) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\u001b[22m\n\u001b[2m    13 × locator resolved to <section class=\"panel\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\nExpected substring: \u001b[32m\"已验证协议\"\u001b[39m\nReceived string:    \u001b[31m\"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) }) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\u001b[22m\n\u001b[2m    13 × locator resolved to <section class=\"panel\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[22m\n\n    at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:328:24",
+                    "location": {
+                      "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts",
+                      "column": 24,
+                      "line": 328
+                    },
+                    "snippet": "  326 |       });\n  327 |     await card.getByRole(\"button\", { name: \"检测与同步\", exact: true }).click();\n> 328 |     await expect(card).toContainText(\"已验证协议\");\n      |                        ^\n  329 |     expect(\n  330 |       (await f.api(\"/api/v1/connections\")).find(\n  331 |         (c: any) => c.name === issue.manual,"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts",
+                        "column": 24,
+                        "line": 328
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\nExpected substring: \u001b[32m\"已验证协议\"\u001b[39m\nReceived string:    \u001b[31m\"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) }) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.connection-grid .panel').filter({ has: getByRole('heading', { name: 'manual-c19a07', exact: true }) })\u001b[22m\n\u001b[2m    13 × locator resolved to <section class=\"panel\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"⌘待验证manual-c19a07stdio · modern0 工具revision 1检测与同步历史摘要编辑禁用\"\u001b[22m\n\n\n  326 |       });\n  327 |     await card.getByRole(\"button\", { name: \"检测与同步\", exact: true }).click();\n> 328 |     await expect(card).toContainText(\"已验证协议\");\n      |                        ^\n  329 |     expect(\n  330 |       (await f.api(\"/api/v1/connections\")).find(\n  331 |         (c: any) => c.name === issue.manual,\n    at /Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts:328:24"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:52:09.011Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/sqz/Documents/ChatGPT/mcp管理工具/test-results/v2-discovery-design-issue--5f42b-omplete-real-directory-sync/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/sqz/Documents/ChatGPT/mcp管理工具/tests/ui/v2-discovery-design.spec.ts",
+                    "column": 24,
+                    "line": 328
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-18785485c50f42a8782e",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 285,
+          "column": 1
+        },
+        {
+          "title": "issue guides expose real source settings, empty search and mobile actions; legacy assistant opens the floating chat",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5229,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:52:40.354Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-7d053cbb8a9f86539724",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 381,
+          "column": 1
+        },
+        {
+          "title": "manual Chinese edits persist, Esc keeps pending input and source updates flag old descriptions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17624,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:52:46.537Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-3ae23f61efa07521e5ff",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 443,
+          "column": 1
+        },
+        {
+          "title": "MCP detail imports a real discovered tool into a fixed test binding without claiming execution verification",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9254,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:04.180Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-cca8556c532809f83f53",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 509,
+          "column": 1
+        },
+        {
+          "title": "real discovery layout works on desktop/mobile and exposes a copyable Codex synchronization task",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7242,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:13.447Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-09b77cac5a976ed98b25",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 555,
+          "column": 1
+        },
+        {
+          "title": "a late catalog search response cannot replace the user's newer Chinese query results",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5588,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:20.700Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a7298c18dc9b17c0348-8b859000bbfd5213b457",
+          "file": "v2-discovery-design.spec.ts",
+          "line": 592,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-discovery-races.spec.ts",
+      "file": "v2-discovery-races.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "late context registration success cannot change the selected context or show an abandoned error",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1485,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:26.315Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-7a93a140d3e0cc01e010",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 47,
+          "column": 38
+        },
+        {
+          "title": "late context registration error cannot change the selected context or show an abandoned error",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1569,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:27.805Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-f85f0de5018611814093",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 47,
+          "column": 38
+        },
+        {
+          "title": "registration context-list response cannot revive an old selection after the POST has completed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1456,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:29.389Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-419613585c361419abf1",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "a newer registration after selecting another context owns the UI and navigation invalidates the older request",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1787,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:30.857Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-3451440fd27fd7562ac9",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 89,
+          "column": 1
+        },
+        {
+          "title": "clearing an existing Profile sends null, preserves rejected input and can register the default Profile separately",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3771,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:32.656Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-f1238456601af084208f",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 141,
+          "column": 1
+        },
+        {
+          "title": "clearing an explicit CLI in auto mode sends an empty reset intent and preserves the rejected form instead of reviving the old path",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2707,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:36.436Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-4a683b9f3c4a5f9b6620",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "a retained description draft keeps its original baseline across a pending scan and source change",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2781,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:39.157Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-26011b777860f4833cab",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 190,
+          "column": 50
+        },
+        {
+          "title": "a retained description draft keeps its original baseline across a pending scan and presentation change",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2519,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:41.947Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-c8fbf933c818afb1a554",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 190,
+          "column": 50
+        },
+        {
+          "title": "changing capability type hides old rows and rejects a late response from the previous type",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2619,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:44.474Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-ab4fe2cdc12b4b610f32",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 213,
+          "column": 1
+        },
+        {
+          "title": "Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit deliberately adopt the new source",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4068,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:47.106Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-72eb5d0d4cdfae6955d8",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 237,
+          "column": 1
+        },
+        {
+          "title": "description and credential fields remain locked while their save HTTP requests are pending",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4174,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:51.200Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-96478acac543e660adf1",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 264,
+          "column": 1
+        },
+        {
+          "title": "a credential draft keeps its original configuration revision through a source-changing snapshot refresh",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4107,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:55.386Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8a6841e4b029160b2376-a064a4e3bb33b54c3d07",
+          "file": "v2-discovery-races.spec.ts",
+          "line": 323,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-discovery-reaudit.spec.ts",
+      "file": "v2-discovery-reaudit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "discovery accepts an explicit executable and remembers configuration-only selection without launching Codex",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3451,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:53:59.527Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "20308563d883b6f10f09-1500f09e207ca129402f",
+          "file": "v2-discovery-reaudit.spec.ts",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-floating-chat.spec.ts",
+      "file": "v2-floating-chat.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "locked model credentials block sends, unlock in place preserves the draft, and historical failures can be reasked",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2569,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:02.999Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-c58a95085b67e7ef430d",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 100,
+          "column": 1
+        },
+        {
+          "title": "floating chat sends one question per turn, renders safe Markdown, retains drafts across routes and supports follow-up",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4766,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:05.579Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-b6024d16cda88c7d78e3",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 139,
+          "column": 1
+        },
+        {
+          "title": "minimizing leaves a real streaming request active; stop and refresh preserve partial answer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5128,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:10.354Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-f191b77b43834375ffc1",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 232,
+          "column": 1
+        },
+        {
+          "title": "lost acceptance retries the original idempotency key without a second draft write or model loop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1781,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:15.492Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-4a4582b924d0ad3cb889",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 297,
+          "column": 1
+        },
+        {
+          "title": "missing-model chat retains local help and does not send a fabricated answer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3566,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:17.295Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-862c1642cdf8ad4ca644",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 387,
+          "column": 1
+        },
+        {
+          "title": "assistant launcher drags with mouse and touch, docks at either edge, persists and keeps the same conversation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4854,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:20.882Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0eda98dec43e83ea0b6c-c162cffc4a7465090104",
+          "file": "v2-floating-chat.spec.ts",
+          "line": 417,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-matrix-ui.spec.ts",
+      "file": "v2-matrix-ui.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI-03/UI-05 matrix: an AI batch only places new nodes, and browser undo restores its graph while preserving manual layout and immutable publication",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9615,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:25.772Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2b061d0c2c3b9a87395-aa4c6b9aa37d406ecca8",
+          "file": "v2-matrix-ui.spec.ts",
+          "line": 28,
+          "column": 1
+        },
+        {
+          "title": "UI-06 matrix: saving a synthetic model Key and reopening its form only exposes configuration status",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8859,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:35.411Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2b061d0c2c3b9a87395-787584454870dd89540a",
+          "file": "v2-matrix-ui.spec.ts",
+          "line": 73,
+          "column": 1
+        },
+        {
+          "title": "PLUG-01/UI-01 matrix: ten market entries remain two installed plugins and eight visible informational candidates without importing their components",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9101,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:44.296Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2b061d0c2c3b9a87395-27c3978ba250f8d43eff",
+          "file": "v2-matrix-ui.spec.ts",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "RUN-07 matrix: a real waiting host-only run explains the Codex requirement while a configured model Key dispatches no call",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3412,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:53.420Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2b061d0c2c3b9a87395-7a7d4f9c4c8f2f3497f4",
+          "file": "v2-matrix-ui.spec.ts",
+          "line": 110,
+          "column": 1
+        },
+        {
+          "title": "ASST-05 matrix: browser offline recovery replays completion after a saved patch without issuing another model call or write",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10814,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:54:56.850Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2b061d0c2c3b9a87395-ade4f415a7d96b2e29c5",
+          "file": "v2-matrix-ui.spec.ts",
+          "line": 141,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-testing-max-audit.spec.ts",
+      "file": "v2-testing-max-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI-01: exact lost run retries keep their key; an equal body targeting another suite gets a distinct key",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4694,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:08.325Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-ebbeeb10694549f91796",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "UI-01: identical PUT content for distinct suites cannot inherit a lost receipt key",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2662,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:13.034Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-e6265dd14f7a58eed559",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "UI-02: late AI suite receipts lock loading and preserve, switch and restore an existing dirty fixture draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3159,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:15.707Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-b6a4bd378954b438f312",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 74,
+          "column": 1
+        },
+        {
+          "title": "UI-02: recovered successful generation keeps editing locked until its real suite receipt arrives",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3182,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:18.880Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-4865c5e87da9f38e3b5e",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 92,
+          "column": 1
+        },
+        {
+          "title": "UI-03: external suite updates refresh terminal stale evidence while dirty JSON survives and no run POST repeats",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2583,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:22.069Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-1cb7a019555f77d47017",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 105,
+          "column": 1
+        },
+        {
+          "title": "UI-03: a delayed read of an old suite cannot roll back a newer same-workflow fixture save",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1342,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:24.658Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-3ade38bc3229303164da",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 115,
+          "column": 1
+        },
+        {
+          "title": "UI-03: discovered Skill changes stale terminal Mock evidence without changing draft revision or posting another run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3305,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:26.004Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-2061d8057a492b1fab11",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 125,
+          "column": 1
+        },
+        {
+          "title": "Mock call evidence is labelled simulated even when one fixture tool was traced and the real local service received zero calls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1375,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:29.316Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d94ed9294d2b2bbe3951-3cefa9278df6cd50c7af",
+          "file": "v2-testing-max-audit.spec.ts",
+          "line": 141,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-testing-modes.spec.ts",
+      "file": "v2-testing-modes.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "testing UI keeps Mock default, Contract catalog-only and Live explicitly scoped through real MCP",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2672,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "{\"scopedUiPhases\":[{\"phase\":\"verified_first_live\",\"elapsedMs\":2131},{\"phase\":\"cancel_outcome_displayed\",\"elapsedMs\":2609},{\"phase\":\"start_fixture_close\",\"elapsedMs\":2631},{\"phase\":\"fixture_closed\",\"elapsedMs\":2631}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:30.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dce1546db8aef21cadf2-c601d2db9e8a3152d086",
+          "file": "v2-testing-modes.spec.ts",
+          "line": 39,
+          "column": 1
+        },
+        {
+          "title": "testing UI uses configured synthetic Provider for asynchronous AI suite generation and cancel",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2799,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:33.382Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dce1546db8aef21cadf2-01ed1322cd333e62daed",
+          "file": "v2-testing-modes.spec.ts",
+          "line": 76,
+          "column": 1
+        },
+        {
+          "title": "lost AI acceptance retries its original command after viewing another validation level without another model call",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1601,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:36.192Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dce1546db8aef21cadf2-67c105c124ce38bebd3c",
+          "file": "v2-testing-modes.spec.ts",
+          "line": 100,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "v2-upgrade.spec.ts",
+      "file": "v2-upgrade.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real UI model settings, assistant create/patch, canvas persistence, undo, dirty conflict and Mock selftest",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6883,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T16:55:37.804Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "155ac7b87d7eedd737f7-ce297e52b8a076f22a08",
+          "file": "v2-upgrade.spec.ts",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-06T16:49:09.282Z",
+    "duration": 399480.344,
+    "expected": 93,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

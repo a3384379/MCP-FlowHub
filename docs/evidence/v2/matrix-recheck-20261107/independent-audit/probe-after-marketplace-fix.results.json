@@ -1,0 +1,1152 @@
+{
+  "format": "flowhub.independent-audit.marketplace-fix.v1",
+  "at": "2026-11-06T16:32:32.012Z",
+  "node": "v24.19.0",
+  "platform": "darwin/arm64",
+  "bindings": {
+    "source": {
+      "path": "packages/host-discovery/src/marketplace.ts",
+      "sha256": "5e40624453ab68ff4a193fd4476d27dd9cd4fb625d1ee9a57dbfc163ebb3d599",
+      "directlyTransformed": true
+    },
+    "compiled": {
+      "path": "/tmp/flowhub-matrix-discovery-build-20261106/dist/packages/host-discovery/src/marketplace.js",
+      "sha256": "351802acb213a0dde99a140740e7b39b04dc3b1adada59417ce29c1dafb96a7b"
+    },
+    "catalog": {
+      "path": "/tmp/flowhub-matrix-discovery-build-20261106/dist/packages/capability-registry/src/discovery-catalog.js",
+      "sha256": "29eb436787ad1836ebb59ccb62f3bb81d5e9d7fa5afd50e07ee3c52cc7c7caad"
+    },
+    "ui": {
+      "path": "apps/web/src/features/discovery/shared.tsx",
+      "sha256": "63f3714a0d7414ee18a27dd64525b0f482881efb4fe4700fea0dd64540a9e578",
+      "entityStatusExecuted": true,
+      "detailAndListSourceReviewed": true
+    }
+  },
+  "cases": [
+    {
+      "name": "distinct_market_identity",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "available_only",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "f7688581f8ed5031eac4dcb42255afbcfece522535572dc27e9cd5c072316de9",
+          "marketplaceConflict": false,
+          "manifestHash": "f7688581f8ed5031eac4dcb42255afbcfece522535572dc27e9cd5c072316de9"
+        },
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@other-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "Project description",
+          "marketplaceName": "other-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "NOT_AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "unavailable",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "other-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "ffa6b61eb3cba4f537087ecdf9d9002970428be057bce7b32473d714fe4d6935",
+          "marketplaceConflict": false,
+          "manifestHash": "ffa6b61eb3cba4f537087ecdf9d9002970428be057bce7b32473d714fe4d6935"
+        }
+      ],
+      "issues": [],
+      "coverage": "complete",
+      "status": "SUCCEEDED",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "revision": 1,
+          "sourceFingerprint": "2ea7557e9ee083a7d4ee866cf8558ff8d3ad706e7e3a6706e7f32842153bf40d",
+          "manifestHash": "f7688581f8ed5031eac4dcb42255afbcfece522535572dc27e9cd5c072316de9",
+          "marketplaceFingerprint": "f7688581f8ed5031eac4dcb42255afbcfece522535572dc27e9cd5c072316de9",
+          "marketplaceConflict": false,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "可用，尚未安装",
+            "tone": "gray"
+          },
+          "children": []
+        },
+        {
+          "id": "plugin_4bd4e48f83eec8610e09519d",
+          "installation": "available_only",
+          "availability": "unavailable",
+          "enabled": null,
+          "description": "Project description",
+          "revision": 1,
+          "sourceFingerprint": "0c6e3194b2fb03adb243d00ad42141bb0e5181bac9e54dbe28b63daaf60ddd43",
+          "manifestHash": "ffa6b61eb3cba4f537087ecdf9d9002970428be057bce7b32473d714fe4d6935",
+          "marketplaceFingerprint": "ffa6b61eb3cba4f537087ecdf9d9002970428be057bce7b32473d714fe4d6935",
+          "marketplaceConflict": false,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "other-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "市场策略不可用 · 未安装",
+            "tone": "gray"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": 0,
+        "skill": 0,
+        "plugin": 0,
+        "issues": 0
+      },
+      "availablePluginCount": 1
+    },
+    {
+      "name": "same_market_name_conflicting_sources",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "ambiguous",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceConflict": true,
+          "manifestHash": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "revision": 2,
+          "sourceFingerprint": "477a55106b85458426a45522c89c42774b33985c28c61bee514518a98ec5bf5f",
+          "manifestHash": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceFingerprint": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "市场来源冲突 · 未安装",
+            "tone": "amber"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": null,
+        "plugin": null,
+        "issues": 3
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "conflict_unchanged_repeat",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "ambiguous",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceConflict": true,
+          "manifestHash": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "revision": 2,
+          "sourceFingerprint": "477a55106b85458426a45522c89c42774b33985c28c61bee514518a98ec5bf5f",
+          "manifestHash": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceFingerprint": "d249aa73a415a5dcb3572da49122531e60f21dc3346af63df7e75a8be9049002",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "市场来源冲突 · 未安装",
+            "tone": "amber"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": null,
+        "plugin": null,
+        "issues": 3
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "same_market_second_source_changed",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "ambiguous",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "c27b7cac2c7b9ad501272357a678995622a6301de1394027969aa39016f188c4",
+          "marketplaceConflict": true,
+          "manifestHash": "c27b7cac2c7b9ad501272357a678995622a6301de1394027969aa39016f188c4"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "revision": 3,
+          "sourceFingerprint": "33faea205d588c731af7b9c51d283813b84035d3b2da434ebd02f5ffd84da907",
+          "manifestHash": "c27b7cac2c7b9ad501272357a678995622a6301de1394027969aa39016f188c4",
+          "marketplaceFingerprint": "c27b7cac2c7b9ad501272357a678995622a6301de1394027969aa39016f188c4",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "市场来源冲突 · 未安装",
+            "tone": "amber"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": null,
+        "plugin": null,
+        "issues": 3
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "same_market_second_source_policy_changed",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "ambiguous",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true,
+          "manifestHash": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "enabled": null,
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "revision": 4,
+          "sourceFingerprint": "94ce55b12e8c8e7df52e637b54994810181c9e8dc0eed0839c856b6778e564dc",
+          "manifestHash": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "市场来源冲突 · 未安装",
+            "tone": "amber"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": null,
+        "plugin": null,
+        "issues": 3
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "identical_sources",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "available_only",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceConflict": false,
+          "manifestHash": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250"
+        }
+      ],
+      "issues": [],
+      "coverage": "complete",
+      "status": "SUCCEEDED",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "revision": 5,
+          "sourceFingerprint": "b702360f9ff413d88b1d0d541e46aa45217fff11395858dc2a2b04290cc4155f",
+          "manifestHash": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceFingerprint": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceConflict": false,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "可用，尚未安装",
+            "tone": "gray"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": 0,
+        "skill": 0,
+        "plugin": 0,
+        "issues": 0
+      },
+      "availablePluginCount": 1
+    },
+    {
+      "name": "identical_sources_repeat",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "available_only",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceConflict": false,
+          "manifestHash": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250"
+        }
+      ],
+      "issues": [],
+      "coverage": "complete",
+      "status": "SUCCEEDED",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "available_only",
+          "enabled": null,
+          "description": "Personal description",
+          "revision": 5,
+          "sourceFingerprint": "b702360f9ff413d88b1d0d541e46aa45217fff11395858dc2a2b04290cc4155f",
+          "manifestHash": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceFingerprint": "59fc0cfbbd40f668a86a146f3a36b26acc3b41367c0e8216d425ca5d5ccb1250",
+          "marketplaceConflict": false,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "可用，尚未安装",
+            "tone": "gray"
+          },
+          "children": []
+        }
+      ],
+      "counts": {
+        "mcp_server": 0,
+        "skill": 0,
+        "plugin": 0,
+        "issues": 0
+      },
+      "availablePluginCount": 1
+    },
+    {
+      "name": "installed_facts_survive_conflict",
+      "components": [
+        {
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "name": "shared-plugin",
+          "installed": true,
+          "enabled": false,
+          "version": "1.0",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/plugins/cache/shared-market/shared-plugin/1.0",
+          "description": "Actual installed manifest description",
+          "manifestHash": "15e8e0c571fd86ac56b508e389f0d7f9fdc3764ef0a04337f81bbd5f37a3813a",
+          "executor": "informational",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true
+        },
+        {
+          "sourceKey": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/installed/SKILL.md",
+          "name": "actual-installed-skill",
+          "kind": "skill",
+          "parent": "shared-plugin@shared-market",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/installed/SKILL.md",
+          "enabled": false,
+          "description": "Actual installed skill",
+          "contentHash": "58e2c156770a078bbb226f8c8c4aa0b10cdc41b53b76d999d356de9bc72331e1"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "installed",
+          "availability": "installed",
+          "enabled": false,
+          "description": "Actual installed manifest description",
+          "revision": 6,
+          "sourceFingerprint": "703139503b16d04c3961f270b0f8856e75433783a171bbe2fd7056a6d6b3c9c2",
+          "manifestHash": "15e8e0c571fd86ac56b508e389f0d7f9fdc3764ef0a04337f81bbd5f37a3813a",
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "已安装 · 已停用 · 市场来源冲突",
+            "tone": "amber"
+          },
+          "children": [
+            {
+              "id": "cap_3d2035fd768f4046dbd5419f",
+              "name": "actual-installed-skill",
+              "enabled": false,
+              "stale": false
+            }
+          ]
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": 1,
+        "plugin": 1,
+        "issues": 2
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "installed_conflict_repeat",
+      "components": [
+        {
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "name": "shared-plugin",
+          "installed": true,
+          "enabled": false,
+          "version": "1.0",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/plugins/cache/shared-market/shared-plugin/1.0",
+          "description": "Actual installed manifest description",
+          "manifestHash": "15e8e0c571fd86ac56b508e389f0d7f9fdc3764ef0a04337f81bbd5f37a3813a",
+          "executor": "informational",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true
+        },
+        {
+          "sourceKey": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/installed/SKILL.md",
+          "name": "actual-installed-skill",
+          "kind": "skill",
+          "parent": "shared-plugin@shared-market",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/selected-home/installed/SKILL.md",
+          "enabled": false,
+          "description": "Actual installed skill",
+          "contentHash": "58e2c156770a078bbb226f8c8c4aa0b10cdc41b53b76d999d356de9bc72331e1"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "installed",
+          "availability": "installed",
+          "enabled": false,
+          "description": "Actual installed manifest description",
+          "revision": 6,
+          "sourceFingerprint": "703139503b16d04c3961f270b0f8856e75433783a171bbe2fd7056a6d6b3c9c2",
+          "manifestHash": "15e8e0c571fd86ac56b508e389f0d7f9fdc3764ef0a04337f81bbd5f37a3813a",
+          "marketplaceFingerprint": "4b698d411d580fd8fc9279f1022fe804937bdbf61d6190036afce4ef398f27ae",
+          "marketplaceConflict": true,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Personal description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "已安装 · 已停用 · 市场来源冲突",
+            "tone": "amber"
+          },
+          "children": [
+            {
+              "id": "cap_3d2035fd768f4046dbd5419f",
+              "name": "actual-installed-skill",
+              "enabled": false,
+              "stale": false
+            }
+          ]
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": 1,
+        "plugin": 1,
+        "issues": 2
+      },
+      "availablePluginCount": null
+    },
+    {
+      "name": "escaping_file_symlink",
+      "components": [
+        {
+          "name": "shared-plugin",
+          "sourceKey": "shared-plugin@shared-market",
+          "kind": "plugin",
+          "installed": false,
+          "installation": "available_only",
+          "enabled": null,
+          "description": "Changed project description",
+          "marketplaceName": "shared-market",
+          "marketplaceDisplayName": "",
+          "marketplacePolicy": "AVAILABLE",
+          "category": "Productivity",
+          "executor": "informational",
+          "availability": "available_only",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "16e88b3534a09c7e0a464369498c9b44aa50642d4ed49308653aea2cbd366a85",
+          "marketplaceConflict": false,
+          "manifestHash": "16e88b3534a09c7e0a464369498c9b44aa50642d4ed49308653aea2cbd366a85"
+        }
+      ],
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/.agents/plugins/marketplace.json",
+          "code": "SOURCE_UNREADABLE"
+        }
+      ],
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "projected": [
+        {
+          "id": "plugin_06b63c5b67b43c5f93ceb7cd",
+          "installation": "available_only",
+          "availability": "available_only",
+          "enabled": null,
+          "description": "Changed project description",
+          "revision": 7,
+          "sourceFingerprint": "19bb1c113faa4707775737067bde1a3662d6662f60ce59fd8c26305d23f85821",
+          "manifestHash": "16e88b3534a09c7e0a464369498c9b44aa50642d4ed49308653aea2cbd366a85",
+          "marketplaceFingerprint": "16e88b3534a09c7e0a464369498c9b44aa50642d4ed49308653aea2cbd366a85",
+          "marketplaceConflict": false,
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-market-after-UMh4IT/project/.agents/plugins/marketplace.json",
+              "name": "shared-plugin",
+              "description": "Changed project description",
+              "marketplaceName": "shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "status": {
+            "text": "可用，尚未安装",
+            "tone": "gray"
+          },
+          "children": [
+            {
+              "id": "cap_3d2035fd768f4046dbd5419f",
+              "name": "actual-installed-skill",
+              "enabled": false,
+              "stale": true
+            }
+          ]
+        }
+      ],
+      "counts": {
+        "mcp_server": null,
+        "skill": null,
+        "plugin": null,
+        "issues": 2
+      },
+      "availablePluginCount": 1
+    }
+  ],
+  "assertions": {
+    "allPassed": true,
+    "currentSourceEqualsIndependentCompiledForAllCases": true,
+    "originalCounterexampleClosed": true,
+    "secondSourceChangesFingerprint": true,
+    "repeatedScansStable": true,
+    "installedManifestEnablementChildrenPreserved": true,
+    "uiStatusFunctionCorrect": true,
+    "noConnectionsBindingsToolCalls": true,
+    "actualBrowserNotRunByThisProbe": true
+  }
+}

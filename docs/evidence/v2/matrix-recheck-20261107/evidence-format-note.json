@@ -1,0 +1,12 @@
+{
+  "gitDiffCachedCheckExit": 2,
+  "cause": "Five trailing-whitespace lines in original archived independent probes / Playwright error context; originals intentionally preserved byte-for-byte. Product source diff had passed its normal check before commit 946a036.",
+  "rawFiles": [
+    "independent-audit/browser-after/first-attempt/probe.mjs",
+    "independent-audit/browser-after/probe.mjs",
+    "independent-audit/browser-after/second-attempt/probe.mjs",
+    "ui-sync-before-error.md"
+  ],
+  "archiveCheckCommand": "git -c core.whitespace=-blank-at-eol diff --cached --check",
+  "preservation": "Per-command whitespace setting only; no Git global configuration or product source changed."
+}

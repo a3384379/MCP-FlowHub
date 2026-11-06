@@ -1,0 +1,1160 @@
+{
+  "format": "flowhub.matrix-recheck/v1",
+  "group": "DISC/PLUG/CAP",
+  "baseSha": "194c0b17f63846cb00d4e7fe217c80e6d342f4ed",
+  "assessedAt": "2026-11-06T16:29:21.873442+00:00",
+  "platform": "macOS Darwin 25.6.0 arm64",
+  "node": "24.19.0",
+  "npm": "11.9.0",
+  "method": "Re-read original acceptance conditions and exact assertions; created isolated home/project/cache/SQLite, FakeCodex real child processes and official SDK synthetic MCP. Old PASS values were not reused as proof.",
+  "overallExecutionGate": "FAILED_PENDING_ROOT_FRESH_FULL_SUITE",
+  "statusScope": "Item statuses describe observed assigned assertions, not an aggregate 78/78 or final delivery gate. The latest aggregate remains 77/78 because additional AUTHOR-08 failed; root must bind all exact tests to its final current-source machine receipt.",
+  "summary": {
+    "PASS": 23,
+    "PARTIAL": 0,
+    "UNVERIFIED": 1
+  },
+  "executions": [
+    {
+      "id": "server_compile",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p tsconfig.json --outDir /tmp/flowhub-matrix-discovery-build-20261106/dist",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/compile.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "web_types",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p apps/web/tsconfig.json",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/web-types.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "targeted_current_source",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin node --test --test-concurrency=1 --test-timeout=60000 /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-matrix-discovery.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-discovery.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-discovery-acceptance.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-discovery-presentation.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-discovery-races.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-combined-acceptance.test.js /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-capability-drift-max-audit.test.js",
+      "exitCode": 1,
+      "log": "artifacts/matrix-recheck-20261106/discovery/targeted-current-source-tests.log",
+      "tests": 78,
+      "pass": 77,
+      "fail": 1,
+      "failedTest": "AUTHOR-08 combined: simultaneous capability/binding drift rejects partial reviews atomically and exact retry preserves previous publication",
+      "limit": "Assigned discovery assertions all passed. The additional AUTHOR-08 case failed at assert.ok(cap) after 30.8s; that run did not retain scan.issues, so the cause is unconfirmed. The aggregate remains failed; final root full-suite receipt is required.",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "074f54ce2754b2ca8c0b216eefa0008ef9d795a9644089b0120a013253d896b3"
+    },
+    {
+      "id": "author08_isolated_diagnostic",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin node --test --test-concurrency=1 --test-timeout=60000 --test-name-pattern='AUTHOR-08 combined' /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-combined-acceptance.test.js",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/author08-isolated-followup.log",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "limit": "One exact unchanged diagnostic execution, 1052.8ms. This is not combined with the failed aggregate to claim 78/78.",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "317b3df17d3e3c096c24b289ec16657bf5b9c278a31260ce6927f150b8c26a9b"
+    },
+    {
+      "id": "baseline_compile",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p /tmp/flowhub-discovery-baseline-194c0b1-20261106/tsconfig.json --outDir /tmp/flowhub-discovery-baseline-194c0b1-20261106/dist",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/baseline-compile.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "baseline_marketplace_before",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin node --test --test-concurrency=1 --test-timeout=60000 --test-name-pattern='PLUG-01 matrix' /tmp/flowhub-discovery-baseline-194c0b1-20261106/dist/tests/engine/v2-matrix-discovery.test.js",
+      "exitCode": 1,
+      "log": "artifacts/matrix-recheck-20261106/discovery/baseline-marketplace-before.log",
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "expectedFailure": true,
+      "actual": "Same new test on git archive of baseline: 2!=10 and 0!=3. No checkout mutation.",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "46873f5c9c3c1bccb4864eb86672697b9a554640e13b566d8591ad0a3d4593b1",
+      "testSourceSha256": "bf79d177360d16ced15c4285febb9a3b880bcadd230fbb76cf90595b428ae759"
+    },
+    {
+      "id": "market_conflict_before_compile",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p tsconfig.json --outDir /tmp/flowhub-matrix-discovery-build-20261106/dist",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/conflict-before-compile.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "market_conflict_before",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin node --test --test-concurrency=1 --test-timeout=60000 --test-name-pattern='PLUG-01 matrix: conflicting market sources|PLUG-01 matrix: different marketplaces' /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-matrix-discovery.test.js",
+      "exitCode": 1,
+      "log": "artifacts/matrix-recheck-20261106/discovery/market-conflict-before.log",
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "expectedFailure": true,
+      "actual": "The conflicting same-market source was incorrectly SUCCEEDED; per-source metadata was absent.",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "5ff3e568f0f386a575819e4979dd7825f8ea009f60dde3ccfa2247544f84cf9b"
+    },
+    {
+      "id": "market_conflict_server_compile",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p tsconfig.json --outDir /tmp/flowhub-matrix-discovery-build-20261106/dist",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/conflict-final-compile.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "market_conflict_web_types",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin ./node_modules/.bin/tsc -p apps/web/tsconfig.json",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/conflict-web-types.log",
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "market_conflict_final",
+      "command": "PATH=/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin node --test --test-concurrency=1 --test-timeout=60000 --test-name-pattern='PLUG-01 matrix' /tmp/flowhub-matrix-discovery-build-20261106/dist/tests/engine/v2-matrix-discovery.test.js",
+      "exitCode": 0,
+      "log": "artifacts/matrix-recheck-20261106/discovery/market-conflict-final.log",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+      "logSha256": "3c7646907927fb6f0a3955c7c27b5ae682428eb8573049989309ecefada60172"
+    }
+  ],
+  "items": [
+    {
+      "id": "DISC-01",
+      "status": "PASS",
+      "title": "本机Codex不存在",
+      "setup": "空PATH及空配置",
+      "expected": "CODEX_NOT_FOUND，其他手工功能可用",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "DISC-01 matrix: missing Codex with an empty PATH/config preserves manual create, patch, publish and execution",
+          "assertionLines": [
+            93,
+            94,
+            96,
+            97,
+            98,
+            99,
+            102,
+            103,
+            105,
+            108,
+            109
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "空PATH、空合成配置下无Codex路径/版本，扫描明确CODEX_NOT_FOUND且无来源；手工创建、保存名称、发布和同一引擎运行SUCCEEDED，未启动任何CLI。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-02",
+      "status": "PASS",
+      "title": "自定义CODEX_HOME",
+      "setup": "非默认目录含合成MCP",
+      "expected": "读取选中目录，不读错默认home",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "DISC-02 matrix: an explicit CODEX_HOME selects its own configuration and CLI environment despite a decoy default home",
+          "assertionLines": [
+            127,
+            128,
+            129,
+            131,
+            132,
+            133,
+            134,
+            136,
+            137,
+            138,
+            139,
+            140
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "选中home与合成默认home分别有不同哨兵；显式选中目录只出现selected，默认目录只出现decoy；真实子进程CODEX_HOME/cwd和持久来源链准确，源文件不变。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-03",
+      "status": "PASS",
+      "title": "用户/项目覆盖",
+      "setup": "同名MCP不同配置层",
+      "expected": "正确解析有效配置并保存来源链",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-combined-acceptance.test.ts",
+          "name": "DISC-03 combined: user/project/Profile conflicts retain host-effective results, persisted declaration evidence and conservative untrusted/legacy candidates",
+          "assertionLines": [
+            44,
+            45,
+            47,
+            48,
+            51,
+            52,
+            57,
+            58,
+            59,
+            60,
+            64,
+            66,
+            67,
+            68
+          ],
+          "sourceSha256": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+        }
+      ],
+      "actual": "默认及review Profile同名MCP的user/project/Profile声明冲突由FakeCodex CLI返回生效结果；来源链及逐层declarations原样持久化。未可信项目不进入来源链，旧Profile CLI不收未知参数，静态候选保留partial。",
+      "limit": "精确断言的是受控CLI的生效配置/来源契约，未将静态候选冒充真实Codex全版本配置合并。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-04",
+      "status": "PASS",
+      "title": "可信项目差异",
+      "setup": "可信/非可信项目夹具",
+      "expected": "不能把未生效项目配置标有效",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-combined-acceptance.test.ts",
+          "name": "DISC-03 combined: user/project/Profile conflicts retain host-effective results, persisted declaration evidence and conservative untrusted/legacy candidates",
+          "assertionLines": [
+            44,
+            45,
+            47,
+            48,
+            57,
+            58,
+            59,
+            60
+          ],
+          "sourceSha256": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+        }
+      ],
+      "actual": "可信项目使用宿主有效结果并含trusted_project声明；不可信项目不运行可混入项目配置的CLI list，不含项目endpoint/path，明确PROJECT_CONFIGURATION_NOT_TRUSTED和partial。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-05",
+      "status": "PASS",
+      "title": "不支持JSON选项",
+      "setup": "模拟旧CLI help",
+      "expected": "不用未知参数，走受支持回退并标精度",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "DISC-03/DISC-05: legacy CLI never receives unsupported JSON; same-name static layers stay partial with exact provenance",
+          "assertionLines": [
+            34,
+            35,
+            36
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        },
+        {
+          "file": "tests/engine/v2-combined-acceptance.test.ts",
+          "name": "DISC-03 combined: user/project/Profile conflicts retain host-effective results, persisted declaration evidence and conservative untrusted/legacy candidates",
+          "assertionLines": [
+            64,
+            66,
+            67
+          ],
+          "sourceSha256": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+        }
+      ],
+      "actual": "旧CLI help无--json时所有实际调用均无--json，保留两层候选和STATIC_RESOLUTION_PARTIAL。缺--profile支持时也不发--profile/--json请求。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-06",
+      "status": "PASS",
+      "title": "Profile切换",
+      "setup": "两个Profile同名server",
+      "expected": "上下文隔离，不能串用认证/工具",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "DISC-06 matrix: two CLI Profiles with the same server retain distinct Vault authentication, tool catalogs and bindings",
+          "assertionLines": [
+            154,
+            156,
+            157,
+            160,
+            162,
+            164,
+            167,
+            168,
+            169,
+            173,
+            174,
+            175,
+            176,
+            178,
+            181,
+            183
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "同server名的a/b Profile经真实子进程参数隔离，独立Vault引用只认证其对应官方SDK STDIO工具；context/source/capability/connection/binding均不同，按context搜索无串线，普通记录无合成凭据明文。",
+      "limit": "合成Profile与Vault凭据及官方SDK子进程，不是现有个人Codex OAuth或企业身份。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-07",
+      "status": "UNVERIFIED",
+      "title": "Windows与WSL",
+      "setup": "分别创建native/WSL上下文",
+      "expected": "路径和进程环境不混用",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery.test.ts",
+          "name": "TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate",
+          "assertionLines": [
+            68,
+            69,
+            70,
+            71
+          ],
+          "sourceSha256": "0d03b7e7ef94047668de02707ef92c6165b35b26aed04e1aad407caff3d5cfeb"
+        }
+      ],
+      "actual": "仅在macOS验证外来executionLocation被EXECUTION_LOCATION_UNSUPPORTED阻止；未在Windows原生或WSL启动进程。",
+      "limit": "macOS无原生Windows/WSL；这是外部平台验收，不能以字符串位置guard冒充路径/进程环境实测。",
+      "evidenceLevel": "external_platform_unverified",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "DISC-08",
+      "status": "PASS",
+      "title": "部分来源损坏",
+      "setup": "一个TOML损坏其他正常",
+      "expected": "返回partial和具体错误，不将总数置零",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "DISC-08 matrix: corrupt TOML reports its exact source while a healthy CLI tool and Skill remain discoverable",
+          "assertionLines": [
+            193,
+            194,
+            195,
+            196,
+            197,
+            198,
+            199,
+            200
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "损坏用户TOML精确返回CONFIG_PARSE_ERROR及原路径，partial覆盖保留健康CLI query工具和Skill，计数均1而非总数归零；坏文件原样保留。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-01",
+      "status": "PASS",
+      "title": "市场不是安装",
+      "setup": "marketplace中有10项仅2项安装",
+      "expected": "安装清单只有2项；可用项单独标识",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-01 matrix: ten local marketplace entries yield two installations and eight informational available items without expanding or installing candidates",
+          "assertionLines": [
+            221,
+            222,
+            224,
+            225,
+            226,
+            228,
+            229,
+            230,
+            231,
+            232,
+            233,
+            234,
+            235,
+            236,
+            237,
+            238,
+            239,
+            240,
+            241
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-01 matrix: untrusted project markets are unread, policy defaults are not installations, and unsupported metadata preserves healthy entries",
+          "assertionLines": [
+            251,
+            252,
+            255,
+            257,
+            258,
+            259,
+            260,
+            261,
+            272,
+            273,
+            274,
+            275,
+            276,
+            278,
+            279,
+            280
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-01 matrix: personal and trusted project market symlinks cannot read beyond registered roots while in-root links remain readable",
+          "assertionLines": [
+            484,
+            487,
+            488,
+            490,
+            491,
+            498,
+            499,
+            500,
+            501,
+            502,
+            503,
+            504
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-01 matrix: conflicting market sources stay ambiguous and every second-source metadata change advances the persisted fingerprint",
+          "assertionLines": [
+            525,
+            526,
+            528,
+            530,
+            531,
+            532,
+            533,
+            534,
+            535,
+            537,
+            538,
+            539,
+            540,
+            541,
+            542,
+            543,
+            544,
+            547,
+            548,
+            549,
+            558,
+            560,
+            561,
+            562,
+            563,
+            564,
+            565,
+            566,
+            567,
+            572,
+            574,
+            575,
+            576,
+            577,
+            578,
+            581,
+            582,
+            583,
+            584,
+            585,
+            586
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-01 matrix: different marketplaces remain independent and conflicting catalogs preserve actual installed plugin and Skill facts",
+          "assertionLines": [
+            593,
+            595,
+            596,
+            597,
+            598,
+            599,
+            610,
+            611,
+            612,
+            613,
+            615,
+            617,
+            622,
+            625,
+            626,
+            628,
+            629,
+            630,
+            631,
+            632,
+            633,
+            634,
+            635,
+            636,
+            637,
+            638,
+            639,
+            640,
+            641,
+            642,
+            643,
+            644,
+            647,
+            648,
+            649,
+            650,
+            654,
+            655,
+            656,
+            657,
+            658,
+            659,
+            660,
+            661,
+            662
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "文档化本地marketplace有10项，配置/缓存中真实安装2项；目录10项唯一ID，2 installed、8 available_only/informational/enabled=null，安装计数2、可用计数8。候选不展开组件、不连接、不安装、不运行hooks，不改市场文件；可信项目与未知格式/越界或远程来源/policy单独有断言。个人及可信项目catalog的逃根symlink先于读正文拒绝，in-root symlink仍可读取。同市场同插件的来源差异完整保留；policy/description/category冲突返回partial及ambiguous，第二来源每种修改使fingerprint/revision变化，原样重复保持不变。不同市场独立，installed事实、组件、已有真实合成协议binding/connection保留。",
+      "limit": "仅读取文档化个人及可信项目本地marketplace；远程/Git/npm目录或未知格式明确partial，不跟source.path、不安装候选。浏览器标签/安装统计的最终专项由root关联新鲜UI记录。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source",
+        "web_types",
+        "baseline_compile",
+        "baseline_marketplace_before",
+        "market_conflict_before_compile",
+        "market_conflict_before",
+        "market_conflict_server_compile",
+        "market_conflict_web_types",
+        "market_conflict_final"
+      ]
+    },
+    {
+      "id": "PLUG-02",
+      "status": "PASS",
+      "title": "已装但禁用",
+      "setup": "本地包存在enabled=false",
+      "expected": "显示已装禁用，不标可执行",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-02/PLUG-03/CAP-01/CAP-03 matrix: two same-name server tools and three Skills preserve one plugin tree, independent sources and idempotent imports",
+          "assertionLines": [
+            326,
+            327,
+            328,
+            330,
+            331,
+            333,
+            334
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "本地multi包禁用后仍installation=installed、enabled=false；2服务/3Skill均不可执行，导入拒绝，真实MCP进程启动日志在禁用扫描前后相同。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-03",
+      "status": "PASS",
+      "title": "插件多组件",
+      "setup": "一个插件2MCP和3Skill",
+      "expected": "父子关系准确，没有重复工具项",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-02/PLUG-03/CAP-01/CAP-03 matrix: two same-name server tools and three Skills preserve one plugin tree, independent sources and idempotent imports",
+          "assertionLines": [
+            289,
+            292,
+            293,
+            294,
+            295,
+            296,
+            299,
+            300,
+            301,
+            302,
+            322
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "一个实际fixture插件展开2个MCP和3个Skill，两个同名query工具分属准确服务父节点，7个子实体ID无重复；重复完整扫描集合不变。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-04",
+      "status": "PASS",
+      "title": "宿主专用插件",
+      "setup": "无独立endpoint的能力",
+      "expected": "codex_host，不伪造连接",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "PLUG-04/PLUG-06/PLUG-07: installed host Skill is indexed without scripts, hooks, unstable RPCs or fabricated connections",
+          "assertionLines": [
+            49
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "宿主Skill目录executor=codex_host、host_only；直接连接导入HOST_ONLY，宿主引用返回host_reference且没有创建连接或绑定。",
+      "limit": "只证明宿主能力索引与host_reference边界，不证明某个真实宿主插件/Skill已执行。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-05",
+      "status": "PASS",
+      "title": "未知Manifest版本",
+      "setup": "不受支持格式",
+      "expected": "标unsupported，不能猜字段并执行",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "PLUG-05: unsupported manifest layouts or declared format versions stay partial and are never guessed",
+          "assertionLines": [
+            42,
+            44
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "三种显式未知manifest格式版本和根plugin.json未知布局均PARTIAL/PLUGIN_MANIFEST_UNSUPPORTED；没有猜字段生成工具或连接。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-06",
+      "status": "PASS",
+      "title": "Skill脚本依赖",
+      "setup": "Skill含外部脚本及hooks",
+      "expected": "建立索引不执行脚本/hooks",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "PLUG-04/PLUG-06/PLUG-07: installed host Skill is indexed without scripts, hooks, unstable RPCs or fabricated connections",
+          "assertionLines": [
+            49,
+            50
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "含外部脚本和SessionStart hook的已装插件可索引Skill原文；脚本/hook marker始终ENOENT，扫描未执行。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-07",
+      "status": "PASS",
+      "title": "不稳定RPC",
+      "setup": "plugin/list方法不可用",
+      "expected": "生产扫描仍完成本地路径，不依赖该方法",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "PLUG-04/PLUG-06/PLUG-07: installed host Skill is indexed without scripts, hooks, unstable RPCs or fabricated connections",
+          "assertionLines": [
+            50
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "独立FakeCodex App Server仅收到实际支持的skills/list和mcpServerStatus/list；所有调用不含plugin/list/read，禁用RPC marker不存在，扫描仍SUCCEEDED。",
+      "limit": "FakeCodex提供真实子进程RPC观测，未附着个人Desktop会话。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "PLUG-08",
+      "status": "PASS",
+      "title": "Skill内容变化",
+      "setup": "修改合成SKILL.md后刷新",
+      "expected": "指纹变化可追踪；旧发布快照不变",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "PLUG-08: Skill content drift advances semantic revision, mtime-only refresh does not, and publication stays immutable",
+          "assertionLines": [
+            54,
+            55,
+            56,
+            57
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "mtime改变不增修订；真实SKILL.md内容改变使revision 1→2及contentHash变化；旧capability revision行和已发布版本完整对象不变，当前草稿CAPABILITY_STALE。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-01",
+      "status": "PASS",
+      "title": "同名不同服务器",
+      "setup": "两个query工具不同connection",
+      "expected": "不合并，搜索能区分来源",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-02/PLUG-03/CAP-01/CAP-03 matrix: two same-name server tools and three Skills preserve one plugin tree, independent sources and idempotent imports",
+          "assertionLines": [
+            299,
+            300,
+            301,
+            302,
+            305,
+            306,
+            307,
+            309,
+            319,
+            320
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "两个实际服务器提供query同名工具仍有不同capability/source/connection/binding；sourceId过滤仅返回对应工具，目录父关系准确。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-02",
+      "status": "PASS",
+      "title": "同端点不同身份",
+      "setup": "同URL不同租户凭据",
+      "expected": "保留独立身份和绑定",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "CAP-02 matrix: one real HTTP endpoint authenticates two tenant Vault references without merging their tools, connections or bindings",
+          "assertionLines": [
+            387,
+            389,
+            390,
+            395,
+            396,
+            399,
+            400,
+            401,
+            402,
+            403,
+            406,
+            407,
+            408,
+            409,
+            410,
+            412
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-discovery-acceptance.test.ts",
+          "name": "CAP-02: the same endpoint with distinct Vault references keeps independent identities and old bindings",
+          "assertionLines": [
+            61,
+            63,
+            65,
+            66
+          ],
+          "sourceSha256": "2b8685fa3e96624ce43c15d27a7db90d1c089d0e174f01c923bd1ff7007c4875"
+        }
+      ],
+      "actual": "同一个真实localhost HTTP MCP端点接受两种合成Bearer分别为租户a/b；官方SDK发现对应同名query及不同description，保存两套Vault引用、连接与绑定，未调用任何业务工具。额外三引用测试证明同值独立引用和旧绑定/连接均保留。",
+      "limit": "全部HTTP认证身份均为本机合成服务；未接入企业端点或真实Key。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-03",
+      "status": "PASS",
+      "title": "重复导入",
+      "setup": "同sourceRevision重复提交",
+      "expected": "幂等返回已有连接，不新增重复记录",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "PLUG-02/PLUG-03/CAP-01/CAP-03 matrix: two same-name server tools and three Skills preserve one plugin tree, independent sources and idempotent imports",
+          "assertionLines": [
+            313,
+            314,
+            315,
+            316,
+            317
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "相同请求同幂等键返回原回执；换幂等键但相同来源修订/环境重复导入仍返回相同连接及绑定ID，普通表各一条。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-04",
+      "status": "PASS",
+      "title": "缺认证变量",
+      "setup": "引用不存在环境变量",
+      "expected": "credentials_required；普通表无Key值",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "CAP-04 matrix: a missing authentication variable stays credentials_required without connecting or recording a process environment value",
+          "assertionLines": [
+            339,
+            344,
+            345,
+            346,
+            347,
+            348,
+            349,
+            350,
+            351,
+            352,
+            354,
+            355,
+            356,
+            357,
+            358,
+            359
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-discovery.test.ts",
+          "name": "explicit local credential import seals inline env, preserves source, and enables independent catalog",
+          "assertionLines": [
+            88,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            97
+          ],
+          "sourceSha256": "0d03b7e7ef94047668de02707ef92c6165b35b26aed04e1aad407caff3d5cfeb"
+        }
+      ],
+      "actual": "确实不存在的变量保持credentials_required及CREDENTIALS_REQUIRED；连接调用计数0，连接/绑定/secret行0，来源表不存config/env/secretRef。显式从不存在的来源值配置也拒绝且无副作用；已有内联凭据Vault加密和普通表无明文另有真实SDK验证。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-05",
+      "status": "PASS",
+      "title": "FlowHub自引用",
+      "setup": "扫描包含当前Hub",
+      "expected": "self可见但禁止递归导入",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "CAP-05 matrix: self sources remain visible but source import and configuration cannot create a recursive connection",
+          "assertionLines": [
+            425,
+            426,
+            427,
+            428,
+            429,
+            431,
+            432,
+            434,
+            435,
+            436
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        },
+        {
+          "file": "tests/engine/v2-discovery.test.ts",
+          "name": "HTTP self aliases normalize independently of server label and protocol identity blocks recursion",
+          "assertionLines": [
+            177,
+            178
+          ],
+          "sourceSha256": "0d03b7e7ef94047668de02707ef92c6165b35b26aed04e1aad407caff3d5cfeb"
+        }
+      ],
+      "actual": "FlowHub名和localhost别名两来源均可见self/informational，未尝试连接；来源ID导入拒绝、显式配置SELF_REFERENCE_DENIED，没有创建递归连接/绑定。协议serverInfo为FlowHub也能阻止别名递归。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-06",
+      "status": "PASS",
+      "title": "来源消失",
+      "setup": "源删除后再次扫描",
+      "expected": "标stale，历史依赖不被删除",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-discovery.test.ts",
+          "name": "CAP-06 matrix: removing a discovered source marks current capability stale while preserving published dependencies and prior revision bytes",
+          "assertionLines": [
+            454,
+            458,
+            461,
+            462,
+            463,
+            464,
+            465,
+            466,
+            467,
+            468,
+            469
+          ],
+          "sourceSha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+        }
+      ],
+      "actual": "发现并发布Skill后删除其合成来源，再完整扫描标source/capability stale并报告removed；旧发布版本JSON及旧capability revision字节相同，依赖仍存在；当前草稿定位host节点，旧引用不能再次导入。",
+      "limit": "删除的是临时Skill来源，已发布依赖保留用原始持久化对象/字节验证；未删除真实源文件。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-07",
+      "status": "PASS",
+      "title": "Schema漂移",
+      "setup": "工具入参改变类型",
+      "expected": "修订递增，相关草稿定位问题",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-combined-acceptance.test.ts",
+          "name": "CAP-07 combined: real MCP parameter type drift locates an existing draft node/field, repairs through authoring and republishes without changing v1",
+          "assertionLines": [
+            106,
+            108,
+            112,
+            113,
+            114,
+            115,
+            117,
+            118,
+            119,
+            120,
+            122,
+            127,
+            129,
+            131,
+            132,
+            133
+          ],
+          "sourceSha256": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+        }
+      ],
+      "actual": "官方SDK真实STDIO MCP将/count从string变integer；能力语义修订1→2，既存read草稿精确给出CAPABILITY_STALE节点、capabilityRef路径、schema path与mapping path；更新引用后TYPE_MISMATCH，修复mapping为2后重新发布1.0.1，旧1.0.0/旧连接不变，仅两次显式合成绑定probe执行业务。",
+      "limit": "真实协议/进程与工具调用均为隔离合成服务，MOCK_VERIFIED不冒充生产绑定验证。",
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    },
+    {
+      "id": "CAP-08",
+      "status": "PASS",
+      "title": "只更新扫描时间",
+      "setup": "相同工具重新扫描",
+      "expected": "语义revision不变，不使全部测试失效",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-discovery.test.ts",
+          "name": "unchanged metadata preserves catalog semantics, real draft capability refs and accepted self-test baseline",
+          "assertionLines": [
+            258,
+            259,
+            260,
+            261
+          ],
+          "sourceSha256": "0d03b7e7ef94047668de02707ef92c6165b35b26aed04e1aad407caff3d5cfeb"
+        }
+      ],
+      "actual": "相同工具metadata/catalog重复扫描保持完整capability定义及语义revision；来源观察时间/深度更新，草稿无CAPABILITY_STALE，自测stale=false。禁用来源才使旧测试stale=true。",
+      "limit": null,
+      "evidenceLevel": "L1_L2_local_synthetic_real_process_protocol",
+      "executionIds": [
+        "server_compile",
+        "targeted_current_source"
+      ]
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "packages/host-discovery/src/index.ts",
+      "sha256": "fa7f4c52d5b84016832bfdbf26c35796bef80e541bd0f4a836ed825aacce9700"
+    },
+    {
+      "path": "packages/host-discovery/src/marketplace.ts",
+      "sha256": "5e40624453ab68ff4a193fd4476d27dd9cd4fb625d1ee9a57dbfc163ebb3d599"
+    },
+    {
+      "path": "packages/capability-registry/src/discovery-catalog.ts",
+      "sha256": "0d2f8157be1764f21be433b4bfe779af72084cabf2459d9a39ef39dfed1f392e"
+    },
+    {
+      "path": "apps/web/src/features/discovery/shared.tsx",
+      "sha256": "63f3714a0d7414ee18a27dd64525b0f482881efb4fe4700fea0dd64540a9e578"
+    },
+    {
+      "path": "apps/web/src/features/discovery/DiscoveryPage.tsx",
+      "sha256": "8ee214951bda0893119e8f2979e8025724d9a9db7a63473a044b886bace34104"
+    },
+    {
+      "path": "apps/web/src/features/discovery/DiscoveryList.tsx",
+      "sha256": "6ed05c96acb9f0442ae45dffa3d4376ebe97d29adbc6e5d1dcbf5780690c1d33"
+    },
+    {
+      "path": "apps/web/src/features/discovery/DiscoveryDetail.tsx",
+      "sha256": "7ac6a4aebddae496ef87bb178e7da9bf732a7a367403c3bbad3473b6892fde96"
+    },
+    {
+      "path": "tests/engine/v2-matrix-discovery.test.ts",
+      "sha256": "036a51af5b5be06dcc93137c4351464c01ce9dd4f9a1d442d930a209cab6b750"
+    }
+  ],
+  "officialFormatSource": {
+    "url": "https://developers.openai.com/plugins/build/plugins#marketplace-metadata",
+    "retrieved": "2026-11-06",
+    "scope": "Documented local personal/trusted repository marketplace paths, source shape, and installation policies only."
+  },
+  "correctedFailures": [
+    {
+      "kind": "product",
+      "id": "PLUG-01",
+      "before": "No available_only projection or UI status; baseline new tests reproduce 2!=10/0!=3.",
+      "after": "Restricted read-only marketplace metadata and distinct installed/available counts plus 2 behavior tests."
+    },
+    {
+      "kind": "product",
+      "id": "PLUG-01",
+      "finding": "F2 independent audit",
+      "before": "Same marketplace/plugin in personal and trusted project catalogs silently kept the first policy/description and discarded later metadata changes.",
+      "after": "Canonical per-source metadata is retained and fingerprinted, disagreements are ambiguous/partial and visible in catalog/detail/UI. Installed cache/enablement/components and existing bindings remain independent. Two new controls plus all three existing marketplace tests pass 5/5; root global fresh receipt remains required."
+    },
+    {
+      "kind": "product",
+      "id": "PACK-04",
+      "before": "readConfig EACCES surfaced as CONFIG_PARSE_ERROR",
+      "after": "Only smol-toml TomlError is CONFIG_PARSE_ERROR; actual I/O errors are SOURCE_UNREADABLE. Permission fixture and after-log owned by runtime-pack."
+    },
+    {
+      "kind": "test_fixture",
+      "before": "Initial CAP-06 host_skill fixture omitted the existing required reportContractRef/output contract and was correctly rejected.",
+      "after": "Fixture corrected; all 12 new tests pass; initial failed attempt is retained in matrix-tests-first-attempt.log."
+    },
+    {
+      "kind": "harness",
+      "before": "Initial independent --outDir lacked dist nesting and resolved projectRoot to /private/tmp.",
+      "after": "Independent build now uses its own dist directory with linked checkout contracts/docs/examples/node_modules. No shared dist was modified; setup-first-attempt.log retained."
+    }
+  ]
+}

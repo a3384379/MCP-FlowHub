@@ -1,0 +1,27 @@
+{
+  "passed": false,
+  "error": {
+    "name": "Error",
+    "message": "locator.click: Error: strict mode violation: getByRole('button', { name: '关闭详情', exact: true }) resolved to 2 elements:\n    1) <button class=\"d-close\" aria-label=\"关闭详情\">…</button> aka getByLabel('关闭详情')\n    2) <button>关闭详情</button> aka getByText('关闭详情')\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '关闭详情', exact: true })\u001b[22m\n",
+    "stack": "locator.click: Error: strict mode violation: getByRole('button', { name: '关闭详情', exact: true }) resolved to 2 elements:\n    1) <button class=\"d-close\" aria-label=\"关闭详情\">…</button> aka getByLabel('关闭详情')\n    2) <button>关闭详情</button> aka getByText('关闭详情')\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '关闭详情', exact: true })\u001b[22m\n\n    at /Volumes/雷电/BuildArtifacts/FlowHub/artifacts/matrix-recheck-20261106/independent-audit/browser-after/probe.mjs:94:65"
+  },
+  "ownedDaemon": {
+    "pid": 74730,
+    "port": 50042
+  },
+  "checks": [],
+  "screenshots": [
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/02-conflict-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/03-candidate-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/failure.png"
+  ],
+  "cleanup": {
+    "browserClosed": true,
+    "daemon": {
+      "code": 0,
+      "signal": null
+    },
+    "temporaryDataRemoved": true
+  },
+  "evidence": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/receipt.json"
+}

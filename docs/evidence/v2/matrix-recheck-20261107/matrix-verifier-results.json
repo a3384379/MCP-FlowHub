@@ -1,0 +1,58 @@
+{
+  "command": "node docs/evidence/v2/matrix-recheck-20261107/verify-evidence-controls.mjs",
+  "exitCode": 0,
+  "positive": {
+    "items": 104,
+    "summary": {
+      "PASS": 98,
+      "PARTIAL": 3,
+      "UNVERIFIED": 3,
+      "FAIL": 0
+    },
+    "runs": 10,
+    "sourceAndReceiptHashesVerified": true
+  },
+  "negativeControls": [
+    {
+      "name": "one of 104 IDs removed",
+      "rejected": true,
+      "error": "Expected values to be strictly equal:\n\n103 !== 104\n"
+    },
+    {
+      "name": "acceptance condition silently relaxed",
+      "rejected": true,
+      "error": "BASE-01 changed the acceptance condition\n+ actual - expected\n\n+ 'replaced condition'\n- '新表建立；旧checksum、工作流快照和报告正文不变'\n"
+    },
+    {
+      "name": "test source SHA does not match",
+      "rejected": true,
+      "error": "Reviewed source changed: BASE-01 tests/engine/v2-matrix-runtime.test.ts\n+ actual - expected\n\n+ '6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3'\n- '0000000000000000000000000000000000000000000000000000000000000000'\n"
+    },
+    {
+      "name": "native Windows marked PASS without native evidence",
+      "rejected": true,
+      "error": "DISC-07 requires native external evidence"
+    },
+    {
+      "name": "legacy bootstrap counterexample concealed",
+      "rejected": true,
+      "error": "Do not conceal the immutable legacy bootstrap counterexample"
+    },
+    {
+      "name": "named passing test missing despite matching counts",
+      "rejected": true,
+      "error": "No matching passed test: AUTHOR-01 AUTHOR-01/02/03/04 matrix: two valid operations then an invalid third roll back the entire draft, command and event state"
+    },
+    {
+      "name": "UI skip promoted to PASS",
+      "rejected": true,
+      "error": "Skipped, failed or retried tests cannot establish a clean full run: ui-full"
+    },
+    {
+      "name": "execution input source changed",
+      "rejected": true,
+      "error": "Run input source changed after execution: backend-full scripts/benchmark-v2.mjs\n+ actual - expected\n\n+ '426a82a4c408cc6778fd1a2f7d4ebdd20f045e33ff5db7d0c03eafdbbb7aec03'\n- '0000000000000000000000000000000000000000000000000000000000000000'\n"
+    }
+  ],
+  "failedEvidenceCannotEstablishPass": true
+}

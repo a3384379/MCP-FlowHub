@@ -1,0 +1,65 @@
+{
+  "id": "package-a-completeness-946a036",
+  "caseId": "PACK-01",
+  "argv": [
+    "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/scripts/verify-package-completeness.mjs",
+    "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json"
+  ],
+  "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+  "env": {
+    "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+    "FLOWHUB_PACKAGE_EVIDENCE_DIR": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness"
+  },
+  "startedAt": "2026-11-06T17:01:25.457852+00:00",
+  "durationSeconds": 3.529,
+  "exitCode": 0,
+  "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.log",
+  "logSha256": "cf0e99076f3a3456af8f3c2713dc0b012696f99f67778864017bba29d135b735",
+  "executionSnapshot": {
+    "capturedAt": "2026-11-06T17:01:25.457852+00:00",
+    "rootHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "stageHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "nodeExecutable": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+    "nodeVersion": "v24.19.0",
+    "platform": "Darwin",
+    "architecture": "arm64",
+    "scriptRef": "scripts/verify-package-completeness.mjs",
+    "scriptSha256": "b166eca051e1c3884a9c0839e202e4ef970eda9c1847f7141d21171f290bfd36",
+    "latestPackagePath": "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json",
+    "latestPackageSha256": "42157fd11d8c43cc4878ad6c1330e20cd6e15e7a3e18be0973a77256c40f317c",
+    "bundle": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z",
+    "archive": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z.tar.gz",
+    "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+    "buildInfoSha256": "a5bd040a9014d601fadedc084523dc72381e02ccf54dfe814685ba6d7a279160",
+    "manifestSha256": "41c1050e59de286a2c44762c7b15a798c7089c4c6319035d828091937edb74b3",
+    "buildGitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+    "runtimeSha256": "27db838bb204ef7c21df2931f5656e4c8fb32e6e947f363a402b49714d32b5b1"
+  },
+  "helperReceipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/package-completeness.receipt.json",
+  "helperReceiptSha256": "24273c750a961f3fb825bffb3c4f8c8145a6f426305e41285291ccc20904839a",
+  "actual": {
+    "status": "PASS",
+    "newRuntimeFilesChecked": 28,
+    "indexedDocuments": [
+      "README.md",
+      "docs/HOST_INTEGRATION.md",
+      "docs/V2_USER_GUIDE.md",
+      "docs/DISCOVERY_LOCALIZATION.md"
+    ],
+    "knowledgeChunks": 37,
+    "localizationCitation": {
+      "sourcePath": "docs/DISCOVERY_LOCALIZATION.md",
+      "heading": "发现目录与中文说明同步",
+      "lineStart": 1,
+      "lineEnd": 24,
+      "contentHash": "0fdcc9d31cf44548a5d8d732b940e2b33e0739b10192aa1e0d35d58d0362ebe9",
+      "productVersion": "2.0.0-alpha.2",
+      "availability": "implemented",
+      "chunkId": "153346588272395af51fc93da9b1b71ee96c422eadf56f81c80d97ddbf660020:0"
+    },
+    "node": "24.19.0",
+    "noGlobalNode": true
+  }
+}

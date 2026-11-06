@@ -1,0 +1,113 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "stages": [
+    {
+      "stage": "actual_v1_program_create_publish_run_report_backup",
+      "status": "PASS",
+      "baseline": "45eed03ee9f6f513a5c67e854d3d42e16afee636",
+      "oldSnapshotHash": "sha256:8ad35f7232e3c1f463eba7434aa5ef1b0d949dbc21f403da9fd5d3ab10927491"
+    },
+    {
+      "stage": "v2_migration_failure_actual_old_program_report_recovery",
+      "status": "PASS",
+      "injectedFailure": "after v2 DDL, before migration history commit",
+      "v1SchemaAndRowsUnchanged": true,
+      "fileSha256BeforeOldStartup": "912903c4ff46aa36419e91a786e4ae4ce2747ff923e5d41016cc3563552e546e",
+      "reportBytesUnchanged": true
+    },
+    {
+      "stage": "upgrade_to_v2_preserves_every_v1_row_and_report",
+      "status": "PASS",
+      "automaticPreMigrationBackup": true,
+      "v2BackupPreflight": true,
+      "corruptNewTableRejected": true,
+      "liveRestoreDenied": true
+    },
+    {
+      "stage": "actual_old_repository_readonly_rejects_v2",
+      "status": "PASS",
+      "fileSha256": "94457fe30dca3cee10ab1cf803ab1a18fe11874d223e6b9eea731b0d2651315d",
+      "businessSha256": "50286c9fc07f68c3662110229a4352dd2dc8af392cf6ace715cc1c3c8101f905",
+      "wholeFileUnchanged": true,
+      "scope": "Read-only old Repository validation only; does not claim old serve is write-free."
+    },
+    {
+      "stage": "historical_old_serve_mispoint_counterexample",
+      "status": "PARTIAL",
+      "exitCode": 1,
+      "cliError": "STARTUP_FAILED",
+      "readonlyRepositoryError": "MIGRATION_MISMATCH",
+      "businessAndHistoryUnchanged": true,
+      "originalV2DatabaseUnchanged": true,
+      "before": {
+        "fileSha256": "94457fe30dca3cee10ab1cf803ab1a18fe11874d223e6b9eea731b0d2651315d",
+        "businessSha256": "50286c9fc07f68c3662110229a4352dd2dc8af392cf6ace715cc1c3c8101f905",
+        "boots": 2,
+        "history": [
+          {
+            "version": 1,
+            "checksum": "39b4d8eab1f40befe28a3c7642a8e6b2b9398e1aa6a7e3895f74d572c4c88784",
+            "applied_at": "2026-11-06T17:00:40.117Z"
+          },
+          {
+            "version": 2,
+            "checksum": "09dca3fd026255a64d14f259ef94fbef53880e5d6f3e80a78a2750f1c288d301",
+            "applied_at": "2026-11-06T17:00:42.456Z"
+          },
+          {
+            "version": 3,
+            "checksum": "99e75caa56008e07bc3bd800147c4a372b79c378c246874a56b9e0657af9b7d4",
+            "applied_at": "2026-11-06T17:00:42.456Z"
+          }
+        ]
+      },
+      "after": {
+        "fileSha256": "0e8ea6dc3f229663b23110b50ae65272d9c85d86cd526d68629f24e21e704704",
+        "businessSha256": "50286c9fc07f68c3662110229a4352dd2dc8af392cf6ace715cc1c3c8101f905",
+        "boots": 3,
+        "history": [
+          {
+            "version": 1,
+            "checksum": "39b4d8eab1f40befe28a3c7642a8e6b2b9398e1aa6a7e3895f74d572c4c88784",
+            "applied_at": "2026-11-06T17:00:40.117Z"
+          },
+          {
+            "version": 2,
+            "checksum": "09dca3fd026255a64d14f259ef94fbef53880e5d6f3e80a78a2750f1c288d301",
+            "applied_at": "2026-11-06T17:00:42.456Z"
+          },
+          {
+            "version": 3,
+            "checksum": "99e75caa56008e07bc3bd800147c4a372b79c378c246874a56b9e0657af9b7d4",
+            "applied_at": "2026-11-06T17:00:42.456Z"
+          }
+        ]
+      },
+      "limitation": "The frozen historical serve increments boot metadata before rejecting v2. Always restore the version-matched v1 backup before launching the old program; readonly Repository rejection is not a startup write guard."
+    },
+    {
+      "stage": "restored_v1_history_verified_before_old_serve",
+      "status": "PASS",
+      "migrationVersions": [
+        1
+      ],
+      "v1RowsEqual": true
+    },
+    {
+      "stage": "stopped_restore_and_actual_old_program_restart",
+      "status": "PASS",
+      "v1RowsEqual": true,
+      "publishedHashUnchanged": true,
+      "reportBytesUnchanged": true,
+      "newOldVersionRunId": "run_d3494a3c-96e1-4de1-b129-db83d7e2b5d2",
+      "newOldVersionRunState": "SUCCEEDED",
+      "newReportBytes": 1089,
+      "newReportSha256": "447d6b1a0bff08db0ccf91287d5fde19e7230470adc4486d63fe4b6312ab0532"
+    }
+  ],
+  "formalUserDataAccessed": false,
+  "externalBusinessCalls": 0,
+  "nativeWindowsAcceptance": "UNVERIFIED"
+}

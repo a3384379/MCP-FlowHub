@@ -1,0 +1,342 @@
+{
+  "format": "flowhub.independent-audit.browser-after.v1",
+  "startedAt": "2026-11-06T16:41:27.967Z",
+  "node": "v24.19.0",
+  "platform": "darwin/arm64",
+  "passed": false,
+  "fixture": {
+    "onlyTemporarySyntheticData": true,
+    "personalFile": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+    "projectFile": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json",
+    "fakeCli": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/codex-owned-fixture"
+  },
+  "capturedHashes": {
+    "packages/host-discovery/src/marketplace.ts": "5e40624453ab68ff4a193fd4476d27dd9cd4fb625d1ee9a57dbfc163ebb3d599",
+    "packages/capability-registry/src/discovery-catalog.ts": "0d2f8157be1764f21be433b4bfe779af72084cabf2459d9a39ef39dfed1f392e",
+    "apps/web/src/features/discovery/shared.tsx": "63f3714a0d7414ee18a27dd64525b0f482881efb4fe4700fea0dd64540a9e578",
+    "apps/web/src/features/discovery/DiscoveryDetail.tsx": "7ac6a4aebddae496ef87bb178e7da9bf732a7a367403c3bbad3473b6892fde96",
+    "apps/web/src/features/discovery/DiscoveryList.tsx": "6ed05c96acb9f0442ae45dffa3d4376ebe97d29adbc6e5d1dcbf5780690c1d33",
+    "dist/packages/host-discovery/src/marketplace.js": "351802acb213a0dde99a140740e7b39b04dc3b1adada59417ce29c1dafb96a7b",
+    "dist/packages/capability-registry/src/discovery-catalog.js": "29eb436787ad1836ebb59ccb62f3bb81d5e9d7fa5afd50e07ee3c52cc7c7caad",
+    "dist/apps/daemon/src/cli.js": "a271eab09fb1a3d279ea52f8c5fd116f2570a71bd51904a315ea4ee26770c335",
+    "web-dist/index.html": "3d41e146de2fc711bd7683b99f6b492c86116e05ff4a9e039a9647ddd3f21cf7",
+    "web-dist/assets/index-BXQn5CVg.js": "65b50218561d3977dc1c6ac06a5750ba08575b4b79727759df7620d153610c68"
+  },
+  "checks": [],
+  "screenshots": [
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/02-conflict-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/03-candidate-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/failure.png"
+  ],
+  "snapshots": [
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/01-initial.aria.txt",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/02-conflict-cards.aria.txt",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/03-candidate-conflict-detail.aria.txt",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/failure.aria.txt"
+  ],
+  "browserRequests": [
+    {
+      "method": "GET",
+      "path": "/discovery"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-BXQn5CVg.js"
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-IFGAOBZi.css"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/host-contexts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/model-profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/assistant/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/workflows"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/connections"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/bindings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tools"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/assistant/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/host-contexts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/host-scans"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/host-scans/scan_24a0228d-9321-4d9d-934c-2784bb039bc8"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/assistant/sessions/session_1f3cf1b0-25b6-4bd0-93df-db450ad2e6a4/conversation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/host-scans/scan_24a0228d-9321-4d9d-934c-2784bb039bc8"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/entities/plugin_47f272e51a2ce0297616ea36"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/entities/plugin_8ee3fd79e8e91c6f04106383"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/discovery/entities/plugin_8ee3fd79e8e91c6f04106383"
+    }
+  ],
+  "blockedExternalRequests": [],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "apiObservations": {
+    "before": {
+      "contextId": "ctx_8c341af8edb69fca56b075bc",
+      "contextRevision": 1,
+      "scanId": "scan_24a0228d-9321-4d9d-934c-2784bb039bc8",
+      "snapshot": "4b640b857ac1b32057ae9917b8107c85a2472513533dd8538eaeb84674213dcc",
+      "requiresScan": false,
+      "coverage": "partial",
+      "status": "PARTIAL",
+      "completedAt": "2026-11-06T16:41:31.059Z",
+      "counts": {
+        "mcp_server": null,
+        "skill": 1,
+        "plugin": 1,
+        "issues": 4
+      },
+      "availablePluginCount": null,
+      "issues": [
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        },
+        {
+          "source": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json",
+          "code": "PLUGIN_MARKETPLACE_AMBIGUOUS"
+        }
+      ],
+      "localization": {
+        "pending": 1,
+        "total": 3
+      },
+      "items": [
+        {
+          "contextId": "ctx_8c341af8edb69fca56b075bc",
+          "contextRevision": 1,
+          "scanId": "scan_24a0228d-9321-4d9d-934c-2784bb039bc8",
+          "id": "plugin_47f272e51a2ce0297616ea36",
+          "entityKind": "plugin",
+          "name": "browser-installed-plugin",
+          "description": "实际安装清单介绍，市场资料不得覆盖",
+          "enabled": false,
+          "executor": "informational",
+          "availability": "installed",
+          "installation": "installed",
+          "sourceKey": "browser-installed-plugin@browser-shared-market",
+          "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/selected-home/plugins/cache/browser-shared-market/browser-installed-plugin/1.0",
+          "version": "1.0",
+          "manifestHash": "a43a17f4dc1002ce96c93433b76fda0ec5b8b61863ad461b93e798ccb24d136e",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+              "name": "browser-installed-plugin",
+              "description": "个人市场已装介绍",
+              "marketplaceName": "browser-shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json",
+              "name": "browser-installed-plugin",
+              "description": "项目市场已装介绍",
+              "marketplaceName": "browser-shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "c58919fe67dffbe0225215bc38638adcefd9da6b8efec1968f4338b35480d435",
+          "marketplaceConflict": true,
+          "stale": false,
+          "evidenceRefs": [
+            "plugin:manifest"
+          ],
+          "pluginName": null,
+          "sourceFingerprint": "2947cb009f5fbdec9b855848b4886d6c55be4841b9bbffb618761f80951d9b6c",
+          "revision": 1,
+          "searchText": "browser-installed-plugin 实际安装清单介绍，市场资料不得覆盖 ",
+          "entityId": "plugin_47f272e51a2ce0297616ea36",
+          "pluginDisplayName": null,
+          "pluginPresentationRevision": 0,
+          "importState": null,
+          "displayName": "browser-installed-plugin",
+          "summary": "实际安装清单介绍，市场资料不得覆盖",
+          "presentation": {
+            "state": "original",
+            "revision": 0
+          }
+        },
+        {
+          "contextId": "ctx_8c341af8edb69fca56b075bc",
+          "contextRevision": 1,
+          "scanId": "scan_24a0228d-9321-4d9d-934c-2784bb039bc8",
+          "id": "plugin_8ee3fd79e8e91c6f04106383",
+          "entityKind": "plugin",
+          "name": "browser-shared-plugin",
+          "description": "市场来源提供了不同介绍，请查看来源差异。",
+          "enabled": null,
+          "executor": "informational",
+          "availability": "ambiguous",
+          "installation": "available_only",
+          "sourceKey": "browser-shared-plugin@browser-shared-market",
+          "manifestHash": "47f01ad5568816b13f75b74946bb55513a99acac708f2f3db43ba35ea8637580",
+          "marketplaceRefs": [
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+            "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json"
+          ],
+          "marketplaceSources": [
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json",
+              "name": "browser-shared-plugin",
+              "description": "个人候选介绍",
+              "marketplaceName": "browser-shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            },
+            {
+              "path": "/private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json",
+              "name": "browser-shared-plugin",
+              "description": "项目候选介绍",
+              "marketplaceName": "browser-shared-market",
+              "marketplaceDisplayName": "",
+              "marketplacePolicy": "NOT_AVAILABLE",
+              "authenticationPolicy": "ON_INSTALL",
+              "category": "Productivity"
+            }
+          ],
+          "marketplaceFingerprint": "47f01ad5568816b13f75b74946bb55513a99acac708f2f3db43ba35ea8637580",
+          "marketplaceConflict": true,
+          "stale": false,
+          "evidenceRefs": [
+            "plugin:marketplace"
+          ],
+          "pluginName": null,
+          "sourceFingerprint": "c6fffcc384f370d221e2b72c39c91efa54b2cc9f7a24d9ca0298f2f6cba6cab3",
+          "revision": 1,
+          "searchText": "browser-shared-plugin 市场来源提供了不同介绍，请查看来源差异。 ",
+          "entityId": "plugin_8ee3fd79e8e91c6f04106383",
+          "pluginDisplayName": null,
+          "pluginPresentationRevision": 0,
+          "importState": null,
+          "displayName": "browser-shared-plugin",
+          "summary": "市场来源提供了不同介绍，请查看来源差异。",
+          "presentation": {
+            "state": "original",
+            "revision": 0
+          }
+        }
+      ],
+      "total": 2,
+      "nextCursor": null
+    }
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "daemon": {
+      "code": 0,
+      "signal": null
+    },
+    "temporaryDataRemoved": true
+  },
+  "ownedDaemon": {
+    "pid": 74730,
+    "port": 50042
+  },
+  "contextId": "ctx_8c341af8edb69fca56b075bc",
+  "error": {
+    "name": "Error",
+    "message": "locator.click: Error: strict mode violation: getByRole('button', { name: '关闭详情', exact: true }) resolved to 2 elements:\n    1) <button class=\"d-close\" aria-label=\"关闭详情\">…</button> aka getByLabel('关闭详情')\n    2) <button>关闭详情</button> aka getByText('关闭详情')\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '关闭详情', exact: true })\u001b[22m\n",
+    "stack": "locator.click: Error: strict mode violation: getByRole('button', { name: '关闭详情', exact: true }) resolved to 2 elements:\n    1) <button class=\"d-close\" aria-label=\"关闭详情\">…</button> aka getByLabel('关闭详情')\n    2) <button>关闭详情</button> aka getByText('关闭详情')\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '关闭详情', exact: true })\u001b[22m\n\n    at /Volumes/雷电/BuildArtifacts/FlowHub/artifacts/matrix-recheck-20261106/independent-audit/browser-after/probe.mjs:94:65"
+  },
+  "finishedAt": "2026-11-06T16:41:31.981Z"
+}

@@ -1,0 +1,218 @@
+(node:62157) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "node": "v24.19.0",
+  "sourceSha256": "5e40624453ab68ff4a193fd4476d27dd9cd4fb625d1ee9a57dbfc163ebb3d599",
+  "compiledSha256": "351802acb213a0dde99a140740e7b39b04dc3b1adada59417ce29c1dafb96a7b",
+  "assertions": {
+    "allPassed": true,
+    "currentSourceEqualsIndependentCompiledForAllCases": true,
+    "originalCounterexampleClosed": true,
+    "secondSourceChangesFingerprint": true,
+    "repeatedScansStable": true,
+    "installedManifestEnablementChildrenPreserved": true,
+    "uiStatusFunctionCorrect": true,
+    "noConnectionsBindingsToolCalls": true,
+    "actualBrowserNotRunByThisProbe": true
+  },
+  "cases": [
+    {
+      "name": "distinct_market_identity",
+      "status": "SUCCEEDED",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "available_only",
+          "conflict": false,
+          "revision": 1,
+          "status": "可用，尚未安装",
+          "children": 0
+        },
+        {
+          "installation": "available_only",
+          "availability": "unavailable",
+          "conflict": false,
+          "revision": 1,
+          "status": "市场策略不可用 · 未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": 0,
+      "availableCount": 1,
+      "issues": []
+    },
+    {
+      "name": "same_market_name_conflicting_sources",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "conflict": true,
+          "revision": 2,
+          "status": "市场来源冲突 · 未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": null,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "conflict_unchanged_repeat",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "conflict": true,
+          "revision": 2,
+          "status": "市场来源冲突 · 未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": null,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "same_market_second_source_changed",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "conflict": true,
+          "revision": 3,
+          "status": "市场来源冲突 · 未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": null,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "same_market_second_source_policy_changed",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "ambiguous",
+          "conflict": true,
+          "revision": 4,
+          "status": "市场来源冲突 · 未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": null,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "identical_sources",
+      "status": "SUCCEEDED",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "available_only",
+          "conflict": false,
+          "revision": 5,
+          "status": "可用，尚未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": 0,
+      "availableCount": 1,
+      "issues": []
+    },
+    {
+      "name": "identical_sources_repeat",
+      "status": "SUCCEEDED",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "available_only",
+          "conflict": false,
+          "revision": 5,
+          "status": "可用，尚未安装",
+          "children": 0
+        }
+      ],
+      "installedCount": 0,
+      "availableCount": 1,
+      "issues": []
+    },
+    {
+      "name": "installed_facts_survive_conflict",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "installed",
+          "availability": "installed",
+          "conflict": true,
+          "revision": 6,
+          "status": "已安装 · 已停用 · 市场来源冲突",
+          "children": 1
+        }
+      ],
+      "installedCount": 1,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "installed_conflict_repeat",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "installed",
+          "availability": "installed",
+          "conflict": true,
+          "revision": 6,
+          "status": "已安装 · 已停用 · 市场来源冲突",
+          "children": 1
+        }
+      ],
+      "installedCount": 1,
+      "availableCount": null,
+      "issues": [
+        "PLUGIN_MARKETPLACE_AMBIGUOUS",
+        "PLUGIN_MARKETPLACE_AMBIGUOUS"
+      ]
+    },
+    {
+      "name": "escaping_file_symlink",
+      "status": "PARTIAL",
+      "entities": [
+        {
+          "installation": "available_only",
+          "availability": "available_only",
+          "conflict": false,
+          "revision": 7,
+          "status": "可用，尚未安装",
+          "children": 1
+        }
+      ],
+      "installedCount": null,
+      "availableCount": 1,
+      "issues": [
+        "SOURCE_UNREADABLE"
+      ]
+    }
+  ]
+}

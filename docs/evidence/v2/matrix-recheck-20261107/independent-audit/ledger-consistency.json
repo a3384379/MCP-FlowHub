@@ -1,0 +1,100 @@
+[
+  {
+    "ledger": "discovery/acceptance-discovery.json",
+    "items": 24,
+    "uniqueIds": 24,
+    "exactTestRefs": 30,
+    "issues": [],
+    "recordedSummary": {
+      "PASS": 23,
+      "PARTIAL": 0,
+      "UNVERIFIED": 1
+    },
+    "observedStatusCounts": {
+      "UNVERIFIED": 1,
+      "PASS": 23
+    }
+  },
+  {
+    "ledger": "assistant-ui/matrix-results.json",
+    "items": 32,
+    "uniqueIds": 32,
+    "exactTestRefs": 48,
+    "issues": [],
+    "recordedSummary": {
+      "PASS": 20,
+      "PARTIAL": 0,
+      "UNVERIFIED": 12
+    },
+    "observedStatusCounts": {
+      "UNVERIFIED": 12,
+      "PASS": 20
+    }
+  },
+  {
+    "ledger": "runtime-pack/matrix-results.draft.json",
+    "items": 24,
+    "uniqueIds": 24,
+    "exactTestRefs": 33,
+    "issues": [
+      {
+        "id": "BASE-02",
+        "file": "artifacts/matrix-recheck-20261106/runtime-pack/base02-new-directory.mjs",
+        "kind": "test_name_not_found",
+        "name": "actual empty-directory daemon initialization and stopped reopen"
+      },
+      {
+        "id": "BASE-04",
+        "file": "tests/engine/v2-matrix-runtime.test.ts",
+        "kind": "test_name_not_found",
+        "name": "BASE-04: startup rejects the precise history error before writing or rebuilding any byte"
+      },
+      {
+        "id": "BASE-05",
+        "file": "tests/engine/v2-matrix-runtime.test.ts",
+        "kind": "test_name_not_found",
+        "name": "BASE-05: startup rejects the precise history error before writing or rebuilding any byte"
+      },
+      {
+        "id": "BASE-08",
+        "file": "scripts/smoke-v2-upgrade.mjs",
+        "kind": "test_name_not_found",
+        "name": "restored_v1_history_verified_before_old_serve and stopped_restore_and_actual_old_program_restart"
+      },
+      {
+        "id": "RUN-07",
+        "file": "scripts/smoke-codex-host-handoff.mjs",
+        "kind": "test_name_not_found",
+        "name": "actual installed Codex host-only MCP handoff"
+      },
+      {
+        "id": "PACK-01",
+        "file": "artifacts/matrix-recheck-20261106/runtime-pack/verify-package-completeness.mjs",
+        "kind": "test_name_not_found",
+        "name": "complete v2 runtime/module/doc inventory and packaged knowledge index"
+      },
+      {
+        "id": "PACK-02",
+        "file": "scripts/smoke-package.mjs",
+        "kind": "test_name_not_found",
+        "name": "both protocol eras; package runtime health, new persisted tools and old seven-tool identity"
+      },
+      {
+        "id": "PACK-08",
+        "file": "scripts/smoke-v2-upgrade.mjs",
+        "kind": "test_name_not_found",
+        "name": "actual old upgrade and verified stop/restore with fresh old-program run/report"
+      }
+    ],
+    "recordedSummary": {
+      "PASS": 17,
+      "PARTIAL": 3,
+      "UNVERIFIED": 4
+    },
+    "observedStatusCounts": {
+      "PARTIAL": 3,
+      "UNVERIFIED": 4,
+      "PASS": 17
+    }
+  }
+]

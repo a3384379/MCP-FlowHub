@@ -1,6 +1,12 @@
 # 2.0 验收
 
-## 2026-11-06 自测补齐 max 复审（当前）
+## 2026-11-07 全部104项重新验收（当前）
+
+原设计104项已逐条重验并绑定当前执行源码：**98 PASS / 3 PARTIAL / 3 UNVERIFIED**，最终check、后端538/538、浏览器94/94无跳过/自动重试；真实本机Codex编排/host-only合成交接、3组合、升级回滚及干净macOS候选门禁通过。详见 [本轮审计与验收](evidence/v2/matrix-recheck-20261107/审计与验收.md)、[完整104项矩阵](evidence/v2/matrix-recheck-20261107/104项验收矩阵.md) 与 [机器账本](evidence/v2/acceptance-results.json)。旧下节计数和“未整体重验”为历史状态。
+
+KB-04只有文档检索证据，缺回答行为验收，故为PARTIAL。BASE-08保留旧serve误指v2会先改启动计数的实际反例；PACK-08缺新机操作为PARTIAL。Windows/WSL、原生Windows包/安装器、隔离账号卸载为UNVERIFIED；真实模型30场景、企业权限与企业插件未验，0真实模型调用。98个本地PASS不等于完整外部正式验收。
+
+## 2026-11-06 自测补齐 max 复审（历史）
 
 ai_assisted、Contract/Live 及三个指定组合场景已追加独立 max 审计、xhigh 修复和反例回归。最新源码 check、后端 **485/485**、浏览器 **89/89**，三个指定组合再次通过；逐项关闭证据和验收范围统一见 [专项审计与修复](evidence/v2/max-completion-audit-20261106/审计与修复.md)。下面的 457/81 等计数是复审前补齐版本的历史结果。
 

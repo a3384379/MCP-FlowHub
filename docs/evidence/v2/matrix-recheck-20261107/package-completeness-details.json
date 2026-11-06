@@ -1,0 +1,82 @@
+{
+  "caseId": "PACK-01",
+  "status": "PASS",
+  "bundle": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z",
+  "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+  "manifestSha256": "41c1050e59de286a2c44762c7b15a798c7089c4c6319035d828091937edb74b3",
+  "newRuntimeFilesChecked": 28,
+  "compiledFiles": [
+    "dist/packages/workflow-authoring/src/capability-drift.js",
+    "dist/packages/workflow-authoring/src/index.js",
+    "dist/packages/host-discovery/src/app-server.js",
+    "dist/packages/host-discovery/src/connection-fields.js",
+    "dist/packages/host-discovery/src/generated/v2/ConfigReadParams.js",
+    "dist/packages/host-discovery/src/generated/v2/ListMcpServerStatusParams.js",
+    "dist/packages/host-discovery/src/generated/v2/McpServerStatusDetail.js",
+    "dist/packages/host-discovery/src/generated/v2/SkillsListParams.js",
+    "dist/packages/host-discovery/src/index.js",
+    "dist/packages/host-discovery/src/marketplace.js",
+    "dist/packages/host-discovery/src/metadata.js",
+    "dist/packages/host-discovery/src/runtime.js",
+    "dist/packages/capability-registry/src/discovery-catalog.js",
+    "dist/packages/capability-registry/src/index.js",
+    "dist/packages/assistant-core/src/context-budget.js",
+    "dist/packages/assistant-core/src/index.js",
+    "dist/packages/assistant-core/src/project-state.js",
+    "dist/packages/llm-providers/src/index.js",
+    "dist/packages/llm-providers/src/model-docs.js",
+    "dist/packages/project-knowledge/src/index.js",
+    "dist/packages/workflow-testing/src/ai-generation.js",
+    "dist/packages/workflow-testing/src/execution-baseline.js",
+    "dist/packages/workflow-testing/src/index.js",
+    "dist/packages/workflow-testing/src/scoped-execution.js",
+    "dist/packages/persistence/src/migrations.js",
+    "dist/packages/persistence/src/v1.js",
+    "dist/packages/persistence/src/v2.js",
+    "dist/packages/persistence/src/v3.js"
+  ],
+  "helpDocuments": [
+    {
+      "path": "README.md",
+      "runtimeExists": true,
+      "sourceExists": true
+    },
+    {
+      "path": "docs/HOST_INTEGRATION.md",
+      "runtimeExists": true,
+      "sourceExists": true
+    },
+    {
+      "path": "docs/V2_USER_GUIDE.md",
+      "runtimeExists": true,
+      "sourceExists": true
+    },
+    {
+      "path": "docs/DISCOVERY_LOCALIZATION.md",
+      "runtimeExists": true,
+      "sourceExists": true
+    }
+  ],
+  "packagedRuntimeIndex": {
+    "node": "24.19.0",
+    "indexedDocuments": [
+      "README.md",
+      "docs/HOST_INTEGRATION.md",
+      "docs/V2_USER_GUIDE.md",
+      "docs/DISCOVERY_LOCALIZATION.md"
+    ],
+    "knowledgeChunks": 37,
+    "localizationCitation": {
+      "sourcePath": "docs/DISCOVERY_LOCALIZATION.md",
+      "heading": "发现目录与中文说明同步",
+      "lineStart": 1,
+      "lineEnd": 24,
+      "contentHash": "0fdcc9d31cf44548a5d8d732b940e2b33e0739b10192aa1e0d35d58d0362ebe9",
+      "productVersion": "2.0.0-alpha.2",
+      "availability": "implemented",
+      "chunkId": "153346588272395af51fc93da9b1b71ee96c422eadf56f81c80d97ddbf660020:0"
+    }
+  },
+  "noGlobalNode": true,
+  "hashScope": "Integrity and consistency only; not a signature or enterprise acceptance."
+}

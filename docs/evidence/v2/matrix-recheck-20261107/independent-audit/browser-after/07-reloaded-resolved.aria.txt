@@ -1,0 +1,86 @@
+- complementary "主导航":
+  - text: F FlowHub
+  - paragraph: 本机工作空间 · 单用户
+  - navigation "主菜单":
+    - region "工作区":
+      - heading "工作区" [level=2]
+      - button "工作流"
+      - button "运行记录"
+    - region "能力与连接":
+      - heading "能力与连接" [level=2]
+      - button "能力发现"
+      - button "MCP 服务"
+      - button "环境与资源"
+    - region "系统配置":
+      - heading "系统配置" [level=2]
+      - button "模型设置"
+      - button "系统设置"
+  - strong: 本机管理员
+  - text: 本地运行模式
+  - button "退出登录"
+- main:
+  - text: 能力与连接/能力发现 LOCAL FIRST
+  - button "↻ 刷新"
+  - heading "Codex 能力发现" [level=1]
+  - paragraph: 看清 MCP、Skills 和插件的用途与关系，找到适合你的流程能力。
+  - button "重新扫描"
+  - button "同步工具目录"
+  - text: 本机上下文
+  - combobox "本机上下文":
+    - option "我的 Mac · trusted-project · 默认 Profile" [selected]
+  - text: codex-cli synthetic-browser-1
+  - status: 扫描完成 · 来源覆盖：完整 · 最近完成 2026/11/7 00:43:26
+  - group: 登记本机 Codex 上下文
+  - button "MCP 服务 0":
+    - text: MCP 服务
+    - strong: "0"
+  - button "Skills 技能 1":
+    - text: Skills 技能
+    - strong: "1"
+  - button "已安装插件 1":
+    - text: 已安装插件
+    - strong: "1"
+  - button "需处理 0":
+    - text: 需处理
+    - strong: "0"
+  - paragraph: 另有 1 个市场可用插件尚未安装，可在“插件与关系”查看。
+  - region "发现结果":
+    - tablist "能力类型":
+      - tab "MCP 服务 0" [selected]
+      - tab "Skills 技能 1"
+      - tab "插件与关系 1"
+      - tab "需处理 0"
+    - button "中 / EN 中文优先"
+    - strong: MCP 提供工具
+    - text: ，
+    - strong: Skill 指导怎么做
+    - text: ，
+    - strong: 插件打包它们
+    - text: 。按类型查看，在详情中了解关联。
+    - button "收起概念说明"
+    - textbox "搜索名称或用途":
+      - /placeholder: 搜索中文用途、原始名称或插件…
+    - combobox "使用位置":
+      - option "全部使用位置" [selected]
+      - option "FlowHub 可导入"
+      - option "仅 Codex 调用"
+    - combobox "来源筛选":
+      - option "全部来源" [selected]
+      - option "插件提供"
+      - option "独立配置 / 技能"
+    - combobox "可用状态":
+      - option "全部状态" [selected]
+      - option "可导入"
+      - option "仅宿主"
+      - option "缺连接配置"
+      - option "待同步"
+      - option "已停用"
+      - option "需手动登记"
+    - text: 0 项结果
+    - tabpanel "MCP 服务 0": 已扫描范围内没有MCP 服务。
+    - text: 中文说明优先，原始名称和调用参数保留。 1 项待中文整理。
+    - button "中文整理方式"
+  - text: 只读发现不修改 Codex 配置。同步目录只读取工具定义，不调用业务工具。 FLOWHUB 一个入口 · 受控执行 · 证据可追踪 本机工作空间 / 独立管理员
+- button "打开 FlowHub 助手"
+- button "将助手图标贴边收起"
+- text: 按住图标或边缘标签拖动，松手吸附左右边缘。方向键调整位置，小箭头切换贴边收起。位置自动保存。
