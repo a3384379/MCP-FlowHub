@@ -115,9 +115,21 @@ test("resume keeps an older active generation visible before 51 newer terminal r
   let modelRequests=0;f.app.testing.configureAi(async request=>{request.onModelRequest();modelRequests++;return new Promise(()=>{});});
   const generation=f.app.testing.generate({workflowId:"scoped-max",expectedRevision:2,strategy:"ai_assisted",modelProfileId:profile.id,idempotencyKey:"pending"});
   for(let i=0;i<100&&modelRequests===0;i++)await new Promise(r=>setImmediate(r));assert.equal(modelRequests,1);
-  const suite=f.suite([f.makeCase("normal")]);for(let i=0;i<51;i++)f.app.testing.run({suiteId:suite.id,expectedSuiteRevision:1,mode:"mock",idempotencyKey:"newer-"+i});
-  for(let i=0;i<500&&f.repo.all("workflow_test_runs").filter(r=>r.kind!=="generation"&&r.status==="SUCCEEDED").length<51;i++)await new Promise(r=>setTimeout(r,2));
-  assert.equal(f.repo.all("workflow_test_runs").filter(r=>r.kind!=="generation"&&r.status==="SUCCEEDED").length,51);
+  const suite = f.suite([f.makeCase("normal")]);
+  const generationCreatedAt = Date.parse(f.repo.get("workflow_test_runs", generation.testRunId).createdAt);
+  // Seed completed history so list ordering is independent of Mock execution speed.
+  for (let i = 1; i <= 51; i++) {
+    const id = `newer-${i}`;
+    f.repo.insert("workflow_test_runs", id, {
+      id,
+      suiteId: suite.id,
+      workflowId: "scoped-max",
+      owner: "admin",
+      mode: "mock",
+      status: "SUCCEEDED",
+      createdAt: new Date(generationCreatedAt + i).toISOString(),
+    });
+  }
   f.repo.put("clients","other",{id:"other",revoked:false,scopes:["workflow:author"],workflowAllowlist:["scoped-max"]});
   f.repo.insert("workflow_test_runs","expired",{id:"expired",workflowId:"scoped-max",owner:"admin",status:"RUNNING",createdAt:"2099",resultsExpiredAt:"2099"});
   f.repo.insert("workflow_test_runs","other-active",{id:"other-active",workflowId:"scoped-max",owner:"other",status:"QUEUED",createdAt:"2000",PRIVATE:"Synthetic-private"});
