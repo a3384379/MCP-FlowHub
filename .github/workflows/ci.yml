@@ -23,6 +23,7 @@ jobs:
         run: node scripts/probe-windows-processes.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && !cancelled()
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: windows-process-probe
           path: |
@@ -76,6 +77,7 @@ jobs:
         run: npm run test:installer:windows
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && !cancelled()
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: flowhub-rc-${{ runner.os }}
           path: |
