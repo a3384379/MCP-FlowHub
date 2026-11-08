@@ -1,0 +1,42 @@
+[
+  {
+    "id": "BASE-08",
+    "before": "PASS",
+    "after": "PARTIAL"
+  },
+  {
+    "id": "DISC-03",
+    "before": "PARTIAL",
+    "after": "PASS"
+  },
+  {
+    "id": "CAP-07",
+    "before": "PARTIAL",
+    "after": "PASS"
+  },
+  {
+    "id": "AUTHOR-08",
+    "before": "PARTIAL",
+    "after": "PASS"
+  },
+  {
+    "id": "KB-04",
+    "before": "PASS",
+    "after": "PARTIAL"
+  },
+  {
+    "id": "RUN-07",
+    "before": "PARTIAL",
+    "after": "PASS"
+  },
+  {
+    "id": "PACK-04",
+    "before": "UNVERIFIED",
+    "after": "PASS"
+  },
+  {
+    "id": "PACK-08",
+    "before": "UNVERIFIED",
+    "after": "PARTIAL"
+  }
+]

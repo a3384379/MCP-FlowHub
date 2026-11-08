@@ -1,0 +1,97 @@
+{
+  "allMatch": true,
+  "entries": [
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "packages/assistant-core/src/index.ts",
+      "sha256": "8434c0f106309ea28deef6dc2caca621adfefd306befbe87c55fea2706acf160"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "packages/security/src/index.ts",
+      "sha256": "f8e522edc01ecf59cdcafe9a7661a5fa6c14b19c1c9631034a2f38b2e2e7bd84"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "packages/workflow-testing/src/ai-generation.ts",
+      "sha256": "a95cf68627d69e16babb352a48286abfd1cdfc96ae3703781327b6d006adb57e"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "packages/workflow-testing/src/index.ts",
+      "sha256": "c2e616a7cf40c3f8a068352644e279ee40eb51b25a9918b279aa4bebe6483dde"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "packages/llm-providers/src/index.ts",
+      "sha256": "4d0f4655b5b21a20990ce9e66bf913765d2afe36d9eec38feac8c0a864f2cefb"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "contracts/test-suite.schema.json",
+      "sha256": "28e9ce2e6a456978bed3f3ae7e789221dfde8048381a9d99c20852fb7768a4ae"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "dist/packages/assistant-core/src/index.js",
+      "sha256": "32b6d6881ed091e5405727f9fcd00a937c6b8074f46a3d9e146001a92341a13b"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "dist/packages/security/src/index.js",
+      "sha256": "17b7343bd3f8410e67eb18a44023cab137ca9971a3a9b140470e9ace5cc1ff89"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "dist/packages/workflow-testing/src/ai-generation.js",
+      "sha256": "169c5a1a7d3710c48359f384c6089bfd8d7cca16bca3b3e9d37cfd33a21ee449"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "dist/packages/workflow-testing/src/index.js",
+      "sha256": "5237e1597aef911994a327ca981a556b971ec83ec889739675c4373cf0a5e574"
+    },
+    {
+      "evidence": "ai/after-evidence.json",
+      "path": "dist/packages/llm-providers/src/index.js",
+      "sha256": "000b710be490307721a4e93974bf480c095886ceb6e5023afaf5368538e1144c"
+    },
+    {
+      "evidence": "ui-combos/after-findings.json",
+      "path": "apps/web/src/features/testing/TestingPanel.tsx",
+      "sha256": "398cdd1b1ba80b55066e9f70f4662f521382b5bd5352ce78cd521a24a0a47893"
+    },
+    {
+      "evidence": "ui-combos/after-findings.json",
+      "path": "packages/workflow-authoring/src/capability-drift.ts",
+      "sha256": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce"
+    },
+    {
+      "evidence": "ui-combos-repair/verification.json",
+      "path": "apps/web/src/features/testing/TestingPanel.tsx",
+      "sha256": "398cdd1b1ba80b55066e9f70f4662f521382b5bd5352ce78cd521a24a0a47893"
+    },
+    {
+      "evidence": "ui-combos-repair/verification.json",
+      "path": "apps/web/src/features/testing/testing.css",
+      "sha256": "612e3b3277e5abd67bd394beb711cec899515c59543c6170568c686501c13555"
+    },
+    {
+      "evidence": "ui-combos-repair/verification.json",
+      "path": "packages/workflow-authoring/src/capability-drift.ts",
+      "sha256": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce"
+    },
+    {
+      "evidence": "ui-combos-repair/verification.json",
+      "path": "tests/ui/v2-testing-max-audit.spec.ts",
+      "sha256": "5809185752b6bc0f1af395dfad56a0e25f005b59996a1e3bdeff556aa23b5f69",
+      "previousSha256": "2c6f943c9384bf49e74b018920b8574499506e60a24b64809d7ab589d44012d2",
+      "afterIndependentReviewChange": "test-only logout and awaited route cleanup after first full UI failure; all original behavioral assertions retained; final full UI result recorded separately"
+    },
+    {
+      "evidence": "ui-combos-repair/verification.json",
+      "path": "tests/engine/v2-capability-drift-max-audit.test.ts",
+      "sha256": "486563fb599d35954a0a190ea768a3268df88c589ea6bebbb08b4a69b1a97c44"
+    }
+  ]
+}

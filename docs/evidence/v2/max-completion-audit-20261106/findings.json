@@ -1,0 +1,123 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "auditReasoningEffort": "max",
+  "repairReasoningEffort": "xhigh",
+  "scope": [
+    "ai_assisted",
+    "contract/live",
+    "DISC-03",
+    "CAP-07",
+    "AUTHOR-08"
+  ],
+  "countingNote": "缺值断言在两组独立审计复现，合并为一项；AI-OBS-01依设计保留来源条款裁定补齐；Mock文案为root追加。",
+  "findings": [
+    {
+      "id": "MAX-01",
+      "severity": "P1",
+      "title": "Live 未知结果仍派发后例且可整体成功",
+      "before": "before/unknown-outcome.json",
+      "after": "after/scoped-results.json",
+      "repair": "未知派发立即停止；当前例失败、后例 NOT_RUN；幂等与重建不重放",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-02",
+      "severity": "P1",
+      "title": "JSON 转义可使受管认证值写入套件",
+      "before": "before/ai-results.json",
+      "after": "after/ai-results.json",
+      "repair": "解析后检查解码后的键和值；上下文入任务前检查；整体拒绝，不改业务原值",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-03",
+      "severity": "P2",
+      "title": "已收到的 MCP 错误误标为未知结果",
+      "before": "before/known-error.json",
+      "after": "after/scoped-results.json",
+      "repair": "将 isError 响应标为已知结果，保留合法负例及有界重试",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-04",
+      "severity": "P2",
+      "title": "一次 AI 生成暗含三次 HTTP",
+      "before": "before/ai-results.json",
+      "after": "after/ai-results.json",
+      "repair": "AI 内部 maxAttempts=1；普通助手默认最多3次；取消重试等待不再派发",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-05",
+      "severity": "P2",
+      "title": "无效目标或缺值引用可以与 null 比较通过",
+      "before": "before/ai-results.json",
+      "after": "after/scoped-results.json",
+      "repair": "共享 Schema、节点语义校验及运行时缺值失败；合法 null 保留",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-06",
+      "severity": "P2",
+      "title": "最近50条终态记录挤掉仍活动的生成任务",
+      "before": "before/hidden-active-generation.json",
+      "after": "after/scoped-results.json",
+      "repair": "活动任务优先；owner、过期和元数据隔离保持",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-07",
+      "severity": "P2",
+      "title": "运行和保存幂等签名未包含套件目标",
+      "before": "before/ui-results.json",
+      "after": "after/ui-results.json",
+      "repair": "method+完整路径+请求体；相同目标重试保留原键，不同目标分离",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-08",
+      "severity": "P2",
+      "title": "迟到的生成套件回包覆盖未保存夹具",
+      "before": "before/ui-results.json",
+      "after": "after/ui-results.json",
+      "repair": "等回执期间锁定；dirty 原值保留；明确切换及暂存，恢复仍沿用原 CAS 修订",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-09",
+      "severity": "P2",
+      "title": "终态未重新读取，旧成功结果不显示过期",
+      "before": "before/ui-results.json",
+      "after": "after/ui-results.json",
+      "repair": "周期与焦点只读刷新套件及任务；迟到旧修订不倒退，无重复运行 POST",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-10",
+      "severity": "P2",
+      "title": "$ref sibling 漂移未定位且误报诊断完整",
+      "before": "before/schema-drift.json",
+      "after": "after/schema-drift.json",
+      "repair": "分别记录引用目标及 sibling 约束位置；复杂/超预算诊断标不完整",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-11",
+      "severity": "P2",
+      "title": "编辑夹具丢弃 AI 生成来源",
+      "before": "before/ai-findings.json",
+      "after": "after/ai-results.json",
+      "repair": "按设计03第210行保留来源；generationSource/revisionSources 保持初始及各修订元数据，不复制旧用例正文",
+      "status": "CLOSED"
+    },
+    {
+      "id": "MAX-12",
+      "severity": "P2",
+      "title": "Mock 轨迹数被显示成真实工具调用",
+      "before": "TestingPanel 复审前源码及首轮浏览器 panel 文本",
+      "after": "tests/ui/v2-testing-max-audit.spec.ts",
+      "repair": "显示模拟工具调用；本地真实 SDK 计数证明模拟轨迹1、实际业务tools/call=0",
+      "status": "CLOSED"
+    }
+  ]
+}

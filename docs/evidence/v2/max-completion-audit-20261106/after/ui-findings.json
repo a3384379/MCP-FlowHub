@@ -1,0 +1,34 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "workingTreeFixes": true,
+  "reviewType": "independent after review of original UI/combo findings",
+  "sourceSha256": {
+    "apps/web/src/features/testing/TestingPanel.tsx": "398cdd1b1ba80b55066e9f70f4662f521382b5bd5352ce78cd521a24a0a47893",
+    "packages/workflow-authoring/src/capability-drift.ts": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce"
+  },
+  "originalFindings": [
+    {"id":"UI-01","priority":2,"afterStatus":"FIXED","evidence":"after/browser-results.json#scenarios[id=lost-run-key-new-suite]","actual":"Different suite targets with equal business body now receive different keys and real 200 results, one accepted run per suite."},
+    {"id":"UI-02","priority":2,"afterStatus":"FIXED","evidence":"after/browser-results.json#scenarios[id=late-generated-suite-drops-edit]","actual":"Suite GET loading keeps controls locked; an existing dirty draft survives the late receipt and switch/restore."},
+    {"id":"UI-03","priority":2,"afterStatus":"FIXED","evidence":"after/browser-results.json#scenarios[id=external-suite-stale-hidden]","actual":"External suite revision is adopted, terminal result marks stale, and execution POST count remains one."},
+    {"id":"CAP-01","priority":2,"afterStatus":"FIXED","evidence":"schema-drift-after-results.json","actual":"Product validator/guard accepted the schemas; diagnostics now locate /count type change and a valid mapping pointer."}
+  ],
+  "additionalBoundary": {
+    "id": "restored-draft-original-cas",
+    "status": "PASS",
+    "evidence": "after/browser-results.json#scenarios[id=restored-draft-original-cas]",
+    "actual": "Restoring dirty JSON from suite r1 after server r2 preserves expectedSuiteRevision:1, receives real 409 REVISION_CONFLICT, retains dirty input and leaves server r2 unchanged."
+  },
+  "independentlyExecuted": [
+    {"command":"node artifacts/max-completion-audit-20261106/ui-combos/browser-after.mjs","exitCode":0,"scenarios":4,"evidence":"browser-after.log"},
+    {"command":"node artifacts/max-completion-audit-20261106/ui-combos/schema-drift-after.mjs","exitCode":0,"evidence":"schema-drift-after.log"},
+    {"command":"node --test --test-concurrency=1 dist/tests/engine/v2-capability-drift-max-audit.test.js dist/tests/engine/v2-combined-acceptance.test.js","exitCode":0,"passed":8,"failed":0,"skipped":0,"evidence":"after-combined.log"}
+  ],
+  "newConfirmedFindings": [],
+  "productModifiedByAuditor": false,
+  "builtByAuditor": false,
+  "port18479ReturnedToFixAgent": true,
+  "realModelCalls": 0,
+  "enterpriseCalls": 0,
+  "formalDataAccessed": false,
+  "unverified": ["full regression gates", "fix agent remaining two fixture reruns", "Windows", "actual personal Desktop merge", "real model quality", "enterprise permissions", "cross-old-database browser recovery"]
+}

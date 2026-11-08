@@ -1,0 +1,13 @@
+.v2-testing .testing-controls{max-width:760px}
+.v2-testing .testing-mode-note{line-height:1.75;overflow-wrap:anywhere}
+.v2-testing .testing-scope,.v2-testing .testing-scope fieldset{min-width:0;margin:14px 0;border:1px solid #dce7f7;border-radius:10px;padding:12px}
+.v2-testing .testing-scope legend{padding:0 6px;font-size:13px;color:#405c80}
+.v2-testing .testing-choice{display:flex;align-items:flex-start;gap:9px;margin:10px 0;font-size:13px;line-height:1.6}
+.v2-testing .testing-choice input{flex:0 0 auto;margin-top:4px}
+.v2-testing .testing-choice span{min-width:0;overflow-wrap:anywhere}
+.v2-testing .testing-budgets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.v2-testing .testing-budgets .field{min-width:0}
+.v2-testing .testing-task{padding:8px 0}
+.v2-testing .testing-draft-notice{margin:12px 0;overflow-wrap:anywhere}
+.v2-testing .testing-draft-notice button{margin:4px 8px 4px 0;max-width:100%;white-space:normal}
+@media(max-width:680px){.v2-testing .testing-budgets{grid-template-columns:1fr;gap:0}}

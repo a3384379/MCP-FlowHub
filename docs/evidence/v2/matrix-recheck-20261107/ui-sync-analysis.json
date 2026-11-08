@@ -1,0 +1,15 @@
+{
+  "failure": "Full UI 93/94, sync POST completed after the DOM assertion deadline",
+  "traceSha256": "b85abd8682916d2cda2abb7255709ff1dde36157c9696a1622d1d7040a50b8b5",
+  "assertionStartMs": 187414.684,
+  "assertionEndMs": 192450.702,
+  "postStartMs": 187412.137,
+  "postDurationMs": 5204.703,
+  "postStatus": 200,
+  "classification": "Test asynchronous synchronization defect; product correctly awaits POST before load.",
+  "productReferences": [
+    "apps/web/src/main.tsx:2838",
+    "packages/mcp-connectors/src/registry.ts:268"
+  ],
+  "fix": "Wait for exact successful sync POST and verify actual catalog/revision before unchanged DOM assertion. One actual response delayed by 6000 ms proves the wait extends beyond the old assertion window. No retry or product timeout change."
+}

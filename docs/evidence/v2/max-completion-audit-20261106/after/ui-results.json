@@ -1,0 +1,248 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "workingTreeFixes": true,
+  "sourceSha256": {
+    "apps/web/src/features/testing/TestingPanel.tsx": "398cdd1b1ba80b55066e9f70f4662f521382b5bd5352ce78cd521a24a0a47893",
+    "packages/workflow-authoring/src/capability-drift.ts": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce"
+  },
+  "dataDir": "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-max-ui-combos-TPREoX",
+  "origin": "http://127.0.0.1:18479",
+  "scenarios": [
+    {
+      "id": "lost-run-key-new-suite",
+      "status": "FIXED",
+      "firstSuite": "suite_00580bbd-98dd-413f-9f68-d743710e83ee",
+      "secondSuite": "suite_e9511d01-f8a0-4c31-893f-fcfc0a265ded",
+      "commands": [
+        {
+          "url": "http://127.0.0.1:18479/api/v2/test-suites/suite_00580bbd-98dd-413f-9f68-d743710e83ee/runs",
+          "body": {
+            "expectedSuiteRevision": 1,
+            "mode": "mock",
+            "idempotencyKey": "d24e39fc-5a33-4aaa-8769-4fdf873f02a6"
+          },
+          "status": 200,
+          "response": {
+            "data": {
+              "testRunId": "test_3a382b3a-bc5c-4cc7-a854-419238b36e55",
+              "status": "QUEUED"
+            },
+            "requestId": "req_9aa083c1-ae4d-488b-8148-2220b92c8fa1"
+          }
+        },
+        {
+          "url": "http://127.0.0.1:18479/api/v2/test-suites/suite_e9511d01-f8a0-4c31-893f-fcfc0a265ded/runs",
+          "body": {
+            "expectedSuiteRevision": 1,
+            "mode": "mock",
+            "idempotencyKey": "8a3ee8e4-07f6-48eb-9e12-87d56c49f6c5"
+          },
+          "status": 200,
+          "response": {
+            "data": {
+              "testRunId": "test_b5ef47d5-6ec8-490f-bcf8-129f4478a15e",
+              "status": "QUEUED"
+            },
+            "requestId": "req_485f49a4-4074-4353-a2ab-9a52c00e9f46"
+          }
+        }
+      ],
+      "panel": "工作流自测\n\n草稿 r1 · 套件 r1 · 默认 Mock，不访问真实业务服务\n\n用例生成方式\n确定性生成（无需模型 Key）\nAI 辅助生成\n生成用例\n编辑夹具与断言\n正常数据流 · 1 项独立断言\n验证级别\nMock（合成运行）\nContract（协议契约）\nLive（真实调用）\n\n使用隔离库和合成夹具，不读取真实连接凭据，不调用真实业务工具。\n\n运行 Mock\n\n实际自测状态：SUCCEEDED\n\n实际验证级别：Mock（合成运行） · 来源：synthetic_fixture · 模拟工具调用：0 · 目录检查：0 · 凭据读取统计：0\n\n{\n  \"passed\": 1,\n  \"failed\": 0,\n  \"uncovered\": 0,\n  \"total\": 1\n}\n正常数据流 · PASSED ·"
+    },
+    {
+      "id": "external-suite-stale-hidden",
+      "status": "FIXED",
+      "executionPosts": 1,
+      "runId": "test_2f5b87e0-4f50-4959-888b-2734b35b5797",
+      "before": {
+        "status": "SUCCEEDED",
+        "stale": false,
+        "suiteRevision": 1
+      },
+      "server": {
+        "status": "SUCCEEDED",
+        "stale": true,
+        "suiteRevision": 1
+      },
+      "currentSuite": {
+        "id": "suite_6fdd5758-def6-4347-9d74-ff13cc1a7be5",
+        "workflowId": "max-ui-859625d3",
+        "draftRevision": 1,
+        "suiteRevision": 2,
+        "capabilityRevisions": {},
+        "fixtureHash": "sha256:6cd45cafe01eea1d216272eb7fa15e835f4bd9339a7bfe6850aae3057dc717ae",
+        "generatedBy": "agent_proposed",
+        "mode": "mock",
+        "cases": [
+          {
+            "id": "normal",
+            "name": "外部修订的用例",
+            "inputs": {},
+            "mockResults": [],
+            "agentSubmissions": [],
+            "assertions": [
+              {
+                "kind": "terminal_state",
+                "expected": "FAILED"
+              }
+            ],
+            "expectedValidationErrors": []
+          }
+        ],
+        "generationSource": {
+          "generatedBy": "agent_proposed"
+        },
+        "revisionSources": [
+          {
+            "suiteRevision": 1,
+            "generatedBy": "agent_proposed"
+          },
+          {
+            "suiteRevision": 2,
+            "generatedBy": "agent_proposed"
+          }
+        ],
+        "owner": "admin",
+        "revision": 2,
+        "createdAt": "2026-11-06T15:21:49.447Z",
+        "updatedAt": "2026-11-06T15:21:50.456Z"
+      },
+      "panel": "工作流自测\n\n草稿 r1 · 套件 r2 · 默认 Mock，不访问真实业务服务\n\n用例生成方式\n确定性生成（无需模型 Key）\nAI 辅助生成\n生成用例\n编辑夹具与断言\n外部修订的用例 · 1 项独立断言\n验证级别\nMock（合成运行）\nContract（协议契约）\nLive（真实调用）\n\n使用隔离库和合成夹具，不读取真实连接凭据，不调用真实业务工具。\n\n运行 Mock\n\n实际自测状态：SUCCEEDED · 基线已过期\n\n实际验证级别：Mock（合成运行） · 来源：synthetic_fixture · 模拟工具调用：0 · 目录检查：0 · 凭据读取统计：0\n\n{\n  \"passed\": 1,\n  \"failed\": 0,\n  \"uncovered\": 0,\n  \"total\": 1\n}\n原始通过用例 · PASSED ·"
+    },
+    {
+      "id": "late-generated-suite-drops-edit",
+      "status": "FIXED",
+      "loadingControlsLocked": true,
+      "dirtyDraftPreserved": true,
+      "switchedAndRestored": true,
+      "originalSuite": "suite_c9ee69aa-013d-458c-90b2-967646942719",
+      "held": {
+        "url": "http://127.0.0.1:18479/api/v2/test-suites/suite_9968bf67-e7c3-45a5-abf8-3d59dc88298a",
+        "response": {
+          "data": {
+            "id": "suite_9968bf67-e7c3-45a5-abf8-3d59dc88298a",
+            "workflowId": "max-ui-d83baf9e",
+            "draftRevision": 1,
+            "suiteRevision": 1,
+            "capabilityRevisions": {},
+            "fixtureHash": "sha256:27e0acbf49afa679743cc71fd50ad01ad4d22f9f102a62a72390d643d1dd6bbb",
+            "generatedBy": "ai_assisted",
+            "mode": "mock",
+            "cases": [
+              {
+                "id": "generated",
+                "name": "迟到的生成套件",
+                "inputs": {},
+                "mockResults": [],
+                "agentSubmissions": [],
+                "assertions": [
+                  {
+                    "kind": "terminal_state",
+                    "expected": "SUCCEEDED"
+                  }
+                ],
+                "expectedValidationErrors": []
+              }
+            ],
+            "generationSource": {
+              "generatedBy": "ai_assisted",
+              "generationRef": "generation_b94264c2-0d38-4339-ba84-6dd85890b709"
+            },
+            "revisionSources": [
+              {
+                "suiteRevision": 1,
+                "generatedBy": "ai_assisted",
+                "generationRef": "generation_b94264c2-0d38-4339-ba84-6dd85890b709"
+              }
+            ],
+            "owner": "admin",
+            "revision": 1,
+            "createdAt": "2026-11-06T15:21:51.249Z",
+            "updatedAt": "2026-11-06T15:21:51.249Z",
+            "generationRef": "generation_b94264c2-0d38-4339-ba84-6dd85890b709"
+          },
+          "requestId": "req_1bccb050-3b5c-487a-afb3-7c76090d1658"
+        }
+      },
+      "pendingJson": "[\n  {\n    \"id\": \"normal\",\n    \"name\": \"用户尚未保存的修订\",\n    \"inputs\": {},\n    \"mockResults\": [],\n    \"agentSubmissions\": [],\n    \"assertions\": [\n      {\n        \"kind\": \"terminal_state\",\n        \"expected\": \"SUCCEEDED\"\n      }\n    ],\n    \"expectedValidationErrors\": []\n  }\n]",
+      "beforePanel": "工作流自测\n\n草稿 r1 · 套件 r1 · 默认 Mock，不访问真实业务服务\n\n用例生成方式\n确定性生成（无需模型 Key）\nAI 辅助生成\n生成使用模型\n请选择已配置模型\n隔离合成模型 · synthetic-max-ui\n生成场景提示（每行一项）\n最多 50 项，每项最多 256 个字符；不填写 Key 或连接凭据。\n\n生成仅提出合成用例，不执行业务调用；通过 Schema 校验后保存套件，测试结果仍由独立断言器产生。Key 不会发送到页面。\n\n生成用例\n编辑夹具与断言\n\n正在读取生成套件，夹具编辑暂时锁定。\n\n用例生成任务：SUCCEEDED\n\n生成成功表示用例已保存，不等于自测通过或模型效果验收通过。\n\n合成用例 JSON\n保存夹具\n等待中的旧套件 · 1 项独立断言\n验证级别\nMock（合成运行）\nContract（协议契约）\nLive（真实调用）\n\n使用隔离库和合成夹具，不读取真实连接凭据，不调用真实业务工具。\n\n运行 Mock",
+      "afterPanel": "工作流自测\n\n草稿 r1 · 套件 r1 · 默认 Mock，不访问真实业务服务\n\n用例生成方式\n确定性生成（无需模型 Key）\nAI 辅助生成\n生成使用模型\n请选择已配置模型\n隔离合成模型 · synthetic-max-ui\n生成场景提示（每行一项）\n最多 50 项，每项最多 256 个字符；不填写 Key 或连接凭据。\n\n生成仅提出合成用例，不执行业务调用；通过 Schema 校验后保存套件，测试结果仍由独立断言器产生。Key 不会发送到页面。\n\n生成用例\n编辑夹具与断言\n\n套件已有更新。当前未保存的夹具 JSON 已保留，保存时仍会检查原套件修订。\n\n查看更新套件（保留夹具草稿）\n\n用例生成任务：SUCCEEDED\n\n生成成功表示用例已保存，不等于自测通过或模型效果验收通过。\n\n合成用例 JSON\n保存夹具\n等待中的旧套件 · 1 项独立断言\n验证级别\nMock（合成运行）\nContract（协议契约）\nLive（真实调用）\n\n使用隔离库和合成夹具，不读取真实连接凭据，不调用真实业务工具。\n\n运行 Mock",
+      "modelCalls": 1,
+      "originalStillSaved": {
+        "id": "suite_c9ee69aa-013d-458c-90b2-967646942719",
+        "workflowId": "max-ui-d83baf9e",
+        "draftRevision": 1,
+        "suiteRevision": 1,
+        "capabilityRevisions": {},
+        "fixtureHash": "sha256:24309bc2922ed33219efd32eca4bc5f3a0cd5e37c5068cbd32768d7c0eee885f",
+        "generatedBy": "agent_proposed",
+        "mode": "mock",
+        "cases": [
+          {
+            "id": "normal",
+            "name": "等待中的旧套件",
+            "inputs": {},
+            "mockResults": [],
+            "agentSubmissions": [],
+            "assertions": [
+              {
+                "kind": "terminal_state",
+                "expected": "SUCCEEDED"
+              }
+            ],
+            "expectedValidationErrors": []
+          }
+        ],
+        "generationSource": {
+          "generatedBy": "agent_proposed"
+        },
+        "revisionSources": [
+          {
+            "suiteRevision": 1,
+            "generatedBy": "agent_proposed"
+          }
+        ],
+        "owner": "admin",
+        "revision": 1,
+        "createdAt": "2026-11-06T15:21:51.093Z",
+        "updatedAt": "2026-11-06T15:21:51.093Z"
+      }
+    },
+    {
+      "id": "restored-draft-original-cas",
+      "status": "PASS",
+      "pendingJson": "[\n  {\n    \"id\": \"normal\",\n    \"name\": \"尚未保存的原修订数据\",\n    \"inputs\": {},\n    \"mockResults\": [],\n    \"agentSubmissions\": [],\n    \"assertions\": [\n      {\n        \"kind\": \"terminal_state\",\n        \"expected\": \"SUCCEEDED\"\n      }\n    ],\n    \"expectedValidationErrors\": []\n  }\n]",
+      "request": {
+        "cases": [
+          {
+            "id": "normal",
+            "name": "尚未保存的原修订数据",
+            "inputs": {},
+            "mockResults": [],
+            "agentSubmissions": [],
+            "assertions": [
+              {
+                "kind": "terminal_state",
+                "expected": "SUCCEEDED"
+              }
+            ],
+            "expectedValidationErrors": []
+          }
+        ],
+        "expectedRevision": 1,
+        "expectedSuiteRevision": 1,
+        "idempotencyKey": "cc9a6fe6-4afe-4d09-9fbe-07200d988da4"
+      },
+      "response": {
+        "error": {
+          "code": "REVISION_CONFLICT",
+          "message": "Test suite changed."
+        },
+        "requestId": "req_9850374b-2082-459f-bae2-28dc8829e86d"
+      },
+      "serverSuiteRevision": 2,
+      "serverCaseName": "外部正式修订二",
+      "panel": "工作流自测\n\n草稿 r1 · 套件 r1 · 默认 Mock，不访问真实业务服务\n\nREVISION_CONFLICT：Test suite changed.\n\n用例生成方式\n确定性生成（无需模型 Key）\nAI 辅助生成\n生成用例\n编辑夹具与断言\n合成用例 JSON\n保存夹具\n恢复CAS原套件 · 1 项独立断言\n验证级别\nMock（合成运行）\nContract（协议契约）\nLive（真实调用）\n\n使用隔离库和合成夹具，不读取真实连接凭据，不调用真实业务工具。\n\n运行 Mock"
+    }
+  ]
+}

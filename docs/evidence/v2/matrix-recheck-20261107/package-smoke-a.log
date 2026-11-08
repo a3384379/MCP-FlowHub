@@ -1,0 +1,66 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:package
+> node scripts/smoke-package.mjs
+
+{"packageSmokeStage":"archive extraction","event":"start"}
+{"packageSmokeStage":"archive extraction","event":"pass","durationMs":7827}
+{"packageSmokeStage":"extracted bundle integrity","event":"start"}
+Bundle verified: 6423 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{"packageSmokeStage":"extracted bundle integrity","event":"pass","durationMs":10794}
+{"packageSmokeStage":"new assistant module tamper is rejected","event":"start"}
+Bundle verified: 6423 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{"packageSmokeStage":"new assistant module tamper is rejected","event":"pass","durationMs":9658}
+{"packageSmokeStage":"packaged daemon startup","event":"start"}
+{"packageSmokeStage":"packaged daemon startup","event":"pass","durationMs":5910}
+{"packageSmokeStage":"packaged daemon health and web assets","event":"start"}
+{"packageSmokeStage":"packaged daemon health and web assets","event":"pass","durationMs":61}
+{"packageSmokeStage":"packaged legacy execution identity","event":"start"}
+{"packageSmokeStage":"packaged legacy execution identity","event":"pass","durationMs":413}
+{"packageSmokeStage":"modern Hub bridge connect","event":"start"}
+{"packageSmokeStage":"modern Hub bridge connect","event":"pass","durationMs":916}
+{"packageSmokeStage":"modern Hub bridge 21 tools and persisted authoring","event":"start"}
+{"packageSmokeStage":"modern Hub bridge 21 tools and persisted authoring","event":"pass","durationMs":477}
+Offline archive smoke PASS: modern 2026-07-28 × stdio, darwin, synthetic only.
+{"packageSmokeStage":"modern Hub bridge close","event":"start"}
+{"packageSmokeStage":"modern Hub bridge close","event":"pass","durationMs":14}
+{"packageSmokeStage":"modern old execution identity retains seven tools","event":"start"}
+{"packageSmokeStage":"modern old execution identity retains seven tools","event":"pass","durationMs":1381}
+{"packageSmokeStage":"modern synthetic Mock startup and connect","event":"start"}
+{"syntheticMockStartup":"modern","event":"start","elapsedMs":3,"pid":null}
+{"syntheticMockStartup":"modern","event":"spawned","elapsedMs":6,"pid":99865}
+{"syntheticMockStartup":"modern","event":"BOOT","elapsedMs":49,"pid":99865,"childUptimeMs":23}
+{"syntheticMockStartup":"modern","event":"CLI_IMPORTED","elapsedMs":190,"pid":99865,"childUptimeMs":164}
+{"syntheticMockStartup":"modern","event":"READY","elapsedMs":338,"pid":99865,"childUptimeMs":313}
+{"syntheticMockStartup":"modern","event":"send","elapsedMs":338,"pid":99865,"method":"server/discover"}
+{"packageSmokeStage":"modern synthetic Mock startup and connect","event":"pass","durationMs":368}
+{"packageSmokeStage":"modern synthetic Mock validated lookup","event":"start"}
+{"syntheticMockStartup":"modern","event":"send","elapsedMs":369,"pid":99865,"method":"tools/call"}
+{"packageSmokeStage":"modern synthetic Mock validated lookup","event":"pass","durationMs":2}
+{"packageSmokeStage":"modern synthetic Mock close","event":"start"}
+{"syntheticMockStartup":"modern","event":"closed","elapsedMs":379,"pid":99865}
+{"packageSmokeStage":"modern synthetic Mock close","event":"pass","durationMs":8}
+{"packageSmokeStage":"legacy Hub bridge connect","event":"start"}
+{"packageSmokeStage":"legacy Hub bridge connect","event":"pass","durationMs":391}
+{"packageSmokeStage":"legacy Hub bridge 21 tools and persisted authoring","event":"start"}
+{"packageSmokeStage":"legacy Hub bridge 21 tools and persisted authoring","event":"pass","durationMs":69}
+Offline archive smoke PASS: legacy 2025-11-25 × stdio, darwin, synthetic only.
+{"packageSmokeStage":"legacy Hub bridge close","event":"start"}
+{"packageSmokeStage":"legacy Hub bridge close","event":"pass","durationMs":18}
+{"packageSmokeStage":"legacy old execution identity retains seven tools","event":"start"}
+{"packageSmokeStage":"legacy old execution identity retains seven tools","event":"pass","durationMs":412}
+{"packageSmokeStage":"legacy synthetic Mock startup and connect","event":"start"}
+{"syntheticMockStartup":"legacy","event":"start","elapsedMs":0,"pid":null}
+{"syntheticMockStartup":"legacy","event":"spawned","elapsedMs":1,"pid":99912}
+{"syntheticMockStartup":"legacy","event":"BOOT","elapsedMs":51,"pid":99912,"childUptimeMs":32}
+{"syntheticMockStartup":"legacy","event":"CLI_IMPORTED","elapsedMs":300,"pid":99912,"childUptimeMs":280}
+{"syntheticMockStartup":"legacy","event":"READY","elapsedMs":534,"pid":99912,"childUptimeMs":515}
+{"syntheticMockStartup":"legacy","event":"send","elapsedMs":534,"pid":99912,"method":"initialize"}
+{"syntheticMockStartup":"legacy","event":"send","elapsedMs":602,"pid":99912,"method":"notifications/initialized"}
+{"packageSmokeStage":"legacy synthetic Mock startup and connect","event":"pass","durationMs":602}
+{"packageSmokeStage":"legacy synthetic Mock validated lookup","event":"start"}
+{"syntheticMockStartup":"legacy","event":"send","elapsedMs":602,"pid":99912,"method":"tools/call"}
+{"packageSmokeStage":"legacy synthetic Mock validated lookup","event":"pass","durationMs":4}
+{"packageSmokeStage":"legacy synthetic Mock close","event":"start"}
+{"syntheticMockStartup":"legacy","event":"closed","elapsedMs":614,"pid":99912}
+{"packageSmokeStage":"legacy synthetic Mock close","event":"pass","durationMs":8}
+Tampered package rejected; no external npm/node used by packaged application.

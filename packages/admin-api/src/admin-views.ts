@@ -221,6 +221,7 @@ export function bindingImpact(repo: Repository, bindingId: string) {
   ensure(binding, "NOT_FOUND", "Binding missing.", 404);
   const workflows = repo.all("workflows");
   const draftWorkflows = workflows.flatMap((record) => {
+    if (record.deletedAt) return [];
     const refs = bindingReferences(record.draft, bindingId);
     return refs.bindingKeys.length
       ? [

@@ -1,0 +1,795 @@
+{
+  "baseHead": "194c0b17f63846cb00d4e7fe217c80e6d342f4ed",
+  "items": [
+    {
+      "id": "AUTHOR-01",
+      "group": "编排服务",
+      "title": "创建空白流程",
+      "setup": "明确test环境和name",
+      "expected": "返回真实workflowId/revision可读取",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "AUTHOR-01/02/03/04 matrix: two valid operations then an invalid third roll back the entire draft, command and event state",
+          "assertionLines": [
+            25,
+            28,
+            31,
+            33,
+            34
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-02",
+      "group": "编排服务",
+      "title": "原子patch失败",
+      "setup": "一个batch前两操作合法第三非法",
+      "expected": "整个batch回滚，不留下半张图",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "AUTHOR-01/02/03/04 matrix: two valid operations then an invalid third roll back the entire draft, command and event state",
+          "assertionLines": [
+            25,
+            28,
+            31,
+            33,
+            34
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-03",
+      "group": "编排服务",
+      "title": "重复幂等请求",
+      "setup": "相同key相同body重发",
+      "expected": "只产生一次revision变化",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "AUTHOR-01/02/03/04 matrix: two valid operations then an invalid third roll back the entire draft, command and event state",
+          "assertionLines": [
+            25,
+            28,
+            31,
+            33,
+            34
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-04",
+      "group": "编排服务",
+      "title": "幂等冲突",
+      "setup": "相同key不同body",
+      "expected": "IDEMPOTENCY_CONFLICT，原数据不变",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "AUTHOR-01/02/03/04 matrix: two valid operations then an invalid third roll back the entire draft, command and event state",
+          "assertionLines": [
+            25,
+            28,
+            31,
+            33,
+            34
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-05",
+      "group": "编排服务",
+      "title": "并发改同字段",
+      "setup": "Web与AI持相同revision提交",
+      "expected": "仅一个成功，另一个明确冲突",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "AUTHOR-05 matrix: an actual Web save wins while an in-flight assistant holds the same revision; its stale write cannot replace Web data",
+          "assertionLines": [
+            46,
+            48,
+            49
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-06",
+      "group": "编排服务",
+      "title": "删除有引用节点",
+      "setup": "下游仍引用该node",
+      "expected": "默认拒绝；显式cascade按契约删除",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-authoring.test.ts",
+          "name": "AUTHOR-06 referenced deletion is denied atomically and explicit cascade removes only the dependency closure",
+          "assertionLines": [
+            82,
+            83,
+            84,
+            85,
+            86,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            95
+          ],
+          "sourceSha256": "36dbbf13c0500be71593cc30621c35f6c60311acd2420e82c11fcdf26e0e93f2"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-07",
+      "group": "编排服务",
+      "title": "布局与语义分离",
+      "setup": "AI改参同时用户移动节点",
+      "expected": "不覆盖无关布局，不篡改执行语义",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-authoring.test.ts",
+          "name": "layout CAS is independent from semantic edits and incomplete legal drafts retain issues",
+          "assertionLines": [
+            40,
+            41,
+            43,
+            44
+          ],
+          "sourceSha256": "36dbbf13c0500be71593cc30621c35f6c60311acd2420e82c11fcdf26e0e93f2"
+        },
+        {
+          "file": "tests/engine/v2-authoring-audit-regressions.test.ts",
+          "name": "undo of layout changes keeps semantic revision and later unrelated config fields",
+          "assertionLines": [
+            125,
+            130
+          ],
+          "sourceSha256": "93be3c00c4f0654812997232695d2a8ffd7075d69ebc289828daae8cb8c90eb6"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "AUTHOR-08",
+      "group": "编排服务",
+      "title": "发布修订变化",
+      "setup": "校验后binding/capability变更",
+      "expected": "CAS拒绝过期发布，旧版本不变",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-combined-acceptance.test.ts",
+          "name": "AUTHOR-08 combined: simultaneous capability/binding drift rejects partial reviews atomically and exact retry preserves previous publication",
+          "assertionLines": [
+            140,
+            142,
+            146,
+            147,
+            154,
+            158,
+            159
+          ],
+          "sourceSha256": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-01",
+      "group": "统一MCP工具",
+      "title": "旧七工具兼容",
+      "setup": "已有execution身份和旧请求",
+      "expected": "旧调用不需新增必填字段",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "MCP-01 matrix: an execution-only identity completes all seven legacy request shapes through the official SDK",
+          "assertionLines": [
+            111,
+            112,
+            114,
+            115,
+            116,
+            117,
+            120,
+            121
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-02",
+      "group": "统一MCP工具",
+      "title": "完整工具集合",
+      "setup": "编排身份listTools",
+      "expected": "准确21项，工具名无重复",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "MCP-03/07/08 matrix: search omits schema bodies, get retrieves one schema and a new host session refreshes the fixed catalog after 100 drafts",
+          "assertionLines": [
+            55,
+            58,
+            59,
+            60,
+            61,
+            62,
+            64,
+            65
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-03",
+      "group": "统一MCP工具",
+      "title": "百条流程",
+      "setup": "创建100个合成工作流",
+      "expected": "仍一个Server；工具集合不随流程增长",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "MCP-03/07/08 matrix: search omits schema bodies, get retrieves one schema and a new host session refreshes the fixed catalog after 100 drafts",
+          "assertionLines": [
+            55,
+            58,
+            59,
+            60,
+            61,
+            62,
+            64,
+            65
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-04",
+      "group": "统一MCP工具",
+      "title": "通过MCP全链路",
+      "setup": "真实SDK调用create到artifact_read",
+      "expected": "数据库、版本、报告均有实际结果",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-mcp-selftest.test.ts",
+          "name": "official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state",
+          "assertionLines": [
+            19,
+            20,
+            25,
+            26,
+            27,
+            29,
+            30,
+            31,
+            33,
+            39,
+            50,
+            51,
+            56,
+            58,
+            62,
+            65,
+            66,
+            67,
+            69,
+            81,
+            82,
+            85,
+            87,
+            91,
+            96
+          ],
+          "sourceSha256": "2e0db98695e9629530c553ab02f4943c55a97d05176889becee362759143e3d6"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-05",
+      "group": "统一MCP工具",
+      "title": "新流程归属",
+      "setup": "受限编排身份创建新workflow",
+      "expected": "可用其新流程；不获得其他流程权限",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-mcp-selftest.test.ts",
+          "name": "MCP-05 empty-allowlist author owns its new workflow without gaining existing workflows; execution-only identity keeps seven tools",
+          "assertionLines": [
+            106,
+            112,
+            115,
+            117,
+            118,
+            120,
+            121,
+            122,
+            125,
+            132,
+            134,
+            136,
+            137,
+            138
+          ],
+          "sourceSha256": "2e0db98695e9629530c553ab02f4943c55a97d05176889becee362759143e3d6"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-06",
+      "group": "统一MCP工具",
+      "title": "非法工具参数",
+      "setup": "extra field与错类型请求",
+      "expected": "结构化错误，未执行写入",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-mcp-selftest.test.ts",
+          "name": "MCP-06 official SDK rejects unknown tools, wrong types and extra fields without any business or ledger writes",
+          "assertionLines": [
+            153,
+            155,
+            156
+          ],
+          "sourceSha256": "2e0db98695e9629530c553ab02f4943c55a97d05176889becee362759143e3d6"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-07",
+      "group": "统一MCP工具",
+      "title": "Schema按需取",
+      "setup": "先search再get所选工具",
+      "expected": "search不返回所有完整Schema",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "MCP-03/07/08 matrix: search omits schema bodies, get retrieves one schema and a new host session refreshes the fixed catalog after 100 drafts",
+          "assertionLines": [
+            55,
+            58,
+            59,
+            60,
+            61,
+            62,
+            64,
+            65
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "MCP-08",
+      "group": "统一MCP工具",
+      "title": "宿主目录刷新",
+      "setup": "升级后新会话取工具",
+      "expected": "旧缓存与新目录区别明确，不伪报安装失败",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "MCP-03/07/08 matrix: search omits schema bodies, get retrieves one schema and a new host session refreshes the fixed catalog after 100 drafts",
+          "assertionLines": [
+            55,
+            58,
+            59,
+            60,
+            61,
+            62,
+            64,
+            65
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-01",
+      "group": "产品级生成用例与自测",
+      "title": "确定性生成",
+      "setup": "无Key根据Schema生成",
+      "expected": "正常/必填/类型/边界用例可运行",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-01 matrix: no-Key deterministic normal, missing-required, wrong-type and both sides of numeric and string boundaries really execute",
+          "assertionLines": [
+            94,
+            96,
+            97,
+            98
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-02",
+      "group": "产品级生成用例与自测",
+      "title": "模型生成补充",
+      "setup": "Codex经MCP提交proposedCases与fixture",
+      "expected": "agent_proposed无Key可用；经契约检查，不直接信任通过结论",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-03",
+      "group": "产品级生成用例与自测",
+      "title": "Mock无外部调用",
+      "setup": "用网络拦截器统计",
+      "expected": "零真实业务请求/零真实secret访问",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-04",
+      "group": "产品级生成用例与自测",
+      "title": "缺Fixture",
+      "setup": "某节点没有mock输出",
+      "expected": "FIXTURE_MISSING，不用空结果伪成功",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-05",
+      "group": "产品级生成用例与自测",
+      "title": "分支覆盖",
+      "setup": "true/false两套fixture",
+      "expected": "两个分支分别命中，有独立证据",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-06",
+      "group": "产品级生成用例与自测",
+      "title": "断言独立",
+      "setup": "模型声称成功但actual不符",
+      "expected": "独立assertion失败，expected/actual可见",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-07",
+      "group": "产品级生成用例与自测",
+      "title": "测试版本绑定",
+      "setup": "suite对应revision2后来变3",
+      "expected": "提示TEST_BASELINE_STALE",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-authoring.test.ts",
+          "name": "TEST-03/04/05/06/07 matrix: independent branch receipts, missing fixtures and wrong expectations run with intercepted zero network and credential reads",
+          "assertionLines": [
+            82,
+            86,
+            87,
+            88
+          ],
+          "sourceSha256": "4e3e07a451a9e1cbaa4535bb9e04ba9faa2927f00119a95ad8846377594a59b8"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    },
+    {
+      "id": "TEST-08",
+      "group": "产品级生成用例与自测",
+      "title": "MCP生成自测",
+      "setup": "经workflow_test_*系列调用",
+      "expected": "返回suite/testRun与case证据，不只内部单测",
+      "status": "UNVERIFIED",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-mcp-selftest.test.ts",
+          "name": "official MCP 21-tool discovery/import/author/generate/mock/publish/start/advance/report loop persists real state",
+          "assertionLines": [
+            19,
+            20,
+            25,
+            26,
+            27,
+            29,
+            30,
+            31,
+            33,
+            39,
+            50,
+            51,
+            56,
+            58,
+            62,
+            65,
+            66,
+            67,
+            69,
+            81,
+            82,
+            85,
+            87,
+            91,
+            96
+          ],
+          "sourceSha256": "2e0db98695e9629530c553ab02f4943c55a97d05176889becee362759143e3d6"
+        }
+      ],
+      "actual": "Exact assertions selected for the current full fresh run; not promoted from historical PASS.",
+      "limits": [
+        "Awaiting root full named-test receipts; only isolated synthetic data will be used."
+      ],
+      "pending": [
+        "root fresh full backend run"
+      ],
+      "evidenceLevel": "local synthetic L1/L2"
+    }
+  ]
+}

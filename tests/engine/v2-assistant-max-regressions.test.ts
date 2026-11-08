@@ -205,7 +205,12 @@ for(const count of [200,1000])test("max context: "+count+" multibyte tools canno
   assert.equal(task.status,"COMPLETED");
   const selected=context(f.provider.requests.at(-2)!),budget=selected.data.contextBudget;
   assert.ok(Buffer.byteLength(selected.text,"utf8")<=CONTEXT_BYTE_LIMIT);assert.equal(task.contextSummary.includedBytes,Buffer.byteLength(selected.text,"utf8"));
-  assert.equal(selected.data.workflow.workflowId,"selected");assert.equal(selected.data.workflow.revision,revision);
+  assert.equal(selected.data.workflow.workflowId,"selected");
+  // Selection revision is the reviewed draft; the immutable run definition has
+  // its own published version and must never masquerade as that current draft.
+  assert.equal(selected.data.selection.revision,revision);
+  assert.equal(selected.data.workflow.source,"selected_run_snapshot");
+  assert.equal(selected.data.workflow.version,run.version);
   assert.ok(selected.data.workflow.draft.nodes.some((node:Json)=>node.id==="analysis"&&node.type==="agent_task"));
   assert.equal(selected.data.run.runId,run.runId);assert.equal(selected.data.run.revision,run.revision);assert.deepEqual(selected.data.selectedNodeIds,["analysis"]);
   assert.equal(budget.encoding,"UTF-8");assert.equal(budget.sections.projectState.truncated,true);

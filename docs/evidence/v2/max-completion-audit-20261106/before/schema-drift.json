@@ -1,0 +1,65 @@
+{
+  "head": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "previous": {
+    "revision": 1,
+    "inputSchema": {
+      "type": "object",
+      "$defs": {
+        "base": {}
+      },
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/base",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "current": {
+    "revision": 2,
+    "inputSchema": {
+      "type": "object",
+      "$defs": {
+        "base": {}
+      },
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/base",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "previousValid": {
+    "count": "2"
+  },
+  "currentValid": {
+    "count": 2
+  },
+  "bothAcceptedByNativeSchemaGuard": true,
+  "difference": {
+    "changes": [],
+    "truncated": false
+  },
+  "issue": {
+    "code": "CAPABILITY_STALE",
+    "message": "能力定义已变化，请更新能力引用并核对节点参数。",
+    "nodeId": "read",
+    "path": "/nodes/1/config/capabilityRef",
+    "capabilityId": "synthetic-ref",
+    "expectedRevision": 1,
+    "currentRevision": 2,
+    "previousRevisionAvailable": true,
+    "schemaChanges": [],
+    "changesTruncated": false
+  },
+  "reason": "fields() follows a local $ref and returns immediately, discarding its valid JSON Schema 2020-12 siblings, including type."
+}

@@ -1,0 +1,60 @@
+{
+  "baselineHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "sourceSha256": {
+    "apps/web/src/features/testing/TestingPanel.tsx": "398cdd1b1ba80b55066e9f70f4662f521382b5bd5352ce78cd521a24a0a47893",
+    "apps/web/src/features/testing/testing.css": "612e3b3277e5abd67bd394beb711cec899515c59543c6170568c686501c13555",
+    "packages/workflow-authoring/src/capability-drift.ts": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce",
+    "tests/ui/v2-testing-max-audit.spec.ts": "2c6f943c9384bf49e74b018920b8574499506e60a24b64809d7ab589d44012d2",
+    "tests/engine/v2-capability-drift-max-audit.test.ts": "486563fb599d35954a0a190ea768a3268df88c589ea6bebbb08b4a69b1a97c44"
+  },
+  "productSourcesFrozen": true,
+  "port18479Released": true,
+  "formalDataAccessed": false,
+  "personalChromeUsed": false,
+  "enterpriseCalls": 0,
+  "realModelCalls": 0,
+  "newUiCases": 8,
+  "existingTestingModeCases": 3,
+  "runs": [
+    {
+      "scope": "new8 + existing3",
+      "tests": 11,
+      "passed": 9,
+      "failed": 2,
+      "exitCode": 1,
+      "elapsedSeconds": 19.0
+    },
+    {
+      "scope": "corrected fixture2",
+      "tests": 2,
+      "passed": 1,
+      "failed": 1,
+      "exitCode": 1,
+      "elapsedSeconds": 8.0
+    },
+    {
+      "scope": "corrected Skill fixture1",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "exitCode": 0,
+      "elapsedSeconds": 4.2
+    }
+  ],
+  "finalTargetCoverage": "All 11 cases have passing evidence, across three runs. This is not a claim of 11 passing in one run. Root full UI is pending.",
+  "engineResultReportedByRoot": {
+    "newCases": 5,
+    "passed": 5
+  },
+  "staticValidation": {
+    "webTscNoEmit": 0,
+    "rootTscNoEmit": 0,
+    "gitDiffCheck": 0
+  },
+  "independentAfter": "../ui-combos/after/browser-results.json",
+  "mockEvidence": {
+    "fixtureTraceCalls": 1,
+    "realSdkToolCalls": 0,
+    "productNetworkCalls": 0
+  }
+}

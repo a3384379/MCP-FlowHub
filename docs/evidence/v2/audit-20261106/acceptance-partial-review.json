@@ -1,0 +1,243 @@
+{
+  "format": "flowhub.v2.acceptance-targeted-review/1",
+  "assessedAt": "2026-11-06",
+  "reviewedSourceCommit": "8484d4746eeac35cd664c5f9cb81fd52c3d3aba5",
+  "scope": [
+    "DISC-03",
+    "CAP-07",
+    "AUTHOR-08",
+    "RUN-07"
+  ],
+  "method": "仅复核下列既有测试断言与本轮已执行日志；未重新运行测试，未重新验收全部 104 项。单个测试通过不等于组合验收项通过。PARTIAL 表示尚缺足够证据，不据此断言实现必然有缺陷。",
+  "acceptancePlan": "docs/upgrade-v2/docs/04_测试与验收方案.md",
+  "historicalLedger": {
+    "file": "docs/evidence/v2/acceptance-results.json",
+    "sha256": "eeee1b4d4e464b942d659349552df8bc35bd370b60fae7ee256966c07ec08f65",
+    "unchanged": true
+  },
+  "executionEvidence": [
+    {
+      "file": "artifacts/audit-20261106/backend-426.log",
+      "sha256": "6319d8738064e45c12524eebbab5a47dc2df376b1daaee027bf105d5b042415f",
+      "result": "426 tests, 426 pass, 0 fail",
+      "scope": "本轮后端合成/协议测试日志；本映射仅使用下列明确列出的测试及断言，不按总测试数推导验收通过。"
+    },
+    {
+      "file": "artifacts/audit-20261106/ui-78-first.log",
+      "sha256": "77b0f7ccf58166e72df575194c4d97a42534c91d4ff7a6d41edce4b9e503dd1d",
+      "result": "78 passed",
+      "scope": "本轮真实浏览器与隔离合成服务测试；不代表企业系统或真实模型验收。"
+    },
+    {
+      "file": "docs/evidence/v2/audit-20261106/codex-protocol.json",
+      "sha256": "b443da9409ccd96f285e70334f0ecdcbe15ac7af3aa69e64648f163f3039e031",
+      "scope": "本轮真实 Codex App Server 及 MCP author/test/publish/run/report 协议闭环；modelTurns=0，businessServiceCalls=0，naturalLanguageModelAcceptance=UNVERIFIED。"
+    }
+  ],
+  "items": [
+    {
+      "id": "DISC-03",
+      "title": "用户/项目覆盖",
+      "requirement": "同名 MCP 不同配置层：正确解析有效配置并保存来源链。",
+      "status": "PARTIAL",
+      "evidenceLevel": "synthetic",
+      "evidence": [
+        {
+          "source": "tests/engine/v2-discovery-acceptance.test.ts:32",
+          "testName": "DISC-03/DISC-05: legacy CLI never receives unsupported JSON; same-name static layers stay partial with exact provenance",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:273",
+          "proves": [
+            "同名用户层和已信任项目层保留不同 sourceKey、各自精确 sourceChain 与 URL；未信任项目只读取用户层。",
+            "静态回退准确报告 partial/STATIC_RESOLUTION_PARTIAL；旧 CLI 不发送不支持的 --json。",
+            "没有将两条静态候选冒充已确定有效配置。"
+          ]
+        },
+        {
+          "source": "tests/engine/v2-discovery.test.ts:62",
+          "testName": "TOML fallback parses quoted names and multiline arrays; untrusted projects and foreign locations stay separate",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:308",
+          "proves": [
+            "选定 profile 中的额外 MCP 能被解析，信任状态控制项目层是否加入；quoted name 和 multiline args 正确解析。"
+          ]
+        }
+      ],
+      "missingAssertions": [
+        "在同一场景设置用户/项目/profile 的同名 MCP 冲突，断言受信任与不受信任上下文的最终有效配置以及来源链顺序。",
+        "有效 CLI 配置结果与对应本地覆盖来源链的对应关系、持久化后重新读取的来源链，未在现有上述测试中完整断言。"
+      ],
+      "gapClassification": "local_synthetic_coverage_gap",
+      "nextValidation": [
+        "补隔离 synthetic CLI 与用户/项目/profile 冲突矩阵，明确有效结果和 provenance；静态无法证明有效结果的路径继续断言 partial，不能为测试放宽发现语义。",
+        "这些本地组合断言不依赖企业凭据，不应归为外部验收。"
+      ],
+      "minimalEffectiveTest": "在同一隔离目录为 user/project/selected profile 写入同名服务并声明不同 URL；synthetic CLI 返回明确有效结果。断言 host_effective 分支的结果和来源标签，静态回退按各层保留且 partial，untrusted 排除项目层，读取 registry 持久化结果并核对 provenance。覆盖表必须明确区分有效解析与保守候选，不能猜测覆盖顺序。",
+      "sourceAssessment": {
+        "files": [
+          "packages/host-discovery/src/index.ts:89",
+          "packages/host-discovery/src/index.ts:96",
+          "packages/host-discovery/src/index.ts:110"
+        ],
+        "finding": "代码的静态来源按独立候选保留并标记 partial；选定 profile 时明确跳过 CLI effective 路径。CLI 分支仅记录 host CLI effective configuration 这一抽象 sourceChain，并不提供用户/项目逐层溯源。若完整设计要求可追踪每层覆盖，这属于功能细节差距；当前未复现错误覆盖或安全放宽，不应把新组合测试写成强制猜测有效配置。"
+      }
+    },
+    {
+      "id": "CAP-07",
+      "title": "Schema 漂移",
+      "requirement": "工具入参改变类型：修订递增，相关草稿定位问题。",
+      "status": "PARTIAL",
+      "evidenceLevel": "synthetic",
+      "evidence": [
+        {
+          "source": "tests/engine/v2-discovery.test.ts:238",
+          "testName": "schema-only and description-only catalog drift create immutable connections with matching contracts",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:327",
+          "proves": [
+            "inputSchema/outputSchema/description 变化后导入新的不可变 connection，binding 指向相应 capability/connection revision，工具契约一致。",
+            "旧 connection 与旧 binding 保持不变；相同目录再次导入复用 connection。"
+          ]
+        },
+        {
+          "source": "tests/engine/v2-discovery-acceptance.test.ts:53",
+          "testName": "PLUG-08: Skill content drift advances semantic revision, mtime-only refresh does not, and publication stays immutable",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:276",
+          "proves": [
+            "Skill 内容变化使 revision 从 1 到 2；mtime-only 刷新不改变 semantic revision。",
+            "引用旧 Skill 的草稿出现 CAPABILITY_STALE；已发布版本与 capability revision 1 的冻结内容保持不变。"
+          ]
+        }
+      ],
+      "missingAssertions": [
+        "同一真实 MCP 工具参数由一种类型改成另一种类型后，精确断言 capability revision 递增，以及既有引用草稿的问题定位包含对应 nodeId/参数字段。",
+        "现有 MCP 漂移测试没有引用该工具的既有草稿；Skill 测试只检查存在通用 CAPABILITY_STALE，不能替代 MCP 参数漂移定位。",
+        "历史 PARTIAL 备注中的修复后更新引用、修正映射并重新发布链路，也未被上述测试完整断言。"
+      ],
+      "gapClassification": "local_synthetic_coverage_gap",
+      "nextValidation": [
+        "用本地合成 MCP 建立 v1 工具参数和草稿，改变同一参数类型并刷新目录，核对旧快照、精确问题定位、修复与重新发布。",
+        "独立断言变更前后 revision、node/field issue 和旧版本不可变；不把现有两个独立测试拼成已覆盖组合场景。"
+      ],
+      "minimalEffectiveTest": "用 synthetic MCP 定义同名工具参数 count:string，导入并建立映射引用的草稿且发布旧版本；将 count 改为 integer、刷新 catalog，断言 capability revision 上升、旧 connection/version 不变、既有草稿 CAPABILITY_STALE 指定正确 nodeId。再显式更新 capabilityRef/binding/参数映射，重新 validate 与 publish 成功；若要求字段级影响定位，另外断言参数路径而不能只看通用 issue。",
+      "sourceAssessment": {
+        "files": [
+          "packages/workflow-authoring/src/index.ts:33",
+          "packages/workflow-authoring/src/index.ts:39"
+        ],
+        "finding": "现有 issues() 已按 capability revision/schemaHash 不符产生带 nodeId 的 CAPABILITY_STALE，因此节点级定位实现存在；这里只读审查没有复现其错误。此分支未输出 schema 字段差异或参数路径，参数级诊断若作为完整方案验收标准则有潜在功能差距。主要确定缺口仍是 MCP 入参类型变化对既有草稿的组合证据，而非已确认发布绕过。"
+      }
+    },
+    {
+      "id": "AUTHOR-08",
+      "title": "发布修订变化",
+      "requirement": "校验后 binding/capability 变更：CAS 拒绝过期发布，旧版本不变。",
+      "status": "PARTIAL",
+      "evidenceLevel": "synthetic",
+      "evidence": [
+        {
+          "source": "tests/engine/publish-binding-cas.test.ts:19",
+          "testName": "publication binds the reviewed binding revisions and preserves previous immutable versions",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:134",
+          "proves": [
+            "已存在 v1.0.0 时 binding 修改不会递增草稿 revision；旧 binding review 的发布返回 REVISION_CONFLICT。",
+            "拒绝后没有 v1.0.1、草稿 revision 不变、旧发布版本完全不变；用最新 binding revision 可发布新版本。"
+          ]
+        },
+        {
+          "source": "tests/engine/v2-authoring-audit-regressions.test.ts:73",
+          "testName": "v2 HTTP/service publication requires the shared DTO and reviewed binding CAS",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:223",
+          "proves": [
+            "v2 HTTP/service/MCP 共享发布 DTO 校验；缺失 revision maps 不写命令或版本。",
+            "binding drift 使 v2 发布返回 409，更新 reviewed binding revision 后成功；已发布版本与幂等重放保持不变。"
+          ]
+        },
+        {
+          "source": "tests/engine/v2-authoring-reaudit.test.ts:132",
+          "testName": "v2 host_tool preserves bounded native object schemas without weakening frozen result checks",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:256",
+          "proves": [
+            "发布后 capability 改变甚至移除旧 capability_revisions 行，执行 checkpoint 仍使用发布快照的原 outputSchema。",
+            "无效结果不消费 checkpoint；有效合成宿主提交可完成运行并标记 host_reported。"
+          ]
+        }
+      ],
+      "missingAssertions": [
+        "同一已存在旧发布版本的 v2 草稿完成 validate/review 后，能力 revision 变化导致旧 expectedCapabilityRevisions 发布 CAS 拒绝，拒绝无版本/事件/草稿副作用，尚无对应组合断言。",
+        "binding 与 capability 同时变化的 reviewed publication、分别修正其中一项仍拒绝、两项更新后成功，以及旧版本完全不变，尚未在同一流程断言。"
+      ],
+      "gapClassification": "local_synthetic_coverage_gap",
+      "nextValidation": [
+        "补 v2 本地组合场景：已有旧版本→校验→binding/capability 漂移→旧 review 拒绝→分项更新仍拒绝→完整更新后新版本成功。",
+        "验证旧 snapshot、版本数量、草稿 revision、幂等/事件副作用；这是本地测试覆盖差距，不是缺企业环境。"
+      ],
+      "minimalEffectiveTest": "在一个 v2 工作流同时引用 MCP binding 与 capability，发布 v1 后对待发 v2 完成 validate 并保存 review maps；独立/同时递增 binding 与 capability，逐项尝试旧 maps、仅更新其中一项，断言全部拒绝且版本/草稿/事件无新增；显式修复草稿引用并完整 review 后发布 v2，旧 v1 字节和 snapshot 不变。使用新的 idempotencyKey 区分不同 review，另断言同请求精确重放。",
+      "sourceAssessment": {
+        "files": [
+          "packages/workflow-authoring/src/index.ts:299",
+          "packages/workflow-authoring/src/index.ts:307",
+          "packages/workflow-authoring/src/index.ts:309"
+        ],
+        "finding": "现有发布在 repo.command 事务内先比对 capability map、再 validate draft，最后经 engine.publish 检查 binding revision，代码顺序具有所需拒绝边界。未发现静态可证实的组合 CAS 绕过；最小测试主要证实事务失败无副作用及两个边界联动，不应在无复现时宣称源码已坏。"
+      }
+    },
+    {
+      "id": "RUN-07",
+      "title": "host-only 节点",
+      "requirement": "网页 Key 与 Codex 运行对照：网页准确说明需要宿主；Codex 实际交接。",
+      "status": "PARTIAL",
+      "evidenceLevel": "synthetic_plus_real_codex_protocol",
+      "evidence": [
+        {
+          "source": "tests/engine/v2-executors.test.ts:36",
+          "testName": "host-only checkpoint freezes identity and arguments and cannot be consumed by a model Key",
+          "executedLog": "artifacts/audit-20261106/backend-426.log:336",
+          "proves": [
+            "host-only checkpoint 冻结 capability identity/arguments。",
+            "内置模型尝试消费该 checkpoint 时 HOST_CAPABILITY_UNAVAILABLE，provider requests 为 0。",
+            "测试直接提交合成 agent_result 后保留 host_reported 标记；这不是实际 Skill/plugin 执行。"
+          ]
+        },
+        {
+          "source": "tests/ui/v2-capability-acceptance.spec.ts:47",
+          "testName": "UI-02: real discovery and CapabilityPicker persist hub_direct bindings and indexed codex_host Skill references",
+          "executedLog": "artifacts/audit-20261106/ui-78-first.log:60",
+          "proves": [
+            "浏览器展示 Skill 为仅 Codex 调用；插入后持久化 codex_host/host_reference/requiresCodex，不伪造 direct connection/binding。",
+            "Skill 脚本标记不存在，明确证明该 UI 测试没有执行 Skill。"
+          ]
+        },
+        {
+          "source": "scripts/smoke-codex-v2.mjs:57",
+          "executedEvidence": "docs/evidence/v2/audit-20261106/codex-protocol.json",
+          "evidenceStage": "codex_mcp_author_test_publish_execute_report",
+          "proves": [
+            "真实 Codex 成功连接并使用 21 个 MCP 工具完成 author/test/publish/start/report 协议闭环。",
+            "该 smoke 构建 auto 模式的 report_template 工作流，无 host-only 节点、无 WAITING_AGENT 宿主 Skill 执行；modelTurns=0、businessServiceCalls=0。"
+          ]
+        }
+      ],
+      "missingAssertions": [
+        "在真实授权 Codex 宿主中运行一个实际 host-only Skill/plugin：进入 WAITING_AGENT、执行指定宿主能力、以实际结果 advance、完成报告并保留 host_reported 证据。",
+        "同一 host-only 工作流的 Web 模型入口与真实宿主入口对照尚未端到端执行。"
+      ],
+      "gapClassification": "external_authorized_host_execution_acceptance",
+      "nextValidation": [
+        "保留 synthetic 交接与模型拒绝的本地通过证据；真实 Codex MCP 协议 smoke 不提升为 host-only 实执行通过。",
+        "真实宿主能力执行需要单独授权环境验收，可用无企业数据的本地 Skill；不复制 OAuth、不要求企业凭据。"
+      ]
+    }
+  ],
+  "conclusion": {
+    "pass": 0,
+    "partial": 4,
+    "localCoverageGaps": [
+      "DISC-03",
+      "CAP-07",
+      "AUTHOR-08"
+    ],
+    "externalExecutionBoundary": [
+      "RUN-07"
+    ],
+    "changedHistoricalStatuses": false,
+    "claim": "四项未取得完整组合证据，全部保留 PARTIAL；其余 100 项未在本文件重新验收。"
+  }
+}

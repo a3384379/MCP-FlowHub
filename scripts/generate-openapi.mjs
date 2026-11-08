@@ -32,7 +32,7 @@ for (let i = 0; i < declarations.length; i++) {
       required: true,
       schema: { type: "string" },
     });
-  if (code.includes("revision(req)"))
+  if (code.includes("revision(req)") || code.includes('req.headers["if-match"]'))
     parameters.push({
       name: "If-Match",
       in: "header",
@@ -80,6 +80,20 @@ for (let i = 0; i < declarations.length; i++) {
         },
       },
     };
+  }
+  if (route === "/api/v2/workflows/:id" && method === "delete") {
+    const schema = JSON.parse(await readFile("contracts/workflow-delete.schema.json", "utf8"));
+    operation.requestBody = {required:true,content:{"application/json":{schema}}};
+    operation.responses[404] = {description:"Workflow missing or already deleted (except exact idempotent replay)"};
+    operation.responses[428] = {description:"If-Match and expectedRevision must agree"};
+    operation.summary = "Delete a workflow from the library; preserve published snapshots and execution history";
+  }
+  if(method==="post" && ["/api/v2/workflows/:id/test-suites","/api/v2/test-suites/:id/runs"].includes(route)) {
+    const definitions=JSON.parse(await readFile("contracts/mcp-v2-tool-inputs.schema.json","utf8")).$defs;
+    const schema=structuredClone(definitions[route.endsWith("/runs")?"workflow_test_run":"workflow_test_generate"]);
+    const pathKey=route.endsWith("/runs")?"suiteId":"workflowId";
+    delete schema.properties[pathKey];schema.required=schema.required.filter(key=>key!==pathKey);
+    operation.requestBody={required:true,content:{"application/json":{schema}}};
   }
   if (route.endsWith("/events"))
     operation.responses[200] = {

@@ -1,0 +1,82 @@
+{
+  "format": "flowhub.v2.completion-verification/1",
+  "assessedAt": "2026-11-06",
+  "sourceBaseline": "abd1661c7bda4ec32a542154a733f72b1f674993",
+  "testedWorkingTree": true,
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "platform": "darwin-arm64"
+  },
+  "commands": [
+    {
+      "command": "npm run check",
+      "exitCode": 0,
+      "staticPositive": 37,
+      "staticNegative": 65
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "passed": 457,
+      "total": 457,
+      "skipped": 0,
+      "durationMs": 169032.092
+    },
+    {
+      "command": "npm run test:ui",
+      "exitCode": 0,
+      "passed": 81,
+      "total": 81
+    },
+    {
+      "command": "node --test --test-concurrency=1 dist/tests/engine/v2-ai-test-generation.test.js dist/tests/engine/v2-combined-acceptance.test.js dist/tests/engine/v2-scoped-testing.test.js dist/tests/engine/v2-testing.test.js",
+      "exitCode": 0,
+      "passed": 34,
+      "total": 34
+    },
+    {
+      "command": "npm run build:web && npx --no-install playwright test tests/ui/v2-testing-modes.spec.ts",
+      "exitCode": 0,
+      "passed": 3,
+      "total": 3,
+      "note": "Final panel counter wording rebuilt and the three affected UI scenarios rerun after the full suite."
+    },
+    {
+      "command": "node scripts/smoke-codex-v2.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node scripts/smoke-v2-upgrade.mjs",
+      "exitCode": 0
+    }
+  ],
+  "testedSourceHashes": {
+    "packages/workflow-testing/src/index.ts": "5d34f438b3a908a44f423f3f978b23065ff33e762d00e6c1bbb9315c46a943f8",
+    "packages/workflow-testing/src/ai-generation.ts": "e06ddd253e71f170d5fbfeed9009f6b8f116e85aad7cbef93accb89079ba55b6",
+    "packages/workflow-testing/src/scoped-execution.ts": "72756cdf3a6f85b906ec5eb902fa3ec74eb87036207e8ccd8972b5f06a51b1cf",
+    "packages/workflow-testing/src/execution-baseline.ts": "0365401e0407fbc8c0f93f11a760ded8983546f74d6c1efce3472aaab360874a",
+    "packages/assistant-core/src/index.ts": "83e41f8bc3a424252f824d280c6ec11ad7e18f4c89eb02c818208f7b76f8c3c3",
+    "packages/mcp-connectors/src/registry.ts": "6e0a6adec4e9c5083ec6f259b794d65a7e060d82f06d20606c4c84ed74822258",
+    "packages/host-discovery/src/index.ts": "f91769793bf7c90445dfee85d46209d244f92a333aba1b1dc390305f7e484779",
+    "packages/workflow-authoring/src/index.ts": "9a8825a50814fc2544c7fcf607aecd9ddf2eca4a0c2a2fa4119b61de98353d47",
+    "packages/workflow-authoring/src/capability-drift.ts": "02c1635ccb0987cacb8a47c46fc5d57f7dc5aa195439af38c9977c85877ad936",
+    "apps/web/src/features/testing/TestingPanel.tsx": "03cce49c5907f082acada27996c61269b779125be317ab8446e099bef5c925fa",
+    "apps/web/src/features/testing/testing.css": "ec9633b61c2b6c0c0a38c7f42d336607544512dfb83c7643a4e9b6e2555d671e",
+    "contracts/mcp-v2-tool-inputs.schema.json": "2a36b5b9277fd5ee3a3e0d3dc5351825fc8085125c651e3e79a763735aab9fd4",
+    "packages/admin-api/src/v2.ts": "854e47def4cfbfe9d0d47780360c90dbf2e978445f933cc2b93dc0eb8e3cd2ee",
+    "packages/persistence/src/retention.ts": "94f908895774ee7a1b8c0ea1f425741b6764f407a7c071af19f7942e0b2470e5",
+    "tests/engine/v2-ai-test-generation.test.ts": "ca400717fa8d9169e53591e69204550c21d8b3e448e61e3b8bc4291bd44accb6",
+    "tests/engine/v2-combined-acceptance.test.ts": "4b2f74a9b6befb81c8e4225cf37cfc8e6412e365457cd836ecc38dbe90e4a0ef",
+    "tests/engine/v2-scoped-testing.test.ts": "1ead8d9c473309a4bc719cdbee0eea7716c4258a004a26b6cef108cc1dd51a37",
+    "tests/ui/v2-testing-modes.spec.ts": "1ece2cf26f1fd7defe7ff378eb1f27dd25dd98e24e0d4fac40945639dba7f312"
+  },
+  "enterpriseCalls": 0,
+  "realModelCalls": 0,
+  "realModelQuality": "UNVERIFIED",
+  "nativeWindows": "UNVERIFIED",
+  "realHostOnlyExecution": "UNVERIFIED",
+  "push": false,
+  "merge": false,
+  "release": false
+}

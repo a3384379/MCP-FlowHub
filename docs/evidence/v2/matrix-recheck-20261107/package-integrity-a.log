@@ -1,0 +1,5 @@
+
+> mcp-flowhub@2.0.0-alpha.2 verify:release
+> node scripts/verify-release.mjs
+
+Bundle verified: 6423 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.

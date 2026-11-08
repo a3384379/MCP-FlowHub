@@ -1,0 +1,84 @@
+{
+  "head": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "productCodeChanged": false,
+  "built": false,
+  "formalDataAccessed": false,
+  "realModelCalls": 0,
+  "enterpriseCalls": 0,
+  "port18479Released": true,
+  "report": "artifacts/max-completion-audit-20261106/ui-combos/audit.md",
+  "findings": [
+    {
+      "id": "UI-01",
+      "priority": 2,
+      "title": "运行幂等签名遗漏套件身份，丢回执后新套件复用旧键并冲突",
+      "file": "apps/web/src/features/testing/TestingPanel.tsx",
+      "lines": [16,18,82,86],
+      "trigger": "suite A r1的运行已被实际API接受但浏览器回执丢失；在同一面板生成suite B r1，再运行相同mode/budget。",
+      "actual": "签名只有kind/workflowId/body，不含URL上的suiteId；A/B复用同key；真实API首个200、第二个409 IDEMPOTENCY_CONFLICT，继续点击也无法摆脱该键。",
+      "evidence": ["browser-results.json#scenarios[id=lost-run-key-new-suite]", "lost-run-key-new-suite.png"],
+      "script": "browser-probes.mjs",
+      "minimumFix": "签名加入method和完整目标路径或suiteId/baseSuiteId，按有效DTO确定身份；旧未确认目标仍保留原键供重试。",
+      "acceptance": "丢A回执后生成并运行B必须用新键成功；A精确重试仍用原键且不新建运行；不同suite的相同PUT内容也隔离。"
+    },
+    {
+      "id": "UI-02",
+      "priority": 2,
+      "title": "成功生成任务的延迟套件回包丢弃未保存夹具编辑",
+      "file": "apps/web/src/features/testing/TestingPanel.tsx",
+      "lines": [15,60,67,97],
+      "trigger": "已有套件A，AI生成B成功但B的GET真实回执迟到；任务SUCCEEDED先解锁，用户编辑A，随后B回包。",
+      "actual": "轮询调用acceptSuite覆盖fixtures并关闭编辑器；epoch只保护workflow切换，不保护同workflow的新用户输入。",
+      "evidence": ["browser-results.json#scenarios[id=late-generated-suite-drops-edit]", "late-generated-suite-drops-edit.png"],
+      "script": "browser-probes.mjs",
+      "routeReproduction": [
+        "创建套件A；打开其真实工作流编辑页并等待A加载。",
+        "配置本地合成HTTP Provider，返回合法submit_test_cases生成套件B。",
+        "page.route('**/api/v2/test-suites/*')仅拦GET且URL不是A；先route.fetch读取真实响应，保存其JSON，然后等待手动release再route.fulfill({response})。",
+        "点击AI生成，等待新GET被hold以及页面生成任务SUCCEEDED。",
+        "点击编辑夹具与断言，在合成用例JSON中输入与原值不同的pendingJson，不保存。",
+        "release被hold的真实GET B回执；编辑器消失，pendingJson不再显示，API确认A仍旧值。"
+      ],
+      "minimumFix": "采用生成套件完成前保持loading；采用回包核对任务/交互代际并保护dirty夹具，不能无条件隐藏编辑器或替换用户输入。",
+      "acceptance": "上述延迟步骤必须保留pendingJson；同workflow新保存/新生成后旧GET不得倒退套件。"
+    },
+    {
+      "id": "UI-03",
+      "priority": 2,
+      "title": "外部套件更新使旧证据过期，但终态面板仍显示当前成功",
+      "file": "apps/web/src/features/testing/TestingPanel.tsx",
+      "lines": [19,33,46,55,68,108],
+      "trigger": "suite r1 Mock通过；另一授权入口PUT同suite到r2，draft revision不变。",
+      "actual": "后端旧run的stale为true；UI仍缓存suite r1与stale=false，显示SUCCEEDED/passed:1且没有基线过期提示。服务端执行门禁未被绕过。",
+      "evidence": ["browser-results.json#scenarios[id=external-suite-stale-hidden]", "external-suite-stale-hidden.png"],
+      "script": "browser-probes.mjs",
+      "minimumFix": "相关suite/capability/binding事件或后台周期只读重取suite与run状态；焦点恢复/重连补读。只读刷新不能重复POST执行。",
+      "acceptance": "另一客户端更新suite后无需页面刷新就标stale；能力/绑定变化即便draft revision不变也能过期旧结果；不产生额外POST。"
+    },
+    {
+      "id": "CAP-01",
+      "priority": 2,
+      "title": "$ref处立即return忽略合法sibling类型，漂移字段诊断静默遗漏",
+      "file": "packages/workflow-authoring/src/capability-drift.ts",
+      "lines": [10,11],
+      "trigger": "count:{$ref:'#/$defs/base',type:'string'}改为integer，$defs.base={}；两份Schema均通过产品native guard，产品validator行为不同。",
+      "actual": "capabilitySchemaChanges返回changes:[],truncated:false；CAPABILITY_STALE仍在节点级阻断，但schemaChanges无/count定位。此项不是发布CAS绕过。",
+      "evidence": ["schema-drift-results.json", "schema-drift.log"],
+      "script": "schema-drift-probe.mjs",
+      "minimumFix": "有界展开引用并保留该位置sibling约束参与差异；无法完整诊断时明确不完整。",
+      "acceptance": "$ref sibling type/minimum/required漂移必须字段定位，引用目标变化继续定位，原有访问预算保持。"
+    }
+  ],
+  "independentlyExecuted": [
+    {"scope":"three combined acceptance tests","passed":3,"total":3,"exitCode":0,"evidence":"combined-recheck.json"},
+    {"scope":"publish-binding-cas and v2-authoring-audit-regressions","passed":10,"total":10,"exitCode":0,"evidence":"publish-cas.log"},
+    {"scope":"real browser with disposable daemon/API and local synthetic Provider","scenarios":3,"exitCode":0,"evidence":"browser-results.json"},
+    {"scope":"valid ref-sibling drift through product native guard/validator/diagnostic","exitCode":0,"evidence":"schema-drift-results.json"}
+  ],
+  "notFound": [
+    "DISC-03有效结果采用宿主CLI结果，声明来源明确读取顺序，不冒充覆盖优先级。",
+    "已声明能力/绑定的发布CAS路径与旧v1发布路由未发现已证实绕过。",
+    "Scope提交明确选择绑定、用例输入、fixtureHash和预算；生成/Contract/Live级别与已派发取消结果不明已有区分。"
+  ],
+  "notRevalidated": ["full backend/UI suite", "Windows", "real model quality", "actual personal Desktop profile merge", "enterprise permissions", "cross-old-database browser recovery"]
+}

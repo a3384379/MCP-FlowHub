@@ -361,6 +361,7 @@ export class Connectors {
     args: Json,
     timeout: number,
     beforeDispatch?: () => void,
+    control: {signal?: AbortSignal} = {},
   ) {
     const deadline = Date.now() + timeout;
     const remaining = () => {
@@ -389,6 +390,8 @@ export class Connectors {
     };
     const c = checkBinding();
     const controller = new AbortController();
+    const abort = () => controller.abort(control.signal?.reason);
+    if(control.signal?.aborted) abort(); else control.signal?.addEventListener("abort",abort,{once:true});
     const timer = setTimeout(() => controller.abort(), timeout);
     let client: Client | undefined;
     let dispatched = false;
@@ -446,11 +449,7 @@ export class Connectors {
           toolDefinition: live,
         },
       );
-      ensure(
-        !value.isError,
-        "TOOL_FAILED",
-        "Downstream tool returned an error.",
-      );
+      if(value.isError)throw new HubError("TOOL_FAILED","Downstream tool returned an error.",422,{dispatched:true,outcomeKnown:true});
       const {value:out}=adaptMcpResult(value,node.config.resultAdapterRef??"structured",live.outputSchema);
       ensure(
         out.environment === undefined || out.environment === binding.environment,
@@ -491,6 +490,7 @@ export class Connectors {
       throw error;
     } finally {
       clearTimeout(timer);
+      control.signal?.removeEventListener("abort",abort);
       await client?.close();
     }
   }

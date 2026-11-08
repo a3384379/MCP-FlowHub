@@ -1,0 +1,30 @@
+{
+  "passed": false,
+  "error": {
+    "name": "AssertionError",
+    "message": "The expression evaluated to a falsy value:\n\n  assert.ok(!receipt.browserRequests.some(request => /\\/assistant\\/|\\/test-runs|\\/api\\/v1\\/runs/.test(request.path)))\n",
+    "stack": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(!receipt.browserRequests.some(request => /\\/assistant\\/|\\/test-runs|\\/api\\/v1\\/runs/.test(request.path)))\n\n    at file:///Volumes/%E9%9B%B7%E7%94%B5/BuildArtifacts/FlowHub/artifacts/matrix-recheck-20261106/independent-audit/browser-after/probe.mjs:114:107"
+  },
+  "ownedDaemon": {
+    "pid": 75692,
+    "port": 50132
+  },
+  "checks": [],
+  "screenshots": [
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/02-conflict-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/03-candidate-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/04-installed-conflict-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/05-resolved-cards.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/06-resolved-candidate-detail.png",
+    "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/failure.png"
+  ],
+  "cleanup": {
+    "browserClosed": true,
+    "daemon": {
+      "code": 0,
+      "signal": null
+    },
+    "temporaryDataRemoved": true
+  },
+  "evidence": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/independent-audit/browser-after/receipt.json"
+}

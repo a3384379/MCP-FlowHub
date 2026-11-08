@@ -1,0 +1,321 @@
+{
+  "head": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "node": "v24.19.0",
+  "os": "darwin",
+  "scope": "in-memory SQLite; local authenticated synthetic MCP only",
+  "request": {
+    "suiteId": "suite_bf4aed1b-1848-48a7-a2e3-9c63cef8b898",
+    "expectedSuiteRevision": 1,
+    "mode": "live",
+    "idempotencyKey": "6ac59615-2484-4b2e-8fe6-8f6b2e96b4f6",
+    "allowedBindingIds": [
+      "audit-scope-binding"
+    ],
+    "budgets": {
+      "maxCalls": 5,
+      "timeoutMs": 5000
+    },
+    "inputScope": {
+      "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+      "caseInputs": [
+        {
+          "caseId": "first",
+          "inputs": {
+            "value": "first"
+          }
+        },
+        {
+          "caseId": "second",
+          "inputs": {
+            "value": "second"
+          }
+        }
+      ]
+    }
+  },
+  "receipt": {
+    "testRunId": "test_cab26de8-0d22-4e75-8c22-87ed83d381ce",
+    "status": "QUEUED"
+  },
+  "replay": {
+    "testRunId": "test_cab26de8-0d22-4e75-8c22-87ed83d381ce",
+    "status": "QUEUED"
+  },
+  "calls": [
+    {
+      "args": {
+        "value": "first",
+        "environment": "test"
+      },
+      "at": 1793976854178
+    },
+    {
+      "args": {
+        "value": "second",
+        "environment": "test"
+      },
+      "at": 1793976855279
+    }
+  ],
+  "completions": [
+    {
+      "args": {
+        "value": "second",
+        "environment": "test"
+      },
+      "at": 1793976855279
+    }
+  ],
+  "run": {
+    "id": "test_cab26de8-0d22-4e75-8c22-87ed83d381ce",
+    "suiteId": "suite_bf4aed1b-1848-48a7-a2e3-9c63cef8b898",
+    "workflowId": "audit-scoped-flow",
+    "owner": "admin",
+    "mode": "live",
+    "scope": {
+      "allowedBindingIds": [
+        "audit-scope-binding"
+      ],
+      "budgets": {
+        "maxCalls": 5,
+        "timeoutMs": 5000
+      },
+      "inputScope": {
+        "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+        "caseInputs": [
+          {
+            "caseId": "first",
+            "inputs": {
+              "value": "first"
+            }
+          },
+          {
+            "caseId": "second",
+            "inputs": {
+              "value": "second"
+            }
+          }
+        ]
+      }
+    },
+    "scopeHash": "7f256994a1c08691e2e071e2a43a2505e445976573f290d5cae9f20dec8b846e",
+    "snapshotHash": "sha256:809ae26e61941ee4a70100be7af6a9775e105ec95e430341abb1a8cbbe7fb802",
+    "validationLevel": "live",
+    "toolCalls": 2,
+    "catalogChecks": 0,
+    "credentialReadAccounting": "not_instrumented",
+    "syntheticBindings": [],
+    "status": "SUCCEEDED",
+    "cases": [
+      {
+        "id": "first",
+        "name": "first",
+        "status": "PASSED",
+        "assertions": [
+          {
+            "kind": "error_code",
+            "expected": "OUTCOME_UNKNOWN",
+            "actual": "OUTCOME_UNKNOWN",
+            "passed": true
+          },
+          {
+            "kind": "terminal_state",
+            "expected": "OUTCOME_UNKNOWN",
+            "actual": "OUTCOME_UNKNOWN",
+            "passed": true
+          }
+        ],
+        "errorCode": "OUTCOME_UNKNOWN",
+        "trace": [
+          {
+            "nodeId": "read",
+            "arguments": {
+              "value": "first",
+              "environment": "test"
+            },
+            "provenance": "live_mcp"
+          }
+        ],
+        "outputs": {
+          "input": {
+            "value": "first"
+          }
+        },
+        "artifacts": [],
+        "events": [
+          {
+            "seq": 1,
+            "type": "RUN_CREATED",
+            "workflowId": "audit-scoped-flow",
+            "environment": "test",
+            "createdAt": "2026-11-06T14:54:14.165Z"
+          },
+          {
+            "seq": 2,
+            "type": "NODE_SUCCEEDED",
+            "nodeId": "input",
+            "createdAt": "2026-11-06T14:54:14.166Z"
+          },
+          {
+            "seq": 3,
+            "type": "TOOL_LIMIT_ENFORCEMENT",
+            "nodeId": "read",
+            "status": "unsupported",
+            "argumentPointer": null,
+            "effectiveLimit": null,
+            "postResultRowBudget": 10,
+            "createdAt": "2026-11-06T14:54:14.166Z"
+          },
+          {
+            "seq": 4,
+            "type": "TOOL_PREPARING",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:14.166Z"
+          },
+          {
+            "seq": 5,
+            "type": "TOOL_DISPATCH",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:14.175Z"
+          },
+          {
+            "seq": 6,
+            "type": "RUN_OUTCOME_UNKNOWN",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:15.170Z"
+          }
+        ],
+        "provenance": "scoped_live_mcp",
+        "validationLevel": "live",
+        "gaps": [],
+        "executionState": "OUTCOME_UNKNOWN"
+      },
+      {
+        "id": "second",
+        "name": "second",
+        "status": "PASSED",
+        "assertions": [
+          {
+            "kind": "terminal_state",
+            "expected": "SUCCEEDED",
+            "actual": "SUCCEEDED",
+            "passed": true
+          }
+        ],
+        "errorCode": null,
+        "trace": [
+          {
+            "nodeId": "read",
+            "arguments": {
+              "value": "second",
+              "environment": "test"
+            },
+            "provenance": "live_mcp"
+          }
+        ],
+        "outputs": {
+          "input": {
+            "value": "second"
+          },
+          "read": {
+            "environment": "test",
+            "value": "second"
+          }
+        },
+        "artifacts": [
+          {
+            "id": "art_7c757520-cf76-45e4-a1e9-420ccb1c94dd",
+            "runId": "run_ed0d15e8-a4a8-47b8-88fc-4ce77df16ac1",
+            "nodeId": "read",
+            "content": "{\n  \"environment\": \"test\",\n  \"value\": \"second\"\n}",
+            "mimeType": "application/json",
+            "sha256": "c03ff1bb155c961e1ff915ea066e767eb2b497fcd066677561948d93c260ca82",
+            "byteLength": 48,
+            "createdAt": "2026-11-06T14:54:15.282Z",
+            "expiresAt": 1794581655282,
+            "verification": {
+              "contentStored": true,
+              "synthetic": false,
+              "truncated": false
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 1,
+            "type": "RUN_CREATED",
+            "workflowId": "audit-scoped-flow",
+            "environment": "test",
+            "createdAt": "2026-11-06T14:54:15.272Z"
+          },
+          {
+            "seq": 2,
+            "type": "NODE_SUCCEEDED",
+            "nodeId": "input",
+            "createdAt": "2026-11-06T14:54:15.272Z"
+          },
+          {
+            "seq": 3,
+            "type": "TOOL_LIMIT_ENFORCEMENT",
+            "nodeId": "read",
+            "status": "unsupported",
+            "argumentPointer": null,
+            "effectiveLimit": null,
+            "postResultRowBudget": 10,
+            "createdAt": "2026-11-06T14:54:15.272Z"
+          },
+          {
+            "seq": 4,
+            "type": "TOOL_PREPARING",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:15.272Z"
+          },
+          {
+            "seq": 5,
+            "type": "TOOL_DISPATCH",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:15.278Z"
+          },
+          {
+            "seq": 6,
+            "type": "TOOL_SUCCEEDED",
+            "nodeId": "read",
+            "createdAt": "2026-11-06T14:54:15.282Z"
+          },
+          {
+            "seq": 7,
+            "type": "RUN_SUCCEEDED",
+            "nodeId": "end",
+            "createdAt": "2026-11-06T14:54:15.282Z"
+          }
+        ],
+        "provenance": "scoped_live_mcp",
+        "validationLevel": "live",
+        "gaps": [],
+        "executionState": "SUCCEEDED"
+      }
+    ],
+    "gaps": [],
+    "createdAt": "2026-11-06T14:54:14.071Z",
+    "draftRevision": 2,
+    "capabilityRevisions": {},
+    "fixtureHash": "sha256:cb985ca6a9599ecbe223b1f57090e7af5b9b0e725761df447bf6c6b1e63e7e00",
+    "suiteRevision": 1,
+    "startedAt": "2026-11-06T14:54:14.072Z",
+    "pendingDispatches": [],
+    "outcomeUnknown": true,
+    "summary": {
+      "passed": 2,
+      "failed": 0,
+      "uncovered": 0,
+      "total": 2
+    },
+    "completedAt": "2026-11-06T14:54:15.283Z",
+    "simulationOnly": false,
+    "networkCalls": null,
+    "realSecretReads": null,
+    "provenance": "scoped_live_mcp",
+    "branchCoverage": [],
+    "stale": false
+  }
+}

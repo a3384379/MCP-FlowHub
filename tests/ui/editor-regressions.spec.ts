@@ -1,8 +1,109 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
 const password = "Synthetic-browser-password-041";
+
+test("pending deletion cannot be dismissed and a lost response retries the same request",async({page})=>{
+  const api=await admin(page),id=await newWorkflow(page,"blank","test");
+  await page.getByRole("button",{name:"工作流",exact:true}).click();
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;}),requests:any[]=[];
+  await page.route("**/api/v2/workflows/"+id,async route=>{
+    requests.push(route.request().postDataJSON());
+    if(requests.length===1){await gate;const committed=await route.fetch();expect(committed.status()).toBe(200);await route.abort("failed");}
+    else {const response=await route.fetch();await route.fulfill({response});}
+  });
+  const card=page.locator(`[data-workflow-id="${id}"]`);
+  await card.getByRole("button",{name:"删除",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"删除工作流"});
+  try{
+    await dialog.getByRole("button",{name:"确认删除",exact:true}).click();await expect.poll(()=>requests.length).toBe(1);
+    await expect(dialog.getByRole("button",{name:"取消",exact:true})).toBeDisabled();
+    await expect(dialog.getByRole("button",{name:"关闭",exact:true})).toBeDisabled();
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press("Tab");await expect(dialog).toBeFocused();
+    await page.keyboard.press("Shift+Tab");await expect(dialog).toBeFocused();
+    await page.locator(".modal-backdrop").click({position:{x:2,y:2}});
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press("Escape");await expect(dialog).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/workflows$/);await expect(dialog).toBeVisible();
+    release();await expect(dialog.getByRole("alert")).toContainText(/fetch|network|请求|Failed/i);
+    const missing=await page.request.get("/api/v2/workflows/"+id+"/draft");expect(missing.status()).toBe(404);
+    await dialog.getByRole("button",{name:"确认删除",exact:true}).click();
+    await expect(dialog).toHaveCount(0);expect(requests).toHaveLength(2);expect(requests[1]).toEqual(requests[0]);
+    await expect(card).toHaveCount(0);expect((await api("/workflows")).some((w:any)=>w.id===id)).toBe(false);
+  }finally{release();}
+});
+
+test("workflow library deletion confirms intent, survives refresh, keeps published history and prevents duplicate pending submits",async({page})=>{
+  const api=await admin(page),id=await newWorkflow(page,"blank","test");
+  await publish(page);await expect(page.getByRole("status")).toContainText("不可变版本已发布");
+  const version=(await api("/workflows/"+id+"/versions"))[0],
+    started=await api("/runs","POST",{workflowId:id,version:version.version,mode:version.snapshot.workflow.mode,inputs:{},idempotencyKey:randomUUID()});
+  await expect.poll(async()=>(await api("/runs/"+started.runId)).state).toBe("SUCCEEDED");
+  const before=await api("/workflows");
+  await page.getByRole("button",{name:"工作流",exact:true}).click();
+  const card=page.locator(`[data-workflow-id="${id}"]`);
+  await card.getByRole("button",{name:"删除",exact:true}).click();
+  let dialog=page.getByRole("dialog",{name:"删除工作流"});
+  await expect(dialog).toContainText(id);await expect(dialog).toContainText("已有运行记录、报告、发布快照及凭据会保留");
+  await dialog.getByRole("button",{name:"取消",exact:true}).click();await expect(card).toBeVisible();
+  await card.getByRole("button",{name:"删除",exact:true}).click();dialog=page.getByRole("dialog",{name:"删除工作流"});
+  await mkdir("artifacts/workflow-delete",{recursive:true});
+  await page.screenshot({path:"artifacts/workflow-delete/confirm-desktop.png"});
+  await page.setViewportSize({width:390,height:844});
+  const bounds=await dialog.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(390);
+  await page.screenshot({path:"artifacts/workflow-delete/confirm-mobile.png"});
+  let release!:()=>void,requests=0;const gate=new Promise<void>(resolve=>{release=resolve;});
+  await page.route("**/api/v2/workflows/"+id,async route=>{if(route.request().method()==="DELETE"){requests++;await gate;}await route.continue();});
+  try{
+    await dialog.getByRole("button",{name:"确认删除",exact:true}).click();await expect.poll(()=>requests).toBe(1);
+    await expect(dialog.getByRole("button",{name:"处理中…",exact:true})).toBeDisabled();
+    release();await expect(dialog).toHaveCount(0);await expect(card).toHaveCount(0);
+    expect(requests).toBe(1);expect(await api("/workflows/"+id+"/versions")).toEqual([version]);
+    expect((await api("/runs/"+started.runId)).state).toBe("SUCCEEDED");
+    expect((await api("/workflows")).map((w:any)=>w.id)).toEqual(before.filter((w:any)=>w.id!==id).map((w:any)=>w.id));
+    await page.reload();await expect(page.locator(`[data-workflow-id="${id}"]`)).toHaveCount(0);
+  }finally{release();}
+});
+
+test("a stale deletion dialog shows the real revision conflict and requires a fresh review",async({page})=>{
+  const api=await admin(page),id=await newWorkflow(page,"blank","test"),before=await api("/workflows/"+id+"/draft");
+  await page.getByRole("button",{name:"工作流",exact:true}).click();
+  const card=page.locator(`[data-workflow-id="${id}"]`);await card.getByRole("button",{name:"删除",exact:true}).click();
+  const workflow=structuredClone(before.draft);workflow.name="删除确认期间的新名称";
+  await api("/workflows/"+id+"/draft","PUT",{workflow,layout:before.layout,expectedLayoutRevision:before.layoutRevision},before.revision);
+  const dialog=page.getByRole("dialog",{name:"删除工作流"});await dialog.getByRole("button",{name:"确认删除",exact:true}).click();
+  await expect(dialog.getByRole("alert")).toContainText("工作流已被修改");
+  expect((await api("/workflows/"+id+"/draft")).draft.name).toBe(workflow.name);
+  await dialog.getByRole("button",{name:"取消",exact:true}).click();
+  await expect(card).toContainText(workflow.name);await card.getByRole("button",{name:"删除",exact:true}).click();
+  await expect(dialog).toContainText(workflow.name);await dialog.getByRole("button",{name:"确认删除",exact:true}).click();
+  await expect(dialog).toHaveCount(0);await expect(card).toHaveCount(0);
+});
+
+test("external deletion leaves unsaved canvas content available and blocks later saves",async({page})=>{
+  const api=await admin(page),id=await newWorkflow(page,"blank","test"),before=await api("/workflows/"+id+"/draft");
+  await page.locator(".react-flow__node").first().click();
+  await page.getByLabel("节点名称",{exact:true}).fill("删除时仍保留的本地编辑");
+  const session=(await(await page.request.get("/api/v1/auth/session")).json()).data;
+  const deleted=await page.request.delete("/api/v2/workflows/"+id,{headers:{"X-CSRF-Token":session.csrf,"If-Match":String(before.revision)},data:{expectedRevision:before.revision,expectedLayoutRevision:before.layoutRevision,idempotencyKey:randomUUID()}});
+  expect(deleted.ok(),await deleted.text()).toBe(true);
+  await expect(page.getByRole("status")).toContainText("此处的未保存内容仍保留");
+  await expect(page.getByLabel("节点名称",{exact:true})).toHaveValue("删除时仍保留的本地编辑");
+  await expect(page.getByRole("button",{name:"保存草稿",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"发布版本",exact:true})).toBeDisabled();
+  const deletedNotice=page.getByRole("region",{name:"已删除工作流",exact:true});
+  await expect(deletedNotice).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0,{timeout:8000});
+  await expect(deletedNotice).toBeVisible();
+  await deletedNotice.getByRole("button",{name:"查看并复制本地 DSL",exact:true}).click();
+  await expect(page.getByRole("dialog")).toContainText("删除时仍保留的本地编辑");
+  await page.getByRole("dialog").getByRole("button",{name:"关闭",exact:true}).last().click();
+  await page.getByRole("button",{name:"查看 DSL",exact:true}).click();
+  await expect(page.getByRole("dialog")).toContainText("删除时仍保留的本地编辑");
+});
 
 async function admin(page: Page) {
   const state = (await (await page.request.get("/api/v1/auth/state")).json())

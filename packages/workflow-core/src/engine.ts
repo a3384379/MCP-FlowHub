@@ -157,6 +157,7 @@ export class Engine {
             ).schemaHash;
         const existing = this.repo.get("workflows", w.workflowId),
           version = this.repo.get("versions", w.workflowId + "@" + w.version);
+        if (existing?.deletedAt) continue;
         // An interrupted old seed may already contain an immutable legacy
         // workflow. Preserve it for explicit copy migration instead of replacing it.
         if (existing?.draft?.nodes?.some((node: Node) => node.type === "approval") ||
@@ -232,6 +233,7 @@ export class Engine {
   saveDraft(w: Workflow, expected: number | undefined, layout: Json) {
     validateWorkflowDocument(w);
     const old = this.repo.get("workflows", w.workflowId);
+    ensure(!old?.deletedAt,"WORKFLOW_NOT_AVAILABLE","工作流已删除，不能保存或重新导入相同 ID。",404);
     ensure(
       old ? expected === old.revision : expected === undefined,
       "REVISION_CONFLICT",
@@ -279,7 +281,7 @@ export class Engine {
   ) {
     return this.repo.tx(() => {
       const wf = this.repo.get("workflows", workflowId);
-      ensure(wf, "NOT_FOUND", "Workflow missing.", 404);
+      ensure(wf && !wf.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
       ensure(expectedRevision === undefined || wf.revision === expectedRevision,
         "REVISION_CONFLICT", "Draft changed before publication.", 409);
       if (expectedBindingRevisions !== undefined) {
@@ -345,7 +347,7 @@ export class Engine {
   private version(workflowId: string, version?: string) {
     const wf = this.repo.get("workflows", workflowId);
     ensure(
-      wf && wf.enabled,
+      wf && !wf.deletedAt && wf.enabled,
       "WORKFLOW_NOT_AVAILABLE",
       "Workflow unavailable.",
       404,
@@ -403,7 +405,7 @@ export class Engine {
     }
     const ranked = this.repo
       .all("workflows")
-      .filter((w) => w.enabled && w.defaultVersion && this.allowed(w.id, owner) &&
+      .filter((w) => !w.deletedAt && w.enabled && w.defaultVersion && this.allowed(w.id, owner) &&
         !this.repo.get("versions", w.id + "@" + w.defaultVersion)?.snapshot.workflow.nodes.some((node: Node) => node.type === "approval"))
       .map((w) => {
         const v = this.version(w.id),

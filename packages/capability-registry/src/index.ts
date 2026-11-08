@@ -246,7 +246,7 @@ export class CapabilityRegistry {
         const sourceId="src_"+hash([context.id,source.sourceKey]).slice(0,24),prior=this.repo.get("capability_sources",sourceId),sourceFingerprint=hash(source.config),self=selfSource(source,this.identity),policy=sourcePolicy(source.config);
         const direct=!self&&!policy.unsupported&&!!(source.config.url||(isAbsolute(source.config.command??"")&&!/\$\{|\{\{/.test(JSON.stringify(source.config))));
         const bearer=bearerCredentials(source.config),referenceCredentials=bearer.supported&&!bearer.conflict;
-        const value:Json={id:sourceId,contextId:context.id,contextRevision:context.revision,sourceKey:source.sourceKey,name:source.name,kind:source.kind,locator:source.locator,sourceChain:source.sourceChain,
+        const value:Json={id:sourceId,contextId:context.id,contextRevision:context.revision,sourceKey:source.sourceKey,name:source.name,kind:source.kind,locator:source.locator,sourceChain:source.sourceChain,resolutionEvidence:source.resolutionEvidence,
           connectionSetup:policy.credentialArgs||policy.embeddedUrl||policy.unsupported||!referenceCredentials?"manual":direct?"references":"host",
           enabled:source.enabled,sourceFingerprint,revision:prior?.sourceFingerprint===sourceFingerprint?prior.revision:(prior?.revision??0)+1,
           self,executor:self?"informational":direct?"hub_direct":"codex_host",discovery:"metadata_only",installation:"installed",

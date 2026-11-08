@@ -1,0 +1,58 @@
+{
+  "commit": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "validation": {
+    "command": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node artifacts/max-completion-audit-20261106/ai/audit-repro.mjs",
+    "exitCode": 0,
+    "runtime": "Node v24.19.0",
+    "syntheticOnly": true,
+    "productFilesChanged": false,
+    "scope": "Existing dist; in-memory SQLite; synthetic Vault; owned loopback HTTP Provider and ScriptedModelProvider"
+  },
+  "findings": [
+    {
+      "id": "AI-01",
+      "severity": "P1",
+      "title": "Inspect decoded model proposal values before committing credentials",
+      "location": {"path": "packages/assistant-core/src/index.ts", "start": 148, "end": 153},
+      "trigger": "The synthetic HTTP Provider echoes its authentication key in a case name, encoding the inner JSON string as Unicode escapes.",
+      "actual": "Literal key response fails MODEL_OUTPUT_INVALID with no suite. The Unicode-escaped equivalent succeeds and getSuite returns the decoded key as plaintext. The key was absent from outbound model messages in both controls.",
+      "impact": "Protected model credential bytes escape Vault into durable suite configuration, API/UI and future backups; saved suites are excluded from result retention cleanup.",
+      "minimalFix": "Parse once, validate the decoded JSON, recursively inspect decoded string keys and values against protected credentials, and reject the entire proposal before any suite or command write. Preserve ordinary business values; do not add business redaction.",
+      "regression": "Real loopback HTTP adapter: literal, fully Unicode-escaped and mixed-escaped key responses must all fail and create no suite; safe business text must survive unchanged.",
+      "evidence": "evidence.json findings AI-01"
+    },
+    {
+      "id": "AI-02",
+      "severity": "P2",
+      "title": "Apply the AI generation single-request budget inside HTTP retries",
+      "location": {"path": "packages/workflow-testing/src/ai-generation.ts", "start": 120, "end": 125},
+      "relatedLocations": [{"path": "packages/assistant-core/src/index.ts", "start": 139, "end": 142}, {"path": "packages/llm-providers/src/index.ts", "start": 94, "end": 99}],
+      "trigger": "Owned loopback Provider returns 429 twice with Retry-After: 0 and then a valid response.",
+      "actual": "Generation succeeds after 3 HTTP requests, while modelCalls and model_requested event count both remain 1.",
+      "impact": "The declared single-request generation budget counts only the logical Provider.complete call and permits unreported transport attempts.",
+      "minimalFix": "Add optional internal maxAttempts to ModelRequest; AI proposals pass 1 and the HTTP adapter enforces it before retry. Retain the ordinary assistant's current maximum of 3. If retry-enabled generation is introduced later, expose separate physical attempt accounting.",
+      "regression": "AI 429 fails after exactly 1 HTTP request; ordinary assistant retains bounded 429 retry behavior; cancellation during retry delay dispatches no subsequent request.",
+      "evidence": "evidence.json findings AI-02"
+    },
+    {
+      "id": "AI-03",
+      "severity": "P2",
+      "title": "Fail malformed assertion targets instead of comparing their lookup errors as null",
+      "location": {"path": "packages/workflow-testing/src/index.ts", "start": 349, "end": 361},
+      "relatedLocations": [{"path": "contracts/test-suite.schema.json", "start": 139, "end": 145}, {"path": "contracts/mcp-v2-tool-inputs.schema.json", "start": 1612, "end": 1616}],
+      "trigger": "An AI proposal uses node_state without nodeId and output_equals against nodeId ghost / pointer /field, both with expected null, in an input/end-only workflow.",
+      "actual": "Generation and Mock are SUCCEEDED; both malformed assertions pass with actual null; summary is passed=1, failed=0, uncovered=0.",
+      "impact": "Missing required target data and reference errors become green self-test evidence, indistinguishable from a legitimate null output.",
+      "minimalFix": "Add assertion-kind required fields and semantic target/type checks to shared suite validation, and make runtime lookup errors explicit failed assertions carrying structured error codes instead of a comparable null.",
+      "regression": "Missing nodeId, nonexistent node, wrong node type and missing output pointer fail; a valid JSON null at an existing path remains a valid equality expectation.",
+      "evidence": "evidence.json findings AI-03"
+    }
+  ],
+  "separateObservation": {
+    "id": "AI-OBS-01",
+    "status": "confirmed behavior, contract judgment required",
+    "actual": "Saving the exact same AI fixture list through the agent_proposed DTO used by PUT changes generatedBy from ai_assisted to agent_proposed, drops generationRef, increments suiteRevision and leaves original generation stale=false.",
+    "locations": [{"path": "packages/admin-api/src/v2.ts", "start": 82, "end": 85}, {"path": "packages/workflow-testing/src/index.ts", "start": 105, "end": 111}],
+    "note": "Keep original generation lineage separately if the design's preserve-source requirement includes later suite edits. Not counted among the three confirmed defects."
+  }
+}

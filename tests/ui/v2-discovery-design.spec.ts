@@ -324,7 +324,25 @@ test("issue actions open the matching manual connection and credential forms and
       .filter({
         has: page.getByRole("heading", { name: issue.manual, exact: true }),
       });
+    // Discovery has its own request deadline. Bind this assertion to the actual
+    // POST, including a response delayed beyond the DOM assertion's 5s window.
+    const syncPath = /\/api\/v1\/connections\/[^/]+\/sync-tools$/;
+    await page.route(syncPath, async (route) => {
+      const response = await route.fetch();
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      await route.fulfill({ response });
+    }, { times: 1 });
+    const syncCompleted = page.waitForResponse((response) =>
+      response.request().method() === "POST" && syncPath.test(new URL(response.url()).pathname),
+    );
+    const syncStartedAt = Date.now();
     await card.getByRole("button", { name: "检测与同步", exact: true }).click();
+    const syncResponse = await syncCompleted;
+    expect(syncResponse.ok()).toBe(true);
+    const synced = (await syncResponse.json()).data;
+    expect(synced.tools.length).toBeGreaterThan(0);
+    expect(synced.verifiedRevision).toBe(synced.revision);
+    expect(Date.now() - syncStartedAt).toBeGreaterThanOrEqual(6000);
     await expect(card).toContainText("已验证协议");
     expect(
       (await f.api("/api/v1/connections")).find(

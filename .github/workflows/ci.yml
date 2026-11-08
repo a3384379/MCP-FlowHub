@@ -23,6 +23,7 @@ jobs:
         run: node scripts/probe-windows-processes.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && !cancelled()
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: windows-process-probe
           path: |
@@ -49,8 +50,12 @@ jobs:
       - run: npm test
       - if: runner.os == 'Linux'
         run: npx playwright install --with-deps chromium
-      - if: runner.os == 'Linux'
-        run: npm run test:ui
+      - name: Verify browser workflows with isolated daemons
+        if: runner.os == 'Linux'
+        run: |
+          for shard in 1 2 3 4; do
+            npm run test:ui -- --shard="$shard/4"
+          done
       - run: npm audit --omit=dev --audit-level=moderate
       - if: runner.os == 'Windows'
         run: npm run package:windows
@@ -76,6 +81,7 @@ jobs:
         run: npm run test:installer:windows
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && !cancelled()
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: flowhub-rc-${{ runner.os }}
           path: |

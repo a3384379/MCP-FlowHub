@@ -1,0 +1,93 @@
+{
+  "format": "flowhub.v2.testing-ui-verification/1",
+  "assessedAt": "2026-11-06",
+  "baseCommit": "abd1661c7bda4ec32a542154a733f72b1f674993",
+  "targetedEvidenceOnly": false,
+  "logs": [
+    {
+      "file": "artifacts/completion-20261106/ui-targeted-before.log",
+      "sha256": "dbd72ee045a3fdc558a8b2da3e3fee1599ef8c03614d95c7b222c4758c8dab62"
+    },
+    {
+      "file": "artifacts/completion-20261106/ui-targeted-3-slow-teardown.log",
+      "sha256": "427ff37ebfd3c6787444f6d78abc7441cd52b6ea6f51036b281b5fe1368b1cba"
+    },
+    {
+      "file": "artifacts/completion-20261106/ui-teardown-check.log",
+      "sha256": "647f0e8082b3512f7968afdb174585a9f7915fd78c819989c31bbfcddce43447"
+    }
+  ],
+  "results": [
+    {
+      "scope": "new Contract/Live, AI generation/cancellation, lost acceptance UI tests",
+      "result": "PASS",
+      "passed": 3,
+      "log": "artifacts/completion-20261106/ui-targeted-3-slow-teardown.log",
+      "note": "Before fixture-only teardown optimization; real API and local official-SDK MCP/HTTP Provider, no fabricated application API responses."
+    },
+    {
+      "scope": "Contract/Live and dispatched-cancellation after own HTTP fixture teardown optimization",
+      "result": "PASS",
+      "passed": 1,
+      "log": "artifacts/completion-20261106/ui-teardown-check.log",
+      "durationSeconds": 2.9,
+      "phaseElapsedMs": {
+        "firstLiveVerified": 2157,
+        "cancelOutcomeDisplayed": 2638,
+        "fixtureCloseStarted": 2679,
+        "fixtureCloseFinished": 2680
+      }
+    }
+  ],
+  "initialFailures": {
+    "result": "2 failed",
+    "reason": "New frontend v1 API was incorrectly passed as a full URL to the shared v1-prefixing helper; exact form labels required explicit aria-label. Both corrected before actual feature verification.",
+    "log": "artifacts/completion-20261106/ui-targeted-before.log"
+  },
+  "behaviorsVerified": [
+    "Mock remains default; changing level submits no execution.",
+    "Contract requires explicit bindings/budget, only discovers schemas; real tools/call counter unchanged.",
+    "Live body freezes reviewed suite fixtureHash/caseInputs, allowed binding IDs and budget; exactly one actual SDK tools/call with locked arguments.",
+    "Dispatched live cancellation exposes outcomeUnknown warning even with terminal status; no automatic retry.",
+    "AI generation uses selected model revision, persists validated suite, is distinct from self-test success, and can cancel.",
+    "Lost AI acceptance retries an identical body and idempotency key after changing unrelated execution mode; one model request and one suite.",
+    "390px layout has no horizontal page overflow; unknown credential accounting is not rendered as zero."
+  ],
+  "boundaries": {
+    "formalDataAccessed": false,
+    "enterpriseSystemsAccessed": false,
+    "realOpenAIModelCalls": 0,
+    "nativeWindowsAcceptance": "UNVERIFIED",
+    "realModelQuality": "UNVERIFIED",
+    "mcpFixture": "disposable in-memory official-SDK HTTP endpoint; actual protocol calls only prove the tested local scope path",
+    "providerFixture": "local synthetic HTTP model; does not prove real model case quality"
+  },
+  "push": false,
+  "merge": false,
+  "release": false,
+  "sourcesAtEarlierTargets": {
+    "apps/web/src/features/testing/TestingPanel.tsx": "0437d8e130bae6d1bb3a75bfd278fa533b611c34b92ada22e752f27efb1b29b7",
+    "apps/web/src/features/testing/testing.css": "ec9633b61c2b6c0c0a38c7f42d336607544512dfb83c7643a4e9b6e2555d671e",
+    "tests/ui/v2-testing-modes.spec.ts": "3ca48f044f19457c867d912dcf448df38dd3d557ff43b798eb3f1798e57da20f"
+  },
+  "finalSourceHashes": {
+    "apps/web/src/features/testing/TestingPanel.tsx": "03cce49c5907f082acada27996c61269b779125be317ab8446e099bef5c925fa",
+    "apps/web/src/features/testing/testing.css": "ec9633b61c2b6c0c0a38c7f42d336607544512dfb83c7643a4e9b6e2555d671e",
+    "tests/ui/v2-testing-modes.spec.ts": "1ece2cf26f1fd7defe7ff378eb1f27dd25dd98e24e0d4fac40945639dba7f312"
+  },
+  "finalEvidence": {
+    "fullUi": {
+      "file": "artifacts/completion-20261106/ui.log",
+      "sha256": "f7c14a36898ef90387b09e31b55ae064779bb316efe938b1ba98786af338e9fe",
+      "passed": 81,
+      "total": 81
+    },
+    "finalTargeted": {
+      "file": "artifacts/completion-20261106/ui-targeted-final.log",
+      "sha256": "926a27014adb2f3c303be88695622254092ce6eeda4db2d4810b3096d3674a13",
+      "passed": 3,
+      "total": 3
+    },
+    "refreshRecovery": "PASS: actual server metadata list recovers RUNNING generation after browser reload, sends no second POST/model request, and remains cancelable."
+  }
+}

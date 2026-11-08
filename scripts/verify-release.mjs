@@ -86,10 +86,10 @@ export async function verifyBundle(bundle) {
     await readFile(join(bundle, "build-info.json"), "utf8"),
   );
   assert.equal(build.phase, build.version.includes("-alpha.") ? "ALPHA" : "RC");
-  for(const file of ["docs/V2_USER_GUIDE.md","docs/V2_MIGRATION.md","dist/packages/workflow-authoring/src/index.js","dist/packages/host-discovery/src/index.js","dist/packages/assistant-core/src/index.js","dist/packages/workflow-testing/src/index.js"])assert.ok(actual.includes(file),"Required v2 runtime file missing: "+file);
+  for(const file of ["docs/V2_USER_GUIDE.md","docs/V2_MIGRATION.md","docs/DISCOVERY_LOCALIZATION.md","dist/packages/workflow-authoring/src/index.js","dist/packages/host-discovery/src/index.js","dist/packages/host-discovery/src/marketplace.js","dist/packages/capability-registry/src/index.js","dist/packages/capability-registry/src/discovery-catalog.js","dist/packages/assistant-core/src/index.js","dist/packages/llm-providers/src/index.js","dist/packages/project-knowledge/src/index.js","dist/packages/workflow-testing/src/index.js","dist/packages/workflow-testing/src/ai-generation.js","dist/packages/workflow-testing/src/scoped-execution.js"])assert.ok(actual.includes(file),"Required v2 runtime file missing: "+file);
   assert.equal(build.syntheticOnly, false);
   await verifySourceSnapshot(bundle, build);
-  for(const file of ["README.md","docs/HOST_INTEGRATION.md","docs/V2_USER_GUIDE.md","docs/V2_MIGRATION.md"])
+  for(const file of ["README.md","docs/HOST_INTEGRATION.md","docs/V2_USER_GUIDE.md","docs/DISCOVERY_LOCALIZATION.md","docs/V2_MIGRATION.md"])
     assert.equal(manifest[file],manifest["source/"+file],"Runtime help differs from source snapshot: "+file);
   const sourcePackage = JSON.parse(
     await readFile(join(bundle, "source/package.json"), "utf8"),

@@ -1,0 +1,8 @@
+file:///Volumes/%E9%9B%B7%E7%94%B5/BuildArtifacts/FlowHub/artifacts/matrix-recheck-20261106/independent-audit/probe.mjs:21
+  const generated = ts.transpileModule(source, { fileName: path.replace(/\.ts$/, ".mts"), compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.NodeNext, sourceMap: false } }).outputText;
+                                                                                                                                     ^
+
+TypeError: Cannot read properties of undefined (reading 'ES2023')
+    at file:///Volumes/%E9%9B%B7%E7%94%B5/BuildArtifacts/FlowHub/artifacts/matrix-recheck-20261106/independent-audit/probe.mjs:21:134
+
+Node.js v24.19.0

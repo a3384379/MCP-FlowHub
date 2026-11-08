@@ -1,7 +1,7 @@
 import { ensure, HubError, type Json } from "../../contracts/src/domain.js";
 export type ModelCall={id:string;name:string;arguments:string};
 export type ModelTurn={text:string;calls:ModelCall[];usage:Json;continuation?:Json[]};
-export type ModelRequest={messages:Json[];tools:Json[];signal:AbortSignal;stream:boolean;continuation?:Json[];onDelta?:(text:string)=>void};
+export type ModelRequest={messages:Json[];tools:Json[];signal:AbortSignal;stream:boolean;maxAttempts?:number;continuation?:Json[];onDelta?:(text:string)=>void};
 export interface ModelProvider { complete(request:ModelRequest):Promise<ModelTurn>; }
 export type ProviderFactory=(profile:Json,key:string)=>ModelProvider;
 
@@ -48,11 +48,13 @@ export async function modelServiceFailure(response:Response,attempts=1):Promise<
   let body:Json;try{body=await bodyJson(response);}catch{body=null;}
   const providerCode=safeProviderCodes.has(body?.error?.code)?body.error.code:null;
   const parameter=["model","tools","stream","parallel_tool_calls","messages","input"].includes(body?.error?.param)?body.error.param:null;
+  // The rejected field alone does not distinguish unsupported tools from a bad schema or server failure.
+  const unsupportedTools=response.status===400&&parameter==="tools"&&["unsupported_parameter","unsupported_value"].includes(providerCode);
   const code=response.status===401||response.status===403?"MODEL_AUTH_FAILED":
     providerCode==="model_not_found"?"MODEL_NOT_AVAILABLE":
     ["insufficient_quota","billing_hard_limit_reached"].includes(providerCode)?"MODEL_QUOTA_EXCEEDED":
     response.status===404?"MODEL_ENDPOINT_NOT_FOUND":response.status===429?"MODEL_RATE_LIMITED":
-    parameter==="tools"?"MODEL_UNSUPPORTED_TOOLS":response.status===400?"MODEL_INVALID_CONFIGURATION":"MODEL_REQUEST_FAILED";
+    unsupportedTools?"MODEL_UNSUPPORTED_TOOLS":response.status===400?"MODEL_INVALID_CONFIGURATION":"MODEL_REQUEST_FAILED";
   return new HubError(code,"Model service rejected the request.",422,{status:response.status,providerCode,parameter,attempts});
 }
 export async function fetchModelCatalog(baseUrl:string,key:string,signal:AbortSignal) {
@@ -81,6 +83,8 @@ async function retryDelay(ms:number,signal:AbortSignal) {
 export class HttpModelProvider implements ModelProvider {
   constructor(readonly profile:Json,readonly key:string) {}
   async complete(request:ModelRequest):Promise<ModelTurn> {
+    const maxAttempts=request.maxAttempts??3;
+    ensure(Number.isSafeInteger(maxAttempts)&&maxAttempts>=1&&maxAttempts<=3,"INPUT_INVALID","Model requests allow one to three HTTP attempts.");
     const timeout=AbortSignal.timeout(this.profile.timeoutMs??180000),signal=AbortSignal.any([request.signal,timeout]);
     try {
     const responses=this.profile.providerKind==="openai_responses";
@@ -96,7 +100,7 @@ export class HttpModelProvider implements ModelProvider {
       if(response.ok)break;
       const failure=await modelServiceFailure(response,attempt+1);
       const raw=response.headers.get("retry-after"),retryMs=raw===null?250:/^\d+(?:\.\d+)?$/.test(raw)?Number(raw)*1000:Math.max(0,Date.parse(raw)-Date.now());
-      if(failure.code==="MODEL_RATE_LIMITED"&&attempt<2&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
+      if(failure.code==="MODEL_RATE_LIMITED"&&attempt+1<maxAttempts&&Number.isFinite(retryMs)&&retryMs<=2000){await retryDelay(retryMs,signal);continue;}
       throw failure;
     }
     if(!request.stream) {

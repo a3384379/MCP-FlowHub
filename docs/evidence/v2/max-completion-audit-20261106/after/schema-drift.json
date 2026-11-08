@@ -1,0 +1,85 @@
+{
+  "baseHead": "71579a5288a95d7d09a66e0d43bac3088e79a79c",
+  "workingTreeFixes": true,
+  "sourcePath": "packages/workflow-authoring/src/capability-drift.ts",
+  "sourceSha256": "46fb08f5d9aca9766342556a33646468f0640445c0572cb0d8b7556f353ad7ce",
+  "previous": {
+    "revision": 1,
+    "inputSchema": {
+      "type": "object",
+      "$defs": {
+        "base": {}
+      },
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/base",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "current": {
+    "revision": 2,
+    "inputSchema": {
+      "type": "object",
+      "$defs": {
+        "base": {}
+      },
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/base",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "bothAcceptedByNativeSchemaGuard": true,
+  "difference": {
+    "changes": [
+      {
+        "section": "inputSchema",
+        "parameter": "/count",
+        "schemaPath": "/properties/count",
+        "change": "type_changed",
+        "previousType": "string",
+        "currentType": "integer",
+        "previousRequired": true,
+        "currentRequired": true
+      }
+    ],
+    "truncated": false
+  },
+  "issue": {
+    "code": "CAPABILITY_STALE",
+    "message": "能力定义已变化，请更新能力引用并核对节点参数。",
+    "nodeId": "read",
+    "path": "/nodes/1/config/capabilityRef",
+    "capabilityId": "synthetic-ref",
+    "expectedRevision": 1,
+    "currentRevision": 2,
+    "previousRevisionAvailable": true,
+    "schemaChanges": [
+      {
+        "section": "inputSchema",
+        "parameter": "/count",
+        "schemaPath": "/properties/count",
+        "change": "type_changed",
+        "previousType": "string",
+        "currentType": "integer",
+        "previousRequired": true,
+        "currentRequired": true,
+        "mappingPath": "/nodes/1/config/argumentsMappings/~1count"
+      }
+    ],
+    "changesTruncated": false
+  },
+  "status": "PASS"
+}

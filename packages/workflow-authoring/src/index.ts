@@ -4,8 +4,10 @@ import { projectRoot, inputContract } from "../../contracts/src/index.js";
 import { clone, ensure, hash, id, now, validate, HubError, type Json, type Workflow } from "../../contracts/src/domain.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { driftIssue } from "./capability-drift.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
+const deleteSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/workflow-delete.schema.json"),"utf8"));
 const refs = (w: Workflow): Json[] => w.nodes.flatMap(n => n.config.capabilityRef ? [n.config.capabilityRef] : []);
 const mentions = (value: Json, nodeId: string): boolean => !!value && typeof value === "object" &&
   (value.ref?.nodeId === nodeId || (!Object.hasOwn(value,"value") && Object.values(value).some(v => mentions(v,nodeId))));
@@ -23,7 +25,7 @@ export class AuthoringService {
   get(workflowId: string, owner = "admin") {
     this.authorize(owner, workflowId);
     const record = this.repo.get("workflows",workflowId);
-    ensure(record,"NOT_FOUND","Workflow missing.",404);
+    ensure(record && !record.deletedAt,"NOT_FOUND","工作流不存在或已删除。",404);
     return {...record, workflow:record.draft, layoutRevision:record.layoutRevision ?? 1,
       capabilityRefs:refs(record.draft), issues:this.issues(record.draft)};
   }
@@ -35,7 +37,7 @@ export class AuthoringService {
       const ref=n.config.capabilityRef,cap=this.repo.get("capabilities",ref.capabilityId);
       if(!cap || cap.stale || cap.revision!==ref.revision ||
         (n.type==="mcp_tool" && (cap.name!==n.config.toolName || cap.tool?.schemaHash!==n.config.toolSchemaHash)))
-        issues.push({code:"CAPABILITY_STALE",message:"Capability and node definition differ.",nodeId:n.id});
+        issues.push(driftIssue(n,ref,this.repo.get("capability_revisions",ref.capabilityId+"@"+ref.revision),cap,w.nodes.indexOf(n)));
       if(n.config.kind==="host_tool"&&(!cap||cap.kind!=="mcp_tool"||cap.executor!=="codex_host"||!cap.inputSchema||!cap.outputSchema))
         issues.push({code:"HOST_CAPABILITY_UNAVAILABLE",message:"Host tool requires a discovered input/output contract.",nodeId:n.id});
     }
@@ -52,8 +54,13 @@ export class AuthoringService {
       ensure(!this.repo.get("workflows",workflowId),"VERSION_MISMATCH","Workflow already exists.",409);
       let w: Workflow;
       if (a.template === "incident") {
-        w=clone(this.repo.get("workflows","incident-staging").draft);
-        w.bindings={}; // Never silently bind production to a staging template.
+        // Templates are shipped source, never another owner's editable draft.
+        w=JSON.parse(readFileSync(resolve(projectRoot,"examples/incident-staging.json"),"utf8"));
+        w.bindings={};
+        for(const node of w.nodes) if(node.type==="mcp_tool") {
+          node.config.toolName="unconfigured";
+          node.config.toolSchemaHash="placeholder:unconfigured";
+        }
       } else w={schemaVersion:"flowhub.workflow/v2",workflowId,name:a.name,description:"FlowHub workflow",version:"1.0.0",
         environment:a.environment,mode:a.mode,tags:[],inputSchema:{type:"object",properties:{},additionalProperties:false},bindings:{},
         nodes:[{id:"input",title:"输入",type:"input",config:{}},{id:"end",title:"结束",type:"end",config:{resultRef:{ref:{source:"input",pointer:""}}}}],
@@ -74,6 +81,7 @@ export class AuthoringService {
     return this.repo.tx(() => {
       validateWorkflowDocument(w);
       const before=this.repo.get("workflows",w.workflowId);
+      ensure(!before?.deletedAt,"NOT_FOUND","工作流已删除，不能保存或重新导入相同 ID。",404);
       if(before) ensure(expectedLayoutRevision===(before.layoutRevision??1) ||
         (expectedLayoutRevision===undefined && w.schemaVersion==="flowhub.workflow/v1" && hash(before.layout)===hash(layout)),
         "REVISION_CONFLICT","Layout changed or its revision is missing. Reload and merge before saving.",409);
@@ -83,6 +91,68 @@ export class AuthoringService {
       this.repo.changed("draft.changed",{workflowId:w.workflowId,revision:next.revision,layoutRevision:next.layoutRevision});
       return next;
     });
+  }
+  delete(a: Json, owner = "admin") {
+    ensure(owner === "admin", "AUTH_REQUIRED", "只有管理员可以删除工作流。", 403);
+    validate({...deleteSchema,required:[...deleteSchema.required,"workflowId"],properties:{
+      ...deleteSchema.properties,workflowId:{type:"string",minLength:1,maxLength:256},
+    }},a);
+    return this.repo.command(owner,"workflow.delete",a.idempotencyKey,a,()=>{
+      // Deletion uses lifecycle metadata, not graph validity or historical results.
+      const before=this.repo.get("workflows",a.workflowId);
+      ensure(before && !before.deletedAt,"NOT_FOUND","工作流不存在或已删除。",404);
+      ensure(before.revision===a.expectedRevision && (before.layoutRevision??1)===a.expectedLayoutRevision,
+        "REVISION_CONFLICT","工作流已被修改，请关闭对话框并刷新列表，核对后再删除。",409);
+      const {runs,tests,tasks}=this.activeWorkflowUsage(a.workflowId);
+      if(runs.length || tests.length || tasks.length) throw new HubError("WORKFLOW_IN_USE",
+        "工作流仍有运行、自测或助手任务进行中，请先结束或取消相关任务后再删除。",409,
+        {runIds:runs.map(r=>r.id),testRunIds:tests.map(r=>r.id),taskIds:tasks.map(t=>t.id)});
+      const deletedAt=now(),revision=before.revision+1;
+      this.repo.put("workflows",a.workflowId,{...before,enabled:false,deletedAt,deletedBy:owner,revision,updatedAt:deletedAt},before.revision);
+      this.repo.audit(owner,"workflow.delete",a.workflowId);
+      this.repo.changed("workflow.deleted",{workflowId:a.workflowId,revision,deletedAt});
+      return {workflowId:a.workflowId,revision,deletedAt,historyPreserved:true};
+    });
+  }
+  private activeWorkflowUsage(workflowId:string) {
+    const db=this.repo.db,parameters={workflowId};
+    const runs=db.prepare(`SELECT id FROM runs WHERE json_extract(body,'$.workflowId')=@workflowId
+      AND coalesce(json_extract(body,'$.state'),'') NOT IN ('SUCCEEDED','FAILED','REJECTED','CANCELLED','OUTCOME_UNKNOWN')`).all(parameters) as {id:string}[];
+    const tests=db.prepare(`SELECT r.id FROM workflow_test_runs r
+      LEFT JOIN workflow_test_suites s ON s.id=json_extract(r.body,'$.suiteId')
+      WHERE @workflowId IN (json_extract(r.body,'$.workflowId'),json_extract(r.body,'$.acceptedSuite.workflowId'),json_extract(s.body,'$.workflowId'))
+      AND coalesce(json_extract(r.body,'$.status'),'') NOT IN ('SUCCEEDED','FAILED','CANCELLED','PARTIAL','INTERRUPTED')`).all(parameters) as {id:string}[];
+    const activeTaskIds=(db.prepare(`SELECT id FROM assistant_tasks
+      WHERE coalesce(json_extract(body,'$.status'),'') NOT IN ('COMPLETED','FAILED','CANCELLED','INTERRUPTED')`).all() as {id:string}[]).map(t=>t.id);
+    if(!activeTaskIds.length) return {runs,tests,tasks:[] as {id:string}[]};
+    // Project only IDs and explicit association fields. Large past answers,
+    // test traces and tool results never become JavaScript objects here.
+    const tasks=db.prepare(`WITH active_tasks AS MATERIALIZED (
+      SELECT id,json_extract(body,'$.context.workflowId') AS contextWorkflowId,
+        json_extract(body,'$.contextRefs.workflowId') AS referenceWorkflowId,
+        json_extract(body,'$.context.runId') AS contextRunId,json_extract(body,'$.contextRefs.runId') AS referenceRunId,
+        json_extract(body,'$.createdWorkflowIds') AS createdWorkflowIds,json_extract(body,'$.inheritedWorkflowIds') AS inheritedWorkflowIds
+      FROM assistant_tasks WHERE id IN (SELECT value FROM json_each(@activeTaskIds))
+    ), active_calls AS MATERIALIZED (
+      SELECT json_extract(c.body,'$.taskId') AS taskId,
+        json_extract(c.body,'$.arguments.workflowId') AS workflowId,json_extract(c.body,'$.result.workflowId') AS resultWorkflowId,
+        json_extract(c.body,'$.arguments.runId') AS runId,json_extract(c.body,'$.result.runId') AS resultRunId,
+        json_extract(c.body,'$.arguments.suiteId') AS suiteId,json_extract(c.body,'$.result.suiteId') AS resultSuiteId,
+        json_extract(c.body,'$.arguments.testRunId') AS testRunId,json_extract(c.body,'$.result.testRunId') AS resultTestRunId
+      FROM assistant_tool_calls c JOIN active_tasks t ON t.id=json_extract(c.body,'$.taskId')
+    ) SELECT t.id FROM active_tasks t WHERE
+      @workflowId IN (t.contextWorkflowId,t.referenceWorkflowId)
+      OR EXISTS (SELECT 1 FROM json_each(t.createdWorkflowIds) WHERE value=@workflowId)
+      OR EXISTS (SELECT 1 FROM json_each(t.inheritedWorkflowIds) WHERE value=@workflowId)
+      OR EXISTS (SELECT 1 FROM runs r WHERE r.id IN (t.contextRunId,t.referenceRunId) AND json_extract(r.body,'$.workflowId')=@workflowId)
+      OR EXISTS (SELECT 1 FROM active_calls c WHERE c.taskId=t.id AND (
+        @workflowId IN (c.workflowId,c.resultWorkflowId)
+        OR EXISTS (SELECT 1 FROM runs r WHERE r.id IN (c.runId,c.resultRunId) AND json_extract(r.body,'$.workflowId')=@workflowId)
+        OR EXISTS (SELECT 1 FROM workflow_test_suites s WHERE s.id IN (c.suiteId,c.resultSuiteId) AND json_extract(s.body,'$.workflowId')=@workflowId)
+        OR EXISTS (SELECT 1 FROM workflow_test_runs r LEFT JOIN workflow_test_suites s ON s.id=json_extract(r.body,'$.suiteId')
+          WHERE r.id IN (c.testRunId,c.resultTestRunId) AND @workflowId IN (json_extract(r.body,'$.workflowId'),json_extract(r.body,'$.acceptedSuite.workflowId'),json_extract(s.body,'$.workflowId')))
+      ))`).all({...parameters,activeTaskIds:JSON.stringify(activeTaskIds)}) as {id:string}[];
+    return {runs,tests,tasks};
   }
   patch(a: Json, owner = "admin") {
     validate(batchSchema,a);

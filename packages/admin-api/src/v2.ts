@@ -33,6 +33,13 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
   app.get("/api/v2/capabilities/:id",async req=>data(registry.get({...query(req.query),capabilityId:(req.params as Json).id})));
   app.post("/api/v2/capabilities/:id/import",async req=>data(await registry.import({...req.body as Json,capabilityId:(req.params as Json).id})));
   app.post("/api/v2/workflows",async req=>data(authoring.create(req.body)));
+  app.delete("/api/v2/workflows/:id",async req=>{
+    ensure(!Object.hasOwn(req.body??{},"workflowId"),"INPUT_INVALID","Workflow ID belongs in the request path.");
+    const a=arg(req);
+    ensure(typeof req.headers["if-match"]==="string" && /^\d+$/.test(req.headers["if-match"]) && Number(req.headers["if-match"])===a.expectedRevision,
+      "REVISION_REQUIRED","If-Match and expectedRevision must agree.",428);
+    return data(authoring.delete(a));
+  });
   app.get("/api/v2/workflows/:id/draft",async req=>data(authoring.get((req.params as Json).id)));
   app.post("/api/v2/workflows/:id/operations",async req=>{
     const a=arg(req);
@@ -79,6 +86,8 @@ export function registerV2(app: FastifyInstance, authoring: AuthoringService, re
     });
     app.post("/api/v2/test-suites/:id/runs",async req=>data(application.testing.run({...req.body as Json,suiteId:(req.params as Json).id})));
     app.get("/api/v2/test-runs/:id",async req=>data(application.testing.status((req.params as Json).id)));
+    app.get("/api/v2/workflows/:id/test-runs",async req=>data(application.testing.listRuns((req.params as Json).id)));
+    app.post("/api/v2/test-runs/:id/cancel",async req=>data(application.testing.cancel((req.params as Json).id)));
     app.get("/api/v2/help/source",async req=>{const source=application.knowledge.source(req.query);ensure(source,"NOT_FOUND","Knowledge source missing.",404);return data(source);});
     app.get("/api/v2/help/search",async req=>data(application.knowledge.search(req.query)));
   }

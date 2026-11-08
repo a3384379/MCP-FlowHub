@@ -55,6 +55,7 @@ try {
     "docs/LOCAL_VALIDATION.md",
     "docs/HOST_INTEGRATION.md",
     "docs/V2_USER_GUIDE.md",
+    "docs/DISCOVERY_LOCALIZATION.md",
     "docs/V2_MIGRATION.md",
     "docs/V2_ACCEPTANCE.md",
     "docs/generated/openapi.json",

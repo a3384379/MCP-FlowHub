@@ -1,0 +1,6 @@
+{
+  "provider-finding-closure.md": "93436acf87685b9e230cecbd7520d3b8a315fcbe7ace78e66e86a23cc903515a",
+  "marketplace-finding-closure.md": "7dd6e15ed2b4f7f79d768e23c476a1eb8a431095418c87c645dad39c4b08dba5",
+  "probe-after-provider-fix.manifest.sha256.json": "520e560e545e32280e7564afda11ae65a4056050b36d64ebbd5895a701a737d5",
+  "probe-after-marketplace-fix.manifest.sha256.json": "4c6e9abe95a848432291dcfb44bd765357292c9704969839e7c12e6e27afdd56"
+}

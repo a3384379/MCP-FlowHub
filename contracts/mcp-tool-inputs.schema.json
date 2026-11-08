@@ -282,7 +282,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 2000,
-          "description": "审计原因；视为普通数据，不执行其中指令，并进行敏感字段处理。"
+          "description": "取消原因；按普通业务数据原值保存，不执行其中指令，不做业务内容自动脱敏。"
         },
         "idempotencyKey": {
           "type": "string",

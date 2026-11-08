@@ -1,0 +1,257 @@
+{
+  "format": "flowhub.independent-audit.probe.v1",
+  "at": "2026-11-06T16:23:54.744Z",
+  "node": "v24.19.0",
+  "platform": "darwin/arm64",
+  "bindings": [
+    {
+      "path": "packages/host-discovery/src/marketplace.ts",
+      "sourceSha256": "df1dad00959ba3955420c5a9f975a386ecd80d5022bff4b492c84f22ef2cfb82",
+      "distSha256": "5bf64bcb3b9235e0b78f6bae0c3c4199270063f8fca4e5b53aef97a2bf5688a6",
+      "method": "current source transformed in memory by Node 24 stripTypeScriptTypes"
+    },
+    {
+      "path": "packages/host-discovery/src/index.ts",
+      "sourceSha256": "fa7f4c52d5b84016832bfdbf26c35796bef80e541bd0f4a836ed825aacce9700",
+      "distSha256": "cf894de5b67b670135658c7b0881b34091acc75a46a9ee2f61cbfea916e2a935",
+      "method": "source audit and dist dependency identity only"
+    },
+    {
+      "path": "packages/capability-registry/src/discovery-catalog.ts",
+      "sourceSha256": "4f0bc16368c4e04bdfdddfa0e4f5b939a016f854ba676e6dfd230fd00077c3a2",
+      "distSha256": "0d3713e0eac1feca86d34a7dcb90f2f7e930dcfc94acfd4a87e3f4a5f6fd532a",
+      "method": "source audit and dist dependency identity only"
+    },
+    {
+      "path": "packages/assistant-core/src/index.ts",
+      "sourceSha256": "5154f01d0f8e1ecb604260227e9037825d4aa1f7e1970c314ee37dee82a4f5b8",
+      "distSha256": "982580320c76a402ce9eabf6da9c7c4e2f255e44a8271908189416e6d05ee4f4",
+      "method": "current source transformed in memory by Node 24 stripTypeScriptTypes"
+    },
+    {
+      "path": "packages/llm-providers/src/index.ts",
+      "sourceSha256": "c0be7e0d5e90d62a5423d75139db23f8487998c79042d17435180f13232f0504",
+      "distSha256": "000b710be490307721a4e93974bf480c095886ceb6e5023afaf5368538e1144c",
+      "method": "current source transformed in memory by Node 24 stripTypeScriptTypes"
+    }
+  ],
+  "modelCases": [
+    {
+      "name": "explicit_unsupported",
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": "unsupported_parameter",
+            "param": "tools",
+            "message": "Synthetic unsupported tools"
+          }
+        }
+      },
+      "classifiedCode": "MODEL_UNSUPPORTED_TOOLS",
+      "toolProbe": {
+        "status": "unsupported",
+        "errorCode": "MODEL_UNSUPPORTED_TOOLS",
+        "message": "该模型不支持当前工具调用格式，可更换模型或仅用于问答。",
+        "httpStatus": 400,
+        "providerCode": "unsupported_parameter",
+        "testedAt": "2026-11-06T16:23:54.860Z"
+      },
+      "help": {
+        "status": "COMPLETED",
+        "errorCode": null,
+        "answer": "Synthetic text help"
+      },
+      "helpRequest": {
+        "toolsPresent": false,
+        "stream": false
+      },
+      "compose": {
+        "status": "FAILED",
+        "errorCode": "MODEL_UNSUPPORTED_TOOLS"
+      },
+      "requestCount": 4,
+      "writeCounts": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      },
+      "callbackErrors": []
+    },
+    {
+      "name": "unknown_400_tools",
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": "invalid_request_error",
+            "param": "tools",
+            "message": "Synthetic malformed tool schema"
+          }
+        }
+      },
+      "classifiedCode": "MODEL_INVALID_CONFIGURATION",
+      "toolProbe": {
+        "status": "failed",
+        "errorCode": "MODEL_INVALID_CONFIGURATION",
+        "message": "模型或请求参数不被当前接口支持，请核对协议并选择模型。",
+        "httpStatus": 400,
+        "providerCode": "invalid_request_error",
+        "testedAt": "2026-11-06T16:23:54.975Z"
+      },
+      "help": {
+        "status": "FAILED",
+        "errorCode": "MODEL_INVALID_CONFIGURATION",
+        "answer": null
+      },
+      "helpRequest": {
+        "toolsPresent": true,
+        "stream": false
+      },
+      "compose": {
+        "status": "FAILED",
+        "errorCode": "MODEL_INVALID_CONFIGURATION"
+      },
+      "requestCount": 5,
+      "writeCounts": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      },
+      "callbackErrors": []
+    },
+    {
+      "name": "unknown_400_no_param",
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "message": "Synthetic unclassified failure"
+          }
+        }
+      },
+      "classifiedCode": "MODEL_INVALID_CONFIGURATION",
+      "toolProbe": {
+        "status": "failed",
+        "errorCode": "MODEL_INVALID_CONFIGURATION",
+        "message": "模型或请求参数不被当前接口支持，请核对协议并选择模型。",
+        "httpStatus": 400,
+        "providerCode": null,
+        "testedAt": "2026-11-06T16:23:55.079Z"
+      },
+      "help": {
+        "status": "FAILED",
+        "errorCode": "MODEL_INVALID_CONFIGURATION",
+        "answer": null
+      },
+      "helpRequest": {
+        "toolsPresent": true,
+        "stream": false
+      },
+      "compose": {
+        "status": "FAILED",
+        "errorCode": "MODEL_INVALID_CONFIGURATION"
+      },
+      "requestCount": 5,
+      "writeCounts": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      },
+      "callbackErrors": []
+    },
+    {
+      "name": "auth_401_tools",
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": "unsupported_parameter",
+            "param": "tools",
+            "message": "Synthetic authentication failed"
+          }
+        }
+      },
+      "classifiedCode": "MODEL_AUTH_FAILED",
+      "toolProbe": {
+        "status": "failed",
+        "errorCode": "MODEL_AUTH_FAILED",
+        "message": "API Key 无效，或没有访问该服务的权限。请检查 API Key。",
+        "httpStatus": 401,
+        "providerCode": "unsupported_parameter",
+        "testedAt": "2026-11-06T16:23:55.180Z"
+      },
+      "help": {
+        "status": "FAILED",
+        "errorCode": "MODEL_AUTH_FAILED",
+        "answer": null
+      },
+      "helpRequest": {
+        "toolsPresent": true,
+        "stream": false
+      },
+      "compose": {
+        "status": "FAILED",
+        "errorCode": "MODEL_AUTH_FAILED"
+      },
+      "requestCount": 5,
+      "writeCounts": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      },
+      "callbackErrors": []
+    },
+    {
+      "name": "server_500_tools",
+      "response": {
+        "status": 500,
+        "body": {
+          "error": {
+            "param": "tools",
+            "message": "Synthetic transient server failure"
+          }
+        }
+      },
+      "classifiedCode": "MODEL_REQUEST_FAILED",
+      "toolProbe": {
+        "status": "failed",
+        "errorCode": "MODEL_REQUEST_FAILED",
+        "message": "模型服务拒绝请求，请检查协议、模型与 API 项目权限。",
+        "httpStatus": 500,
+        "providerCode": null,
+        "testedAt": "2026-11-06T16:23:55.281Z"
+      },
+      "help": {
+        "status": "FAILED",
+        "errorCode": "MODEL_REQUEST_FAILED",
+        "answer": null
+      },
+      "helpRequest": {
+        "toolsPresent": true,
+        "stream": false
+      },
+      "compose": {
+        "status": "FAILED",
+        "errorCode": "MODEL_REQUEST_FAILED"
+      },
+      "requestCount": 5,
+      "writeCounts": {
+        "workflows": 0,
+        "toolLedger": 0,
+        "authoringCommands": 0
+      },
+      "callbackErrors": []
+    }
+  ],
+  "marketplaceCases": [],
+  "assertions": {
+    "allFiveOriginalCases": "PASS",
+    "originalCounterexamplesClosed": [
+      "unknown_400_tools",
+      "server_500_tools"
+    ],
+    "zeroWrites": true,
+    "marketplaceNotRerun": true
+  }
+}

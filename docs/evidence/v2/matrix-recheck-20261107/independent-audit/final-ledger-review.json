@@ -1,0 +1,208 @@
+{
+  "format": "flowhub.independent-audit.final-ledger-review.v1",
+  "assessedAt": "2026-11-06T17:11:57.613850+00:00",
+  "reviewedLedger": {
+    "path": "docs/evidence/v2/acceptance-results.json",
+    "sha256": "d0295a363ebdb4103cc0a6225aa72e5cfeb21659cde2903b91f09d155357425a",
+    "sourceCommit": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "checkoutHeadAtReview": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "format": "flowhub.v2.acceptance/2",
+    "summary": {
+      "PASS": 98,
+      "PARTIAL": 3,
+      "UNVERIFIED": 3,
+      "FAIL": 0
+    }
+  },
+  "originalConditions": {
+    "designPath": "docs/upgrade-v2/examples/acceptance-matrix.design.json",
+    "designSha256": "dee85d2d27fcc9c73ed4b61326f01dcddc9ca0315ceea51a0f26759156597a91",
+    "items": 104,
+    "idsUnchanged": true,
+    "expectedUnchanged": true,
+    "setupUnchanged": true,
+    "titleUnchanged": true
+  },
+  "bindingReview": {
+    "runs": 10,
+    "exactTests": 127,
+    "scriptRefs": 26,
+    "verifier": {
+      "command": [
+        "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+        "scripts/verify-v2-matrix.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "items": 104,
+        "summary": {
+          "PASS": 98,
+          "PARTIAL": 3,
+          "UNVERIFIED": 3,
+          "FAIL": 0
+        },
+        "runs": 10,
+        "sourceAndReceiptHashesVerified": true
+      }
+    },
+    "negativeControls": {
+      "path": "docs/evidence/v2/matrix-recheck-20261107/matrix-verifier-results.json",
+      "sha256": "1dfabc386ab2c8b326e3a6425c59428bb006d0844b8b179462cfb69a7c2b4604",
+      "cases": 8,
+      "allRejected": true
+    },
+    "semanticMethod": "Read all 104 expected/actual/limit/reference mappings; inspect assertion source for compound state/ownership/immutability/reliability and platform/model boundaries. Machine counts alone were not taken as semantic evidence."
+  },
+  "currentSuiteReceipts": {
+    "backend-full": {
+      "path": "docs/evidence/v2/matrix-recheck-20261107/backend-results.json",
+      "sha256": "49ddc7c1e905ee5c5381d4f09b1cd649bff68e3d8f25c9bd0c44320db791666f",
+      "summary": {
+        "tests": 538,
+        "failed": 0,
+        "passed": 538,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "topLevel": 456,
+        "suites": 0,
+        "durationMs": 349609.046
+      },
+      "namedRecords": 538,
+      "uniqueNamedRecords": 538,
+      "allPassedOnce": true
+    },
+    "ui-full": {
+      "path": "docs/evidence/v2/matrix-recheck-20261107/ui-results.json",
+      "sha256": "d4535164aa30170ccdc9443676b6d97b49f16c893abc6addacc5fd8dd0b9ba97",
+      "summary": {
+        "passed": 94,
+        "failed": 0,
+        "skipped": 0,
+        "flaky": 0,
+        "durationMs": 288477.85699999996
+      },
+      "namedRecords": 94,
+      "uniqueNamedRecords": 94,
+      "allPassedOnce": true
+    }
+  },
+  "reportedCorrections": [
+    {
+      "id": "LEDGER-01",
+      "status": "CLOSED",
+      "items": [
+        "BASE-01",
+        "BASE-02",
+        "BASE-03",
+        "PLUG-01"
+      ],
+      "observation": "Removed stale unbound/pending wording after actual execution evidence was bound; no expected condition changed."
+    },
+    {
+      "id": "LEDGER-02",
+      "status": "ACCURATELY_RECORDED_PARTIAL",
+      "items": [
+        "KB-04"
+      ],
+      "observation": "The reference only proves current-version unsupported-loop TopK retrieval, not answer-level non-hallucination. KB-04 is now PARTIAL, with original expected retained and real-model answer behavior explicitly unverified."
+    },
+    {
+      "id": "LEDGER-03",
+      "status": "CLOSED",
+      "items": [
+        "PACK-05"
+      ],
+      "observation": "Removed unrelated assertion lines 193/208 from other helpers; actual named test lines 154-163 establish the expected port behavior."
+    }
+  ],
+  "preservedBoundaries": [
+    {
+      "id": "BASE-08",
+      "status": "PARTIAL",
+      "expected": "旧实例恢复；不让旧程序直接写v2库",
+      "limits": [
+        "冻结45eed03的bootstrap在Repository拒绝v2前会写启动计数；不能宣称旧serve误指新库时完全零写入。正确回滚路径通过，未接触正式数据。"
+      ]
+    },
+    {
+      "id": "KB-04",
+      "status": "PARTIAL",
+      "expected": "明确未支持，不生成虚假按钮/接口",
+      "limits": [
+        "本地已验证检索到当前版本“不支持循环、并行或任意脚本”的真实文档片段、来源与指纹；未完成回答级“明确未支持且不生成虚假按钮/接口”的目标模型行为验收。本轮按用户选择仅合成验证，不把固定合成答案当真实模型效果。"
+      ]
+    },
+    {
+      "id": "DISC-07",
+      "status": "UNVERIFIED",
+      "expected": "路径和进程环境不混用",
+      "limits": [
+        "macOS无原生Windows/WSL；这是外部平台验收，不能以字符串位置guard冒充路径/进程环境实测。"
+      ]
+    },
+    {
+      "id": "PACK-03",
+      "status": "UNVERIFIED",
+      "expected": "独立记录，不用Linux替代",
+      "limits": [
+        "需要原生Windows runner/获准设备；未发起push或CI dispatch。"
+      ]
+    },
+    {
+      "id": "PACK-07",
+      "status": "UNVERIFIED",
+      "expected": "仅受管程序文件删除，数据保留",
+      "limits": [
+        "仍需独立可丢弃安装账号/原生安装器环境；源码审查和通用runtime测试不能算卸载保留数据验收。"
+      ]
+    },
+    {
+      "id": "PACK-08",
+      "status": "PARTIAL",
+      "expected": "步骤和真实CLI一致，缺项明确",
+      "limits": [
+        "新机照教程验收及原生Windows命令/路径/安装环境尚未执行，不能由本机演练代替。"
+      ]
+    }
+  ],
+  "external": {
+    "realModelVerified": false,
+    "realModelCalls": 0,
+    "enterpriseEnvironmentVerified": false,
+    "nativeWindowsVerified": false,
+    "wslVerified": false,
+    "isolatedAccountUninstallVerified": false,
+    "newMachineVerified": false,
+    "entityMobileKeyboardVerified": false
+  },
+  "phaseAPackageEvidence": {
+    "sourceCommit": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+    "dirty": false,
+    "sourceFilesComparedToGit": 670,
+    "allIncludedSourceBytesMatchGit": true,
+    "threePackageCommandExitCodes": [
+      0,
+      0,
+      0
+    ],
+    "runtimeJsChecked": 28,
+    "runtimeHelpDocuments": 4,
+    "packagedKnowledgeChunks": 37,
+    "packagedRuntimeNode": "24.19.0",
+    "noGlobalNode": true,
+    "scope": "This review confirms the recorded clean phase-A package at the source commit. The final clean package after the documentation commit remains a subsequent root step and is not claimed already verified."
+  },
+  "scope": {
+    "productOrTestSourceModifiedByReviewer": false,
+    "ledgerModifiedByReviewer": false,
+    "onlyAuditArtifactsWritten": true,
+    "formalDataAccessedByReviewer": false,
+    "newModelOrEnterpriseCalls": 0,
+    "broadSuitesRerunByReviewer": false
+  },
+  "conclusion": {
+    "additionalConfirmedOpenProductOrMappingFindings": [],
+    "statement": "After the reported ledger corrections, no additional confirmed open product or evidence-mapping issues were found in this final review. The matrix is 98 PASS / 3 PARTIAL / 3 UNVERIFIED; partial and external items remain unpassed."
+  }
+}

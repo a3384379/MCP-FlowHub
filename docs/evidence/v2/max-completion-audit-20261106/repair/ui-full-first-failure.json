@@ -1,0 +1,16 @@
+{
+  "command": "npm run test:ui",
+  "exitCode": 1,
+  "passed": 80,
+  "failed": 9,
+  "total": 89,
+  "actualError": "1 route.fulfill Route is already handled; 8 RATE_LIMITED Session limit reached",
+  "stage": "New test route teardown first; subsequent logins reach existing 64-session guard",
+  "log": "root/full-ui.log",
+  "traceDirectory": "root/full-ui-first-failure-traces",
+  "productLimitChanged": false,
+  "actualErrors": {
+    "routeHandlerLifecycle": 1,
+    "sessionLimitAuthentication": 8
+  }
+}

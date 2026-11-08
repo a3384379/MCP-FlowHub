@@ -1,0 +1,118 @@
+- complementary "主导航":
+  - text: F FlowHub
+  - paragraph: 本机工作空间 · 单用户
+  - navigation "主菜单":
+    - region "工作区":
+      - heading "工作区" [level=2]
+      - button "工作流"
+      - button "运行记录"
+    - region "能力与连接":
+      - heading "能力与连接" [level=2]
+      - button "能力发现"
+      - button "MCP 服务"
+      - button "环境与资源"
+    - region "系统配置":
+      - heading "系统配置" [level=2]
+      - button "模型设置"
+      - button "系统设置"
+  - strong: 本机管理员
+  - text: 本地运行模式
+  - button "退出登录"
+- main:
+  - text: 能力与连接/能力发现 LOCAL FIRST
+  - button "↻ 刷新"
+  - heading "Codex 能力发现" [level=1]
+  - paragraph: 看清 MCP、Skills 和插件的用途与关系，找到适合你的流程能力。
+  - button "重新扫描"
+  - button "同步工具目录"
+  - text: 本机上下文
+  - combobox "本机上下文":
+    - option "我的 Mac · trusted-project · 默认 Profile" [selected]
+  - text: codex-cli synthetic-browser-1
+  - status: 部分完成 · 来源覆盖：部分 · 最近完成 2026/11/7 00:41:31
+  - group: 登记本机 Codex 上下文
+  - button "MCP 服务 未知":
+    - text: MCP 服务
+    - strong: 未知
+  - button "Skills 技能 1":
+    - text: Skills 技能
+    - strong: "1"
+  - button "已安装插件 1":
+    - text: 已安装插件
+    - strong: "1"
+  - button "需处理 4":
+    - text: 需处理
+    - strong: "4"
+  - region "发现结果":
+    - tablist "能力类型":
+      - tab "MCP 服务 未知"
+      - tab "Skills 技能 1"
+      - tab "插件与关系 1" [selected]
+      - tab "需处理 4"
+    - button "中 / EN 中文优先"
+    - strong: MCP 提供工具
+    - text: ，
+    - strong: Skill 指导怎么做
+    - text: ，
+    - strong: 插件打包它们
+    - text: 。按类型查看，在详情中了解关联。
+    - button "收起概念说明"
+    - textbox "搜索名称或用途":
+      - /placeholder: 搜索中文用途、原始名称或插件…
+    - text: 2 项结果
+    - tabpanel "插件与关系 1":
+      - article:
+        - heading "browser-installed-plugin" [level=3]
+        - text: browser-installed-plugin
+        - paragraph: 实际安装清单介绍，市场资料不得覆盖
+        - text: 已安装 · 已停用 · 市场来源冲突
+        - paragraph: 包含 0 个 MCP 服务
+        - paragraph: 包含 1 个 Skill
+        - button "browser-installed-skill"
+        - text: Skill 技能 包含关系依据安装清单；Skill 的 MCP 依赖在详情中单独展示。
+        - button "插件详情"
+      - article:
+        - heading "browser-shared-plugin" [level=3]
+        - text: browser-shared-plugin
+        - paragraph: 市场来源提供了不同介绍，请查看来源差异。
+        - text: 市场来源冲突 · 未安装
+        - paragraph: 市场来源存在差异，尚未安装；查看详情逐项比较。
+        - text: 市场可用项不会自动安装；在 Codex 中安装后重新扫描。
+        - button "插件详情"
+    - text: 中文说明优先，原始名称和调用参数保留。 1 项待中文整理。
+    - button "中文整理方式"
+  - text: 只读发现不修改 Codex 配置。同步目录只读取工具定义，不调用业务工具。 当前数量仅表示已确认来源，结果尚不完整。 FLOWHUB 一个入口 · 受控执行 · 证据可追踪 本机工作空间 / 独立管理员
+- button "打开 FlowHub 助手"
+- button "将助手图标贴边收起"
+- text: 按住图标或边缘标签拖动，松手吸附左右边缘。方向键调整位置，小箭头切换贴边收起。位置自动保存。
+- dialog "browser-shared-plugin":
+  - banner:
+    - text: 插件 / 详情
+    - button "关闭详情"
+  - heading "browser-shared-plugin" [level=2]
+  - text: browser-shared-plugin
+  - paragraph: 市场来源提供了不同介绍，请查看来源差异。
+  - text: 市场来源冲突 · 未安装 插件 原始中文介绍 所属来源 独立来源 使用位置 说明与组件集合 工具目录 以实际目录为准 说明状态 原始中文介绍
+  - heading "插件包含的组件" [level=3]
+  - paragraph: 仅有市场介绍，尚未安装或读取插件组件。
+  - heading "市场来源差异" [level=3]
+  - status: 不同来源的市场资料存在冲突，尚未判定覆盖关系。安装状态仍依据实际安装清单。
+  - paragraph:
+    - text: 来源：
+    - code: /private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/.agents/plugins/marketplace.json
+  - paragraph: 介绍：个人候选介绍
+  - paragraph: 类别：Productivity · 安装策略：AVAILABLE · 认证时机：ON_INSTALL
+  - paragraph:
+    - text: 来源：
+    - code: /private/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-independent-browser-after-0nNSL8/fixture/trusted-project/.agents/plugins/marketplace.json
+  - paragraph: 介绍：项目候选介绍
+  - paragraph: 类别：Productivity · 安装策略：NOT_AVAILABLE · 认证时机：ON_INSTALL
+  - heading "来源与中文说明" [level=3]
+  - text: 来源：独立来源 中文说明：原始中文介绍 原始名称：
+  - code: browser-shared-plugin
+  - text: 来源修订：r1
+  - button "编辑中文说明"
+  - group: 原始说明与技术信息
+  - contentinfo:
+    - text: 此项尚未安装；请在 Codex 中安装后重新扫描。
+    - button "关闭详情"

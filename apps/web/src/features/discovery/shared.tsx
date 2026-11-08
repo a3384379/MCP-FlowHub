@@ -17,6 +17,8 @@ export const issueLabels: Record<string, string> = {
   CODEX_NOT_FOUND: "未找到 Codex",
   EXECUTION_LOCATION_UNSUPPORTED: "当前上下文的运行位置与本机不一致",
   PLUGIN_MANIFEST_UNSUPPORTED: "插件清单格式暂不支持",
+  PLUGIN_MARKETPLACE_UNSUPPORTED: "插件市场清单格式暂不支持",
+  PLUGIN_MARKETPLACE_AMBIGUOUS: "插件市场来源存在冲突",
   PLUGIN_VERSION_AMBIGUOUS: "无法唯一确定插件版本",
   STATIC_RESOLUTION_PARTIAL: "当前使用静态配置，生效范围尚未完全确认",
   STATIC_PROFILE_PARTIAL: "Profile 的生效配置尚未完全确认",
@@ -48,6 +50,10 @@ export const presentationLabels: Record<string, string> = {
 export function entityStatus(e: Entity) {
   if (e.stale) return { text: "来源已失效 / 待同步", tone: "gray" };
   if (e.self) return { text: "FlowHub 自身 · 禁止导入", tone: "gray" };
+  if (e.installation === "available_only")
+    return { text: e.marketplaceConflict ? "市场来源冲突 · 未安装" : e.availability === "unavailable" ? "市场策略不可用 · 未安装" : "可用，尚未安装", tone: e.marketplaceConflict ? "amber" : "gray" };
+  if (e.entityKind === "plugin" && e.marketplaceConflict)
+    return { text: e.enabled === false ? "已安装 · 已停用 · 市场来源冲突" : "已安装 · 市场来源冲突", tone: "amber" };
   if (!e.enabled) return { text: "已停用", tone: "gray" };
   if (e.importState)
     return {

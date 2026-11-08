@@ -1,0 +1,1896 @@
+{
+  "format": "flowhub.matrix-recheck.runtime-pack.v1",
+  "auditBase": "194c0b17f63846cb00d4e7fe217c80e6d342f4ed",
+  "assessedAt": "2026-11-06T17:04:17.977640+00:00",
+  "platform": "darwin/arm64",
+  "node": "24.19.0",
+  "npm": "11.9.0",
+  "method": "Read each expected and exact assertion body; exercise missing local behavior using isolated stores/processes. Source-commit946a036 clean-worktree phaseA package and independent packaged help index are verified. Root will bind final backend/UI execution receipts separately.",
+  "sourceCommit": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+  "packageEvidence": {
+    "phase": "a",
+    "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+    "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+    "independentCompletenessReceipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.receipt.json",
+    "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+    "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+    "dirty": false,
+    "sourceFilesComparedToGit": 670
+  },
+  "pendingRootFinalBindings": [
+    "final full backend named receipts and source/compiled executionSnapshot",
+    "final full UI named receipts and source/asset executionSnapshot"
+  ],
+  "summary": {
+    "PASS": 20,
+    "PARTIAL": 2,
+    "UNVERIFIED": 2
+  },
+  "items": [
+    {
+      "id": "BASE-01",
+      "status": "PASS",
+      "title": "旧v1库升级",
+      "expected": "新表建立；旧checksum、工作流快照和报告正文不变",
+      "setup": "使用真实v1结构合成库",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            45,
+            50,
+            51,
+            52,
+            53,
+            55
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-01/02: fresh and genuine frozen-v1 databases use the same complete migration chain and retain report bytes",
+          "testName": "BASE-01/02: fresh and genuine frozen-v1 databases use the same complete migration chain and retain report bytes",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            53,
+            60,
+            61,
+            62
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "upgrade_to_v2_preserves_every_v1_row_and_report",
+          "stageNames": [
+            "upgrade_to_v2_preserves_every_v1_row_and_report"
+          ]
+        }
+      ],
+      "actual": "冻结v1 DDL夹具与实际45eed03程序生成的v1库均经过完整迁移链；旧checksum、迁移记录、工作流/发布快照/报告原字节保持。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        },
+        {
+          "id": "actual-upgrade",
+          "command": [
+            "node",
+            "--preserve-symlinks-main",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/scripts/smoke-v2-upgrade.mjs"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/upgrade-drill.log",
+          "logSha256": "f1c5a5088717d680591e91e477c62329a11d4cdb7db0e369412188988f12b16c",
+          "summary": "Actual old program, failed migration recovery, v2 upgrade, historical mispoint counterexample, restore, and fresh old-program run/report."
+        }
+      ]
+    },
+    {
+      "id": "BASE-02",
+      "status": "PASS",
+      "title": "新库初始化",
+      "expected": "按同一迁移链初始化，不跳过v1",
+      "setup": "全新独立数据目录",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            45,
+            50,
+            51,
+            52,
+            53,
+            55
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-01/02: fresh and genuine frozen-v1 databases use the same complete migration chain and retain report bytes",
+          "testName": "BASE-01/02: fresh and genuine frozen-v1 databases use the same complete migration chain and retain report bytes",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "docs/evidence/v2/matrix-recheck-20261107/base02-new-directory.mjs",
+          "assertionLines": [
+            15,
+            18,
+            19,
+            21,
+            22,
+            25
+          ],
+          "sourceSha256": "d1762817e6783f4ec5ea3f5ef976a6e00cfab2f0f73cf3bb0538e3c987e37386",
+          "kind": "script_assertions",
+          "name": "base02-new-directory.mjs",
+          "scriptRef": "docs/evidence/v2/matrix-recheck-20261107/base02-new-directory.mjs",
+          "description": "actual empty-directory daemon initialization and stopped reopen",
+          "receiptCaseId": "BASE-02"
+        }
+      ],
+      "actual": "实际空白隔离数据目录启动daemon，按注册表顺序记录v1→v2→v3及各自checksum；全部管理表存在、健康200、停机重开history不变。结构与v1升级所得结构相同。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        },
+        {
+          "id": "fresh-directory",
+          "command": "node docs/evidence/v2/matrix-recheck-20261107/base02-new-directory.mjs",
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "exitCode": 0,
+          "startedAt": "2026-11-06T16:59:59.100Z",
+          "log": "docs/evidence/v2/matrix-recheck-20261107/fresh-directory-results.json",
+          "logSha256": "0438979467397cadd2fcef5ad2b3f5b2b7184fdf29a00acb06ed570d84751b86",
+          "logFormat": "structured_command_result_with_execution_snapshot",
+          "helperReceipt": "docs/evidence/v2/matrix-recheck-20261107/base02-new-directory.receipt.json",
+          "helperReceiptSha256": "7db56747ec40a9f79e70d552d097ff66b600410da63c15f5d3862238bbe8ddb3",
+          "sourceRef": "docs/evidence/v2/matrix-recheck-20261107/base02-new-directory.mjs",
+          "sourceSha256": "d1762817e6783f4ec5ea3f5ef976a6e00cfab2f0f73cf3bb0538e3c987e37386",
+          "executionSnapshotRef": {
+            "file": "docs/evidence/v2/matrix-recheck-20261107/fresh-directory-results.json",
+            "sha256": "0438979467397cadd2fcef5ad2b3f5b2b7184fdf29a00acb06ed570d84751b86",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "summary": "Tracked current-cwd BASE-02 helper actually passed: empty isolated data directory, complete migration history/tables, health200, stopped readonly reopen."
+        }
+      ]
+    },
+    {
+      "id": "BASE-03",
+      "status": "PASS",
+      "title": "迁移事务失败",
+      "expected": "事务回滚；原库仍可由旧版恢复读取",
+      "setup": "在新增表阶段注入异常",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            67,
+            68,
+            69,
+            70,
+            74,
+            75
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-03: a failure while adding v2 rolls back to a readable frozen-v1 schema, history and original report",
+          "testName": "BASE-03: a failure while adding v2 rolls back to a readable frozen-v1 schema, history and original report",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            56,
+            57,
+            58
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "v2_migration_failure_actual_old_program_report_recovery",
+          "stageNames": [
+            "v2_migration_failure_actual_old_program_report_recovery"
+          ]
+        }
+      ],
+      "actual": "在真实v1合成副本执行完v2 DDL后注入异常；全部DDL、history与报告字节回滚。随后实际旧serve成功启动该副本并经MCP读取相同报告。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        },
+        {
+          "id": "actual-upgrade",
+          "command": [
+            "node",
+            "--preserve-symlinks-main",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/scripts/smoke-v2-upgrade.mjs"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/upgrade-drill.log",
+          "logSha256": "f1c5a5088717d680591e91e477c62329a11d4cdb7db0e369412188988f12b16c",
+          "summary": "Actual old program, failed migration recovery, v2 upgrade, historical mispoint counterexample, restore, and fresh old-program run/report."
+        }
+      ]
+    },
+    {
+      "id": "BASE-04",
+      "status": "PASS",
+      "title": "未来Schema版本",
+      "expected": "拒绝写入，不重建空库",
+      "setup": "history中加入未知未来版本",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            88,
+            89,
+            92,
+            93,
+            94
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-04: startup rejects the precise history error before writing or rebuilding any byte",
+          "testName": "BASE-04: startup rejects the precise history error before writing or rebuilding any byte",
+          "definitionKind": "parameterized",
+          "sourceNameExpression": "id + \": startup rejects the precise history error before writing or rebuilding any byte\"",
+          "parameters": {
+            "id": "BASE-04"
+          }
+        }
+      ],
+      "actual": "未来version999明确返回FUTURE_SCHEMA_VERSION；在bootstrap写入前停止，整库文件、业务行、history与完整schema均不变。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "BASE-05",
+      "status": "PASS",
+      "title": "旧checksum不匹配",
+      "expected": "明确MIGRATION_MISMATCH，不自动修正checksum",
+      "setup": "修改旧迁移记录",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            88,
+            89,
+            92,
+            93,
+            94
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-05: startup rejects the precise history error before writing or rebuilding any byte",
+          "testName": "BASE-05: startup rejects the precise history error before writing or rebuilding any byte",
+          "definitionKind": "parameterized",
+          "sourceNameExpression": "id + \": startup rejects the precise history error before writing or rebuilding any byte\"",
+          "parameters": {
+            "id": "BASE-05"
+          }
+        }
+      ],
+      "actual": "旧checksum损坏明确返回MIGRATION_MISMATCH；在bootstrap写入前停止，整库文件、业务行、history与完整schema均不变。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "BASE-06",
+      "status": "PASS",
+      "title": "备份预检",
+      "expected": "合法可恢复；缺表拒绝且目标库不变",
+      "setup": "合法v2库与缺表v2库分别预检",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            109,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            123,
+            124
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "BASE-06: valid current backup restores every new table; missing v2 table rejects before replacing the target",
+          "testName": "BASE-06: valid current backup restores every new table; missing v2 table rejects before replacing the target",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "合法当前备份可恢复新增表哨兵；删assistant_tasks后的备份预检及恢复均返回BACKUP_INCOMPATIBLE，目标文件与目录列表不变。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "BASE-07",
+      "status": "PASS",
+      "title": "旧审批历史",
+      "expected": "不复活审批；历史可读且正常清理",
+      "setup": "包含只读旧历史的合成库",
+      "exactTests": [
+        {
+          "file": "tests/engine/workflow.test.ts",
+          "assertionLines": [
+            994,
+            995,
+            996,
+            997,
+            998,
+            999,
+            1000,
+            1007,
+            1008,
+            1009,
+            1010,
+            1012
+          ],
+          "sourceSha256": "4f0e7e315edad78cabd7ecae1f0171f96cb9973d9027d560dd7a2257cca4504d",
+          "kind": "test",
+          "name": "legacy migration backs up and copies draft/publication; recovery retires waiting runs and preserves history",
+          "testName": "legacy migration backs up and copies draft/publication; recovery retires waiting runs and preserves history",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "tests/engine/retention-copies.test.ts",
+          "assertionLines": [
+            27,
+            50,
+            57,
+            153,
+            154,
+            158,
+            160,
+            165,
+            166,
+            167,
+            168,
+            169,
+            171,
+            172,
+            173,
+            174,
+            178,
+            182,
+            183,
+            184,
+            185,
+            186,
+            187,
+            188,
+            189,
+            190,
+            191,
+            203,
+            207,
+            228,
+            237
+          ],
+          "sourceSha256": "3e2d0fc58ef91781fd2fb81510580786220e6710be0e102b8036f628c9b76497",
+          "kind": "test",
+          "name": "retention removes expired result copies before new backups and preserves active runs and recent results",
+          "testName": "retention removes expired result copies before new backups and preserves active runs and recent results",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "tests/poc/runtime.test.ts",
+          "assertionLines": [
+            134
+          ],
+          "sourceSha256": "7df0654fc5331ad48a660a72882381e6452b5cc391c4c5be48730df233881505",
+          "kind": "test",
+          "name": "SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial",
+          "testName": "SEC-11/12 S0 subset: bearer auth, DNS rebinding, Origin and management-route denial",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "旧WAITING_APPROVAL运行退休为CANCELLED/LEGACY_WORKFLOW_RETIRED；历史approval与发布快照可读，决定API仍404。正常保留期清理到期参数副本及旧approval元数据，活动/近期结果不受影响。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "targeted",
+          "command": [
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "dist/tests/engine/v2-matrix-runtime.test.js",
+            "dist/tests/engine/v2-migrations.test.js",
+            "dist/tests/poc/restore-migrations.test.js",
+            "dist/tests/engine/workflow.test.js",
+            "dist/tests/engine/output-redaction.test.js",
+            "dist/tests/engine/retention-copies.test.js",
+            "dist/tests/engine/v2-results-limits.test.js",
+            "dist/tests/engine/v2-executors.test.js",
+            "dist/tests/engine/mapping-boundaries.test.js",
+            "dist/tests/poc/runtime.test.js"
+          ],
+          "cwd": "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/targeted-tests.log",
+          "logSha256": "1cea5ee42d9d3d068843f18588d0010615dbe4d8ffb089a99576e8b6ed4d2ea9",
+          "summary": "105/105 including nested subtests pass; this run predates the appended tenth RUN-04 matrix test, which is separately covered by runtime-final."
+        }
+      ]
+    },
+    {
+      "id": "BASE-08",
+      "status": "PARTIAL",
+      "title": "回滚演练",
+      "expected": "旧实例恢复；不让旧程序直接写v2库",
+      "setup": "升级后停止并恢复旧程序及旧备份",
+      "exactTests": [
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            70,
+            72
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "actual_old_repository_readonly_rejects_v2",
+          "stageNames": [
+            "actual_old_repository_readonly_rejects_v2"
+          ]
+        },
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            82,
+            84,
+            85,
+            86
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "historical_old_serve_mispoint_counterexample",
+          "stageNames": [
+            "historical_old_serve_mispoint_counterexample"
+          ]
+        },
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            88,
+            90,
+            91,
+            92,
+            93
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "restored_v1_history_verified_before_old_serve and stopped_restore_and_actual_old_program_restart",
+          "stageNames": [
+            "restored_v1_history_verified_before_old_serve",
+            "stopped_restore_and_actual_old_program_restart"
+          ]
+        }
+      ],
+      "actual": "正确停机恢复后先验证v1 history，再启实际旧程序；原报告不变，新的旧版run成功且生成有效新报告。旧Repository只读拒绝v2时原库字节不变。另在可丢弃v2副本实际误启旧CLI：拒绝启动但boots从2增至3，非poc_meta业务表及history均不变，原v2库未动。",
+      "limit": "冻结45eed03的bootstrap在Repository拒绝v2前会写启动计数；不能宣称旧serve误指新库时完全零写入。正确回滚路径通过，未接触正式数据。",
+      "commands": [
+        {
+          "id": "actual-upgrade",
+          "command": [
+            "node",
+            "--preserve-symlinks-main",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/scripts/smoke-v2-upgrade.mjs"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/upgrade-drill.log",
+          "logSha256": "f1c5a5088717d680591e91e477c62329a11d4cdb7db0e369412188988f12b16c",
+          "summary": "Actual old program, failed migration recovery, v2 upgrade, historical mispoint counterexample, restore, and fresh old-program run/report."
+        }
+      ]
+    },
+    {
+      "id": "RUN-01",
+      "status": "PASS",
+      "title": "无审批数据库链",
+      "expected": "合法绑定直接执行，没有审批状态",
+      "setup": "输入→数据库→结束",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            232,
+            233,
+            234,
+            235,
+            236,
+            237,
+            238,
+            239,
+            242
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "testName": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "生产/试运行input→query_template→end均直接发布并SUCCEEDED；快照、事件和approvals表没有审批节点/状态/新行。",
+      "limit": "只证明本机owned合成协议MCP链路，不证明企业数据库账号权限。",
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "RUN-02",
+      "status": "PASS",
+      "title": "业务原值保留",
+      "expected": "节点传递/产物/报告内容不自动替换",
+      "setup": "邮箱/手机号/token文本合成结果",
+      "exactTests": [
+        {
+          "file": "tests/engine/output-redaction.test.ts",
+          "assertionLines": [
+            163,
+            176,
+            341,
+            351,
+            352,
+            372,
+            375,
+            383,
+            384,
+            389,
+            393,
+            394,
+            395,
+            398,
+            399,
+            400
+          ],
+          "sourceSha256": "d88e8d19517f9a2fa6cbb210669b68d7e19920f956e1583ca0149ffd0df1cdd9",
+          "kind": "test",
+          "name": "real MCP business results and Agent submissions retain original bytes in run and artifact persistence",
+          "testName": "real MCP business results and Agent submissions retain original bytes in run and artifact persistence",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "tests/engine/mapping-boundaries.test.ts",
+          "assertionLines": [
+            476,
+            477,
+            478,
+            479,
+            480,
+            482,
+            483
+          ],
+          "sourceSha256": "39f94fc0b4f1abade22d4cad6fa85330a6f97f68ec53f4728747036a410b4f4e",
+          "kind": "test",
+          "name": "nested business JSON keeps types, exact mapping and artifact bytes without a parallel encrypted display value",
+          "testName": "nested business JSON keeps types, exact mapping and artifact bytes without a parallel encrypted display value",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "邮箱、手机、中文订单/URL及password/token普通业务文本从真实本机MCP、Agent交接、运行输出、Markdown报告到artifact_read保持原值；嵌套JSON数字/null/布尔/数组类型全等。HTML仅转义显示字符。",
+      "limit": "全部业务值为合成数据。",
+      "commands": [
+        {
+          "id": "targeted",
+          "command": [
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "dist/tests/engine/v2-matrix-runtime.test.js",
+            "dist/tests/engine/v2-migrations.test.js",
+            "dist/tests/poc/restore-migrations.test.js",
+            "dist/tests/engine/workflow.test.js",
+            "dist/tests/engine/output-redaction.test.js",
+            "dist/tests/engine/retention-copies.test.js",
+            "dist/tests/engine/v2-results-limits.test.js",
+            "dist/tests/engine/v2-executors.test.js",
+            "dist/tests/engine/mapping-boundaries.test.js",
+            "dist/tests/poc/runtime.test.js"
+          ],
+          "cwd": "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/targeted-tests.log",
+          "logSha256": "1cea5ee42d9d3d068843f18588d0010615dbe4d8ffb089a99576e8b6ed4d2ea9",
+          "summary": "105/105 including nested subtests pass; this run predates the appended tenth RUN-04 matrix test, which is separately covered by runtime-final."
+        }
+      ]
+    },
+    {
+      "id": "RUN-03",
+      "status": "PASS",
+      "title": "生产试运行隔离",
+      "expected": "每条流程只命中自己的binding",
+      "setup": "两套合成环境哨兵",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            232,
+            233,
+            234,
+            235,
+            236,
+            237,
+            238,
+            239,
+            242
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "testName": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "两个独立本机MCP子进程只记录各自production/staging锁定database参数；每条流程返回自身哨兵与binding，精确dispatch日志每环境仅一次。",
+      "limit": "合成哨兵验证路由/绑定，不代表企业服务身份或实际权限。",
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "RUN-04",
+      "status": "PASS",
+      "title": "text-only MCP",
+      "expected": "保留content，声明适配后正确映射",
+      "setup": "合法文本结果无structuredContent",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            281,
+            284,
+            285,
+            287,
+            288,
+            289,
+            291,
+            292,
+            294,
+            295,
+            296,
+            297
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-04: declared text adapters preserve every original MCP content block through mapping, persistence and artifact_read",
+          "testName": "RUN-04: declared text adapters preserve every original MCP content block through mapping, persistence and artifact_read",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "tests/engine/v2-results-limits.test.ts",
+          "assertionLines": [
+            23,
+            27,
+            28,
+            29
+          ],
+          "sourceSha256": "a3bb7044c71f6b0ce1d0700538120ee3ac8502207c6aa48be076d43d19948e48",
+          "kind": "test",
+          "name": "real text-only MCP retains raw business content without environment and receives a clamped native limit",
+          "testName": "real text-only MCP retains raw business content without environment and receives a clamped native limit",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "真实text-only MCP返回多text块与resource_link，无structuredContent；声明json_text后精确映射业务值。原始content经application/mcp+json保存和artifact_read后全等，text适配也保留完整块列表；未声明的structured适配明确OUTPUT_ADAPTER_REQUIRED。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        },
+        {
+          "id": "targeted",
+          "command": [
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "dist/tests/engine/v2-matrix-runtime.test.js",
+            "dist/tests/engine/v2-migrations.test.js",
+            "dist/tests/poc/restore-migrations.test.js",
+            "dist/tests/engine/workflow.test.js",
+            "dist/tests/engine/output-redaction.test.js",
+            "dist/tests/engine/retention-copies.test.js",
+            "dist/tests/engine/v2-results-limits.test.js",
+            "dist/tests/engine/v2-executors.test.js",
+            "dist/tests/engine/mapping-boundaries.test.js",
+            "dist/tests/poc/runtime.test.js"
+          ],
+          "cwd": "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/targeted-tests.log",
+          "logSha256": "1cea5ee42d9d3d068843f18588d0010615dbe4d8ffb089a99576e8b6ed4d2ea9",
+          "summary": "105/105 including nested subtests pass; this run predates the appended tenth RUN-04 matrix test, which is separately covered by runtime-final."
+        }
+      ]
+    },
+    {
+      "id": "RUN-05",
+      "status": "PASS",
+      "title": "无environment字段",
+      "expected": "依据绑定路由处理，不拒绝所有结果",
+      "setup": "第三方合法返回对象",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            232,
+            233,
+            234,
+            235,
+            236,
+            237,
+            238,
+            239,
+            242
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "testName": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "两套真实本机structured MCP对象均不带environment字段，仍SUCCEEDED；按binding和锁定database参数路由，不拒绝合法原生输出。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "RUN-06",
+      "status": "PASS",
+      "title": "限额前置",
+      "expected": "调用前有效limit10或明确unsupported",
+      "setup": "binding10行、用户100行",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            232,
+            233,
+            234,
+            235,
+            236,
+            237,
+            238,
+            239,
+            242
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "testName": "RUN-01/03/05/06: direct database chains have no approval, route to distinct sentinels without an environment result field, and limit before dispatch",
+          "definitionKind": "literal"
+        },
+        {
+          "file": "tests/engine/v2-results-limits.test.ts",
+          "assertionLines": [
+            23,
+            27,
+            28,
+            29
+          ],
+          "sourceSha256": "a3bb7044c71f6b0ce1d0700538120ee3ac8502207c6aa48be076d43d19948e48",
+          "kind": "test",
+          "name": "real text-only MCP retains raw business content without environment and receives a clamped native limit",
+          "testName": "real text-only MCP retains raw business content without environment and receives a clamped native limit",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "用户limit100、binding上限10时，子MCP实际调用参数/返回值均为10，证明调用前下推；事件TOOL_LIMIT_ENFORCEMENT的effectiveLimit也是10。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        },
+        {
+          "id": "targeted",
+          "command": [
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "dist/tests/engine/v2-matrix-runtime.test.js",
+            "dist/tests/engine/v2-migrations.test.js",
+            "dist/tests/poc/restore-migrations.test.js",
+            "dist/tests/engine/workflow.test.js",
+            "dist/tests/engine/output-redaction.test.js",
+            "dist/tests/engine/retention-copies.test.js",
+            "dist/tests/engine/v2-results-limits.test.js",
+            "dist/tests/engine/v2-executors.test.js",
+            "dist/tests/engine/mapping-boundaries.test.js",
+            "dist/tests/poc/runtime.test.js"
+          ],
+          "cwd": "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/targeted-tests.log",
+          "logSha256": "1cea5ee42d9d3d068843f18588d0010615dbe4d8ffb089a99576e8b6ed4d2ea9",
+          "summary": "105/105 including nested subtests pass; this run predates the appended tenth RUN-04 matrix test, which is separately covered by runtime-final."
+        }
+      ]
+    },
+    {
+      "id": "RUN-07",
+      "status": "PASS",
+      "title": "host-only节点",
+      "expected": "网页准确说明需要宿主；Codex实际交接",
+      "setup": "网页Key与Codex运行对照",
+      "exactTests": [
+        {
+          "file": "scripts/smoke-codex-host-handoff.mjs",
+          "assertionLines": [
+            94,
+            101,
+            102,
+            107,
+            110,
+            111,
+            114,
+            118,
+            119,
+            121
+          ],
+          "sourceSha256": "cf6760d9c93421f0d2848860fa8aa1034d7a2b020b246179bb7b01b3791a7742",
+          "kind": "script_assertions",
+          "name": "smoke-codex-host-handoff.mjs",
+          "scriptRef": "scripts/smoke-codex-host-handoff.mjs",
+          "description": "actual installed Codex host-only MCP handoff",
+          "receiptCaseId": "RUN-07"
+        },
+        {
+          "file": "tests/ui/v2-matrix-ui.spec.ts",
+          "assertionLines": [
+            118,
+            121,
+            122,
+            132,
+            133,
+            134,
+            135,
+            136,
+            137
+          ],
+          "sourceSha256": "12c3ce58eb7f435a0b9a082a5010e4691ec2353ee47fbbba915780bb16f16144",
+          "kind": "test",
+          "name": "RUN-07 matrix: a real waiting host-only run explains the Codex requirement while a configured model Key dispatches no call",
+          "testName": "RUN-07 matrix: a real waiting host-only run explains the Codex requirement while a configured model Key dispatches no call",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "实际安装的Codex AppServer调用owned_host/read_synthetic_host恰好一次，再经FlowHub MCP提交checkpoint；运行持久化为host_reported/SUCCEEDED。配置合成网页Key也不能消费host-only检查点，provider请求0。真实浏览器运行页在刷新前后均显示需Codex宿主，不显示模型继续按钮，检查点不变、模型HTTP请求0且Skill脚本未运行。",
+      "limit": "实际企业插件权限与自然语言模型回合仍单独未验证；本项expected的本机合成宿主/网页对照已完成。",
+      "commands": [
+        {
+          "id": "actual-codex-handoff",
+          "command": [
+            "node",
+            "--preserve-symlinks-main",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/scripts/smoke-codex-host-handoff.mjs"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/tracked-host-handoff.log",
+          "logSha256": "c30bef573969433def467d3cecd38638ffe2b9bb47a8162eb8605dadd5248079",
+          "summary": "Installed Codex 0.166.0-alpha.5.1 performs the owned synthetic host call and hands result back through MCP; 0 model requests.",
+          "env": {
+            "FLOWHUB_CODEX_PATH": "/Users/sqz/Desktop/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+            "FLOWHUB_HOST_HANDOFF_EVIDENCE_DIR": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/runtime-pack/tracked-host-handoff"
+          }
+        },
+        {
+          "id": "root-ui-full-current",
+          "command": "npm run test:ui -- --reporter=list,json",
+          "argv": [
+            "/private/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "/Users/sqz/Documents/ChatGPT/mcp管理工具/node_modules/.bin/playwright",
+            "test",
+            "--reporter=list,json"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/root/ui-full.log",
+          "logSha256": "da8e927b676638eb0330d3b76a931ec18b68b0812dce5ee8300414bb6e618128",
+          "report": "artifacts/matrix-recheck-20261106/root/ui-full.json",
+          "reportSha256": "3fa9b8c89f6659c77b204f66a8fe0553977ff7b00218befc3f986d8598dd042f",
+          "receipt": "artifacts/matrix-recheck-20261106/root/ui-full.receipt.json",
+          "receiptSha256": "74241fde1a7ba2890a7e3fa6328faa25200da5fe2a2bcc9ba14ec762bede2af6",
+          "executionSnapshot": "root/ui-execution-snapshot.json",
+          "summary": "Current full UI 94/94, 0 skipped/unexpected/errors; RUN-07 host-only run-page case passed. Final delivery rerun receipt remains pending.",
+          "provisionalForFinalDelivery": true
+        }
+      ]
+    },
+    {
+      "id": "RUN-08",
+      "status": "PASS",
+      "title": "未知结果不重放",
+      "expected": "OUTCOME_UNKNOWN，无盲重复查询",
+      "setup": "调用派发后连接丢失",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            249,
+            250,
+            251,
+            252,
+            255,
+            256,
+            257,
+            259,
+            260
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "RUN-08: a real local MCP exits after dispatch, producing OUTCOME_UNKNOWN with one call and no replay after recovery or idempotent start",
+          "testName": "RUN-08: a real local MCP exits after dispatch, producing OUTCOME_UNKNOWN with one call and no replay after recovery or idempotent start",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "真实本机MCP进程写入调用marker后退出；run和唯一attempt为OUTCOME_UNKNOWN。配置2次重试、重复recover、幂等start及resume均不重复查询，marker精确1次。",
+      "limit": null,
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "PACK-01",
+      "status": "PASS",
+      "title": "离线包完整",
+      "expected": "打包实际包含所有新增模块和帮助索引",
+      "setup": "新的packages/docs/contracts",
+      "exactTests": [
+        {
+          "file": "scripts/verify-package-completeness.mjs",
+          "assertionLines": [
+            23,
+            24,
+            31,
+            34,
+            46,
+            48,
+            50
+          ],
+          "sourceSha256": "b166eca051e1c3884a9c0839e202e4ef970eda9c1847f7141d21171f290bfd36",
+          "kind": "script_assertions",
+          "name": "verify-package-completeness.mjs",
+          "scriptRef": "scripts/verify-package-completeness.mjs",
+          "description": "complete v2 runtime/module/doc inventory and packaged knowledge index",
+          "receiptCaseId": "PACK-01"
+        }
+      ],
+      "actual": "946a036干净worktree的实际phaseA包通过三门禁；670份所含source文件逐字匹配Git。独立脚本核查28个新增运行JS、相关contracts及4份runtime帮助与source相同；包内Node24.19在PATH仅runtime时真实建立37个知识块，中文说明章节可检索，引用lines1–24。此前缺文档反例保留为历史证据。",
+      "limit": "本机macOS候选；完整性一致性不代表签名或企业接入。",
+      "commands": [
+        {
+          "id": "package-a-local-946a036",
+          "command": "npm run package:local",
+          "cwd": "/tmp/flowhub-matrix-package-946a036",
+          "startedAt": "2026-11-06T16:59:07.758467+00:00",
+          "durationSeconds": 43.104,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-gates/local.log",
+          "originalLog": "/tmp/flowhub-matrix-recheck-20261107-package-a.log",
+          "logSha256": "88ee0b51c10469f2326711e97f50983a46045f5457593b98b05d357b4379fa43",
+          "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+          "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+          "executionSnapshotRef": {
+            "file": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+            "sha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "packageIdentity": {
+            "phase": "a",
+            "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "dirty": false,
+            "sourceFilesComparedToGit": 670,
+            "allIncludedSourceBytesMatchGit": true,
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "packageLocalExit": 0,
+            "packageSmokeExit": 0,
+            "verifyReleaseExit": 0,
+            "nativeWindowsAcceptance": "UNVERIFIED",
+            "enterpriseAcceptance": "UNVERIFIED",
+            "push": false,
+            "merge": false,
+            "release": false
+          },
+          "smokeStageNames": []
+        },
+        {
+          "id": "package-a-release-946a036",
+          "command": "npm run verify:release",
+          "cwd": "/tmp/flowhub-matrix-package-946a036",
+          "startedAt": "2026-11-06T17:00:37.042602+00:00",
+          "durationSeconds": 13.515,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-gates/release.log",
+          "originalLog": "/tmp/flowhub-matrix-recheck-20261107-package-integrity-a.log",
+          "logSha256": "662e63e67ff9a855d64be399d52897577c2fd8b48d895be2d985f351eed12883",
+          "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+          "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+          "executionSnapshotRef": {
+            "file": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+            "sha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "packageIdentity": {
+            "phase": "a",
+            "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "dirty": false,
+            "sourceFilesComparedToGit": 670,
+            "allIncludedSourceBytesMatchGit": true,
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "packageLocalExit": 0,
+            "packageSmokeExit": 0,
+            "verifyReleaseExit": 0,
+            "nativeWindowsAcceptance": "UNVERIFIED",
+            "enterpriseAcceptance": "UNVERIFIED",
+            "push": false,
+            "merge": false,
+            "release": false
+          },
+          "smokeStageNames": []
+        },
+        {
+          "id": "package-a-completeness-946a036",
+          "caseId": "PACK-01",
+          "argv": [
+            "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "/Users/sqz/Documents/ChatGPT/mcp管理工具/scripts/verify-package-completeness.mjs",
+            "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "env": {
+            "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+            "FLOWHUB_PACKAGE_EVIDENCE_DIR": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness"
+          },
+          "startedAt": "2026-11-06T17:01:25.457852+00:00",
+          "durationSeconds": 3.529,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.log",
+          "logSha256": "cf0e99076f3a3456af8f3c2713dc0b012696f99f67778864017bba29d135b735",
+          "executionSnapshot": {
+            "capturedAt": "2026-11-06T17:01:25.457852+00:00",
+            "rootHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "stageHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "nodeExecutable": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "nodeVersion": "v24.19.0",
+            "platform": "Darwin",
+            "architecture": "arm64",
+            "scriptRef": "scripts/verify-package-completeness.mjs",
+            "scriptSha256": "b166eca051e1c3884a9c0839e202e4ef970eda9c1847f7141d21171f290bfd36",
+            "latestPackagePath": "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json",
+            "latestPackageSha256": "42157fd11d8c43cc4878ad6c1330e20cd6e15e7a3e18be0973a77256c40f317c",
+            "bundle": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z",
+            "archive": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z.tar.gz",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "buildInfoSha256": "a5bd040a9014d601fadedc084523dc72381e02ccf54dfe814685ba6d7a279160",
+            "manifestSha256": "41c1050e59de286a2c44762c7b15a798c7089c4c6319035d828091937edb74b3",
+            "buildGitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "runtimeSha256": "27db838bb204ef7c21df2931f5656e4c8fb32e6e947f363a402b49714d32b5b1"
+          },
+          "helperReceipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/package-completeness.receipt.json",
+          "helperReceiptSha256": "24273c750a961f3fb825bffb3c4f8c8145a6f426305e41285291ccc20904839a",
+          "actual": {
+            "status": "PASS",
+            "newRuntimeFilesChecked": 28,
+            "indexedDocuments": [
+              "README.md",
+              "docs/HOST_INTEGRATION.md",
+              "docs/V2_USER_GUIDE.md",
+              "docs/DISCOVERY_LOCALIZATION.md"
+            ],
+            "knowledgeChunks": 37,
+            "localizationCitation": {
+              "sourcePath": "docs/DISCOVERY_LOCALIZATION.md",
+              "heading": "发现目录与中文说明同步",
+              "lineStart": 1,
+              "lineEnd": 24,
+              "contentHash": "0fdcc9d31cf44548a5d8d732b940e2b33e0739b10192aa1e0d35d58d0362ebe9",
+              "productVersion": "2.0.0-alpha.2",
+              "availability": "implemented",
+              "chunkId": "153346588272395af51fc93da9b1b71ee96c422eadf56f81c80d97ddbf660020:0"
+            },
+            "node": "24.19.0",
+            "noGlobalNode": true
+          },
+          "command": [
+            "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "/Users/sqz/Documents/ChatGPT/mcp管理工具/scripts/verify-package-completeness.mjs",
+            "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json"
+          ],
+          "receipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.receipt.json",
+          "receiptSha256": "1bdde74ddcc7042068e78f3e9d7149757ec0edd4c836f5acd022868014dc6706"
+        }
+      ],
+      "historicalEvidence": {
+        "exitCode": 1,
+        "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-completeness-before.log",
+        "logSha256": "cd22297b92f22840a19e8f20ddbd60d33e4ce4d2ade234a6eba6cd231179c68a",
+        "summary": "Negative control: earlier bundle omitted runtime docs/DISCOVERY_LOCALIZATION.md while source snapshot contained it; retained before root packaging fix."
+      },
+      "verifiedPackagePhase": {
+        "scriptRef": "scripts/verify-package-completeness.mjs",
+        "receiptCaseId": "PACK-01",
+        "phase": "a",
+        "actualExecutionPending": false
+      }
+    },
+    {
+      "id": "PACK-02",
+      "status": "PASS",
+      "title": "无全局Node运行",
+      "expected": "健康和旧/新MCP工具可用",
+      "setup": "用包内runtime启动",
+      "exactTests": [
+        {
+          "file": "scripts/smoke-package.mjs",
+          "assertionLines": [
+            172,
+            178,
+            179,
+            221,
+            223,
+            225,
+            227,
+            229,
+            230,
+            235,
+            236,
+            245
+          ],
+          "sourceSha256": "3f2bf439c016886d29f416848096b6d0f94add815da22e4f8a7fb11039ec11f2",
+          "kind": "script_assertions",
+          "name": "smoke-package.mjs",
+          "scriptRef": "scripts/smoke-package.mjs",
+          "description": "both protocol eras; package runtime health, new persisted tools and old seven-tool identity",
+          "stageNames": [
+            "packaged daemon startup",
+            "packaged daemon health and web assets",
+            "modern Hub bridge 21 tools and persisted authoring",
+            "modern old execution identity retains seven tools",
+            "legacy Hub bridge 21 tools and persisted authoring",
+            "legacy old execution identity retains seven tools"
+          ],
+          "stageNameTemplates": [
+            "${era} Hub bridge 21 tools and persisted authoring",
+            "${era} old execution identity retains seven tools"
+          ],
+          "parameters": {
+            "era": [
+              "modern",
+              "legacy"
+            ]
+          }
+        }
+      ],
+      "actual": "同一946a036 phaseA离线包以包内runtime且PATH仅runtime启动健康与网页资源成功；modern/legacy均实际连接同一个Hub桥，21工具的新草稿持久化/帮助检索通过，旧受限身份仍7工具且旧workflow_get可用。smoke全部20个真实命名stage通过。",
+      "limit": "只验证darwin/arm64包；原生Windows见PACK-03。",
+      "commands": [
+        {
+          "id": "package-a-smoke-946a036",
+          "command": "npm run test:package",
+          "cwd": "/tmp/flowhub-matrix-package-946a036",
+          "startedAt": "2026-11-06T16:59:50.863169+00:00",
+          "durationSeconds": 46.179,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-gates/smoke.log",
+          "originalLog": "/tmp/flowhub-matrix-recheck-20261107-package-smoke-a.log",
+          "logSha256": "8aa4c582402056f69863f650215727d9c5d961a4f2982c91a7752978c3458c9e",
+          "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+          "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+          "executionSnapshotRef": {
+            "file": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+            "sha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "packageIdentity": {
+            "phase": "a",
+            "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "dirty": false,
+            "sourceFilesComparedToGit": 670,
+            "allIncludedSourceBytesMatchGit": true,
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "packageLocalExit": 0,
+            "packageSmokeExit": 0,
+            "verifyReleaseExit": 0,
+            "nativeWindowsAcceptance": "UNVERIFIED",
+            "enterpriseAcceptance": "UNVERIFIED",
+            "push": false,
+            "merge": false,
+            "release": false
+          },
+          "smokeStageNames": [
+            "packaged daemon startup",
+            "packaged daemon health and web assets",
+            "modern Hub bridge 21 tools and persisted authoring",
+            "legacy Hub bridge 21 tools and persisted authoring",
+            "modern old execution identity retains seven tools",
+            "legacy old execution identity retains seven tools",
+            "new assistant module tamper is rejected"
+          ]
+        },
+        {
+          "id": "package-a-completeness-946a036",
+          "caseId": "PACK-01",
+          "argv": [
+            "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "/Users/sqz/Documents/ChatGPT/mcp管理工具/scripts/verify-package-completeness.mjs",
+            "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "env": {
+            "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+            "FLOWHUB_PACKAGE_EVIDENCE_DIR": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness"
+          },
+          "startedAt": "2026-11-06T17:01:25.457852+00:00",
+          "durationSeconds": 3.529,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.log",
+          "logSha256": "cf0e99076f3a3456af8f3c2713dc0b012696f99f67778864017bba29d135b735",
+          "executionSnapshot": {
+            "capturedAt": "2026-11-06T17:01:25.457852+00:00",
+            "rootHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "stageHead": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "nodeExecutable": "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "nodeVersion": "v24.19.0",
+            "platform": "Darwin",
+            "architecture": "arm64",
+            "scriptRef": "scripts/verify-package-completeness.mjs",
+            "scriptSha256": "b166eca051e1c3884a9c0839e202e4ef970eda9c1847f7141d21171f290bfd36",
+            "latestPackagePath": "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json",
+            "latestPackageSha256": "42157fd11d8c43cc4878ad6c1330e20cd6e15e7a3e18be0973a77256c40f317c",
+            "bundle": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z",
+            "archive": "/private/tmp/flowhub-matrix-package-946a036/artifacts/flowhub-2.0.0-alpha.2-darwin-arm64-2026-11-06T16-59-10-890Z.tar.gz",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "buildInfoSha256": "a5bd040a9014d601fadedc084523dc72381e02ccf54dfe814685ba6d7a279160",
+            "manifestSha256": "41c1050e59de286a2c44762c7b15a798c7089c4c6319035d828091937edb74b3",
+            "buildGitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "runtimeSha256": "27db838bb204ef7c21df2931f5656e4c8fb32e6e947f363a402b49714d32b5b1"
+          },
+          "helperReceipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/package-completeness.receipt.json",
+          "helperReceiptSha256": "24273c750a961f3fb825bffb3c4f8c8145a6f426305e41285291ccc20904839a",
+          "actual": {
+            "status": "PASS",
+            "newRuntimeFilesChecked": 28,
+            "indexedDocuments": [
+              "README.md",
+              "docs/HOST_INTEGRATION.md",
+              "docs/V2_USER_GUIDE.md",
+              "docs/DISCOVERY_LOCALIZATION.md"
+            ],
+            "knowledgeChunks": 37,
+            "localizationCitation": {
+              "sourcePath": "docs/DISCOVERY_LOCALIZATION.md",
+              "heading": "发现目录与中文说明同步",
+              "lineStart": 1,
+              "lineEnd": 24,
+              "contentHash": "0fdcc9d31cf44548a5d8d732b940e2b33e0739b10192aa1e0d35d58d0362ebe9",
+              "productVersion": "2.0.0-alpha.2",
+              "availability": "implemented",
+              "chunkId": "153346588272395af51fc93da9b1b71ee96c422eadf56f81c80d97ddbf660020:0"
+            },
+            "node": "24.19.0",
+            "noGlobalNode": true
+          },
+          "command": [
+            "/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin/node",
+            "/Users/sqz/Documents/ChatGPT/mcp管理工具/scripts/verify-package-completeness.mjs",
+            "/tmp/flowhub-matrix-package-946a036/artifacts/latest-package.json"
+          ],
+          "receipt": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-completeness/command.receipt.json",
+          "receiptSha256": "1bdde74ddcc7042068e78f3e9d7149757ec0edd4c836f5acd022868014dc6706"
+        }
+      ]
+    },
+    {
+      "id": "PACK-03",
+      "status": "UNVERIFIED",
+      "title": "原生Windows",
+      "expected": "独立记录，不用Linux替代",
+      "setup": "Windows runner构建测试",
+      "exactTests": [],
+      "actual": "当前宿主darwin/arm64，未执行原生Windows构建、原生依赖、安装器或运行包测试。",
+      "limit": "需要原生Windows runner/获准设备；未发起push或CI dispatch。",
+      "commands": []
+    },
+    {
+      "id": "PACK-04",
+      "status": "PASS",
+      "title": "配置读写权限拒绝",
+      "expected": "明确错误，不变更系统策略",
+      "setup": "合成受限目录",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            137,
+            139,
+            140,
+            141,
+            142,
+            143,
+            145
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "PACK-04: native permission denial on isolated configuration and data ancestors is explicit and leaves modes unchanged",
+          "testName": "PACK-04: native permission denial on isolated configuration and data ancestors is explicit and leaves modes unchanged",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "本机非root账户对临时config chmod000后实际EACCES，发现回执SOURCE_UNREADABLE准确定位；临时data祖先chmod500后启动EACCES且无写入。产品未改变两处权限，测试结束源内容原样恢复。",
+      "limit": "未执行Windows ACL/DLP或企业策略验收。",
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "PACK-05",
+      "status": "PASS",
+      "title": "端口冲突",
+      "expected": "使用开发端口，不杀其他服务",
+      "setup": "18473已占用",
+      "exactTests": [
+        {
+          "file": "tests/engine/v2-matrix-runtime.test.ts",
+          "assertionLines": [
+            154,
+            155,
+            156,
+            157,
+            158,
+            160,
+            161,
+            162,
+            163,
+            193,
+            208
+          ],
+          "sourceSha256": "6e9b0e03c1c10304ce248fa86d5048c9512ffcdea9195ec44ee32147809c39c3",
+          "kind": "test",
+          "name": "PACK-05: occupied loopback port preserves its service and a distinct development port starts with the failed lock released",
+          "testName": "PACK-05: occupied loopback port preserves its service and a distinct development port starts with the failed lock released",
+          "definitionKind": "literal"
+        }
+      ],
+      "actual": "本任务占用的loopback端口明确PORT_IN_USE；失败锁和endpoint均释放。同一开发数据目录换独立临时端口后健康200，原服务健康与endpoint保持。",
+      "limit": "只使用本任务可丢弃端口，已有用户18473未绑定/修改/终止。",
+      "commands": [
+        {
+          "id": "runtime-final",
+          "command": [
+            "node",
+            "node_modules/typescript/bin/tsc",
+            "-p",
+            "tsconfig.json",
+            "--outDir",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist",
+            "&&",
+            "node",
+            "--test",
+            "--test-concurrency=1",
+            "--test-reporter=tap",
+            "--test-timeout=60000",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/dist/tests/engine/v2-matrix-runtime.test.js"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/runtime-final.log",
+          "logSha256": "7e2bd56f3a42f12acbbfce197e558e1d2afd2fe5a5290e0aeeef637eba4224cb",
+          "summary": "Independent build; all 10 final runtime matrix tests pass, 0 skipped."
+        }
+      ]
+    },
+    {
+      "id": "PACK-06",
+      "status": "PASS",
+      "title": "包完整性变更",
+      "expected": "完整性检查发现，不伪通过",
+      "setup": "破坏新增模块文件",
+      "exactTests": [
+        {
+          "file": "scripts/smoke-package.mjs",
+          "assertionLines": [
+            123
+          ],
+          "sourceSha256": "3f2bf439c016886d29f416848096b6d0f94add815da22e4f8a7fb11039ec11f2",
+          "kind": "script_assertions",
+          "name": "smoke-package.mjs",
+          "scriptRef": "scripts/smoke-package.mjs",
+          "description": "new assistant module tamper is rejected",
+          "stageNames": [
+            "new assistant module tamper is rejected"
+          ]
+        }
+      ],
+      "actual": "实际phaseA smoke在可丢弃解压副本篡改新增assistant-core模块，完整性检查正确拒绝；恢复原字节后重验通过，随后正常包链路均通过。README篡改反控也被拒绝，原始candidate的verify:release另行exit0。",
+      "limit": "这是完整性负控，不作为代码签名或完整安全认证。",
+      "commands": [
+        {
+          "id": "package-a-smoke-946a036",
+          "command": "npm run test:package",
+          "cwd": "/tmp/flowhub-matrix-package-946a036",
+          "startedAt": "2026-11-06T16:59:50.863169+00:00",
+          "durationSeconds": 46.179,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-gates/smoke.log",
+          "originalLog": "/tmp/flowhub-matrix-recheck-20261107-package-smoke-a.log",
+          "logSha256": "8aa4c582402056f69863f650215727d9c5d961a4f2982c91a7752978c3458c9e",
+          "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+          "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+          "executionSnapshotRef": {
+            "file": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+            "sha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "packageIdentity": {
+            "phase": "a",
+            "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "dirty": false,
+            "sourceFilesComparedToGit": 670,
+            "allIncludedSourceBytesMatchGit": true,
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "packageLocalExit": 0,
+            "packageSmokeExit": 0,
+            "verifyReleaseExit": 0,
+            "nativeWindowsAcceptance": "UNVERIFIED",
+            "enterpriseAcceptance": "UNVERIFIED",
+            "push": false,
+            "merge": false,
+            "release": false
+          },
+          "smokeStageNames": [
+            "packaged daemon startup",
+            "packaged daemon health and web assets",
+            "modern Hub bridge 21 tools and persisted authoring",
+            "legacy Hub bridge 21 tools and persisted authoring",
+            "modern old execution identity retains seven tools",
+            "legacy old execution identity retains seven tools",
+            "new assistant module tamper is rejected"
+          ]
+        },
+        {
+          "id": "package-a-release-946a036",
+          "command": "npm run verify:release",
+          "cwd": "/tmp/flowhub-matrix-package-946a036",
+          "startedAt": "2026-11-06T17:00:37.042602+00:00",
+          "durationSeconds": 13.515,
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/package-a-gates/release.log",
+          "originalLog": "/tmp/flowhub-matrix-recheck-20261107-package-integrity-a.log",
+          "logSha256": "662e63e67ff9a855d64be399d52897577c2fd8b48d895be2d985f351eed12883",
+          "receipt": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+          "receiptSha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+          "executionSnapshotRef": {
+            "file": "artifacts/matrix-recheck-20261106/package-a.receipt.json",
+            "sha256": "94fd8470d51cb703d8de3c792aff7aa23efcf5578bed2de8c0ca58481b236744",
+            "jsonPointer": "/executionSnapshot"
+          },
+          "packageIdentity": {
+            "phase": "a",
+            "gitSha": "946a03685a0dd434995f2f410ef59b25dd7f4fe3",
+            "dirty": false,
+            "sourceFilesComparedToGit": 670,
+            "allIncludedSourceBytesMatchGit": true,
+            "sourceTreeSha256": "086f7a4f21e4acd5a0f881447d504a8c796e65ea636856f3ccc1dd6a3f340e00",
+            "archiveSha256": "5e35ab9b46d6890c3759e2b81baf31914bf6fa6d78e1f4a23adc0be6265190a6",
+            "packageLocalExit": 0,
+            "packageSmokeExit": 0,
+            "verifyReleaseExit": 0,
+            "nativeWindowsAcceptance": "UNVERIFIED",
+            "enterpriseAcceptance": "UNVERIFIED",
+            "push": false,
+            "merge": false,
+            "release": false
+          },
+          "smokeStageNames": []
+        }
+      ]
+    },
+    {
+      "id": "PACK-07",
+      "status": "UNVERIFIED",
+      "title": "卸载保留数据",
+      "expected": "仅受管程序文件删除，数据保留",
+      "setup": "隔离安装账号测试",
+      "exactTests": [],
+      "actual": "没有对日常安装或用户数据运行卸载器。",
+      "limit": "仍需独立可丢弃安装账号/原生安装器环境；源码审查和通用runtime测试不能算卸载保留数据验收。",
+      "commands": []
+    },
+    {
+      "id": "PACK-08",
+      "status": "PARTIAL",
+      "title": "升级文档可操作",
+      "expected": "步骤和真实CLI一致，缺项明确",
+      "setup": "按本地教程新机执行",
+      "exactTests": [
+        {
+          "file": "scripts/smoke-v2-upgrade.mjs",
+          "assertionLines": [
+            41,
+            50,
+            52,
+            53,
+            56,
+            58,
+            60,
+            62,
+            64,
+            65,
+            88,
+            90,
+            91,
+            92,
+            93
+          ],
+          "sourceSha256": "4e3ca5f405dc5dce109e208875039428ec2c7376072adb304e8a849c25e5612d",
+          "kind": "script_assertions",
+          "name": "smoke-v2-upgrade.mjs",
+          "scriptRef": "scripts/smoke-v2-upgrade.mjs",
+          "description": "actual old upgrade and verified stop/restore with fresh old-program run/report",
+          "stageNames": [
+            "actual_v1_program_create_publish_run_report_backup",
+            "v2_migration_failure_actual_old_program_report_recovery",
+            "upgrade_to_v2_preserves_every_v1_row_and_report",
+            "restored_v1_history_verified_before_old_serve",
+            "stopped_restore_and_actual_old_program_restart"
+          ]
+        }
+      ],
+      "actual": "本地实际旧程序完整演练旧流程/报告/备份→当前升级→备份预检→停机恢复→v1 history显式前置校验→旧程序新run和新报告。",
+      "limit": "新机照教程验收及原生Windows命令/路径/安装环境尚未执行，不能由本机演练代替。",
+      "commands": [
+        {
+          "id": "actual-upgrade",
+          "command": [
+            "node",
+            "--preserve-symlinks-main",
+            "/var/folders/6v/6hjzdbvx7551s0y3t7nsdmr40000gn/T/flowhub-matrix-runtime-20261106-pqlktrym/scripts/smoke-v2-upgrade.mjs"
+          ],
+          "cwd": "/Users/sqz/Documents/ChatGPT/mcp管理工具",
+          "PATH": "/tmp/flowhub-audit-20261106/npm-tool/node_modules/.bin:/tmp/flowhub-v2-runtime/node-v24.19.0-darwin-arm64/bin:/usr/bin:/bin",
+          "exitCode": 0,
+          "log": "artifacts/matrix-recheck-20261106/runtime-pack/upgrade-drill.log",
+          "logSha256": "f1c5a5088717d680591e91e477c62329a11d4cdb7db0e369412188988f12b16c",
+          "summary": "Actual old program, failed migration recovery, v2 upgrade, historical mispoint counterexample, restore, and fresh old-program run/report."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "codexUserAgent": "Codex Desktop/0.166.0-alpha.5.1 (Mac OS 26.6.2; arm64) dumb (flowhub-local-acceptance; 2.0.0-alpha.2)",
+  "stages": [
+    {
+      "stage": "actual_codex_initialize",
+      "status": "PASS"
+    },
+    {
+      "stage": "codex_discovers_21_mcp_tools",
+      "status": "PASS"
+    },
+    {
+      "stage": "actual_codex_uploads_chinese_description",
+      "status": "PASS",
+      "entityId": "cap_8b8fcb2fb29e2ae17dd5c3ab",
+      "originalName": "local-review-report",
+      "displayName": "本地报告整理",
+      "presentationRevision": 1
+    },
+    {
+      "stage": "codex_mcp_author_test_publish_execute_report",
+      "status": "PASS",
+      "workflowId": "codex-local-smoke",
+      "draftRevision": 2,
+      "suiteId": "suite_216072fc-0d59-4a8a-a46b-abb564eec3f8",
+      "testRunId": "test_35818201-fa4a-46a8-937a-138982ef2f5b",
+      "runId": "run_27626948-dcc5-4ceb-b08e-7064732705a9",
+      "reportBytes": 1094
+    }
+  ],
+  "modelTurns": 0,
+  "businessServiceCalls": 0,
+  "persistentCodexConfigModified": false,
+  "privateCredentialsCopied": false,
+  "naturalLanguageModelAcceptance": "UNVERIFIED"
+}

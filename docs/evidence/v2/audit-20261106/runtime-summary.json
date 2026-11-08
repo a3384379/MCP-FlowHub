@@ -1,0 +1,14 @@
+{
+  "localOrigin": "http://127.0.0.1:18473",
+  "businessTablesCompared": 24,
+  "changedProtectedTables": [],
+  "integrity": "ok",
+  "backupPreflightPassed": true,
+  "priorVaultUnlockedStatePreserved": true,
+  "servedFrontendMatchesBuild": true,
+  "servedIndexSha256": "e468928d828bd89edb2799ed823534f89978c7785fd433c3e49a6263fd2f3612",
+  "servedAssetSha256": "976b1b2b2f84e6df5a4eeb1867034329d6c9b771030764c411a57ee85b05facd",
+  "healthAfterSseDisconnect": "ok",
+  "formalWorkflowsDeleted": 0,
+  "preservedOriginalUntrackedFiles": 8
+}
