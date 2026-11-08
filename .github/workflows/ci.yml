@@ -50,12 +50,12 @@ jobs:
       - run: npm test
       - if: runner.os == 'Linux'
         run: npx playwright install --with-deps chromium
-      - name: Verify browser workflows
+      - name: Verify browser workflows with isolated daemons
         if: runner.os == 'Linux'
-        run: npm run test:ui -- 'tests/ui/(?!v2-testing-max-audit\.spec\.ts$)'
-      - name: Verify self-test recovery with a fresh daemon
-        if: runner.os == 'Linux'
-        run: npm run test:ui -- 'tests/ui/v2-testing-max-audit\.spec\.ts$'
+        run: |
+          for shard in 1 2 3 4; do
+            npm run test:ui -- --shard="$shard/4"
+          done
       - run: npm audit --omit=dev --audit-level=moderate
       - if: runner.os == 'Windows'
         run: npm run package:windows
