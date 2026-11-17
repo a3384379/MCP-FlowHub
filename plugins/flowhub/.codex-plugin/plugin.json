@@ -1,0 +1,14 @@
+{
+  "name": "flowhub",
+  "version": "2.0.0-alpha.2",
+  "description": "本机 MCP 工作流编排与自测。",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "FlowHub 工作流",
+    "shortDescription": "发现能力、编排流程、生成用例和核对实际自测结果。",
+    "logo": "./assets/logo.svg"
+  },
+  "onboardingSkill": "./skills/flowhub-setup/SKILL.md",
+  "requires_local_executor": true
+}

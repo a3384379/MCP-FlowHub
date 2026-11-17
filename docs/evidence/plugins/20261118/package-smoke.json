@@ -1,0 +1,266 @@
+{
+  "syntheticOnly": true,
+  "os": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "startedAt": "2026-11-17T16:08:56.108Z",
+  "completed": true,
+  "stages": [
+    {
+      "label": "archive extraction",
+      "ok": true,
+      "durationMs": 2599
+    },
+    {
+      "label": "extracted bundle integrity",
+      "ok": true,
+      "durationMs": 576
+    },
+    {
+      "label": "extracted portable plugin connection and identity",
+      "ok": true,
+      "durationMs": 6717
+    },
+    {
+      "label": "new assistant module tamper is rejected",
+      "ok": true,
+      "durationMs": 726
+    },
+    {
+      "label": "packaged daemon startup",
+      "ok": true,
+      "durationMs": 715
+    },
+    {
+      "label": "packaged daemon health and web assets",
+      "ok": true,
+      "durationMs": 12
+    },
+    {
+      "label": "packaged legacy execution identity",
+      "ok": true,
+      "durationMs": 137
+    },
+    {
+      "label": "modern Hub bridge connect",
+      "ok": true,
+      "durationMs": 272
+    },
+    {
+      "label": "modern Hub bridge 21 tools and persisted authoring",
+      "ok": true,
+      "durationMs": 226
+    },
+    {
+      "label": "modern Hub bridge close",
+      "ok": true,
+      "durationMs": 6
+    },
+    {
+      "label": "modern old execution identity retains seven tools",
+      "ok": true,
+      "durationMs": 340
+    },
+    {
+      "label": "modern synthetic Mock startup and connect",
+      "ok": true,
+      "durationMs": 186
+    },
+    {
+      "label": "modern synthetic Mock validated lookup",
+      "ok": true,
+      "durationMs": 3
+    },
+    {
+      "label": "modern synthetic Mock close",
+      "ok": true,
+      "durationMs": 5
+    },
+    {
+      "label": "legacy Hub bridge connect",
+      "ok": true,
+      "durationMs": 186
+    },
+    {
+      "label": "legacy Hub bridge 21 tools and persisted authoring",
+      "ok": true,
+      "durationMs": 21
+    },
+    {
+      "label": "legacy Hub bridge close",
+      "ok": true,
+      "durationMs": 5
+    },
+    {
+      "label": "legacy old execution identity retains seven tools",
+      "ok": true,
+      "durationMs": 185
+    },
+    {
+      "label": "legacy synthetic Mock startup and connect",
+      "ok": true,
+      "durationMs": 178
+    },
+    {
+      "label": "legacy synthetic Mock validated lookup",
+      "ok": true,
+      "durationMs": 2
+    },
+    {
+      "label": "legacy synthetic Mock close",
+      "ok": true,
+      "durationMs": 4
+    }
+  ],
+  "finishedAt": "2026-11-17T16:09:09.289Z",
+  "processes": [
+    {
+      "role": "packaged daemon",
+      "pid": 40012,
+      "exitCode": 0,
+      "stderr": "FlowHub ready on 127.0.0.1:62645 (loopback only).\n"
+    },
+    {
+      "role": "Hub bridge ordinary CLI",
+      "era": "modern",
+      "sdkDisposableProbeStderr": "Not exposed by SDK base transport",
+      "stderr": "",
+      "events": [
+        {
+          "event": "closed"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "role": "synthetic Mock CLI instrumentation",
+      "era": "modern",
+      "syntheticFixtureInstrumentation": true,
+      "startupTimeoutMs": 12000,
+      "ready": true,
+      "pid": 40038,
+      "events": [
+        {
+          "event": "start",
+          "elapsedMs": 0,
+          "pid": null
+        },
+        {
+          "event": "spawned",
+          "elapsedMs": 1,
+          "pid": 40038
+        },
+        {
+          "event": "BOOT",
+          "elapsedMs": 22,
+          "pid": 40038,
+          "childUptimeMs": 12
+        },
+        {
+          "event": "CLI_IMPORTED",
+          "elapsedMs": 76,
+          "pid": 40038,
+          "childUptimeMs": 66
+        },
+        {
+          "event": "READY",
+          "elapsedMs": 165,
+          "pid": 40038,
+          "childUptimeMs": 155
+        },
+        {
+          "event": "send",
+          "elapsedMs": 165,
+          "pid": 40038,
+          "method": "server/discover"
+        },
+        {
+          "event": "send",
+          "elapsedMs": 187,
+          "pid": 40038,
+          "method": "tools/call"
+        },
+        {
+          "event": "closed",
+          "elapsedMs": 195,
+          "pid": 40038
+        }
+      ],
+      "stderr": []
+    },
+    {
+      "role": "Hub bridge ordinary CLI",
+      "era": "legacy",
+      "sdkDisposableProbeStderr": "Not exposed by SDK base transport",
+      "stderr": "",
+      "events": [
+        {
+          "event": "closed"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "role": "synthetic Mock CLI instrumentation",
+      "era": "legacy",
+      "syntheticFixtureInstrumentation": true,
+      "startupTimeoutMs": 12000,
+      "ready": true,
+      "pid": 40053,
+      "events": [
+        {
+          "event": "start",
+          "elapsedMs": 0,
+          "pid": null
+        },
+        {
+          "event": "spawned",
+          "elapsedMs": 1,
+          "pid": 40053
+        },
+        {
+          "event": "BOOT",
+          "elapsedMs": 24,
+          "pid": 40053,
+          "childUptimeMs": 13
+        },
+        {
+          "event": "CLI_IMPORTED",
+          "elapsedMs": 83,
+          "pid": 40053,
+          "childUptimeMs": 73
+        },
+        {
+          "event": "READY",
+          "elapsedMs": 161,
+          "pid": 40053,
+          "childUptimeMs": 151
+        },
+        {
+          "event": "send",
+          "elapsedMs": 161,
+          "pid": 40053,
+          "method": "initialize"
+        },
+        {
+          "event": "send",
+          "elapsedMs": 178,
+          "pid": 40053,
+          "method": "notifications/initialized"
+        },
+        {
+          "event": "send",
+          "elapsedMs": 178,
+          "pid": 40053,
+          "method": "tools/call"
+        },
+        {
+          "event": "closed",
+          "elapsedMs": 184,
+          "pid": 40053
+        }
+      ],
+      "stderr": []
+    }
+  ]
+}

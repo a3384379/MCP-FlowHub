@@ -1,5 +1,7 @@
 # 实施进度
 
+2026-11-17–18：用户授权制作可迁移的本地 Codex 插件。沿用离线包，加入 portable/兼容 manifest、本地 marketplace、同包运行时入口和三个中文 Skill；机器连接引用与数据留在包外。安装不启动后台，MCP 只转发；显式启动与 21/7 权限范围沿用现有服务。使用隔离 Codex Home 和合成数据进行安装、连接、卸载与迁移路径验收。安装指南见 [PLUGIN_PACKAGE.md](PLUGIN_PACKAGE.md)，实际结果见 [验证记录](evidence/plugins/20261118/VALIDATION.md)；本轮不推送、合并或发布。
+
 2026-10-31 用户授权 2.0 增量升级。当前阶段记录、实际验证和后续顺序见 [V2_IMPLEMENTATION.md](V2_IMPLEMENTATION.md)。原七工具兼容，新增十四固定工具；本文件以下保留为 1.x 历史。
 
 2026-10-31：正式定位为个人开发者的轻量级 MCP 可视化编排工具。

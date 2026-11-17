@@ -1,0 +1,88 @@
+# FlowHub 本地 Codex 插件
+
+插件包含 FlowHub 程序、管理页面、本平台 Node 运行时、一个 MCP 入口和三个中文 Skill。无需登记官方目录；通过本地 marketplace 安装。业务数据与本机连接引用保存在包外，插件升级或移除不会删除它们。
+
+## 构建与安装
+
+开发机使用仓库固定的 Node 24.19.0、npm 11.9.0：
+
+```sh
+npm ci
+npm run check
+npm test
+npm run package:plugin
+npm run test:package
+npm run test:plugin
+```
+
+`artifacts/latest-package.json` 指向本机系统和架构的候选目录与压缩包。把压缩包传到同系统、同架构电脑并完整解压，保留隐藏文件。包内有原始源码快照与校验清单；不包含本机数据库、Key、OAuth 或连接引用。其他系统或架构需要对应平台原生构建；不能把 macOS 包直接当 Windows 包使用。
+
+在解压目录执行（路径含空格时保留引号）：
+
+```sh
+codex plugin marketplace add "/完整路径/解压后的FlowHub目录"
+codex plugin add flowhub@flowhub-local
+./flowhub-plugin start
+```
+
+`start` 在前台运行后台服务，在独立终端保留它。已经启动了同一数据目录的 FlowHub 时直接复用，不重复启动。另开终端检查：
+
+```sh
+./flowhub-plugin doctor
+```
+
+Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
+
+也可在支持本地目录的 Codex 插件设置中添加这个目录内的 marketplace。正式目录上架不是本机安装的前置条件。若当前 Codex 还保留手工添加的旧 FlowHub MCP 入口，请自行选择一个入口使用，避免重复显示；安装命令不会删除现有配置。
+
+## 本机连接与身份
+
+首次默认复用 FlowHub 的本机数据目录：macOS/Linux 为 `$XDG_DATA_HOME/mcp-flowhub` 或 `~/.local/share/mcp-flowhub`；Windows 为 `%LOCALAPPDATA%\MCP-FlowHub`。自定义目录时先配置，再启动：
+
+```sh
+./flowhub-plugin configure --data-dir "/本机/FlowHub数据目录"
+./flowhub-plugin start --port 18473
+```
+
+设置保存在 `${CODEX_HOME:-~/.codex}/flowhub/connection.json`，只保存绝对路径引用，不保存令牌。命令和 Codex 必须使用同一个 `CODEX_HOME`，否则各自读取自己的配置。
+
+使用管理页面为受限客户端生成的令牌文件：
+
+```sh
+./flowhub-plugin configure --token-file "/本机数据目录/管理页面生成的令牌文件"
+./flowhub-plugin doctor
+```
+
+个人身份有 21 个工具；受限身份保持原有 7 个执行工具。`doctor` 和插件连接使用同一身份。重复配置目录会保留已选身份；更换实例时必须指定新令牌，或显式 `--personal` 使用该实例的个人身份。失效的令牌或损坏配置会报错，不切换为个人身份。
+
+MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库。插件安装不运行 hooks，不安装其他插件。仅 `start` 显式启动后台，使用现有锁和端口检查；停止终端中的服务可按 Ctrl+C。
+
+## 三个技能
+
+| Skill | 用途 |
+| --- | --- |
+| `flowhub-setup` | 安装、检查连接、配置数据路径和身份、迁移说明 |
+| `flowhub-author` | 发现可用能力，创建/修改/校验真实工作流草稿 |
+| `flowhub-test-report` | 生成用例、运行隔离自测、读取报告并说明证据范围 |
+
+例如请求 Codex：“使用 FlowHub 创建一个测试环境的工作流，先发现可用能力，生成确定性用例并运行 Mock 自测，列出实际证据和未验证项。”发布版本或启动真实运行依照用户任务范围进行。Skill 是操作指引，真实操作仍通过同一个 FlowHub MCP 和后台校验完成。
+
+本轮实测的 Codex 0.169.0-alpha.11.1 将它们显示为 `flowhub:flowhub-setup`、`flowhub:flowhub-author`、`flowhub:flowhub-test-report`。可以用这些名称明确选择技能。
+
+无需模型 Key 即可通过 Codex 编排和运行确定性 Mock。FlowHub 的 `ai_assisted` 使用原有 Vault 模型配置；插件不会复制 Codex 登录态或 OAuth。
+
+## 迁移、更新、卸载
+
+1. 仅搬程序：复制对应平台压缩包，在新电脑解压、添加 marketplace、安装插件并启动。新电脑会使用自己的本机数据；路径无需修改到 manifest 里。
+2. 同时搬业务数据：在原实例通过管理页面生成一致性备份，把备份单独传到目标电脑；停止目标后台，使用包内 `flowhub restore --backup PATH --data-dir PATH`。恢复说明和口令要求见 [V2_MIGRATION.md](V2_MIGRATION.md)。保留备份时的管理员与 Vault 口令，重新核对本机绑定路径和客户端身份。不要复制运行中的 SQLite 文件。
+3. 更新：停止旧后台，保留外部数据目录与连接引用，使用新包重新添加来源、安装并启动。安装后用 `doctor` 核对实际版本和工具范围。旧插件缓存不作为数据目录。
+4. 卸载：`codex plugin remove flowhub@flowhub-local`。它移除插件登记，不删除后台数据或 `flowhub/connection.json`；停止后台另行按 Ctrl+C。不要将业务数据放进插件缓存。
+
+## 交付边界与参考
+
+每个包的 `build-info.json` 标识系统、架构、Node、源码身份；校验清单用于完整性检查，不代替安全认证。真实模型、企业权限和其他平台验收与本机合成测试分开记录。Windows 必须在 Windows 原生构建和测试。
+
+- [OpenAI 插件包结构](https://developers.openai.com/plugins/build/plugins)
+- [本地 MCP 与 PLUGIN_ROOT](https://developers.openai.com/plugins/deploy/desktop-only)
+
+本轮验证记录见 [插件交付证据](evidence/plugins/20261118/VALIDATION.md)。

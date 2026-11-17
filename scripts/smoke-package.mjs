@@ -18,6 +18,7 @@ import { performance } from "node:perf_hooks";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { verifyBundle } from "./verify-release.mjs";
+import { smokePlugin } from "./smoke-plugin.mjs";
 import {
   SyntheticReadyStdioTransport,
   redactSmokeDiagnostic,
@@ -118,6 +119,7 @@ try {
   assert.equal(folders.length, 1);
   const bundle = join(dir, folders[0]);
   await stage("extracted bundle integrity", () => verifyBundle(bundle));
+  await stage("extracted portable plugin connection and identity", () => smokePlugin(bundle));
   await stage("new assistant module tamper is rejected", async()=>{
     const file=join(bundle,"dist/packages/assistant-core/src/index.js"),original=await readFile(file);
     try{await writeFile(file,Buffer.concat([original,Buffer.from("\n// synthetic corruption\n")]));await assert.rejects(verifyBundle(bundle),/Hash mismatch/);}

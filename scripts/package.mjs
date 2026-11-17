@@ -13,6 +13,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { verifyBundle } from "./verify-release.mjs";
+import { stagePlugin } from "./package-plugin.mjs";
 import {
   assertSourceUnchanged,
   createSourceSnapshot,
@@ -58,6 +59,7 @@ try {
     "docs/DISCOVERY_LOCALIZATION.md",
     "docs/V2_MIGRATION.md",
     "docs/V2_ACCEPTANCE.md",
+    "docs/PLUGIN_PACKAGE.md",
     "docs/generated/openapi.json",
     "docs/third-party/Node-24.19.0-LICENSE.txt",
   ]) {
@@ -171,6 +173,7 @@ try {
     '#!/bin/sh\nFLOWHUB_PROGRAM_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$FLOWHUB_PROGRAM_DIR/runtime/node" "$FLOWHUB_PROGRAM_DIR/dist/apps/daemon/src/cli.js" "$@"\n',
     { mode: 0o755 },
   );
+  await stagePlugin(bundle, join(bundle, "source"));
 
   let gitSha = null;
   let dirty = true;

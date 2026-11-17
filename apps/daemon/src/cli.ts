@@ -22,7 +22,7 @@ export async function main(args = process.argv.slice(2)) {
   const command = positionals[0];
   if (values.help || !command) {
     console.log(
-      "MCP FlowHub\n  flowhub serve [--data-dir PATH] [--port 18473]\n  flowhub mcp --stdio [--data-dir PATH] [--token-file ABSOLUTE_PATH]\n  flowhub doctor [--data-dir PATH]\n  flowhub restore --backup PATH [--data-dir PATH] (daemon must be stopped)\n  flowhub mock --stdio\nConfigure connections and bindings through the independent management UI. Use the token-file reference generated for each restricted host identity; never place the token itself in arguments.",
+      "MCP FlowHub\n  flowhub serve [--data-dir PATH] [--port 18473]\n  flowhub mcp --stdio [--data-dir PATH] [--token-file ABSOLUTE_PATH]\n  flowhub doctor [--data-dir PATH] [--token-file ABSOLUTE_PATH]\n  flowhub restore --backup PATH [--data-dir PATH] (daemon must be stopped)\n  flowhub mock --stdio\nConfigure connections and bindings through the independent management UI. Use the token-file reference generated for each restricted host identity; never place the token itself in arguments.",
     );
     return;
   }
@@ -91,7 +91,7 @@ export async function main(args = process.argv.slice(2)) {
     return;
   }
   if (command === "doctor") {
-    const { url, token } = await readEndpoint(dataDir);
+    const { url, token } = await readEndpoint(dataDir, values["token-file"]);
     const { createClient, localHttpTransport, protocolEvidence } = await import(
       "../../../packages/mcp-connectors/src/index.js"
     );

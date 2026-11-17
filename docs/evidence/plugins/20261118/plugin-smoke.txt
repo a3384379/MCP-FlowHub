@@ -1,0 +1,55 @@
+
+> mcp-flowhub@2.0.0-alpha.2 test:plugin
+> node scripts/smoke-plugin.mjs
+
+Bundle verified: 6540 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+Bundle verified: 6540 files, recoverable source snapshot, 95 SBOM components. Integrity checks only; no signature or enterprise validation claim.
+{
+  "archiveSha256": "cf890b732d275675976371ce7c2b38854860520c79ea9c3a3f62f2df8c4f8b9a",
+  "os": "darwin",
+  "arch": "arm64",
+  "node": "24.19.0",
+  "syntheticOnly": true,
+  "persistentCodexConfigModified": false,
+  "privateCredentialsCopied": false,
+  "stages": [
+    {
+      "name": "configuration outside plugin; MCP never starts daemon",
+      "status": "PASS"
+    },
+    {
+      "name": "personal plugin bridge and doctor expose 21 tools",
+      "status": "PASS"
+    },
+    {
+      "name": "actual Codex marketplace installation, skills and MCP; uninstall preserves data",
+      "status": "PASS",
+      "userAgent": "flowhub-plugin-smoke/0.169.0-alpha.11.1 (Mac OS 26.6.2; arm64) unknown (flowhub-plugin-smoke; 1)",
+      "tools": 21,
+      "skills": [
+        "flowhub:flowhub-author",
+        "flowhub:flowhub-setup",
+        "flowhub:flowhub-test-report"
+      ],
+      "actualMcpCall": "workflow_draft_get",
+      "modelTurns": 0
+    },
+    {
+      "name": "actual Codex plugin preserves restricted identity",
+      "status": "PASS",
+      "userAgent": "flowhub-plugin-smoke/0.169.0-alpha.11.1 (Mac OS 26.6.2; arm64) unknown (flowhub-plugin-smoke; 1)",
+      "tools": 7,
+      "skills": [
+        "flowhub:flowhub-author",
+        "flowhub:flowhub-setup",
+        "flowhub:flowhub-test-report"
+      ],
+      "actualMcpCall": "workflow_search",
+      "modelTurns": 0
+    },
+    {
+      "name": "restricted identity preserved; doctor and bridge expose only 7 tools",
+      "status": "PASS"
+    }
+  ]
+}
