@@ -24,17 +24,17 @@ web-dist/index.html                   0.45 kB │ gzip:   0.36 kB
 web-dist/assets/index-IFGAOBZi.css   68.88 kB │ gzip:  14.38 kB
 web-dist/assets/index-BXQn5CVg.js   691.38 kB │ gzip: 214.92 kB
 
-[33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
-   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m node_modules/@xyflow/react/dist/esm/index.js:1:1 [38;5;246m][0m
-   [38;5;246m│[0m
- [38;5;246m1 │[0m "use client"
- [38;5;240m  │[0m ──────┬─────  
- [38;5;240m  │[0m       ╰─────── module level directive may not be preserved
- [38;5;240m  │[0m 
- [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
-[38;5;246m───╯[0m
+[MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@xyflow/react/dist/esm/index.js" may not be preserved when bundling.
+   ╭─[ node_modules/@xyflow/react/dist/esm/index.js:1:1 ]
+   │
+ 1 │ "use client"
+   │ ──────┬─────
+   │       ╰─────── module level directive may not be preserved
+   │
+   │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+───╯
 
-[plugin builtin:vite-reporter] 
+[plugin builtin:vite-reporter]
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
