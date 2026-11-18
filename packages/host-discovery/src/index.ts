@@ -102,14 +102,13 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
           :{kind:"static_candidate",profile:context.profile??null,declarations:declarations(name),declarationOrder:"read_order_not_precedence"}});
     }
   };
-  let effective=false;
+  let effective=false, untrustedProject=false;
   if(context.executionLocation!==executionLocation)report(context.id,"EXECUTION_LOCATION_UNSUPPORTED");
   else if(context.codexPath&&context.discoveryMode!=="config_only")try{
     const help=await output(context,["mcp","list","--help"],control,runtime);
     // The local reading choice must not silently let an untrusted project's
     // config enter through the CLI's own trust settings. Without a documented
     // no-project flag, retain conservative static candidates in that case.
-    let untrustedProject=false;
     if(!context.projectTrusted)try{untrustedProject=(await stat(projectPath)).isFile();}catch{}
     if(untrustedProject)report(projectPath,"PROJECT_CONFIGURATION_NOT_TRUSTED");
     const profileSupported=!context.profile||/(?:^|\s)--profile(?:[=\s,<]|$)/m.test(await output(context,["--help"],control,runtime));
@@ -165,20 +164,34 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
       let installed=Object.hasOwn(config.plugins??{},key);
       try{const marker=JSON.parse(await readFile(join(base,".codex-remote-plugin-install.json"),"utf8"));installed ||= marker.schema_version===1;}catch{}
       if(!installed)continue;
-      let versions:string[]=[];try{versions=await readdir(base);}catch{continue;}
-      const candidates:Json[]=[];
+      let versions:string[], canonicalBase:string;
+      try {
+        canonicalBase=await safeChild(cache,relative(cache,base));
+        if(canonicalBase!==join(await realpath(cache),market,name)) {
+          report(base,"SOURCE_UNREADABLE");continue;
+        }
+        versions=await readdir(canonicalBase);
+      } catch {continue;}
+      const candidates=new Map<string, Json>();
+      const aliases=new Map<string,string>();
       for(const version of versions.filter(v=>!v.startsWith(".")).slice(0,50)) {
-        const root=join(base,version);try {
+        try {
+          // A cache alias (for example Chrome's latest) is another path to the
+          // same installation. Also confine symlinks to this plugin's own root.
+          const root=await safeChild(canonicalBase,version);
+          const canonicalVersion=basename(root);
+          if(dirname(root)!==canonicalBase)continue;
+          if(candidates.has(root)){aliases.set(version,root);continue;}
           const path=await safeChild(root,".codex-plugin/plugin.json"),manifest=JSON.parse(await readFile(path,"utf8"));
           // This adapter supports the legacy unversioned format only. A plugin's
           // release `version` is separate from an explicitly declared format version.
           ensure(["schemaVersion","schema_version","manifest_version"].every(key=>manifest[key]===undefined),"PLUGIN_MANIFEST_UNSUPPORTED","Plugin manifest format version is unsupported.");
-          if(manifest.name===name)candidates.push({root,manifest,version});
+          if(manifest.name===name){candidates.set(root,{root,manifest,version:canonicalVersion});aliases.set(version,root);}
         }catch{}
       }
       const selected=config.plugins?.[key]?.version;
-      const item=selected?candidates.find(c=>c.version===selected):candidates.length===1?candidates[0]:null;
-      if(!item){report(base,candidates.length>1?"PLUGIN_VERSION_AMBIGUOUS":"PLUGIN_MANIFEST_UNSUPPORTED");continue;}
+      const item=selected?candidates.get(aliases.get(selected)??""):candidates.size===1?candidates.values().next().value:null;
+      if(!item){report(base,candidates.size>1?"PLUGIN_VERSION_AMBIGUOUS":"PLUGIN_MANIFEST_UNSUPPORTED");continue;}
       const enabled=config.plugins?.[key]?.enabled!==false;
       components.push({sourceKey:key,name,description:typeof item.manifest.description==="string"?item.manifest.description.slice(0,8000):"",kind:"plugin",installed:true,enabled,version:item.version,path:item.root,executor:"informational",manifestHash:hash(item.manifest)});
       try{
@@ -198,18 +211,22 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
   }
   await addLocalMarketplaces(context,components,report);
   if(context.useAppServer&&context.codexPath&&context.discoveryMode!=="config_only")try{
-    const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
+    // A registered context can survive a Codex update.
+    ensure(!untrustedProject&&(!context.profile||effective),"HOST_VERSION_UNSUPPORTED","App Server scan cannot establish the selected project/profile.");
+    const host={...context,codexVersion:(await output(context,["--version"],control,runtime)).trim()};
+    const response=await readAppServer(host,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
+    for(const group of response.data)if(group.errors?.length)report(context.id,"HOST_SKILLS_PARTIAL");
     for(const group of response.data??[])for(const skill of group.skills??[]) {
       const existing=components.find(c=>c.path===skill.path||dirname(c.path??"")===skill.path);
       if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
       else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
     }
     if(depth==="catalog") {
-      const catalog=await readAppServer(context,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
+      const catalog=await readAppServer(host,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
       for(const server of catalog.data??[]) {
         const matches=sources.filter(s=>s.name===server.name),source=matches.length===1?matches[0]:undefined;
-        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
+        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
         for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,serverSourceKey:source?.sourceKey??null,ambiguousSource:matches.length>1,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
       }

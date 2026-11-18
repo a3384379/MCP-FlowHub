@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "flowhub",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.3",
   "description": "在本机发现 MCP 能力、编排工作流、生成用例并运行自测。",
   "author": { "name": "MCP FlowHub" },
   "repository": "https://github.com/a3384379/MCP-FlowHub",
@@ -10,7 +10,8 @@
       "interface": {
         "displayName": "FlowHub 工作流",
         "shortDescription": "连接本机 FlowHub，完成能力发现、工作流编排与自测报告。",
-        "logo": "./assets/logo.svg"
+        "logo": "./assets/logo.svg",
+        "defaultPrompt": ["打开 FlowHub 管理页面"]
       },
       "onboardingSkill": "./skills/flowhub-setup/SKILL.md",
       "requires_local_executor": true

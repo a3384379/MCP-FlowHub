@@ -31,7 +31,7 @@ codex plugin add flowhub@flowhub-local
 ./flowhub-plugin doctor
 ```
 
-管理页面由本机 FlowHub 后台提供，默认地址是 [http://127.0.0.1:18473](http://127.0.0.1:18473)。插件当前注册 MCP 和 Skill，没有嵌入管理页面或提供“打开管理页面”的快捷按钮；这项入口缺口已记录。自定义端口时使用实际后台端口。
+在 Codex 的 FlowHub 插件卡片选择 **打开 FlowHub 管理页面**，也可以在对话中直接说这句话。插件的设置技能会查找当前实例地址并打开页面。终端中可运行 `./flowhub-plugin open` 打开默认浏览器，或运行 `./flowhub-plugin url` 获取地址。命令使用连接配置中的数据目录与后台的实际端口，先检查后台是否健康。默认本机地址为 [http://127.0.0.1:18473](http://127.0.0.1:18473)。
 
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
@@ -77,7 +77,7 @@ MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库�
 
 1. 仅搬程序：复制对应平台压缩包，在新电脑解压、添加 marketplace、安装插件并启动。新电脑会使用自己的本机数据；路径无需修改到 manifest 里。
 2. 同时搬业务数据：在原实例通过管理页面生成一致性备份，把备份单独传到目标电脑；停止目标后台，使用包内 `flowhub restore --backup PATH --data-dir PATH`。恢复说明和口令要求见 [V2_MIGRATION.md](V2_MIGRATION.md)。保留备份时的管理员与 Vault 口令，重新核对本机绑定路径和客户端身份。不要复制运行中的 SQLite 文件。
-3. 更新：停止旧后台，保留外部数据目录与连接引用，使用新包重新添加来源、安装并启动。安装后用 `doctor` 核对实际版本和工具范围。旧插件缓存不作为数据目录。
+3. 更新：参照 [迁移指南](V2_MIGRATION.md) 备份并确认当前运行已结束。保留外部数据目录与连接引用，使用新包重新添加来源、安装，再以同一数据目录启动新版后台。安装后用 `doctor` 核对实际版本和工具范围，另开 Codex 对话加载新插件。
 4. 卸载：`codex plugin remove flowhub@flowhub-local`。它移除插件登记，不删除后台数据或 `flowhub/connection.json`；停止后台另行按 Ctrl+C。不要将业务数据放进插件缓存。
 
 ## 交付边界与参考

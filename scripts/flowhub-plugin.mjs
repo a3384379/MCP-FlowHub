@@ -5,6 +5,25 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const exec = promisify(execFile);
+
+async function openDashboard(url) {
+  const command = {
+    darwin: ["/usr/bin/open", [url]],
+    linux: ["xdg-open", [url]],
+    win32: ["rundll32.exe", ["url.dll,FileProtocolHandler", url]],
+  }[process.platform];
+  try {
+    await exec(command[0], command[1], { timeout: 5000, windowsHide: true });
+  } catch {
+    throw new Error(
+      "PLUGIN_BROWSER_OPEN_FAILED: open the printed URL in a browser.",
+    );
+  }
+}
 
 export function connectionFile(env = process.env) {
   return join(
@@ -129,13 +148,13 @@ export async function main(args = process.argv.slice(2)) {
   const command = positionals[0];
   if (values.help || !command) {
     console.log(
-      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\n先在独立终端 start，再由 Codex 连接。安装方法见 docs/PLUGIN_PACKAGE.md。",
+      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin open\n  flowhub-plugin url\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\n先在独立终端 start，再由 Codex 连接。安装方法见 docs/PLUGIN_PACKAGE.md。",
     );
     return;
   }
   if (
     positionals.length !== 1 ||
-    !["start", "doctor", "configure", "mcp"].includes(command) ||
+    !["start", "doctor", "configure", "mcp", "open", "url"].includes(command) ||
     (command !== "configure" &&
       (values["data-dir"] || values["token-file"] || values.personal)) ||
     (command !== "start" && values.port)
@@ -155,11 +174,34 @@ export async function main(args = process.argv.slice(2)) {
       "PLUGIN_PLATFORM_MISMATCH: use the offline plugin built for this operating system, architecture and Node runtime.",
     );
   }
-  const { defaultDataDir } = await import(
+  const { defaultDataDir, readLocalOrigin } = await import(
     pathToFileURL(join(root, "dist/apps/daemon/src/local-config.js"))
   );
   const file = connectionFile(),
     connection = await readConnection(file, defaultDataDir());
+  if (command === "url" || command === "open") {
+    const origin = await readLocalOrigin(connection.dataDir);
+    try {
+      const response = await fetch(new URL("api/v1/health", origin), {
+        redirect: "error",
+        signal: AbortSignal.timeout(3000),
+      });
+      const health = await response.json();
+      if (
+        !response.ok ||
+        health?.status !== "ok" ||
+        !["ALPHA", "RC"].includes(health.phase)
+      )
+        throw new Error();
+    } catch {
+      throw new Error(
+        "DAEMON_UNAVAILABLE: start the configured FlowHub instance first.",
+      );
+    }
+    console.log(origin.href);
+    if (command === "open") await openDashboard(origin.href);
+    return;
+  }
   if (command === "configure") {
     console.log(
       JSON.stringify(

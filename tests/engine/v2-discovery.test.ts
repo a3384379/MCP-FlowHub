@@ -214,6 +214,14 @@ test("App Server effective disabled Skill corrects an already indexed path",asyn
   const f=await setup(t),skill=join(f.home,"skills/report/SKILL.md"),cli=join(f.root,"app-codex.mjs");await mkdir(join(f.home,"skills/report"),{recursive:true});await writeFile(skill,"---\nname: report\n---\nsynthetic");await writeFile(join(f.home,"config.toml"),"");
   await writeFile(cli,`import readline from 'node:readline';const a=process.argv.slice(2);if(a.includes('--version'))console.log('codex-cli 0.164.0-alpha.11.1');else if(a.includes('--help'))console.log('--json');else if(a.includes('app-server')){readline.createInterface({input:process.stdin}).on('line',line=>{const m=JSON.parse(line);if(m.id)console.log(JSON.stringify({id:m.id,result:m.method==='initialize'?{}:{data:[{skills:[{name:'report',description:'effective disabled',path:${JSON.stringify(skill)},enabled:false}]}]}}));});}else console.log('[]');`);
   const context=await f.registry.context({codexHome:f.home,cwd:f.cwd,codexPath:cli,useAppServer:true}),scan=await scanHost(context);assert.equal(scan.components.filter((c:any)=>c.kind==="skill").length,1);assert.equal(scan.components[0].enabled,false);assert.equal(scan.components[0].hostReported,true);
+  const oldBinary = await readFile(cli,"utf8");
+  await writeFile(cli,oldBinary.replace("0.164.0-alpha.11.1","0.169.0-alpha.11.1"));
+  const upgraded = await scanHost(context);
+  assert.ok(upgraded.components.some((entry:any)=>entry.kind==="skill"&&entry.hostReported&&entry.enabled===false));
+  await writeFile(cli,oldBinary.replace("0.164.0-alpha.11.1","9.0.0"));
+  const unsupported = await scanHost(context);
+  assert.ok(unsupported.issues.some((issue:any)=>issue.code==="APP_SERVER_PARTIAL"));
+  assert.ok(!unsupported.components.some((entry:any)=>entry.hostReported));
 });
 
 test("concurrent source discovery exposes successful sources before a slow one and scan cancel is durable",async t=>{

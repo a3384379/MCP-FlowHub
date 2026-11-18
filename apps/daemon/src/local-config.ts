@@ -82,10 +82,7 @@ export function tokenMatches(
   return timingSafeEqual(digest(authorization.slice(7)), digest(token));
 }
 
-export async function readEndpoint(
-  dir: string,
-  tokenFile?: string,
-): Promise<{ url: string; token: string }> {
+export async function readLocalOrigin(dir: string): Promise<URL> {
   try {
     const endpoint: unknown = JSON.parse(
       await readFile(join(dir, "endpoint.json"), "utf8"),
@@ -99,11 +96,25 @@ export async function readEndpoint(
       Number(endpoint.port) > 65535
     )
       throw new Error("invalid endpoint");
+    return new URL(`http://127.0.0.1:${endpoint.port}/`);
+  } catch {
+    throw new Error(
+      "DAEMON_UNAVAILABLE: run flowhub serve first, using the same --data-dir.",
+    );
+  }
+}
+
+export async function readEndpoint(
+  dir: string,
+  tokenFile?: string,
+): Promise<{ url: string; token: string }> {
+  const origin = await readLocalOrigin(dir);
+  try {
     const token = (
       await readFile(tokenFile ?? join(dir, "execution-token"), "utf8")
     ).trim();
     if (!/^[a-f0-9]{64}$/.test(token)) throw new Error("invalid token");
-    return { url: `http://127.0.0.1:${endpoint.port}/mcp`, token };
+    return { url: new URL("mcp", origin).href, token };
   } catch {
     throw new Error(
       "DAEMON_UNAVAILABLE: run flowhub serve first, using the same --data-dir.",

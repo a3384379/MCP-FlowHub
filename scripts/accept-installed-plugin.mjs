@@ -28,16 +28,21 @@ const { locateCodex } = await import(
 );
 const codex = process.env.FLOWHUB_CODEX_PATH || (await locateCodex());
 assert.ok(codex, "Actual Codex executable required");
-const configured = JSON.parse(
-  (
-    await exec(codex, ["mcp", "get", "flowhub", "--json"], {
-      env: { ...process.env, CODEX_HOME: userHome },
-      timeout: 20000,
-    })
-  ).stdout,
-);
-assert.equal(configured.transport?.type, "stdio");
-const installed = dirname(dirname(configured.transport.command));
+async function packagePath() {
+  if (process.env.FLOWHUB_PLUGIN_CANDIDATE)
+    return resolve(process.env.FLOWHUB_PLUGIN_CANDIDATE);
+  const configured = JSON.parse(
+    (
+      await exec(codex, ["mcp", "get", "flowhub", "--json"], {
+        env: { ...process.env, CODEX_HOME: userHome },
+        timeout: 20000,
+      })
+    ).stdout,
+  );
+  assert.equal(configured.transport?.type, "stdio");
+  return dirname(dirname(configured.transport.command));
+}
+const installed = await packagePath();
 assert.equal(
   JSON.parse(await readFile(join(installed, "plugin.json"), "utf8")).name,
   "flowhub",
@@ -295,6 +300,15 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       await sleep(50);
     }
     assert.ok(base, "Isolated daemon ready");
+    const shortcut = await exec(
+      join(isolated, "runtime/node"),
+      [join(isolated, "scripts/flowhub-plugin.mjs"), "url"],
+      { env, cwd },
+    );
+    assert.equal(shortcut.stdout.trim(), base + "/");
+    const page = await fetch(shortcut.stdout.trim());
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /<title>.*FlowHub/i);
     const login = await fetch(base + "/api/v1/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -376,6 +390,13 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       .map((item) => item.name)
       .sort();
     assert.equal(skills.length, 3);
+    const { plugin } = await rpc("plugin/read", {
+      marketplacePath: join(installed, ".agents/plugins/marketplace.json"),
+      pluginName: "flowhub",
+    });
+    assert.ok(
+      plugin.summary.interface.defaultPrompt.includes("打开 FlowHub 管理页面"),
+    );
     return {
       packageVersion: JSON.parse(await readFile(join(installed, "plugin.json")))
         .version,
@@ -384,6 +405,8 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       skills,
       separateDataDir: true,
       installedBytesMatch: true,
+      dashboardPrompt: "打开 FlowHub 管理页面",
+      isolatedDashboardUrl: shortcut.stdout.trim(),
     };
   });
 
@@ -423,6 +446,14 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         cursor = page.nextCursor;
       } while (cursor);
       counts[kind] = items.length;
+      if (kind === "plugin") {
+        const chrome = status.components.find(
+          (item) =>
+            item.kind === "plugin" &&
+            item.sourceKey === "chrome@openai-bundled",
+        );
+        if (chrome) counts.chromeVersion = chrome.version;
+      }
     }
     assert.ok(counts.plugin > 0 && counts.skill > 0);
     return {
@@ -458,9 +489,26 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         "PARTIAL",
         "FAILED",
       ]);
+      assert.ok(
+        !status.issues.some((issue) => issue.code === "APP_SERVER_PARTIAL"),
+        JSON.stringify(status.issues),
+      );
+      assert.ok(
+        status.components.some(
+          (component) => component.kind === "skill" && component.hostReported,
+        ),
+      );
+      assert.ok(
+        status.components.some(
+          (component) =>
+            component.kind === "host_tool" &&
+            component.serverName === "order_lab",
+        ),
+      );
       const found = await tool("capability_search", {
         contextId: context.id,
         kind: "mcp_tool",
+        executor: "hub_direct",
         query: "synthetic_order_lookup",
       });
       cap = found.items.find((item) => item.name === "synthetic_order_lookup");
