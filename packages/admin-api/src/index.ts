@@ -38,6 +38,7 @@ import {
 import { backupDirectory, localBackups, preflightLocalBackup } from "./local-backups.js";
 import { hostIntegration, localCliPath, offlineRestoreInstructions } from "./settings-integration.js";
 import { credentialInventory } from "../../security/src/credential-metadata.js";
+import type { CodexLaunches } from "./codex-launch.js";
 import {
   bindingImpact,
   eventCursor,
@@ -52,6 +53,7 @@ export async function registerAdmin(
   authoring = new AuthoringService(engine),
   registry = new CapabilityRegistry(engine),
   application?: Application,
+  codexLaunches?: CodexLaunches,
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -144,7 +146,7 @@ export async function registerAdmin(
       (["GET", "HEAD"].includes(req.method) &&
         ["/api/v1/health", "/api/v1/auth/state"].includes(path)) ||
       (req.method === "POST" &&
-        ["/api/v1/auth/session", "/api/v1/auth/bootstrap", "/api/v1/auth/local-session"].includes(path))
+        ["/api/v1/auth/session", "/api/v1/auth/bootstrap", "/api/v1/auth/local-session", "/api/v1/auth/codex-session"].includes(path))
     )
       return;
     auth.check(
@@ -153,13 +155,13 @@ export async function registerAdmin(
       !["GET", "HEAD", "OPTIONS"].includes(req.method),
     );
   });
-  const setSessionCookie = (reply: Json, session: Json) => {
+  const setSessionCookie = (reply: Json, session: Json, codex = false) => {
     closeInvalidEventStreams();
     reply.header(
       "Set-Cookie",
-      "flowhub_session=" +
-        session.token +
-        "; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800",
+      codex
+        ? `flowhub_codex_session=${session.token}; HttpOnly; SameSite=None; Secure; Partitioned; Path=/; Max-Age=28800`
+        : `flowhub_session=${session.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`,
     );
   };
   app.get("/api/v1/auth/state", async () =>
@@ -170,7 +172,7 @@ export async function registerAdmin(
       version: VERSION,
     }),
   );
-  app.post("/api/v1/auth/local-session", async (req, reply) => {
+  const requireLocalOrigin = (req: FastifyRequest) => {
     const address = app.server.address();
     ensure(
       address && typeof address === "object" && address.address === "127.0.0.1" &&
@@ -183,14 +185,25 @@ export async function registerAdmin(
       "A same-origin request from the local workspace is required.",
       403,
     );
+  };
+  app.post("/api/v1/auth/local-session", async (req, reply) => {
+    requireLocalOrigin(req);
     body(req, []);
     try {
-      return data({ csrf: auth.check(req.headers.cookie).csrf });
+      return data({ csrf: auth.check(req.headers.cookie, undefined, false, false).csrf });
     } catch (error) {
       if (!(error instanceof HubError && error.code === "AUTH_REQUIRED")) throw error;
     }
     const session = auth.session();
     setSessionCookie(reply, session);
+    return data({ csrf: session.csrf });
+  });
+  app.post("/api/v1/auth/codex-session", async (req, reply) => {
+    requireLocalOrigin(req);
+    const { ticket } = body(req, ["ticket"]);
+    ensure(codexLaunches?.redeem(ticket), "AUTH_REQUIRED", "Reopen FlowHub from the Codex sidebar.", 401);
+    const session = auth.session(true);
+    setSessionCookie(reply, session, true);
     return data({ csrf: session.csrf });
   });
   app.post("/api/v1/auth/bootstrap", async (req, reply) => {

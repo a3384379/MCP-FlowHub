@@ -313,7 +313,7 @@ export class Vault {
   }
 }
 export class AdminAuth {
-  private sessions = new Map<string, { csrf: string; expires: number }>();
+  private sessions = new Map<string, { csrf: string; expires: number; codex: boolean }>();
   private attempts = new Map<string, { count: number; until: number }>();
   constructor(private repo: Repository) {}
   get initialized() {
@@ -351,7 +351,7 @@ export class AdminAuth {
     this.resetThrottle("login");
     return this.session();
   }
-  session() {
+  session(codex = false) {
     for (const [key, value] of this.sessions)
       if (value.expires < Date.now()) this.sessions.delete(key);
     // Browser contexts can disappear without closing their server-side session.
@@ -361,12 +361,22 @@ export class AdminAuth {
     }
     const token = randomBytes(32).toString("hex"),
       csrf = randomBytes(24).toString("hex");
-    this.sessions.set(hash(token), { csrf, expires: Date.now() + 8 * 3600000 });
+    this.sessions.set(hash(token), { csrf, expires: Date.now() + 8 * 3600000, codex });
     return { token, csrf };
   }
-  check(cookie: string | undefined, csrf?: string, write = false) {
-    const token = cookie?.match(/(?:^|;\s*)flowhub_session=([^;]+)/)?.[1] ?? "",
-      key = hash(token),
+  private sessionKey(cookie: string | undefined, codex?: boolean) {
+    const matches = cookie?.matchAll(/(?:^|;\s*)flowhub_(codex_)?session=([a-f0-9]{64})(?=;|$)/g) ?? [];
+    for (const [, codexPrefix, token] of matches) {
+      const key = hash(token!);
+      const session = this.sessions.get(key);
+      if (session?.codex === Boolean(codexPrefix) &&
+          (codex === undefined || session.codex === codex) &&
+          session.expires > Date.now()) return key;
+    }
+    return "";
+  }
+  check(cookie: string | undefined, csrf?: string, write = false, codex?: boolean) {
+    const key = this.sessionKey(cookie, codex),
       session = this.sessions.get(key);
     ensure(
       session && session.expires > Date.now(),
@@ -381,8 +391,7 @@ export class AdminAuth {
     return session;
   }
   logout(cookie: string | undefined) {
-    const token = cookie?.match(/flowhub_session=([^;]+)/)?.[1];
-    if (token) this.sessions.delete(hash(token));
+    this.sessions.delete(this.sessionKey(cookie));
   }
   close() {
     this.sessions.clear();

@@ -5,6 +5,7 @@ import {
 } from "@modelcontextprotocol/client";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { createHubServer } from "../../../packages/mcp-server/src/index.js";
+import { SIDEBAR_RESOURCE_URI, SIDEBAR_TOOL } from "../../../packages/mcp-server/src/codex-sidebar.js";
 import {
   MODERN_PROTOCOL,
   VERSION,
@@ -15,7 +16,8 @@ import {
 import { readEndpoint } from "../../daemon/src/local-config.js";
 
 /** No persistence/engine imports, no implicit daemon startup. */
-export async function startBridge(dataDir: string, tokenFile?: string) {
+export async function startBridge(dataDir: string, tokenFile?: string, codexSidebar = false) {
+  const requestSidebar = codexSidebar && !tokenFile;
   const { url, token } = await readEndpoint(dataDir, tokenFile);
   const client = new Client(
     { name: "flowhub-stdio-bridge", version: VERSION },
@@ -24,11 +26,15 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
     },
   );
   let advertised:ToolName[]=[];
+  let sidebarAvailable = false;
   try {
     await client.connect(
       new StreamableHTTPClientTransport(new URL(url), {
         requestInit: {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(requestSidebar ? { "X-FlowHub-Codex-Sidebar": "1" } : {}),
+          },
           redirect: "error",
         },
       }),
@@ -38,6 +44,9 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
     // The bridge preserves the authenticated daemon's scope and only exposes
     // names from the fixed contract. It does not invent authoring permission.
     advertised=TOOL_NAMES.filter(name=>upstream.tools.some(tool=>tool.name===name));
+    const sidebar = upstream.tools.find(tool => tool.name === SIDEBAR_TOOL);
+    const ui = sidebar?._meta?.ui as { resourceUri?: string } | undefined;
+    sidebarAvailable = requestSidebar && ui?.resourceUri === SIDEBAR_RESOURCE_URI;
   } catch {
     await client.close();
     throw new Error(
@@ -58,7 +67,9 @@ export async function startBridge(dataDir: string, tokenFile?: string) {
             "The daemon request failed. Verify daemon health before retrying.",
           );
         }
-      },advertised),
+      },advertised, sidebarAvailable ? {
+        readSidebar: () => client.readResource({ uri: SIDEBAR_RESOURCE_URI }, { timeout: 5000 }),
+      } : {}),
     {
       legacy: "serve",
       onerror: () =>

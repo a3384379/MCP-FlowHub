@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MCP FlowHub management API",
-    "version": "2.0.0-alpha.4",
+    "version": "2.0.0-alpha.5",
     "description": "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API."
   },
   "servers": [
@@ -141,6 +141,75 @@
                 "type": "object",
                 "required": [],
                 "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/codex-session": {
+      "post": {
+        "summary": "POST /api/v1/auth/codex-session",
+        "security": [],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-FlowHub-Local",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Origin, scope or CSRF denied"
+          },
+          "409": {
+            "description": "Revision/idempotency/version conflict"
+          },
+          "422": {
+            "description": "Schema/domain validation failed"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "description": "Redeem a one-time local Codex sidebar ticket for a partitioned management session.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ticket"
+                ],
+                "properties": {
+                  "ticket": {}
+                },
                 "additionalProperties": false
               }
             }

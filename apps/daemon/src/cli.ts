@@ -16,6 +16,7 @@ export async function main(args = process.argv.slice(2)) {
       "token-file": { type: "string" },
       port: { type: "string" },
       stdio: { type: "boolean" },
+      "codex-sidebar": { type: "boolean" },
       help: { type: "boolean" },
     },
   });
@@ -57,7 +58,7 @@ export async function main(args = process.argv.slice(2)) {
     if (!values.stdio)
       throw new Error("CLI_INPUT_INVALID: use flowhub mcp --stdio.");
     const { startBridge } = await import("../../mcp-bridge/src/index.js");
-    const bridge = await startBridge(dataDir, values["token-file"]);
+    const bridge = await startBridge(dataDir, values["token-file"], values["codex-sidebar"]);
     process.once("SIGINT", () => {
       void bridge.close();
     });

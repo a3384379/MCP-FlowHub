@@ -31,6 +31,7 @@ import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
 import { subscribeEvents } from "./shared/v2";
+import { inCodexWorkspace, readCodexLaunch, workspaceDialog, workspaceHref, workspacePath } from "./shared/codex-workspace";
 import { mergeDraft } from "./shared/draft-merge";
 import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
@@ -82,16 +83,28 @@ class UiError extends Error {
   }
 }
 let openingSession: Promise<J> | undefined;
+let codexLaunch = readCodexLaunch();
 function openLocalSession() {
-  openingSession ??= fetch("/api/v1/auth/local-session", {
+  if (inCodexWorkspace && !codexLaunch)
+    return Promise.reject(new UiError("AUTH_REQUIRED", "请从 Codex 侧栏重新打开 FlowHub。", 401));
+  openingSession ??= fetch(inCodexWorkspace ? "/api/v1/auth/codex-session" : "/api/v1/auth/local-session", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-FlowHub-Local": "1" },
-    body: "{}",
+    body: JSON.stringify(inCodexWorkspace && codexLaunch ? { ticket: codexLaunch } : {}),
   })
     .then(async response => {
       const value = await response.json();
       if (!response.ok)
-        throw new UiError(value.error?.code ?? "SERVICE_UNAVAILABLE", "无法连接本机 FlowHub。", response.status);
+        throw new UiError(
+          value.error?.code ?? "SERVICE_UNAVAILABLE",
+          inCodexWorkspace ? "请从 Codex 侧栏重新打开 FlowHub。" : "无法连接本机 FlowHub。",
+          response.status,
+        );
+      if (inCodexWorkspace) {
+        codexLaunch = undefined;
+        const check = await fetch("/api/v1/auth/session");
+        if (!check.ok) throw new UiError("AUTH_REQUIRED", "Codex 未保留本机工作区会话。", check.status);
+      }
       csrf = value.data.csrf;
       return value.data;
     })
@@ -465,7 +478,7 @@ function JsonEditor({
 function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [path, setPath] = useState(
-      location.pathname === "/" ? "/workflows" : location.pathname,
+      workspacePath() === "/" ? "/workflows" : workspacePath(),
     ),
     [session, setSession] = useState<J>(null),
     [auth, setAuth] = useState<J>(null),
@@ -531,7 +544,7 @@ function App() {
   const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
   useEffect(() => {
     if (!["/assistant", "/editor"].includes(path) || !session) return;
-    history.replaceState(history.state, "", "/workflows");
+    history.replaceState(history.state, "", workspaceHref("/workflows"));
     setPath("/workflows");
     if (path === "/assistant") setAssistantOpenRequest(value => value + 1);
   }, [path, session]);
@@ -623,6 +636,7 @@ function App() {
     const currentSession = await openLocalSession();
     setAuth(await api("/auth/state"));
     setSession(currentSession);
+    if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
   }, []);
   const openVault = () => {
     const initialize = auth?.vaultInitialized === false;
@@ -677,11 +691,19 @@ function App() {
   }, []);
   const navigate = (next: string, skipDirty = false) => {
     if(deletionPendingRef.current) return false;
-    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return false;
+    if (!skipDirty && dirty) {
+      if (inCodexWorkspace) {
+        void workspaceDialog("草稿有未保存修改，是否离开？", "离开").then(answer => {
+          if (answer) navigate(next, true);
+        });
+        return false;
+      }
+      if (!confirm("草稿有未保存修改，是否离开？")) return false;
+    }
     setDirty(false);
     jsonTextCache.current.clear();
     historyIndex.current++;
-    history.pushState({ flowhubIndex: historyIndex.current }, "", next);
+    history.pushState({ flowhubIndex: historyIndex.current }, "", workspaceHref(next));
     setPath(next);
     setModal(null);
     setArtifact(null);
@@ -712,7 +734,9 @@ function App() {
         return;
       }
       const nextIndex = event.state?.flowhubIndex;
-      if (deletionPendingRef.current || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
+      const nextPath = workspacePath();
+      const askInPage = inCodexWorkspace && dirtyRef.current && !deletionPendingRef.current;
+      if (deletionPendingRef.current || askInPage || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
         if (
           typeof nextIndex === "number" &&
           nextIndex !== historyIndex.current
@@ -723,12 +747,15 @@ function App() {
           history.pushState(
             { flowhubIndex: historyIndex.current },
             "",
-            pathRef.current,
+            workspaceHref(pathRef.current),
           );
+        if (askInPage) void workspaceDialog("草稿有未保存修改，是否离开？", "离开").then(answer => {
+          if (answer) navigate(nextPath, true);
+        });
         return;
       }
       if (typeof nextIndex === "number") historyIndex.current = nextIndex;
-      setPath(location.pathname);
+      setPath(nextPath);
       setDirty(false);
       setModal(null);
       jsonTextCache.current.clear();
@@ -1640,7 +1667,7 @@ function App() {
             <span className="breadcrumbs" aria-label="当前位置">
               <span>{navigationForPage(page)?.group ?? "工作空间"}</span><b>/</b>
               {page === "editor" ? <>
-                <a href="/workflows" onClick={event => {
+                <a href={workspaceHref("/workflows")} onClick={event => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                   event.preventDefault(); navigate("/workflows");
                 }}>{navigationLabel("workflows")}</a>
@@ -3248,7 +3275,9 @@ function App() {
                       <button
                         onClick={() =>
                           act(async () => {
-                            const reason = prompt(
+                            const reason = inCodexWorkspace
+                              ? await workspaceDialog("人工复核并创建新运行", "创建新运行", "复核原因")
+                              : prompt(
                               "复核原因（保留原运行终态，创建新运行）",
                             );
                             if (reason) {

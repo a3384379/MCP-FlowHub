@@ -7,7 +7,9 @@ import { Vault } from "../../../packages/security/src/index.js";
 import { Connectors } from "../../../packages/mcp-connectors/src/registry.js";
 import { Engine } from "../../../packages/workflow-core/src/engine.js";
 import { registerAdmin } from "../../../packages/admin-api/src/index.js";
+import { CodexLaunches } from "../../../packages/admin-api/src/codex-launch.js";
 import { createHubServer } from "../../../packages/mcp-server/src/index.js";
+import { renderSidebarResource, sidebarOpened, SIDEBAR_TOOL } from "../../../packages/mcp-server/src/codex-sidebar.js";
 import { Application } from "../../../packages/application/src/index.js";
 import type { ProviderFactory } from "../../../packages/llm-providers/src/index.js";
 import {
@@ -25,7 +27,7 @@ import {
   prepareDataDir,
   loadOrCreateToken,
 } from "./local-config.js";
-import { createLocalHttp } from "./http.js";
+import { createLocalHttp, WEB_POLICY } from "./http.js";
 export async function startDaemon(options: { dataDir: string; port: number; providerFactory?:ProviderFactory;hostDiscoveryRuntime?:import("../../../packages/host-discovery/src/index.js").DiscoveryRuntime }) {
   const dataDir = await prepareDataDir(options.dataDir),
     unlock = await acquireLock(dataDir);
@@ -79,11 +81,15 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     engine.recover();
     application=new Application(engine,{...(options.providerFactory?{providerFactory:options.providerFactory}:{}),...(options.hostDiscoveryRuntime?{hostDiscoveryRuntime:options.hostDiscoveryRuntime}:{})});
     const service=application;
+    const launches = new CodexLaunches();
+    const localOrigin = () => `http://127.0.0.1:${(app!.server.address() as { port: number }).port}`;
     app = createLocalHttp(
-      (subject) =>
+      (subject, codexSidebar) =>
         createHubServer(async (name, args) => {
           try {
             if(stopping)throw new HubError("SERVICE_STOPPING","FlowHub is stopping.",503);
+            if (codexSidebar && name === SIDEBAR_TOOL && Object.keys(args).length === 0)
+              return sidebarOpened(launches.issue());
             return result({
               ...await service.handle(name, args, subject),
               instanceId,
@@ -98,7 +104,8 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
                   );
             return failure(e.code, e.message, e.details);
           }
-        }, subject==="execution"||repo.get("clients",subject)?.scopes?.includes("workflow:author")?TOOL_NAMES:EXECUTION_TOOL_NAMES),
+        }, subject==="execution"||repo.get("clients",subject)?.scopes?.includes("workflow:author")?TOOL_NAMES:EXECUTION_TOOL_NAMES,
+        codexSidebar ? { readSidebar: () => renderSidebarResource(localOrigin()) } : {}),
       token,
       (header) => {
         if (!header?.startsWith("Bearer ")) return undefined;
@@ -113,7 +120,7 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     // Fastify invokes this before its onClose hook locks the Vault. Setting the
     // gate synchronously in close() prevents new work during worker shutdown.
     app.addHook("preClose",async()=>{stopping=true;await closeResources();});
-    await registerAdmin(app, engine, dataDir, service.authoring, service.registry, service);
+    await registerAdmin(app, engine, dataDir, service.authoring, service.registry, service, launches);
     app.get("/api/v1/health", async () => ({
       status: "ok",
       version: VERSION,
@@ -146,6 +153,20 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     }
     app.get("/", async (_req, reply) =>
       reply.type(files.get("/")!.type).send(files.get("/")!.body),
+    );
+    const workspace = files.get("/")!;
+    const codexPage = workspace.body.toString("utf8").replace(
+      "</head>", '<meta name="flowhub-codex-sidebar" content="1"></head>',
+    );
+    const codexPolicy = WEB_POLICY.replace(
+      "frame-ancestors 'none'",
+      "frame-ancestors codex-sandbox://web-sandbox.oaiusercontent.com codex-sandbox://*.web-sandbox.oaiusercontent.com https://web-sandbox.oaiusercontent.com https://*.web-sandbox.oaiusercontent.com",
+    );
+    app.get("/codex/*", async (_req, reply) =>
+      reply.header("Content-Security-Policy", codexPolicy)
+        .header("Referrer-Policy", "no-referrer")
+        .type(workspace.type)
+        .send(codexPage),
     );
     app.get("/*", async (req, reply) => {
       const path = req.url.split("?")[0]!;

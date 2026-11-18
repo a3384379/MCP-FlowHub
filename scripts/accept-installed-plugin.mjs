@@ -387,6 +387,20 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       limit: 10,
     });
     assert.equal(Object.keys(inventory.data[0].tools).length, 21);
+    const sidebar = inventory.data[0].tools.project_help_search;
+    assert.deepEqual(sidebar._meta?.["openai/ui"]?.entrypoints, [{ type: "global" }]);
+    const resourceUri = sidebar._meta?.ui?.resourceUri;
+    assert.ok(/^ui:\/\/flowhub\/management-/.test(resourceUri));
+    const resource = await rpc("mcpServer/resource/read", {
+      threadId: report.threadId, server: "flowhub", uri: resourceUri,
+    });
+    assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");
+    assert.deepEqual(resource.contents[0]._meta.ui.csp.frameDomains, [base]);
+    const launch = await rpc("mcpServer/tool/call", {
+      threadId: report.threadId, server: "flowhub", tool: "project_help_search", arguments: {},
+    });
+    assert.equal(launch.structuredContent.opened, true);
+    assert.ok(/^[a-f0-9]{64}$/.test(launch._meta?.["flowhub/launch"]), "Codex preserves the private launch metadata");
     const skills = (
       await rpc("skills/list", { cwds: [cwd], forceReload: true })
     ).data
@@ -410,6 +424,8 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       skills,
       separateDataDir: true,
       installedBytesMatch: true,
+      globalSidebarResource: resourceUri,
+      emptyArgumentLaunch: true,
       dashboardPrompt: "打开 FlowHub 管理页面",
       isolatedDashboardUrl: shortcut.stdout.trim(),
     };

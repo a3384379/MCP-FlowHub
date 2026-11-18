@@ -223,7 +223,7 @@ export async function main(args = process.argv.slice(2)) {
     "--data-dir",
     connection.dataDir,
   ];
-  if (command === "mcp") forwarded.push("--stdio");
+  if (command === "mcp") forwarded.push("--stdio", "--codex-sidebar");
   if (command === "start" && values.port) forwarded.push("--port", values.port);
   if (command !== "start" && connection.tokenFile)
     forwarded.push("--token-file", connection.tokenFile);

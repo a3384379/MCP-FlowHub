@@ -18,7 +18,7 @@ for (let i = 0; i < declarations.length; i++) {
   const publicRoute =
     route === "/api/v1/auth/state" ||
     route === "/api/v1/auth/bootstrap" ||
-    (["/api/v1/auth/session", "/api/v1/auth/local-session"].includes(route) && method === "post");
+    (["/api/v1/auth/session", "/api/v1/auth/local-session", "/api/v1/auth/codex-session"].includes(route) && method === "post");
   const parameters = [...route.matchAll(/:([A-Za-z]+)/g)].map((m) => ({
     name: m[1],
     in: "path",
@@ -32,7 +32,7 @@ for (let i = 0; i < declarations.length; i++) {
       required: true,
       schema: { type: "string" },
     });
-  if (route === "/api/v1/auth/local-session")
+  if (["/api/v1/auth/local-session", "/api/v1/auth/codex-session"].includes(route))
     parameters.push(
       { name: "Origin", in: "header", required: true, schema: { type: "string" } },
       { name: "X-FlowHub-Local", in: "header", required: true, schema: { const: "1" } },
@@ -66,6 +66,8 @@ for (let i = 0; i < declarations.length; i++) {
   };
   if (route === "/api/v1/auth/local-session")
     operation.description = "Open a local browser session from the exact loopback origin without an account. Returns CSRF and sets an HttpOnly cookie.";
+  if (route === "/api/v1/auth/codex-session")
+    operation.description = "Redeem a one-time local Codex sidebar ticket for a partitioned management session.";
   if (route === "/api/v1/auth/bootstrap" || route === "/api/v1/auth/session" && method === "post")
     operation.deprecated = true;
   const body = code.match(/body\(\s*req,\s*(\[[^\]]*\])(?:,\s*(\[[^\]]*\]))?/);
