@@ -28,7 +28,7 @@ test("Codex MCP App launch opens the complete FlowHub workspace and can save a d
     const view = (await client.readResource({ uri: resourceUri })).contents[0]!;
     expect(view.mimeType).toBe("text/html;profile=mcp-app");
     expect(view._meta?.ui).toMatchObject({ csp: { frameDomains: [origin] } });
-    const launch = await client.callTool({ name: entry.name, arguments: {} });
+    let launch = await client.callTool({ name: entry.name, arguments: {} });
     expect(launch.structuredContent).toEqual({ opened: true });
     const ticket = launch._meta?.["flowhub/launch"];
     expect(ticket).toMatch(/^[a-f0-9]{64}$/);
@@ -49,26 +49,31 @@ test("Codex MCP App launch opens the complete FlowHub workspace and can save a d
     } catch (error) {
       if (!/unknown permission/i.test(String(error))) throw error;
     }
+    let framePolicy = `frame-src ${origin}`;
     await page.route(host + "/app", route => route.fulfill({
       contentType: "text/html",
       body: `<!doctype html><style>iframe{width:100vw;height:100vh;border:0}</style>
-<iframe src="/resource" title="Codex MCP App"></iframe>
+<iframe src="/resource" title="Codex MCP App"></iframe><output hidden id="opened"></output>
 <script>
 const frame = document.querySelector("iframe");
 addEventListener("message", event => {
   if (event.source !== frame.contentWindow) return;
   if (event.data.method === "ui/initialize") frame.contentWindow.postMessage({
-    jsonrpc:"2.0",id:event.data.id,result:{protocolVersion:"2026-01-26",hostInfo:{name:"test",version:"1"},hostCapabilities:{},hostContext:{}}
+    jsonrpc:"2.0",id:event.data.id,result:{protocolVersion:"2026-01-26",hostInfo:{name:"test",version:"1"},hostCapabilities:{openLinks:{}},hostContext:{}}
   }, location.origin);
   if (event.data.method === "ui/notifications/initialized") frame.contentWindow.postMessage({
     jsonrpc:"2.0",method:"ui/notifications/tool-result",params:${JSON.stringify(launch)}
   }, location.origin);
+  if (event.data.method === "ui/open-link") {
+    document.querySelector("#opened").textContent = event.data.params.url;
+    frame.contentWindow.postMessage({jsonrpc:"2.0",id:event.data.id,result:{}}, location.origin);
+  }
 });
 </script>`,
     }));
     await page.route(host + "/resource", route => route.fulfill({
       contentType: "text/html",
-      headers: { "Content-Security-Policy": `frame-src ${origin}` },
+      headers: { "Content-Security-Policy": framePolicy },
       body: String("text" in view ? view.text : ""),
     }));
     await page.goto(host + "/app");
@@ -99,6 +104,16 @@ addEventListener("message", event => {
     expect(embedded.headers()["content-security-policy"]).toMatch(/frame-ancestors codex-sandbox:/);
     const standard = await page.request.get(origin + "/");
     expect(standard.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+
+    // Reproduce the real Codex policy while preserving the host security boundary.
+    framePolicy = "frame-src 'none'";
+    launch = await client.callTool({ name: entry.name, arguments: {} });
+    await page.reload();
+    const sidebar = page.frameLocator('iframe[title="Codex MCP App"]');
+    await expect(sidebar.getByText(/内嵌页面规则阻止了本机地址/)).toBeVisible();
+    await expect(sidebar.getByLabel("本机地址")).toHaveValue(origin + "/");
+    await sidebar.getByRole("link", { name: "在浏览器打开完整管理页" }).click();
+    await expect(page.locator("#opened")).toHaveText(origin + "/");
   } finally {
     await client.close();
     await daemon.close();

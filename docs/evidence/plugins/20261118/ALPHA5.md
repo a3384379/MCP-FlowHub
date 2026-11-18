@@ -12,6 +12,6 @@
 | `npm run test:plugin:e2e` | 候选包和正式安装字节各通过 9 个阶段。真实 Codex App Server 返回全局入口、读取 UI 资源并完成空参数启动调用。浏览器宿主渲染由上项隔离测试覆盖。 |
 | 本机升级 | 确认任务空闲，创建一致性备份并通过预检。已安装 alpha.5，后台健康。3 条工作流、0 条运行的清单及凭据、连接、模型配置、发布版本和其他 Codex 配置的摘要一致。 |
 
-桌面自动化禁止点按 Codex 自身的侧栏。本机 App Server 已验证入口协议，实际桌面图标出现及点开仍待人工确认。Windows、真实模型和企业环境未在本轮复验。
+随后用户在真实桌面确认侧栏入口可见。点开后 Codex 成功调用启动工具并加载全屏 MCP App，内嵌管理页因宿主 `frame-src` 规则拒绝本机 HTTP 而未打开。桌面日志记录 `ERR_BLOCKED_BY_CSP`，同端口的后台健康检查和 Codex 内置浏览器管理页正常。隔离浏览器的成功结果只覆盖允许该内嵌来源的宿主。Windows、真实模型和企业环境未在本轮复验。
 
 本机证据在 `artifacts/alpha5-verification/` 和 `artifacts/flowhub-alpha5-local-upgrade.json`。入口机制见 [OpenAI 侧栏应用文档](https://developers.openai.com/plugins/build/extensions#sidebar-apps)。

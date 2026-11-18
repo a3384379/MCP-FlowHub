@@ -52,26 +52,65 @@ export function renderSidebarResource(origin: string): ReadResourceResult {
 html,body{margin:0;height:100%;font:14px system-ui;color-scheme:light dark}
 body{display:grid;place-items:center}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;visibility:hidden}
+section{max-width:32rem;margin:24px;padding:24px;border:1px solid GrayText;border-radius:12px}
+a{display:inline-block;margin:8px 0}
+input{width:100%;box-sizing:border-box;padding:8px}
 </style>
 <p id="status" role="status">正在打开本机 FlowHub…</p>
+<section id="fallback" hidden>
+  <h1>打开 FlowHub 管理页</h1>
+  <p id="failure" role="status"></p>
+  <a id="open" href="${origin}/" target="_blank" rel="noopener noreferrer">在浏览器打开完整管理页</a>
+  <label>本机地址<input value="${origin}/" readonly></label>
+</section>
 <iframe title="FlowHub 管理页面" referrerpolicy="no-referrer"
  sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="loopback-network"></iframe>
 <script>
 const origin = ${JSON.stringify(origin)};
 const frame = document.querySelector("iframe");
 const status = document.querySelector("#status");
+const fallback = document.querySelector("#fallback");
+const failure = document.querySelector("#failure");
 function send(message) { parent.postMessage({jsonrpc:"2.0", ...message}, "*"); }
 let opened = false;
+let ready = false;
 let receivedResult = false;
+let hostOpensLinks = false;
+function showFallback(message) {
+  if (ready || receivedResult) return;
+  failure.textContent = message;
+  status.hidden = true;
+  fallback.hidden = false;
+}
+document.addEventListener("securitypolicyviolation", event => {
+  if (opened && event.disposition === "enforce" &&
+      ["frame-src", "child-src"].includes(event.effectiveDirective) &&
+      (event.blockedURI === origin || event.blockedURI.startsWith(origin + "/"))) {
+    showFallback("当前 Codex 的内嵌页面规则阻止了本机地址，仍可打开完整管理页。");
+  }
+});
+document.querySelector("#open").addEventListener("click", event => {
+  if (!hostOpensLinks) return;
+  event.preventDefault();
+  send({id:2,method:"ui/open-link",params:{url:origin + "/"}});
+});
 window.addEventListener("message", event => {
   if (event.source === frame.contentWindow && event.origin === origin && event.data?.type === "flowhub:workspace-ready") {
+    ready = true;
     frame.style.visibility = "visible";
     status.hidden = true;
+    fallback.hidden = true;
     return;
   }
   if (event.source !== parent || event.data?.jsonrpc !== "2.0") return;
   const message = event.data;
-  if (message.id === 1 && message.result) send({method:"ui/notifications/initialized"});
+  if (message.id === 1 && message.result) {
+    hostOpensLinks = Boolean(message.result.hostCapabilities?.openLinks);
+    send({method:"ui/notifications/initialized"});
+  }
+  if (message.id === 2 && (message.error || message.result?.isError)) {
+    failure.textContent = "Codex 未能打开链接。可使用下方本机地址打开完整管理页。";
+  }
   if (message.method !== "ui/notifications/tool-result" || opened) return;
   const ticket = message.params?._meta?.["flowhub/launch"];
   if (typeof ticket !== "string" || !/^[a-f0-9]{64}$/.test(ticket)) {
@@ -88,7 +127,9 @@ send({id:1,method:"ui/initialize",params:{
   protocolVersion:"2026-01-26",appInfo:{name:"FlowHub",version:${JSON.stringify(VERSION)}},appCapabilities:{}
 }});
 setTimeout(() => {
-  if (!status.hidden && !receivedResult) status.textContent = "管理页面暂未连接。请确认本机后台已启动。若 Codex 提示允许本机访问，处理后重新打开 FlowHub。";
+  if (fallback.hidden) showFallback(opened
+    ? "内嵌管理页未能加载。可以直接打开本机管理页。"
+    : "Codex 未能启动内嵌管理页。可以直接打开本机管理页。");
 }, 10000);
 </script></html>`;
   return {
