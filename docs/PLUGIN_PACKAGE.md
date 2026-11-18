@@ -33,6 +33,8 @@ codex plugin add flowhub@flowhub-local
 
 在 Codex 的 FlowHub 插件卡片选择 **打开 FlowHub 管理页面**，也可以在对话中直接说这句话。插件的设置技能会查找当前实例地址并打开页面。终端中可运行 `./flowhub-plugin open` 打开默认浏览器，或运行 `./flowhub-plugin url` 获取地址。命令使用连接配置中的数据目录与后台的实际端口，先检查后台是否健康。默认本机地址为 [http://127.0.0.1:18473](http://127.0.0.1:18473)。
 
+alpha.4 起管理页打开后直接进入工作区。添加或调用受保护凭据时按页面提示设置或解锁凭据库。
+
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
 也可在支持本地目录的 Codex 插件设置中添加这个目录内的 marketplace。正式目录上架不是本机安装的前置条件。若当前 Codex 还保留手工添加的旧 FlowHub MCP 入口，请自行选择一个入口使用，避免重复显示；安装命令不会删除现有配置。

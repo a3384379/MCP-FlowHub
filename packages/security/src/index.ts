@@ -354,12 +354,11 @@ export class AdminAuth {
   session() {
     for (const [key, value] of this.sessions)
       if (value.expires < Date.now()) this.sessions.delete(key);
-    ensure(
-      this.sessions.size < 64,
-      "RATE_LIMITED",
-      "Session limit reached.",
-      429,
-    );
+    // Browser contexts can disappear without closing their server-side session.
+    if (this.sessions.size >= 64) {
+      const oldest = this.sessions.keys().next();
+      if (!oldest.done) this.sessions.delete(oldest.value);
+    }
     const token = randomBytes(32).toString("hex"),
       csrf = randomBytes(24).toString("hex");
     this.sessions.set(hash(token), { csrf, expires: Date.now() + 8 * 3600000 });
@@ -367,15 +366,18 @@ export class AdminAuth {
   }
   check(cookie: string | undefined, csrf?: string, write = false) {
     const token = cookie?.match(/(?:^|;\s*)flowhub_session=([^;]+)/)?.[1] ?? "",
-      session = this.sessions.get(hash(token));
+      key = hash(token),
+      session = this.sessions.get(key);
     ensure(
       session && session.expires > Date.now(),
       "AUTH_REQUIRED",
-      "Administrator login required.",
+      "Local workspace session required.",
       401,
     );
     if (write)
       ensure(csrf === session.csrf, "CSRF_DENIED", "CSRF token required.", 403);
+    this.sessions.delete(key);
+    this.sessions.set(key, session);
     return session;
   }
   logout(cookie: string | undefined) {

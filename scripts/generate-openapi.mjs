@@ -18,7 +18,7 @@ for (let i = 0; i < declarations.length; i++) {
   const publicRoute =
     route === "/api/v1/auth/state" ||
     route === "/api/v1/auth/bootstrap" ||
-    (route === "/api/v1/auth/session" && method === "post");
+    (["/api/v1/auth/session", "/api/v1/auth/local-session"].includes(route) && method === "post");
   const parameters = [...route.matchAll(/:([A-Za-z]+)/g)].map((m) => ({
     name: m[1],
     in: "path",
@@ -32,6 +32,11 @@ for (let i = 0; i < declarations.length; i++) {
       required: true,
       schema: { type: "string" },
     });
+  if (route === "/api/v1/auth/local-session")
+    parameters.push(
+      { name: "Origin", in: "header", required: true, schema: { type: "string" } },
+      { name: "X-FlowHub-Local", in: "header", required: true, schema: { const: "1" } },
+    );
   if (code.includes("revision(req)") || code.includes('req.headers["if-match"]'))
     parameters.push({
       name: "If-Match",
@@ -59,6 +64,10 @@ for (let i = 0; i < declarations.length; i++) {
       429: { description: "Rate limited" },
     },
   };
+  if (route === "/api/v1/auth/local-session")
+    operation.description = "Open a local browser session from the exact loopback origin without an account. Returns CSRF and sets an HttpOnly cookie.";
+  if (route === "/api/v1/auth/bootstrap" || route === "/api/v1/auth/session" && method === "post")
+    operation.deprecated = true;
   const body = code.match(/body\(\s*req,\s*(\[[^\]]*\])(?:,\s*(\[[^\]]*\]))?/);
   if (body) {
     const fields = (s) =>

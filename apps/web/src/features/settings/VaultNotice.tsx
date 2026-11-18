@@ -12,13 +12,15 @@ export function VaultNotice({
   return (
     <div className="vault-notice" role="status">
       <span>
-        {vault.locked === true
+        {vault.initialized === false
+          ? "设置凭据库口令后，即可保存模型 Key 或 MCP 凭据。"
+          : vault.locked === true
           ? "凭据库已锁定，已保存的 Key 仍保留。服务重启后需先解锁。"
           : "暂时无法确认凭据库状态，请重新读取。"}
       </span>
       {vault.locked === true ? (
         <button type="button" onClick={unlock}>
-          解锁凭据库
+          {vault.initialized === false ? "设置凭据库口令" : "解锁凭据库"}
         </button>
       ) : (
         <button type="button" onClick={() => void vault.refresh()}>

@@ -91,6 +91,61 @@ function adminTargets(port: number, path: string) {
   ];
 }
 
+test("loopback workspace sessions are passwordless, origin-bound and independent of Vault and MCP", async t => {
+  const dataDir = await mkdtemp(join(tmpdir(), "flowhub-local-session-"));
+  const daemon = await startDaemon({ dataDir, port: 0 });
+  t.after(async () => {
+    await daemon.close();
+    await rm(dataDir, { recursive: true, force: true });
+  });
+  const origin = `http://127.0.0.1:${daemon.port}`;
+  const path = "/api/v1/auth/local-session";
+  const local = { Origin: origin, "X-FlowHub-Local": "1", "Sec-Fetch-Site": "same-origin" };
+  for (const headers of [
+    { "X-FlowHub-Local": "1" },
+    { Origin: origin },
+    { ...local, Origin: "http://127.0.0.1:1" },
+    { ...local, "Sec-Fetch-Site": "same-site" },
+    { ...local, Host: "foreign.example" },
+  ]) {
+    const denied = await raw(daemon.port, path, {}, headers);
+    assert.equal(denied.status, 403);
+    assert.equal(denied.headers["set-cookie"], undefined);
+  }
+  assert.equal((await raw(daemon.port, "/api/v1/workflows")).status, 401);
+  const opened = await raw(daemon.port, path, {}, local);
+  assert.equal(opened.status, 200);
+  const setCookie = opened.headers["set-cookie"]![0]!;
+  assert.match(setCookie, /HttpOnly; SameSite=Strict/);
+  const Cookie = setCookie.split(";")[0]!;
+  const csrf = opened.json.data.csrf;
+  const reused = await raw(daemon.port, path, {}, { ...local, Cookie });
+  assert.equal(reused.json.data.csrf, csrf);
+  assert.equal(reused.headers["set-cookie"], undefined);
+  assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie })).status, 200);
+  assert.equal((await raw(daemon.port, "/mcp", {}, { Cookie })).status, 401);
+  const state = async () => (await raw(daemon.port, "/api/v1/auth/state")).json.data;
+  assert.deepEqual([ (await state()).initialized, (await state()).vaultInitialized ], [false, false]);
+  const initPath = "/api/v1/vault/initialize";
+  assert.equal((await raw(daemon.port, initPath, { password }, { Cookie })).status, 403);
+  const session = { Cookie, "X-CSRF-Token": csrf };
+  assert.equal((await raw(daemon.port, initPath, { password }, session)).status, 200);
+  assert.equal((await raw(daemon.port, initPath, { password }, session)).status, 409);
+  assert.equal((await raw(daemon.port, "/api/v1/vault/lock", {}, session)).status, 200);
+  assert.equal((await raw(daemon.port, "/api/v1/vault/unlock", { password }, session)).status, 200);
+  assert.equal((await state()).initialized, false);
+
+  const transient = await raw(daemon.port, path, {}, local);
+  const abandonedCookie = transient.headers["set-cookie"]![0]!.split(";")[0]!;
+  for (let index = 0; index < 62; index++) {
+    assert.equal((await raw(daemon.port, path, {}, local)).status, 200);
+  }
+  assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie })).status, 200);
+  assert.equal((await raw(daemon.port, path, {}, local)).status, 200);
+  assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie: abandonedCookie })).status, 401);
+  assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie })).status, 200);
+});
+
 async function fixture(t: TestContext) {
   const dataDir = await mkdtemp(join(tmpdir(), "flowhub-http-auth-"));
   const daemon = await startDaemon({ dataDir, port: 0 });

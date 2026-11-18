@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 const password = "Synthetic-browser-password-041";
-test("bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff", async ({
+test("passwordless workspace, six pages, real flow canvas, save/validate, start and Agent handoff", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -18,9 +18,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   }
   await page.goto("/");
   await expect(page.getByLabel("本机一次性设置码")).toHaveCount(0);
-  await expect(page.getByLabel("管理员账号", {exact:true})).toHaveValue("admin");
-  await page.getByLabel("管理员密码").fill(password);
-  await page.getByRole("button", {name:"登录管理中心",exact:true}).click();
+  await expect(page.getByLabel("管理员账号", {exact:true})).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "工作流", exact: true }),
   ).toBeVisible();
@@ -106,7 +104,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   expect(errors).toEqual([]);
 });
 
-test("a pending auth-state request never exposes a consumed setup-token field", async ({
+test("a pending workspace request shows loading until the workspace opens", async ({
   page,
 }) => {
   let release!: () => void;
@@ -117,12 +115,6 @@ test("a pending auth-state request never exposes a consumed setup-token field", 
   const started = new Promise<void>((resolve) => {
     requested = resolve;
   });
-  const state = await page.request.get("/api/v1/auth/state");
-  expect((await state.json()).data.initialized).toBe(true);
-  const session = await page.request.post("/api/v1/auth/session", {
-    data: { password },
-  });
-  expect(session.ok(), await session.text()).toBe(true);
   await page.route("**/api/v1/auth/state", async (route) => {
     const response = await route.fetch();
     requested();
@@ -133,8 +125,8 @@ test("a pending auth-state request never exposes a consumed setup-token field", 
     await page.goto("/workflows", { waitUntil: "domcontentloaded" });
     await started;
     await expect(
-      page.getByRole("heading", { name: "正在检查登录状态", exact: true }),
-    ).toBeVisible();
+      page.getByRole("status"),
+    ).toHaveText("正在打开本机工作区…");
     await expect(page.getByLabel("本机一次性设置码")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "创建并进入", exact: true }),

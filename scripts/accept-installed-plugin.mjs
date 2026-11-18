@@ -309,14 +309,19 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
     const page = await fetch(shortcut.stdout.trim());
     assert.equal(page.status, 200);
     assert.match(await page.text(), /<title>.*FlowHub/i);
-    const login = await fetch(base + "/api/v1/auth/session", {
+    const session = await fetch(base + "/api/v1/auth/local-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin" }),
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": base,
+        "X-FlowHub-Local": "1",
+      },
+      body: "{}",
     });
-    assert.equal(login.status, 200);
-    csrf = (await login.json()).data.csrf;
-    cookie = login.headers.get("set-cookie").split(";")[0];
+    assert.equal(session.status, 200);
+    csrf = (await session.json()).data.csrf;
+    cookie = session.headers.get("set-cookie").split(";")[0];
+    await api("/api/v1/vault/initialize", { password: "Synthetic-plugin-e2e-vault" });
     const child = spawn(codex, ["app-server", "--stdio"], {
       env,
       cwd,

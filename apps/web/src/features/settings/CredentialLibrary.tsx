@@ -23,6 +23,7 @@ export function CredentialLibrary({
 }) {
   const [items, setItems] = useState<any[]>([]),
     [locked, setLocked] = useState(true),
+    [initialized, setInitialized] = useState<boolean | null>(null),
     [tab, setTab] = useState("all");
   const [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
@@ -39,6 +40,7 @@ export function CredentialLibrary({
         if (!alive || version !== generation.current) return;
         setItems(records);
         setLocked(state.vaultLocked);
+        setInitialized(state.vaultInitialized);
         setError("");
       } catch (e) {
         if (alive && version === generation.current)
@@ -70,19 +72,19 @@ export function CredentialLibrary({
     <section id="credential-library" tabIndex={-1} className="panel credential-library">
       <div className="credential-library-head">
         <h2>配置与凭据库</h2>
-        <button className="primary" onClick={locked ? onUnlock : onCreate}>
-          新增配置或凭据
+        <button className="primary" disabled={initialized === null} onClick={locked ? onUnlock : onCreate}>
+          {initialized === false ? "设置凭据库口令" : "新增配置或凭据"}
         </button>
       </div>
       <p>
-        本地库{locked ? "已锁定" : "已解锁"} ·
+        {initialized === false ? "本地库尚未设置口令" : initialized === null ? "本地库状态待确认" : locked ? "本地库已锁定" : "本地库已解锁"} ·
         所有值均加密保存，列表只显示名称和使用位置。
       </p>
-      <div className="actions">
+      {initialized && <div className="actions">
         <button onClick={onUnlock}>解锁</button>
         <button onClick={onLock}>立即锁定</button>
         <button onClick={onRotate}>修改口令</button>
-      </div>
+      </div>}
       <div
         className="segments credential-library-tabs"
         aria-label="凭据用途筛选"

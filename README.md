@@ -2,7 +2,7 @@
 
 面向 Codex 等 AI Harness 的轻量级、可视化 MCP 能力编排与管理工具，优先服务个人开发者。配置一次工作流，之后由 Codex 选择并执行。
 
-当前版本 **2.0.0-alpha.3**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
+当前版本 **2.0.0-alpha.4**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
 
 ## 启动
 
@@ -12,7 +12,7 @@ Node **24.19.0**、npm **11.9.0**：
     npm run build
     npm start
 
-默认 http://127.0.0.1:18473。默认账号 `admin`，默认密码 `admin`，首次登录自动初始化管理员与凭据库，无需一次性设置码。已设置的管理员口令保持不变；重启后凭据库可使用原口令解锁。另一个终端运行 `npm run mcp`，或按接入设置生成受限宿主配置。
+打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。首次添加 MCP 凭据或模型 Key 时设置独立的凭据库口令，已有凭据库在服务重启后使用原口令解锁。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
 
     npm start -- --data-dir /tmp/flowhub-dev --port 18474
     npm run mcp -- --data-dir /tmp/flowhub-dev

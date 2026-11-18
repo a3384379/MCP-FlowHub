@@ -73,7 +73,7 @@ export class CapabilityRegistry {
     ensure(context?.revision===source.contextRevision,"CONTEXT_CHANGED","Context changed; rescan first.",409);
     const connection=source.preparedConnectionId?this.repo.get("connections",source.preparedConnectionId):null;
     const prepared=connection?.sourceFingerprint===source.sourceFingerprint?connection:null;
-    return {sourceId,contextId:source.contextId,revision:source.revision,vaultLocked:this.engine.vault.locked,
+    return {sourceId,contextId:source.contextId,revision:source.revision,vaultLocked:this.engine.vault.locked,vaultInitialized:this.engine.vault.initialized,
       fields:storedConfigurationFields(source).map(field=>({...field,declaredKind:field.kind,
         kind:field.kind==="unknown"?(prepared?.configurationKinds?.[field.name]??field.kind):field.kind,
         selectedRef:field.location==="bearer"?prepared?.secretRef??null:prepared?.envRefs?.[field.name]??null})),

@@ -144,7 +144,7 @@ export async function registerAdmin(
       (["GET", "HEAD"].includes(req.method) &&
         ["/api/v1/health", "/api/v1/auth/state"].includes(path)) ||
       (req.method === "POST" &&
-        ["/api/v1/auth/session", "/api/v1/auth/bootstrap"].includes(path))
+        ["/api/v1/auth/session", "/api/v1/auth/bootstrap", "/api/v1/auth/local-session"].includes(path))
     )
       return;
     auth.check(
@@ -153,13 +153,15 @@ export async function registerAdmin(
       !["GET", "HEAD", "OPTIONS"].includes(req.method),
     );
   });
-  const loginCookie = (reply: Json, session: Json) =>
+  const setSessionCookie = (reply: Json, session: Json) => {
+    closeInvalidEventStreams();
     reply.header(
       "Set-Cookie",
       "flowhub_session=" +
         session.token +
         "; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800",
     );
+  };
   app.get("/api/v1/auth/state", async () =>
     data({
       initialized: auth.initialized,
@@ -168,6 +170,29 @@ export async function registerAdmin(
       version: VERSION,
     }),
   );
+  app.post("/api/v1/auth/local-session", async (req, reply) => {
+    const address = app.server.address();
+    ensure(
+      address && typeof address === "object" && address.address === "127.0.0.1" &&
+        req.ip === "127.0.0.1" &&
+        req.headers.host === `127.0.0.1:${address.port}` &&
+        req.headers.origin === `http://127.0.0.1:${address.port}` &&
+        req.headers["x-flowhub-local"] === "1" &&
+        (req.headers["sec-fetch-site"] === undefined || req.headers["sec-fetch-site"] === "same-origin"),
+      "ORIGIN_DENIED",
+      "A same-origin request from the local workspace is required.",
+      403,
+    );
+    body(req, []);
+    try {
+      return data({ csrf: auth.check(req.headers.cookie).csrf });
+    } catch (error) {
+      if (!(error instanceof HubError && error.code === "AUTH_REQUIRED")) throw error;
+    }
+    const session = auth.session();
+    setSessionCookie(reply, session);
+    return data({ csrf: session.csrf });
+  });
   app.post("/api/v1/auth/bootstrap", async (req, reply) => {
     auth.throttle("bootstrap");
     const b = body(req, ["setupToken", "password"]);
@@ -190,7 +215,7 @@ export async function registerAdmin(
     });
     await unlink(setupPath);
     const session = auth.session();
-    loginCookie(reply, session);
+    setSessionCookie(reply, session);
     return data({ csrf: session.csrf });
   });
   app.post("/api/v1/auth/session", async (req, reply) => {
@@ -211,7 +236,7 @@ export async function registerAdmin(
       });
     }
     const session = auth.login(b.password, b.username);
-    loginCookie(reply, session);
+    setSessionCookie(reply, session);
     return data({ csrf: session.csrf });
   });
   app.get("/api/v1/auth/session", async (req) =>
@@ -225,6 +250,21 @@ export async function registerAdmin(
       "flowhub_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
     );
     return data({ loggedOut: true });
+  });
+  app.post("/api/v1/vault/initialize", async (req) => {
+    const b = body(req, ["password"]);
+    ensure(!vault.initialized, "VAULT_EXISTS", "Vault already initialized.", 409);
+    try {
+      repo.tx(() => {
+        vault.initialize(b.password);
+        repo.audit("admin", "vault:initialize", "vault");
+      });
+    } catch (error) {
+      vault.lock();
+      throw error;
+    }
+    auth.resetThrottle("vault");
+    return data({ initialized: true, locked: false });
   });
   app.post("/api/v1/vault/unlock", async (req) => {
     auth.throttle("vault");

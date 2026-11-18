@@ -81,7 +81,37 @@ class UiError extends Error {
     super(code + "：" + message);
   }
 }
-let sessionCheck: Promise<boolean> | null = null;
+let openingSession: Promise<J> | undefined;
+function openLocalSession() {
+  openingSession ??= fetch("/api/v1/auth/local-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-FlowHub-Local": "1" },
+    body: "{}",
+  })
+    .then(async response => {
+      const value = await response.json();
+      if (!response.ok)
+        throw new UiError(value.error?.code ?? "SERVICE_UNAVAILABLE", "无法连接本机 FlowHub。", response.status);
+      csrf = value.data.csrf;
+      return value.data;
+    })
+    .finally(() => { openingSession = undefined; });
+  return openingSession;
+}
+
+let sessionRecovery: Promise<{ session: J; issued: boolean } | undefined> | undefined;
+function recoverLocalSession() {
+  sessionRecovery ??= fetch("/api/v1/auth/session")
+    .then(async check => {
+      if (check.status === 401) return { session: await openLocalSession(), issued: true };
+      if (check.ok) return { session: (await check.json()).data, issued: false };
+      return undefined;
+    })
+    .catch(() => undefined)
+    .finally(() => { sessionRecovery = undefined; });
+  return sessionRecovery;
+}
+
 async function api(
   path: string,
   method = "GET",
@@ -90,7 +120,7 @@ async function api(
   signal?: AbortSignal,
   withMeta = false,
 ): Promise<J> {
-  const response = await fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
+  const sendRequest = () => fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
     method,
     headers: {
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
@@ -100,16 +130,20 @@ async function api(
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     ...(signal ? { signal } : {}),
   });
-  const value = await response.json();
-  if (response.status === 401 && !path.startsWith("/auth/")) {
-    sessionCheck ??= fetch("/api/v1/auth/session")
-      .then((check) => check.status === 401)
-      .catch(() => false)
-      .finally(() => {
-        sessionCheck = null;
-      });
-    if (await sessionCheck)
-      window.dispatchEvent(new Event("flowhub-session-expired"));
+  let response = await sendRequest();
+  let value = await response.json();
+  const staleCsrf = response.status === 403 && value.error?.code === "CSRF_DENIED";
+  if ((response.status === 401 || staleCsrf) && !path.startsWith("/auth/")) {
+    const recovered = await recoverLocalSession();
+    if (recovered && (recovered.issued || staleCsrf)) {
+      csrf = recovered.session.csrf;
+      window.dispatchEvent(new Event("flowhub-session-restored"));
+      if (["GET", "HEAD"].includes(method)) {
+        response = await sendRequest();
+        value = await response.json();
+      }
+      else throw new UiError("AUTH_REQUIRED", "本机连接已恢复，请重试刚才的操作。", 401);
+    }
   }
   if (!response.ok)
     throw new UiError(
@@ -437,10 +471,9 @@ function App() {
     [auth, setAuth] = useState<J>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(false),
-    [password, setPassword] = useState(""),
-    [username, setUsername] = useState("admin");
+    [busy, setBusy] = useState(false);
   useEffect(() => { setNavigationOpen(false); }, [path]);
+  const [sessionEpoch, setSessionEpoch] = useState(0);
   const [workflows, setWorkflows] = useState<J[]>([]),
     [connections, setConnections] = useState<J[]>([]),
     [bindings, setBindings] = useState<J[]>([]),
@@ -586,22 +619,20 @@ function App() {
       setBusy(false);
     }
   }, []);
-  const checkAuth = useCallback(async () => {
-    const state = await api("/auth/state");
-    let currentSession: J = null;
-    if (state.initialized) {
-      try {
-        currentSession = await api("/auth/session");
-      } catch (error) {
-        if (!(error instanceof UiError && error.status === 401)) throw error;
-      }
-    }
-    setAuth(state);
-    if (currentSession) {
-      csrf = currentSession.csrf;
-      setSession(currentSession);
-    }
+  const connectWorkspace = useCallback(async () => {
+    const currentSession = await openLocalSession();
+    setAuth(await api("/auth/state"));
+    setSession(currentSession);
   }, []);
+  const openVault = () => {
+    const initialize = auth?.vaultInitialized === false;
+    setModal({
+      type: "unlock",
+      title: initialize ? "设置凭据库口令" : "解锁凭据库",
+      initialize,
+      password: "",
+    });
+  };
   const loadRuns = useCallback(
     async (cursor?: string, state = runFilterRef.current) => {
       const request = ++runListRequest.current;
@@ -669,9 +700,8 @@ function App() {
       navigate("/settings");
     } else {
       navigate("/settings");
-      setModal(destination.type === "unlock"
-        ? { type: "unlock", title: "解锁凭据库", password: "" }
-        : { type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
+      if (destination.type === "unlock") openVault();
+      else setModal({ type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
     }
   };
   useEffect(() => {
@@ -703,19 +733,13 @@ function App() {
       setModal(null);
       jsonTextCache.current.clear();
     };
-    const expired = () => {
-      csrf = "";
-      setSession(null);
-      setError(
-        "管理会话已失效，请重新登录。未保存草稿保留在当前页面，可先导出本地副本。",
-      );
-    };
+    const restored = () => setSessionEpoch(value => value + 1);
     window.addEventListener("popstate", pop);
-    window.addEventListener("flowhub-session-expired", expired);
-    void act(checkAuth);
+    window.addEventListener("flowhub-session-restored", restored);
+    void act(connectWorkspace);
     return () => {
       window.removeEventListener("popstate", pop);
-      window.removeEventListener("flowhub-session-expired", expired);
+      window.removeEventListener("flowhub-session-restored", restored);
     };
   }, []);
   useEffect(() => {
@@ -926,7 +950,7 @@ function App() {
       if(event.type!=="draft.changed" || deletedWorkflows.current.has(event.workflowId))return;
       void load();void syncRemoteRef.current(event);
     });
-  },[session]);
+  },[session, sessionEpoch]);
   useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
@@ -1552,8 +1576,8 @@ function App() {
         window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
       }
       if (m.type === "unlock") {
-        await api("/vault/unlock", "POST", { password: m.password });
-        setAuth({ ...auth, vaultLocked: false });
+        await api(m.initialize ? "/vault/initialize" : "/vault/unlock", "POST", { password: m.password });
+        setAuth({ ...auth, vaultInitialized: true, vaultLocked: false });
         window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
@@ -1582,105 +1606,20 @@ function App() {
   const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
   const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
   const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
-  if (!auth)
-    return (
-      <div className="login">
-        <div className="login-card">
-          <div className="brand">
-            <b>F</b>FlowHub
-          </div>
-          <h1>正在检查登录状态</h1>
-          <p role="status">正在读取本机管理员状态…</p>
-          {error && (
-            <>
-              <div role="alert" className="banner error">
-                {error}
-              </div>
-              <button disabled={busy} onClick={() => act(checkAuth)}>
-                重试登录状态检查
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
   if (!session)
     return (
-      <div className="login">
-        <div className="login-card">
-          <div className="brand">
-            <b>F</b>FlowHub <small>LOCAL WORKFLOW HUB</small>
-          </div>
-          <h1>{auth?.initialized ? "欢迎回来" : "登录 FlowHub"}</h1>
-          <p>一个 MCP 入口，多条受控工作流。管理会话独立于 Agent 执行身份。</p>
-          {!auth.initialized && <p>默认账号：admin，默认密码：admin。</p>}
-          <label className="field">
-            管理员账号
-            <input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
-          </label>
-          <label className="field">
-            管理员密码
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")
-                  document.getElementById("login")?.click();
-              }}
-              placeholder={auth.initialized ? "请输入密码" : "默认密码：admin"}
-            />
-          </label>
-          {error && (
-            <div role="alert" className="banner error">
-              {error}
-            </div>
+      <div className="workspace-startup">
+        <div className="workspace-startup-card">
+          <div className="brand"><b>F</b>FlowHub</div>
+          {error ? (
+            <>
+              <h1>无法打开本机工作区</h1>
+              <div role="alert" className="banner error">{error}</div>
+              <button disabled={busy} onClick={() => act(connectWorkspace)}>重试连接</button>
+            </>
+          ) : (
+            <p role="status">正在打开本机工作区…</p>
           )}
-          {dirty && draft && (
-            <button
-              onClick={() =>
-                download(
-                  draft.id + "-unsaved.json",
-                  pretty(
-                    jsonTextCache.current.size
-                      ? {
-                          workflow: currentWorkflow(),
-                          pendingJsonText: Object.fromEntries(
-                            jsonTextCache.current,
-                          ),
-                        }
-                      : currentWorkflow(),
-                  ),
-                )
-              }
-            >
-              导出未保存草稿
-            </button>
-          )}
-          <button
-            id="login"
-            className="primary full"
-            disabled={busy || !auth}
-            onClick={() =>
-              act(async () => {
-                const s = await api(
-                  "/auth/session",
-                  "POST",
-                  { username, password },
-                );
-                csrf = s.csrf;
-                setSession(s);
-                setPassword("");
-                setAuth(await api("/auth/state"));
-              })
-            }
-          >
-            {busy ? "正在验证…" : "登录管理中心"}
-          </button>
-          <div className="login-note">
-            默认仅回环监听 · 凭据加密存储
-          </div>
         </div>
       </div>
     );
@@ -1691,11 +1630,6 @@ function App() {
         open={navigationOpen}
         close={() => setNavigationOpen(false)}
         navigate={navigate}
-        busy={busy}
-        logout={() => act(async () => {
-          try { await api("/auth/session", "DELETE"); }
-          finally { csrf = ""; setSession(null); setNavigationOpen(false); }
-        })}
       />
       <main>
         <header className="topbar">
@@ -1729,7 +1663,7 @@ function App() {
           </div>
         </header>
         <div className="workspace">
-          {error && (
+          {error && !(modal?.type === "unlock" && failure?.path?.startsWith("/vault/")) && (
             <div className="banner error" role="alert">
               {error}
               <button onClick={() => setError("")}>×</button>
@@ -1741,7 +1675,7 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
-          {page === "models" && <ModelsPage api={api} onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })} />}
+          {page === "models" && <ModelsPage api={api} onUnlockVault={openVault} />}
           {page === "workflows" && (
             <>
               <PageHead
@@ -3248,15 +3182,9 @@ function App() {
                   <div>
                     {run.vaultLocked && (
                       <div className="banner">
-                        凭据库已锁定，需管理员解锁后才能交付或推进检查点。
+                        凭据库已锁定，解锁后才能交付或推进检查点。
                         <button
-                          onClick={() =>
-                            setModal({
-                              type: "unlock",
-                              title: "解锁凭据库",
-                              password: "",
-                            })
-                          }
+                          onClick={openVault}
                         >
                           解锁
                         </button>
@@ -3480,7 +3408,7 @@ function App() {
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
                 title={navigationLabel("settings")}
-                text="配置唯一 MCP 入口、独立管理权限与本机配置和凭据库。"
+                text="管理 MCP 宿主身份、本机凭据和数据备份。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3511,7 +3439,7 @@ function App() {
                 </section>
                 <CredentialLibrary api={api}
                   onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
-                  onUnlock={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+                  onUnlock={openVault}
                   onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
                   onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
@@ -3562,7 +3490,7 @@ function App() {
         </div>
         <footer>
           FLOWHUB <span>一个入口 · 受控执行 · 证据可追踪</span>
-          <small>本机工作空间 / 独立管理员</small>
+          <small>本机工作空间</small>
         </footer>
       </main>
       <FloatingAssistant
@@ -3575,7 +3503,7 @@ function App() {
         runs={runs}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
-        onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+        onUnlockVault={openVault}
       />
       {modal && (
         <div
@@ -3994,12 +3922,18 @@ function App() {
                 />
               </>
             ) : modal.type === "unlock" ? (
-              <Field
-                label="凭据库口令"
-                type="password"
-                value={modal.password}
-                onChange={(password) => setModal({ ...modal, password })}
-              />
+              <>
+                {modal.initialize && <p>请设置 12–256 个字符的口令，用于加密保存的 MCP 凭据和模型 Key。</p>}
+                <Field
+                  label="凭据库口令"
+                  type="password"
+                  value={modal.password}
+                  onChange={(password) => setModal({ ...modal, password })}
+                />
+                {error && failure?.path?.startsWith("/vault/") && (
+                  <p role="alert" className="error">{error}</p>
+                )}
+              </>
             ) : modal.type === "secret" ? (
               <>
                 <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
