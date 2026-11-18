@@ -89,7 +89,7 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
           try {
             if(stopping)throw new HubError("SERVICE_STOPPING","FlowHub is stopping.",503);
             if (codexSidebar && name === SIDEBAR_TOOL && Object.keys(args).length === 0)
-              return sidebarOpened(launches.issue());
+              return sidebarOpened(service.authoring.sidebarWorkflows(subject));
             return result({
               ...await service.handle(name, args, subject),
               instanceId,

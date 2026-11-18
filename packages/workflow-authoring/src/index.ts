@@ -29,6 +29,17 @@ export class AuthoringService {
     return {...record, workflow:record.draft, layoutRevision:record.layoutRevision ?? 1,
       capabilityRefs:refs(record.draft), issues:this.issues(record.draft)};
   }
+  sidebarWorkflows(owner: string) {
+    ensure(owner === "execution", "AUTH_REQUIRED", "The sidebar requires the local personal identity.", 403);
+    const limit = 100;
+    const rows = this.repo.db.prepare(`SELECT id AS workflowId,
+      json_extract(body, '$.draft.name') AS name,
+      json_extract(body, '$.draft.environment') AS environment,
+      json_extract(body, '$.defaultVersion') AS version
+      FROM workflows WHERE json_extract(body, '$.deletedAt') IS NULL
+      ORDER BY json_extract(body, '$.updatedAt') DESC, id LIMIT ?`).all(limit + 1);
+    return { items: rows.slice(0, limit), hasMore: rows.length > limit };
+  }
   issues(w: Workflow) {
     const issues:Json[]=[];
     try { this.engine.validateDraft(w); }

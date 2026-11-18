@@ -1,6 +1,6 @@
 {
   "name": "mcp-flowhub",
-  "version": "2.0.0-alpha.6",
+  "version": "2.0.0-alpha.7",
   "private": true,
   "type": "module",
   "description": "Local MCP workflow hub with visual MCP orchestration, immutable workflows and evidence reports",
@@ -29,7 +29,7 @@
     "test:plugin:e2e": "npm run build:server && node scripts/accept-installed-plugin.mjs",
     "verify:release": "node scripts/verify-release.mjs",
     "build:server": "node scripts/generate-openapi.mjs && tsc -p tsconfig.json",
-    "build:web": "tsc -p apps/web/tsconfig.json && vite build",
+    "build:web": "tsc -p apps/web/tsconfig.json && vite build && vite build --config apps/web/vite.sidebar.config.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "test:ui": "playwright test",
     "test:authoring": "npm run build:server && node --test dist/tests/engine/v2-authoring.test.js",
@@ -55,6 +55,7 @@
     "yaml": "2.9.1"
   },
   "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
     "@playwright/test": "1.64.1",
     "@types/better-sqlite3": "7.6.13",
     "@types/node": "24.10.1",

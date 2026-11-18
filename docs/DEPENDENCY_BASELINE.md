@@ -60,3 +60,7 @@ smol-toml 1.4.2（BSD-3-Clause），真实 TOML 解析及静态配置回退；�
 - 插件入口、打包与验证使用 Node 内置模块，没有新增直接依赖；Node 24.19.0 / npm 11.9.0、官方 MCP SDK 版本保持不变。
 - 本轮 `npm audit --omit=dev` 发现 `hono 4.13.14` 和 `@hono/node-server 2.1.5` 的中危公告。将这两个传递依赖在 SDK 现有兼容范围内分别更新至 **4.13.19**、**2.1.9**；只更新对应 lockfile 的版本、resolved 与 integrity，没有使用 force 或放宽 TLS 校验。
 - 用更新后的 `npm ci`、完整检查和测试、生产依赖审计、离线包与真实本地 Codex 插件安装验证，结果见插件交付证据。Python Skill 校验依赖安装在仓库外临时虚拟环境，不加入产品依赖。
+
+## 2026-11-19 全屏 MCP App
+
+- `@modelcontextprotocol/ext-apps 2.0.4`（MIT），固定为构建依赖。由 Vite 打入全屏 MCP App 的本地脚本，用于 UI 握手与宿主工具调用。相关依赖由 lockfile 锁定，构建生成第三方许可清单。服务端及 STDIO 继续使用原 SDK 版本。

@@ -31,7 +31,9 @@ codex plugin add flowhub@flowhub-local
 ./flowhub-plugin doctor
 ```
 
-从 alpha.5 起，支持 MCP App 全局入口的 Codex 桌面端可在左侧导航打开 **FlowHub**。允许内嵌本机 HTTP 的宿主会加载原管理工作区，使用同一个 Vault 和业务数据库。宿主规则拦截内嵌时，alpha.6 会显示浏览器打开入口和本机地址。可在 Codex 内置浏览器输入该地址，打开完整管理页。
+从 alpha.7 起，支持 MCP App 全局入口的 Codex 桌面端可在左侧导航打开 **FlowHub**。全屏应用通过官方 MCP Apps SDK 调用本机 FlowHub 工具，可以浏览工作流和草稿节点、查询能力目录、校验草稿结构、生成确定性用例和运行隔离 Mock 自测。左栏列出最近 100 条工作流，也可以按 ID 打开草稿。画布编排、连接和凭据管理通过顶部的 **打开完整管理页** 进入浏览器。
+
+全屏应用直接使用 MCP UI 资源。其交互通过 Codex 的 MCP 桥接完成，无需访问本机 HTTP、嵌入子页面或获取管理会话。可打开完整管理页的本机地址随资源生成。
 
 在 Codex 的 FlowHub 插件卡片也可选择 **打开 FlowHub 管理页面**。终端中可运行 `./flowhub-plugin open` 打开默认浏览器，或运行 `./flowhub-plugin url` 获取地址。命令使用连接配置中的数据目录与后台的实际端口，先检查后台是否健康。默认本机地址为 [http://127.0.0.1:18473](http://127.0.0.1:18473)。
 

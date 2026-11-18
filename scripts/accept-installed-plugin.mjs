@@ -395,12 +395,16 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       threadId: report.threadId, server: "flowhub", uri: resourceUri,
     });
     assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");
-    assert.deepEqual(resource.contents[0]._meta.ui.csp.frameDomains, [base]);
+    assert.deepEqual(resource.contents[0]._meta["openai/ui"].availableDisplayModes, ["fullscreen"]);
+    assert.doesNotMatch(resource.contents[0].text, /<iframe[\s>]/i);
+    assert.match(resource.contents[0].text, /校验与自测/);
     const launch = await rpc("mcpServer/tool/call", {
       threadId: report.threadId, server: "flowhub", tool: "project_help_search", arguments: {},
     });
     assert.equal(launch.structuredContent.opened, true);
-    assert.ok(/^[a-f0-9]{64}$/.test(launch._meta?.["flowhub/launch"]), "Codex preserves the private launch metadata");
+    assert.ok(launch._meta?.["flowhub/workflows"]?.items.some(item => item.workflowId === "incident-production"),
+      "Codex preserves the app-only workflow index");
+    assert.equal(launch._meta?.["flowhub/launch"], undefined);
     const skills = (
       await rpc("skills/list", { cwds: [cwd], forceReload: true })
     ).data
