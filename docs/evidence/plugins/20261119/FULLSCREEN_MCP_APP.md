@@ -13,4 +13,8 @@
 
 包源码提交为 `f31cfca1a2a79f9e68383fc9e7933a7881f4badd`，归档 SHA-256 为 `782e6519a0eeef5234355fd077ed1dc9affee311d8340b903ee661e88f301a9f`。本地日志位于 `artifacts/fullscreen-mcp-app-20261119/`。
 
-首次桌面点击返回 `Resource not found`。桌面进程 26.1111.71025 复用了更新前启动的 alpha.6 STDIO 桥，而安装后的工具配置和 daemon 均已是 alpha.7。须重开桌面进程并验证资源渲染。真实模型、企业连接和 Windows 原生环境本轮未验证。
+首次桌面点击返回 `Resource not found`。桌面进程 26.1111.71025 复用了更新前启动的 alpha.6 STDIO 桥，而安装后的工具配置和 daemon 均已是 alpha.7。
+
+2026-11-19 07:41（北京时间），用户完全退出并重新打开桌面客户端。日志记录新版 STDIO 桥启动、侧栏读取 alpha.7 UI 资源并调用 `workflow_draft_get`。用户截图确认 Codex 内已渲染全屏应用，显示 3 条本机工作流，且可打开草稿 r1 并读取两个节点。
+
+生成用例与 Mock 自测通过隔离验收。此轮实机截图覆盖侧栏打开、工作流列表和草稿详情。真实模型、企业连接和 Windows 原生环境未验证。
