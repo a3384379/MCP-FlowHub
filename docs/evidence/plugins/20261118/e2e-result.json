@@ -1,0 +1,161 @@
+{
+  "startedAt": "2026-11-18T13:47:21.284Z",
+  "installed": "/Users/sqz/.codex/plugins/cache/flowhub-local/flowhub/2.0.0-alpha.2",
+  "codex": "/Users/sqz/Desktop/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+  "dataDir": "/Volumes/雷电/BuildArtifacts/FlowHub/artifacts/plugin-e2e-2026-11-18T13-47-21-279Z/private/data",
+  "output": "/Users/sqz/Documents/ChatGPT/mcp管理工具/artifacts/plugin-e2e-2026-11-18T13-47-21-279Z",
+  "stages": [
+    {
+      "name": "installed_package_and_isolated_runtime",
+      "status": "PASS",
+      "packageVersion": "2.0.0-alpha.2",
+      "codexUserAgent": "flowhub-installed-e2e/0.169.0-alpha.11.1 (Mac OS 26.6.2; arm64) unknown (flowhub-installed-e2e; 1)",
+      "tools": 21,
+      "skills": [
+        "flowhub:flowhub-author",
+        "flowhub:flowhub-setup",
+        "flowhub:flowhub-test-report"
+      ],
+      "separateDataDir": true,
+      "installedBytesMatch": true,
+      "durationMs": 6509
+    },
+    {
+      "name": "real_user_metadata_readonly",
+      "status": "PASS",
+      "scanId": "scan_c40e5be0-d24a-4ed6-aeb5-cba56ac56be0",
+      "scanStatus": "PARTIAL",
+      "mode": "config_only",
+      "counts": {
+        "mcp_server": 10,
+        "plugin": 26,
+        "skill": 68
+      },
+      "issues": [
+        "PLUGIN_VERSION_AMBIGUOUS",
+        "STATIC_RESOLUTION_PARTIAL"
+      ],
+      "liveCatalogNotClaimed": true,
+      "durationMs": 230
+    },
+    {
+      "name": "discover_catalog_local_fixture_and_chinese_description",
+      "status": "PASS",
+      "scanId": "scan_44ca3390-d389-44d6-9460-5df4c2224b34",
+      "scanStatus": "PARTIAL",
+      "issues": [
+        "APP_SERVER_PARTIAL"
+      ],
+      "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+      "capabilityRevision": 1,
+      "executor": "hub_direct",
+      "bindingId": "binding_2cfe18d3e2a23611bc63293f",
+      "bindingValidation": "MOCK_VERIFIED",
+      "catalogBusinessCalls": 0,
+      "durationMs": 803
+    },
+    {
+      "name": "author_7_node_workflow_atomicity_cas_idempotency",
+      "status": "PASS",
+      "workflowId": "plugin-e2e-1795009648023",
+      "revision": 2,
+      "nodes": 7,
+      "validation": true,
+      "repeatedPatchDoesNotDuplicate": true,
+      "staleCasRejected": true,
+      "durationMs": 63
+    },
+    {
+      "name": "deterministic_generation_reports_missing_fixtures",
+      "status": "PASS",
+      "suiteId": "suite_6b6a1620-bb04-49b8-8de5-770b35a46e04",
+      "generatedCases": 7,
+      "suiteStatus": "PARTIAL",
+      "summary": {
+        "passed": 4,
+        "failed": 0,
+        "uncovered": 3,
+        "total": 7
+      },
+      "missingFixtureIsNotPassed": true,
+      "durationMs": 853
+    },
+    {
+      "name": "agent_proposed_cases_and_isolated_mock_assertions",
+      "status": "PASS",
+      "suiteId": "suite_f3899ca0-e225-4539-b9c7-921b947ee5b5",
+      "testRunId": "test_745fd412-7b75-4bfc-b02f-85e6caa36cb1",
+      "summary": {
+        "passed": 2,
+        "failed": 0,
+        "uncovered": 0,
+        "total": 2
+      },
+      "assertionsPassed": 18,
+      "branchCoverage": [
+        {
+          "nodeId": "branch",
+          "true": true,
+          "false": true
+        }
+      ],
+      "networkCalls": 0,
+      "realSecretReads": 0,
+      "actualFixtureCallsDuringMock": 0,
+      "durationMs": 331
+    },
+    {
+      "name": "wrong_assertion_fails_even_when_engine_succeeds",
+      "status": "PASS",
+      "expectedStatus": "FAILED",
+      "actualStatus": "FAILED",
+      "engineState": "SUCCEEDED",
+      "independentlyRejected": true,
+      "durationMs": 330
+    },
+    {
+      "name": "draft_change_invalidates_old_suite_and_regeneration_recovers",
+      "status": "PASS",
+      "revision": 3,
+      "staleSuiteRejected": true,
+      "regeneratedSuiteId": "suite_317e7790-c7b6-4ba5-8639-9a9f27d3f740",
+      "testRunId": "test_12e22b68-dc6f-4e4f-856a-ecb8249b8261",
+      "statusAfterRegeneration": "SUCCEEDED",
+      "durationMs": 606
+    },
+    {
+      "name": "publish_execute_both_branches_host_checkpoint_and_read_report",
+      "status": "PASS",
+      "workflowId": "plugin-e2e-1795009648023",
+      "version": "1.0.0",
+      "runs": [
+        {
+          "runId": "run_33ce66b4-03bf-4d5f-9b80-fbb8964f0953",
+          "needDetails": true,
+          "state": "SUCCEEDED",
+          "artifactId": "art_d20ff08f-922d-4741-99b9-939ab16ec1b8",
+          "reportBytes": 2159
+        },
+        {
+          "runId": "run_0851247c-25e5-4229-b75b-ce7cbe63bc45",
+          "needDetails": false,
+          "state": "SUCCEEDED",
+          "artifactId": "art_d2d40156-a244-47b6-9eea-c10952eed079",
+          "reportBytes": 1734
+        }
+      ],
+      "syntheticProtocolFixtureBusinessCalls": 4,
+      "modelQualityAcceptance": "UNVERIFIED",
+      "durationMs": 649
+    }
+  ],
+  "completed": true,
+  "modelTurns": 0,
+  "enterpriseCalls": 0,
+  "paidProviderCalls": 0,
+  "threadId": "01a1eee9-8e7d-7ae2-be7e-0ac3c9fd6904",
+  "workflowId": "plugin-e2e-1795009648023",
+  "userConfigAndConnectionUnchanged": true,
+  "finishedAt": "2026-11-18T13:47:31.692Z",
+  "privateDataRetainedForInspection": true
+}

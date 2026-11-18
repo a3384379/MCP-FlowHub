@@ -26,6 +26,7 @@
     "test:installer:windows": "node scripts/smoke-windows-installer.mjs",
     "test:package": "node scripts/smoke-package.mjs",
     "test:plugin": "node scripts/smoke-plugin.mjs",
+    "test:plugin:e2e": "npm run build:server && node scripts/accept-installed-plugin.mjs",
     "verify:release": "node scripts/verify-release.mjs",
     "build:server": "node scripts/generate-openapi.mjs && tsc -p tsconfig.json",
     "build:web": "tsc -p apps/web/tsconfig.json && vite build",

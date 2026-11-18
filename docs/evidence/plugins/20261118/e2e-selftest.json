@@ -1,0 +1,630 @@
+{
+  "id": "test_745fd412-7b75-4bfc-b02f-85e6caa36cb1",
+  "suiteId": "suite_f3899ca0-e225-4539-b9c7-921b947ee5b5",
+  "workflowId": "plugin-e2e-1795009648023",
+  "owner": "execution",
+  "mode": "mock",
+  "scope": null,
+  "scopeHash": null,
+  "snapshotHash": "sha256:c985700e19b5ff714ca29a9781fcb73ca78c8186bdf4ec6b85d1d333d0af221e",
+  "validationLevel": "mock",
+  "toolCalls": 3,
+  "catalogChecks": 0,
+  "credentialReadAccounting": "none",
+  "syntheticBindings": [
+    "binding_2cfe18d3e2a23611bc63293f"
+  ],
+  "status": "SUCCEEDED",
+  "cases": [
+    {
+      "id": "with-details",
+      "name": "插件完整验收：需要补充核对",
+      "status": "PASSED",
+      "assertions": [
+        {
+          "kind": "terminal_state",
+          "expected": "SUCCEEDED",
+          "actual": "SUCCEEDED",
+          "passed": true
+        },
+        {
+          "kind": "tool_call_count",
+          "nodeId": "lookup",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "kind": "argument_equals",
+          "nodeId": "lookup",
+          "pointer": "/orderNo",
+          "expected": "DEMO-PLUGIN-01",
+          "actual": "DEMO-PLUGIN-01",
+          "passed": true
+        },
+        {
+          "kind": "output_equals",
+          "nodeId": "lookup",
+          "pointer": "/message",
+          "expected": "合成订单 · 中文与 emoji ✅",
+          "actual": "合成订单 · 中文与 emoji ✅",
+          "passed": true
+        },
+        {
+          "kind": "node_state",
+          "nodeId": "analysis",
+          "expected": "SUCCEEDED",
+          "actual": "SUCCEEDED",
+          "passed": true
+        },
+        {
+          "kind": "output_equals",
+          "nodeId": "branch",
+          "pointer": "",
+          "expected": true,
+          "actual": true,
+          "passed": true
+        },
+        {
+          "kind": "tool_called",
+          "nodeId": "detail",
+          "expected": true,
+          "actual": true,
+          "passed": true
+        },
+        {
+          "kind": "tool_call_count",
+          "nodeId": "detail",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "kind": "artifact_contains",
+          "nodeId": "report",
+          "expected": "插件完整验收：需要补充核对",
+          "actual": true,
+          "passed": true
+        }
+      ],
+      "errorCode": null,
+      "trace": [
+        {
+          "nodeId": "lookup",
+          "arguments": {
+            "orderNo": "DEMO-PLUGIN-01"
+          },
+          "responseMode": "structured"
+        },
+        {
+          "nodeId": "detail",
+          "arguments": {
+            "orderNo": "DEMO-PLUGIN-01"
+          },
+          "responseMode": "structured"
+        }
+      ],
+      "outputs": {
+        "input": {
+          "orderNo": "DEMO-PLUGIN-01",
+          "needDetails": true
+        },
+        "lookup": {
+          "synthetic": true,
+          "environment": "test",
+          "sentinel": "FLOWHUB_S0_TEST_ONLY_041",
+          "orderNo": "DEMO-PLUGIN-01",
+          "message": "合成订单 · 中文与 emoji ✅"
+        },
+        "analysis": {
+          "summary": "插件完整验收：需要补充核对"
+        },
+        "branch": true,
+        "detail": {
+          "synthetic": true,
+          "environment": "test",
+          "sentinel": "FLOWHUB_S0_TEST_ONLY_041",
+          "orderNo": "DEMO-PLUGIN-01",
+          "message": "合成订单 · 中文与 emoji ✅"
+        },
+        "report": {
+          "reportMarkdown": "# 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：需要补充核对\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.851Z RUN_CREATED\n- 2026-11-18T13:47:29.851Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.852Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.852Z TOOL_PREPARING\n- 2026-11-18T13:47:29.852Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.853Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.853Z WAITING_AGENT\n- 2026-11-18T13:47:29.855Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.855Z CONDITION_SELECTED\n- 2026-11-18T13:47:29.855Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.855Z TOOL_PREPARING\n- 2026-11-18T13:47:29.855Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.856Z TOOL_SUCCEEDED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    \"kind\": \"unknown\",\n    \"statement\": \"证据不足，未形成判断。\",\n    \"evidenceRefs\": []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_e5bb425e-c30f-4b07-92d2-5454d3d63667 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bf502881-c04e-470d-9fe8-f2a28573a73d / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n- art_c188184c-3e62-4d98-bf5e-8a083cfd8ea2 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_804eaad8-43c5-47dd-bc89-d1437c0b37c3 / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。",
+          "evidenceRefs": [
+            "art_e5bb425e-c30f-4b07-92d2-5454d3d63667",
+            "art_bf502881-c04e-470d-9fe8-f2a28573a73d",
+            "art_c188184c-3e62-4d98-bf5e-8a083cfd8ea2",
+            "art_804eaad8-43c5-47dd-bc89-d1437c0b37c3"
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "id": "art_e5bb425e-c30f-4b07-92d2-5454d3d63667",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "lookup",
+          "content": "{\"content\":[],\"structuredContent\":{\"synthetic\":true,\"environment\":\"test\",\"sentinel\":\"FLOWHUB_S0_TEST_ONLY_041\",\"orderNo\":\"DEMO-PLUGIN-01\",\"message\":\"合成订单 · 中文与 emoji ✅\"}}",
+          "mimeType": "application/mcp+json",
+          "sha256": "acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5",
+          "byteLength": 187,
+          "createdAt": "2026-11-18T13:47:29.853Z",
+          "expiresAt": 1795614449853,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true
+          }
+        },
+        {
+          "id": "art_bf502881-c04e-470d-9fe8-f2a28573a73d",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "lookup",
+          "content": "{\n  \"synthetic\": true,\n  \"environment\": \"test\",\n  \"sentinel\": \"FLOWHUB_S0_TEST_ONLY_041\",\n  \"orderNo\": \"DEMO-PLUGIN-01\",\n  \"message\": \"合成订单 · 中文与 emoji ✅\"\n}",
+          "mimeType": "application/json",
+          "sha256": "06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f",
+          "byteLength": 173,
+          "createdAt": "2026-11-18T13:47:29.853Z",
+          "expiresAt": 1795614449853,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true,
+            "truncated": false
+          }
+        },
+        {
+          "id": "art_c188184c-3e62-4d98-bf5e-8a083cfd8ea2",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "detail",
+          "content": "{\"content\":[],\"structuredContent\":{\"synthetic\":true,\"environment\":\"test\",\"sentinel\":\"FLOWHUB_S0_TEST_ONLY_041\",\"orderNo\":\"DEMO-PLUGIN-01\",\"message\":\"合成订单 · 中文与 emoji ✅\"}}",
+          "mimeType": "application/mcp+json",
+          "sha256": "acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5",
+          "byteLength": 187,
+          "createdAt": "2026-11-18T13:47:29.856Z",
+          "expiresAt": 1795614449856,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true
+          }
+        },
+        {
+          "id": "art_804eaad8-43c5-47dd-bc89-d1437c0b37c3",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "detail",
+          "content": "{\n  \"synthetic\": true,\n  \"environment\": \"test\",\n  \"sentinel\": \"FLOWHUB_S0_TEST_ONLY_041\",\n  \"orderNo\": \"DEMO-PLUGIN-01\",\n  \"message\": \"合成订单 · 中文与 emoji ✅\"\n}",
+          "mimeType": "application/json",
+          "sha256": "06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f",
+          "byteLength": 173,
+          "createdAt": "2026-11-18T13:47:29.856Z",
+          "expiresAt": 1795614449856,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true,
+            "truncated": false
+          }
+        },
+        {
+          "id": "art_03d5c4fb-b6e8-40c8-81a8-0694135e4406",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "report",
+          "content": "# 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：需要补充核对\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.851Z RUN_CREATED\n- 2026-11-18T13:47:29.851Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.852Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.852Z TOOL_PREPARING\n- 2026-11-18T13:47:29.852Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.853Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.853Z WAITING_AGENT\n- 2026-11-18T13:47:29.855Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.855Z CONDITION_SELECTED\n- 2026-11-18T13:47:29.855Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.855Z TOOL_PREPARING\n- 2026-11-18T13:47:29.855Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.856Z TOOL_SUCCEEDED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    \"kind\": \"unknown\",\n    \"statement\": \"证据不足，未形成判断。\",\n    \"evidenceRefs\": []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_e5bb425e-c30f-4b07-92d2-5454d3d63667 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bf502881-c04e-470d-9fe8-f2a28573a73d / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n- art_c188184c-3e62-4d98-bf5e-8a083cfd8ea2 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_804eaad8-43c5-47dd-bc89-d1437c0b37c3 / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。",
+          "mimeType": "text/markdown",
+          "sha256": "b1bf5660d14bbf66b1424e156769bd8239ecd31c3d8408fc370e85a6445049cc",
+          "byteLength": 2159,
+          "createdAt": "2026-11-18T13:47:29.857Z",
+          "expiresAt": 1795614449857,
+          "verification": {
+            "contentStored": true,
+            "formatValidated": true,
+            "evidenceReferencesValidated": true,
+            "skillExecution": "not_used",
+            "factualReview": "not_performed"
+          }
+        },
+        {
+          "id": "art_ee310647-5294-4f0e-9f17-32047ba33589",
+          "runId": "run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222",
+          "nodeId": "report",
+          "content": "<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\"><title>FlowHub 排查报告</title><style>body{max-width:960px;margin:40px auto;padding:24px;font:15px/1.9 system-ui;color:#172b46}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style><pre># 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：需要补充核对\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.851Z RUN_CREATED\n- 2026-11-18T13:47:29.851Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.852Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.852Z TOOL_PREPARING\n- 2026-11-18T13:47:29.852Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.853Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.853Z WAITING_AGENT\n- 2026-11-18T13:47:29.855Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.855Z CONDITION_SELECTED\n- 2026-11-18T13:47:29.855Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.855Z TOOL_PREPARING\n- 2026-11-18T13:47:29.855Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.856Z TOOL_SUCCEEDED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    &quot;kind&quot;: &quot;unknown&quot;,\n    &quot;statement&quot;: &quot;证据不足，未形成判断。&quot;,\n    &quot;evidenceRefs&quot;: []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_e5bb425e-c30f-4b07-92d2-5454d3d63667 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bf502881-c04e-470d-9fe8-f2a28573a73d / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n- art_c188184c-3e62-4d98-bf5e-8a083cfd8ea2 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_804eaad8-43c5-47dd-bc89-d1437c0b37c3 / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_bd13b9bf-7fa3-47e6-80ad-23a5c2c71222\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。</pre></html>",
+          "mimeType": "text/html",
+          "sha256": "81591f723f2268f1d038e78dd472ec9b89d4f89daa766e4ed4ce324d4ea992b3",
+          "byteLength": 2582,
+          "createdAt": "2026-11-18T13:47:29.857Z",
+          "expiresAt": 1795614449857,
+          "verification": {
+            "contentStored": true,
+            "formatValidated": true,
+            "evidenceReferencesValidated": true,
+            "skillExecution": "not_used",
+            "factualReview": "not_performed",
+            "sourceMarkdownArtifact": "art_03d5c4fb-b6e8-40c8-81a8-0694135e4406"
+          }
+        }
+      ],
+      "events": [
+        {
+          "seq": 1,
+          "type": "RUN_CREATED",
+          "workflowId": "plugin-e2e-1795009648023",
+          "environment": "test",
+          "createdAt": "2026-11-18T13:47:29.851Z"
+        },
+        {
+          "seq": 2,
+          "type": "NODE_SUCCEEDED",
+          "nodeId": "input",
+          "createdAt": "2026-11-18T13:47:29.851Z"
+        },
+        {
+          "seq": 3,
+          "type": "TOOL_LIMIT_ENFORCEMENT",
+          "nodeId": "lookup",
+          "status": "unsupported",
+          "argumentPointer": null,
+          "effectiveLimit": null,
+          "postResultRowBudget": 100,
+          "createdAt": "2026-11-18T13:47:29.852Z"
+        },
+        {
+          "seq": 4,
+          "type": "TOOL_PREPARING",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.852Z"
+        },
+        {
+          "seq": 5,
+          "type": "TOOL_DISPATCH",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.852Z"
+        },
+        {
+          "seq": 6,
+          "type": "TOOL_SUCCEEDED",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.853Z"
+        },
+        {
+          "seq": 7,
+          "type": "WAITING_AGENT",
+          "nodeId": "analysis",
+          "createdAt": "2026-11-18T13:47:29.853Z"
+        },
+        {
+          "seq": 8,
+          "type": "AGENT_RESULT_ACCEPTED",
+          "nodeId": "analysis",
+          "createdAt": "2026-11-18T13:47:29.855Z"
+        },
+        {
+          "seq": 9,
+          "type": "CONDITION_SELECTED",
+          "nodeId": "branch",
+          "createdAt": "2026-11-18T13:47:29.855Z"
+        },
+        {
+          "seq": 10,
+          "type": "TOOL_LIMIT_ENFORCEMENT",
+          "nodeId": "detail",
+          "status": "unsupported",
+          "argumentPointer": null,
+          "effectiveLimit": null,
+          "postResultRowBudget": 100,
+          "createdAt": "2026-11-18T13:47:29.855Z"
+        },
+        {
+          "seq": 11,
+          "type": "TOOL_PREPARING",
+          "nodeId": "detail",
+          "createdAt": "2026-11-18T13:47:29.855Z"
+        },
+        {
+          "seq": 12,
+          "type": "TOOL_DISPATCH",
+          "nodeId": "detail",
+          "createdAt": "2026-11-18T13:47:29.855Z"
+        },
+        {
+          "seq": 13,
+          "type": "TOOL_SUCCEEDED",
+          "nodeId": "detail",
+          "createdAt": "2026-11-18T13:47:29.856Z"
+        },
+        {
+          "seq": 14,
+          "type": "NODE_SUCCEEDED",
+          "nodeId": "report",
+          "createdAt": "2026-11-18T13:47:29.857Z"
+        },
+        {
+          "seq": 15,
+          "type": "RUN_SUCCEEDED",
+          "nodeId": "end",
+          "createdAt": "2026-11-18T13:47:29.857Z"
+        }
+      ],
+      "provenance": "synthetic_fixture",
+      "validationLevel": "mock",
+      "gaps": [],
+      "executionState": "SUCCEEDED"
+    },
+    {
+      "id": "without-details",
+      "name": "插件完整验收：无需补查",
+      "status": "PASSED",
+      "assertions": [
+        {
+          "kind": "terminal_state",
+          "expected": "SUCCEEDED",
+          "actual": "SUCCEEDED",
+          "passed": true
+        },
+        {
+          "kind": "tool_call_count",
+          "nodeId": "lookup",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "kind": "argument_equals",
+          "nodeId": "lookup",
+          "pointer": "/orderNo",
+          "expected": "DEMO-PLUGIN-01",
+          "actual": "DEMO-PLUGIN-01",
+          "passed": true
+        },
+        {
+          "kind": "output_equals",
+          "nodeId": "lookup",
+          "pointer": "/message",
+          "expected": "合成订单 · 中文与 emoji ✅",
+          "actual": "合成订单 · 中文与 emoji ✅",
+          "passed": true
+        },
+        {
+          "kind": "node_state",
+          "nodeId": "analysis",
+          "expected": "SUCCEEDED",
+          "actual": "SUCCEEDED",
+          "passed": true
+        },
+        {
+          "kind": "output_equals",
+          "nodeId": "branch",
+          "pointer": "",
+          "expected": false,
+          "actual": false,
+          "passed": true
+        },
+        {
+          "kind": "tool_called",
+          "nodeId": "detail",
+          "expected": false,
+          "actual": false,
+          "passed": true
+        },
+        {
+          "kind": "tool_call_count",
+          "nodeId": "detail",
+          "expected": 0,
+          "actual": 0,
+          "passed": true
+        },
+        {
+          "kind": "artifact_contains",
+          "nodeId": "report",
+          "expected": "插件完整验收：无需补查",
+          "actual": true,
+          "passed": true
+        }
+      ],
+      "errorCode": null,
+      "trace": [
+        {
+          "nodeId": "lookup",
+          "arguments": {
+            "orderNo": "DEMO-PLUGIN-01"
+          },
+          "responseMode": "structured"
+        }
+      ],
+      "outputs": {
+        "input": {
+          "orderNo": "DEMO-PLUGIN-01",
+          "needDetails": false
+        },
+        "lookup": {
+          "synthetic": true,
+          "environment": "test",
+          "sentinel": "FLOWHUB_S0_TEST_ONLY_041",
+          "orderNo": "DEMO-PLUGIN-01",
+          "message": "合成订单 · 中文与 emoji ✅"
+        },
+        "analysis": {
+          "summary": "插件完整验收：无需补查"
+        },
+        "branch": false,
+        "report": {
+          "reportMarkdown": "# 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：无需补查\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.978Z RUN_CREATED\n- 2026-11-18T13:47:29.978Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.978Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.978Z TOOL_PREPARING\n- 2026-11-18T13:47:29.978Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.979Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.979Z WAITING_AGENT\n- 2026-11-18T13:47:29.982Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.982Z CONDITION_SELECTED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    \"kind\": \"unknown\",\n    \"statement\": \"证据不足，未形成判断。\",\n    \"evidenceRefs\": []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_ec9b08d4-670a-4ca5-89f9-f4f7ead88347 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bdda36f3-3138-455d-9000-ce4b165dad0a / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。",
+          "evidenceRefs": [
+            "art_ec9b08d4-670a-4ca5-89f9-f4f7ead88347",
+            "art_bdda36f3-3138-455d-9000-ce4b165dad0a"
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "id": "art_ec9b08d4-670a-4ca5-89f9-f4f7ead88347",
+          "runId": "run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537",
+          "nodeId": "lookup",
+          "content": "{\"content\":[],\"structuredContent\":{\"synthetic\":true,\"environment\":\"test\",\"sentinel\":\"FLOWHUB_S0_TEST_ONLY_041\",\"orderNo\":\"DEMO-PLUGIN-01\",\"message\":\"合成订单 · 中文与 emoji ✅\"}}",
+          "mimeType": "application/mcp+json",
+          "sha256": "acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5",
+          "byteLength": 187,
+          "createdAt": "2026-11-18T13:47:29.979Z",
+          "expiresAt": 1795614449979,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true
+          }
+        },
+        {
+          "id": "art_bdda36f3-3138-455d-9000-ce4b165dad0a",
+          "runId": "run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537",
+          "nodeId": "lookup",
+          "content": "{\n  \"synthetic\": true,\n  \"environment\": \"test\",\n  \"sentinel\": \"FLOWHUB_S0_TEST_ONLY_041\",\n  \"orderNo\": \"DEMO-PLUGIN-01\",\n  \"message\": \"合成订单 · 中文与 emoji ✅\"\n}",
+          "mimeType": "application/json",
+          "sha256": "06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f",
+          "byteLength": 173,
+          "createdAt": "2026-11-18T13:47:29.979Z",
+          "expiresAt": 1795614449979,
+          "verification": {
+            "contentStored": true,
+            "synthetic": true,
+            "truncated": false
+          }
+        },
+        {
+          "id": "art_6a34ff67-5934-41d7-b3fe-94d617f1a6da",
+          "runId": "run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537",
+          "nodeId": "report",
+          "content": "# 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：无需补查\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.978Z RUN_CREATED\n- 2026-11-18T13:47:29.978Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.978Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.978Z TOOL_PREPARING\n- 2026-11-18T13:47:29.978Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.979Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.979Z WAITING_AGENT\n- 2026-11-18T13:47:29.982Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.982Z CONDITION_SELECTED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    \"kind\": \"unknown\",\n    \"statement\": \"证据不足，未形成判断。\",\n    \"evidenceRefs\": []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_ec9b08d4-670a-4ca5-89f9-f4f7ead88347 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bdda36f3-3138-455d-9000-ce4b165dad0a / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。",
+          "mimeType": "text/markdown",
+          "sha256": "9dc7c9632d6d9fee396402154d4b79c02c8594db0780afa039eba90699caf5be",
+          "byteLength": 1734,
+          "createdAt": "2026-11-18T13:47:29.984Z",
+          "expiresAt": 1795614449984,
+          "verification": {
+            "contentStored": true,
+            "formatValidated": true,
+            "evidenceReferencesValidated": true,
+            "skillExecution": "not_used",
+            "factualReview": "not_performed"
+          }
+        },
+        {
+          "id": "art_6f01ee76-4f12-4497-9f4b-2c2cc1b58fb2",
+          "runId": "run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537",
+          "nodeId": "report",
+          "content": "<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\"><title>FlowHub 排查报告</title><style>body{max-width:960px;margin:40px auto;padding:24px;font:15px/1.9 system-ui;color:#172b46}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style><pre># 问题排查报告\n\n## 问题摘要\n\n插件完整链路验收：仅核对本地合成订单，不作生产排障结论。\n\n插件完整验收：无需补查\n\n## 环境与范围\n\n固定环境：test；订单：DEMO-PLUGIN-01；范围：未映射 → 未映射（含时区）。\n\n## 时间线\n\n- 2026-11-18T13:47:29.978Z RUN_CREATED\n- 2026-11-18T13:47:29.978Z NODE_SUCCEEDED\n- 2026-11-18T13:47:29.978Z TOOL_LIMIT_ENFORCEMENT\n- 2026-11-18T13:47:29.978Z TOOL_PREPARING\n- 2026-11-18T13:47:29.978Z TOOL_DISPATCH\n- 2026-11-18T13:47:29.979Z TOOL_SUCCEEDED\n- 2026-11-18T13:47:29.979Z WAITING_AGENT\n- 2026-11-18T13:47:29.982Z AGENT_RESULT_ACCEPTED\n- 2026-11-18T13:47:29.982Z CONDITION_SELECTED\n\n## 日志证据\n\n未取得日志证据。\n\n## 数据库核对\n\n数据库未查询：没有成功执行的数据库核对证据；不能认定正常。\n\n## 判断与置信依据\n\n[\n  {\n    &quot;kind&quot;: &quot;unknown&quot;,\n    &quot;statement&quot;: &quot;证据不足，未形成判断。&quot;,\n    &quot;evidenceRefs&quot;: []\n  }\n]\n\n## 尚未验证的假设\n\n未经过人工事实复核；截断或未覆盖范围仍有证据缺口。合成演示不代表实际生产系统结论。\n\n## 建议下一步\n\n人工核验结论与缺失证据，扩大范围前重新授权。\n\n## 证据索引\n\n- art_ec9b08d4-670a-4ca5-89f9-f4f7ead88347 / acde840d1049574ab7eb9b6d1f96eef5c18824bf87e4ad644002eb12f6313bd5 / 187 bytes\n- art_bdda36f3-3138-455d-9000-ce4b165dad0a / 06416e8f7bcb1d53bd4927935e8154be0e9e351235c7a577c103f29f1704669f / 173 bytes\n\n## 运行版本与限制\n\nplugin-e2e-1795009648023@1.0.0\nsha256:f3429379ce31304facfc81438f5fd802d6c25471e5cfbc300cf915b614b073d4\nrunId: run_eb69ab75-19bb-4bdb-ab9c-a92ecdcbe537\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。</pre></html>",
+          "mimeType": "text/html",
+          "sha256": "e222710137852b5086f5f1cca41da0db0e19784674e6a70e337f9d153416c8a0",
+          "byteLength": 2157,
+          "createdAt": "2026-11-18T13:47:29.984Z",
+          "expiresAt": 1795614449984,
+          "verification": {
+            "contentStored": true,
+            "formatValidated": true,
+            "evidenceReferencesValidated": true,
+            "skillExecution": "not_used",
+            "factualReview": "not_performed",
+            "sourceMarkdownArtifact": "art_6a34ff67-5934-41d7-b3fe-94d617f1a6da"
+          }
+        }
+      ],
+      "events": [
+        {
+          "seq": 1,
+          "type": "RUN_CREATED",
+          "workflowId": "plugin-e2e-1795009648023",
+          "environment": "test",
+          "createdAt": "2026-11-18T13:47:29.978Z"
+        },
+        {
+          "seq": 2,
+          "type": "NODE_SUCCEEDED",
+          "nodeId": "input",
+          "createdAt": "2026-11-18T13:47:29.978Z"
+        },
+        {
+          "seq": 3,
+          "type": "TOOL_LIMIT_ENFORCEMENT",
+          "nodeId": "lookup",
+          "status": "unsupported",
+          "argumentPointer": null,
+          "effectiveLimit": null,
+          "postResultRowBudget": 100,
+          "createdAt": "2026-11-18T13:47:29.978Z"
+        },
+        {
+          "seq": 4,
+          "type": "TOOL_PREPARING",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.978Z"
+        },
+        {
+          "seq": 5,
+          "type": "TOOL_DISPATCH",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.978Z"
+        },
+        {
+          "seq": 6,
+          "type": "TOOL_SUCCEEDED",
+          "nodeId": "lookup",
+          "createdAt": "2026-11-18T13:47:29.979Z"
+        },
+        {
+          "seq": 7,
+          "type": "WAITING_AGENT",
+          "nodeId": "analysis",
+          "createdAt": "2026-11-18T13:47:29.979Z"
+        },
+        {
+          "seq": 8,
+          "type": "AGENT_RESULT_ACCEPTED",
+          "nodeId": "analysis",
+          "createdAt": "2026-11-18T13:47:29.982Z"
+        },
+        {
+          "seq": 9,
+          "type": "CONDITION_SELECTED",
+          "nodeId": "branch",
+          "createdAt": "2026-11-18T13:47:29.982Z"
+        },
+        {
+          "seq": 10,
+          "type": "NODE_SUCCEEDED",
+          "nodeId": "report",
+          "createdAt": "2026-11-18T13:47:29.984Z"
+        },
+        {
+          "seq": 11,
+          "type": "RUN_SUCCEEDED",
+          "nodeId": "end",
+          "createdAt": "2026-11-18T13:47:29.984Z"
+        }
+      ],
+      "provenance": "synthetic_fixture",
+      "validationLevel": "mock",
+      "gaps": [],
+      "executionState": "SUCCEEDED"
+    }
+  ],
+  "gaps": [],
+  "createdAt": "2026-11-18T13:47:29.752Z",
+  "draftRevision": 2,
+  "capabilityRevisions": {
+    "cap_704e8ecf6e6408b0c5974fd1": 1
+  },
+  "fixtureHash": "sha256:fe23cd56405632502ad67fb0844c1d63b70e0604b1bc9fb2cbc99222cf87bf39",
+  "suiteRevision": 1,
+  "startedAt": "2026-11-18T13:47:29.753Z",
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "uncovered": 0,
+    "total": 2
+  },
+  "completedAt": "2026-11-18T13:47:29.986Z",
+  "simulationOnly": true,
+  "networkCalls": 0,
+  "realSecretReads": 0,
+  "provenance": "synthetic_fixture",
+  "branchCoverage": [
+    {
+      "nodeId": "branch",
+      "true": true,
+      "false": true
+    }
+  ],
+  "stale": false,
+  "instanceId": "ea6c7f72-b6a7-4de2-901f-1b4375637549"
+}

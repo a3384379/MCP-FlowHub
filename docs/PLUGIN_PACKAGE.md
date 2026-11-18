@@ -31,6 +31,8 @@ codex plugin add flowhub@flowhub-local
 ./flowhub-plugin doctor
 ```
 
+管理页面由本机 FlowHub 后台提供，默认地址是 [http://127.0.0.1:18473](http://127.0.0.1:18473)。插件当前注册 MCP 和 Skill，没有嵌入管理页面或提供“打开管理页面”的快捷按钮；这项入口缺口已记录。自定义端口时使用实际后台端口。
+
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
 也可在支持本地目录的 Codex 插件设置中添加这个目录内的 marketplace。正式目录上架不是本机安装的前置条件。若当前 Codex 还保留手工添加的旧 FlowHub MCP 入口，请自行选择一个入口使用，避免重复显示；安装命令不会删除现有配置。
@@ -86,3 +88,5 @@ MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库�
 - [本地 MCP 与 PLUGIN_ROOT](https://developers.openai.com/plugins/deploy/desktop-only)
 
 本轮验证记录见 [插件交付证据](evidence/plugins/20261118/VALIDATION.md)。
+
+已安装插件的完整链路可执行 `npm run test:plugin:e2e`，使用固定 Node/npm。它从当前 Codex 的实际 FlowHub MCP 配置解析安装目录，校验安装文件，再在独立 Codex Home 和数据目录中通过真实宿主调用插件。用户本机仅进行静态元数据读取，真实工具调用只进入本地合成服务。结果写入 `artifacts/latest-plugin-e2e.json` 指向的目录；后台在结束时停止，隔离数据保留在该目录的 `private/` 便于排查，不进入 Git 或程序包。当前完整实测结果及限制见 [端到端测试](evidence/plugins/20261118/END_TO_END.md)。
