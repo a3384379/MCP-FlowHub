@@ -3,6 +3,7 @@ import type { Api } from "./v2";
 
 export function useVaultState(api: Api, enabled = true) {
   const [locked, setLocked] = useState<boolean | null>(null);
+  const [initialized, setInitialized] = useState<boolean | null>(null);
   const [error, setError] = useState("");
   const alive = useRef(false),
     generation = useRef(0);
@@ -14,12 +15,14 @@ export function useVaultState(api: Api, enabled = true) {
         throw new Error("凭据库状态暂不可用。");
       if (alive.current && request === generation.current) {
         setLocked(state.vaultLocked);
+        setInitialized(state.vaultInitialized);
         setError("");
       }
       return state.vaultLocked as boolean;
     } catch (error) {
       if (alive.current && request === generation.current) {
         setLocked(null);
+        setInitialized(null);
         setError((error as Error).message);
       }
       return undefined;
@@ -29,6 +32,7 @@ export function useVaultState(api: Api, enabled = true) {
     if (!enabled) return;
     alive.current = true;
     setLocked(null);
+    setInitialized(null);
     const changed = () => {
       void refresh();
     };
@@ -47,5 +51,5 @@ export function useVaultState(api: Api, enabled = true) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [refresh, enabled]);
-  return { locked, error, refresh };
+  return { locked, initialized, error, refresh };
 }

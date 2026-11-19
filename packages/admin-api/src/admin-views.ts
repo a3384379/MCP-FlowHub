@@ -6,6 +6,7 @@ import {
   type Workflow,
 } from "../../contracts/src/domain.js";
 import type { Repository } from "../../persistence/src/repository.js";
+import { businessSummary } from "../../workflow-core/src/business-verification.js";
 
 const runStates = new Set([
   "QUEUED",
@@ -194,6 +195,10 @@ export function runListView(repo: Repository, cursorKey = randomBytes(32)) {
           createdAt: r.createdAt,
           snapshotHash: r.snapshotHash,
           retryOfRunId: r.retryOfRunId,
+          businessVerification: businessSummary(r),
+          reportArchived: r.reportArchived,
+          syntheticExecution: r.snapshot?.simulationOnly === true ||
+            r.snapshot?.bindings?.some((binding: Json) => binding.simulationOnly === true) === true,
         };
       }),
       meta: { nextCursor, hasMore, limit, total },

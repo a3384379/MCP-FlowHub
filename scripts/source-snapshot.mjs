@@ -16,6 +16,7 @@ export const sourceDirectories = [
   "installer",
   ".github",
   "docs",
+  "plugins",
 ];
 export const sourceRootFiles = [
   "package.json",
@@ -30,6 +31,7 @@ export const sourceRootFiles = [
   "README.md",
   "AGENTS.md",
   "Build-Windows.cmd",
+  "plugins/flowhub/.codex-plugin/plugin.json",
 ];
 export const sourceSnapshot = Object.freeze({
   formatVersion: 1,

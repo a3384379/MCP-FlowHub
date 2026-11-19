@@ -16,7 +16,7 @@ export class Application {
   readonly knowledge:ProjectKnowledge;
   readonly assistant:AssistantCore;
   constructor(readonly engine:Engine,options:{providerFactory?:ProviderFactory;hostDiscoveryRuntime?:DiscoveryRuntime}={}) {
-    this.authoring=new AuthoringService(engine);this.registry=new CapabilityRegistry(engine,options.hostDiscoveryRuntime?{hostRuntime:options.hostDiscoveryRuntime}:{});this.testing=new WorkflowTesting(this.authoring);this.knowledge=new ProjectKnowledge(engine.repo);
+    this.authoring=new AuthoringService(engine,(workflowId,revision)=>this.testing.publicationEvidence(workflowId,revision));this.registry=new CapabilityRegistry(engine,options.hostDiscoveryRuntime?{hostRuntime:options.hostDiscoveryRuntime}:{});this.testing=new WorkflowTesting(this.authoring);this.knowledge=new ProjectKnowledge(engine.repo);
     this.assistant=new AssistantCore(this,options.providerFactory);
     this.testing.configureAi((request,signal,owner)=>this.assistant.proposeTestCases(request,signal,owner));
   }

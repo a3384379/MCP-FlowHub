@@ -215,6 +215,7 @@ export class DiscoveryCatalog {
         description: cap.description ?? "",
         capabilityId: cap.id,
         capabilityRevision: cap.revision,
+        hasToolContract: cap.kind === "mcp_tool" && !!cap.inputSchema && !!cap.outputSchema,
         capabilityFingerprint: cap.sourceFingerprint,
         enabled: cap.enabled === "enabled",
         executor: cap.executor,

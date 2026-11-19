@@ -107,7 +107,7 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
   ).toBe("hidden");
   await page.keyboard.press("Shift+Tab");
   await expect(
-    drawer.getByRole("button", { name: "退出登录", exact: true }),
+    drawer.getByRole("button", { name: "系统设置", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(close).toBeFocused();
@@ -169,11 +169,7 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
       exact: true,
     });
     await system.scrollIntoViewIfNeeded();
-    for (const control of [
-      close,
-      system,
-      drawer.getByRole("button", { name: "退出登录", exact: true }),
-    ]) {
+    for (const control of [close, system]) {
       const geometry = await control.evaluate((element) => {
         const box = element.getBoundingClientRect(),
           viewport = visualViewport!;

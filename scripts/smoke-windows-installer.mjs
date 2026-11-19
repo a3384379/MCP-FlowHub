@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
 import { assertWindowsBuild } from "./windows-installer.mjs";
 import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { windowsAutostart } from "../installer/windows/autostart.mjs";
 import { windowsTestEnvironment } from "./windows-test-environment.mjs";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
@@ -37,6 +38,8 @@ const checks = [];
 const children = new Set();
 let success = false;
 let installed = false;
+let autostartRegistered = false;
+const scheduledInstance = { programDir: join(installDir, "app"), dataDir };
 // Installed applications do not get access to a global npm/node executable.
 const env = windowsTestEnvironment(join(installDir, "app/runtime"));
 const helperDiagnostics = join(root, "artifacts/windows-installer-helper.log");
@@ -152,6 +155,15 @@ try {
   await writeFile(join(dataDir, "installer-smoke-sentinel.txt"), sentinel);
   await writeFile(extraRoot, "USER_ROOT_FILE");
   await writeFile(extraApp, "USER_APP_FILE");
+  const pluginEntry = join(appDir, "scripts/flowhub-plugin.mjs");
+  const taskCommand = async action => JSON.parse((await exec(runtime,
+    [pluginEntry, "autostart", action, "--data-dir", dataDir],
+    { env, windowsHide: true, timeout: 75_000 })).stdout);
+  assert.equal((await taskCommand("status")).state, "disabled");
+  const loginTask = await taskCommand("enable");
+  autostartRegistered = true;
+  assert.equal(loginTask.state, "registered");
+  assert.equal((await taskCommand("enable")).taskName, loginTask.taskName);
 
   const daemon = await startCommand(runtime, entry, ["serve", "--port", "0"]);
   const endpoint = JSON.parse(await readFile(join(dataDir, "endpoint.json"), "utf8"));
@@ -197,6 +209,7 @@ try {
 
   await runSetup(join(temporary, "second installation"), 21);
   await runSetup(installDir);
+  assert.equal((await taskCommand("status")).taskName, loginTask.taskName);
   assert.equal(await readFile(join(dataDir, "installer-smoke-sentinel.txt"), "utf8"), sentinel);
   assert.equal(await readFile(extraApp, "utf8"), "USER_APP_FILE");
   assert.deepEqual(await readFile(join(dataDir, "execution-token")), executionToken);
@@ -216,6 +229,9 @@ try {
 
   await runUninstall();
   installed = false;
+  assert.equal((await windowsAutostart("status", scheduledInstance)).state, "disabled");
+  autostartRegistered = false;
+  checks.push("current-user logon task registers once, survives same-path reinstall and is removed by uninstall");
   await rm(join(installDir, "Uninstall.exe"), { force: true });
   await assert.rejects(access(runtime), { code: "ENOENT" });
   await assert.rejects(access(join(installDir, ".flowhub-install.json")), { code: "ENOENT" });
@@ -233,6 +249,9 @@ try {
   success = true;
 } finally {
   for (const child of children) await stopCommand(child);
+  if (autostartRegistered) await windowsAutostart("disable", scheduledInstance).catch(error => {
+    console.error("Autostart fixture cleanup failed: " + error.message);
+  });
   if (success) {
     assert.equal(await readFile(join(dataDir, "installer-smoke-sentinel.txt"), "utf8"), sentinel);
     await rm(dataDir, { recursive: true });

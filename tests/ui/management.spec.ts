@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 const password = "Synthetic-browser-password-041";
-test("bootstrap, six pages, real flow canvas, save/validate, start and Agent handoff", async ({
+test("passwordless workspace, six pages, real flow canvas, save/validate, start and Agent handoff", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -18,9 +18,7 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   }
   await page.goto("/");
   await expect(page.getByLabel("本机一次性设置码")).toHaveCount(0);
-  await expect(page.getByLabel("管理员账号", {exact:true})).toHaveValue("admin");
-  await page.getByLabel("管理员密码").fill(password);
-  await page.getByRole("button", {name:"登录管理中心",exact:true}).click();
+  await expect(page.getByLabel("管理员账号", {exact:true})).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "工作流", exact: true }),
   ).toBeVisible();
@@ -92,9 +90,32 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   await expect(
     page.getByRole("button", { name: "复制 runId", exact: true }),
   ).toBeVisible();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "复制 Codex 续跑指令" }).click();
+  const instruction = await page.evaluate(() => navigator.clipboard.readText());
+  expect(instruction).toContain("flowhub-run");
+  expect(instruction).toContain("固定环境 \"staging\"");
+  expect(instruction).not.toMatch(/checkpointToken|cp_[0-9a-f-]+|[0-9a-f]{64}/);
+  const runPath = new URL(page.url()).pathname;
+  const runId = runPath.split("/").at(-1)!;
+  expect(instruction).toContain(runId);
+  await page.getByRole("button", { name: "返回运行记录" }).click();
+  await page.getByRole("row").filter({ hasText: runId.slice(0, 24) })
+    .getByRole("button", { name: "查看详情 →" }).click();
+  await expect(page).toHaveURL(runPath);
   await expect(page.locator(".artifact")).toHaveCount(1);
+  const previewUrl = /\/api\/v1\/runs\/[^/]+\/artifacts\/[^/?]+\?offset=0/;
+  await page.route(previewUrl, (route) => route.fulfill({
+    status: 503,
+    json: { error: { message: "附件暂时无法读取。" } },
+  }));
   await page.getByRole("button", { name: "查看", exact: true }).click();
-  await expect(page.locator(".evidence")).toContainText("synthetic");
+  const preview = page.getByRole("region", { name: "附件预览" });
+  await expect(preview.getByRole("alert")).toContainText("附件暂时无法读取。");
+  await page.unroute(previewUrl);
+  await preview.getByRole("button", { name: "重试读取", exact: true }).click();
+  await expect(preview).toContainText("synthetic");
+  await expect(preview).toBeFocused();
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.screenshot({ path: "artifacts/ui-run-1366.png", fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -106,7 +127,54 @@ test("bootstrap, six pages, real flow canvas, save/validate, start and Agent han
   expect(errors).toEqual([]);
 });
 
-test("a pending auth-state request never exposes a consumed setup-token field", async ({
+test("run detail supports loading, retry, sparse history and return to the list", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  let release!: () => void;
+  const waiting = new Promise<void>((resolve) => { release = resolve; });
+  let responseStatus = 503;
+  const runId = "historical-run";
+  await page.route(/\/api\/v1\/runs\/historical-run\?after=/, async (route) => {
+    await waiting;
+    const response = responseStatus === 200
+      ? { data: { runId, workflowId: "旧版工作流", state: "SUCCEEDED" } }
+      : { error: { message: "运行数据暂时不可用。" } };
+    await route.fulfill({ status: responseStatus, json: response });
+  });
+  try {
+    await page.goto("/runs/" + runId, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("正在读取运行详情…", { exact: true })).toBeVisible();
+    release();
+    await expect(page.getByRole("alert")).toContainText("运行数据暂时不可用。");
+    responseStatus = 200;
+    await page.getByRole("button", { name: "重试读取运行详情" }).click();
+    await expect(page.getByRole("heading", { name: "旧版工作流" })).toBeVisible();
+    await expect(page.getByText("快照哈希未记录")).toBeVisible();
+    await expect(page.getByText("尚未收集到证据。")).toBeVisible();
+    const listUrl = /\/api\/v1\/runs\?limit=/;
+    await page.route(listUrl, (route) => route.fulfill({
+      status: 503,
+      json: { error: { message: "运行列表暂时不可用。" } },
+    }));
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "旧版工作流" })).toBeVisible();
+    await page.getByRole("button", { name: "返回运行记录" }).click();
+    await expect(page.getByRole("heading", { name: "运行记录", exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toContainText("运行列表暂时不可用。");
+    await page.unroute(listUrl);
+    await page.getByRole("button", { name: "重试读取运行记录" }).click();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await page.goto("/runs/missing-run");
+    await expect(page.getByRole("alert")).toContainText("这条记录不存在，或已超过保留期限。");
+    await expect(page.getByRole("button", { name: "重试读取运行详情" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "返回运行记录" })).toBeVisible();
+    expect(errors).toEqual([]);
+  } finally {
+    release();
+  }
+});
+
+test("a pending workspace request shows loading until the workspace opens", async ({
   page,
 }) => {
   let release!: () => void;
@@ -117,12 +185,6 @@ test("a pending auth-state request never exposes a consumed setup-token field", 
   const started = new Promise<void>((resolve) => {
     requested = resolve;
   });
-  const state = await page.request.get("/api/v1/auth/state");
-  expect((await state.json()).data.initialized).toBe(true);
-  const session = await page.request.post("/api/v1/auth/session", {
-    data: { password },
-  });
-  expect(session.ok(), await session.text()).toBe(true);
   await page.route("**/api/v1/auth/state", async (route) => {
     const response = await route.fetch();
     requested();
@@ -133,8 +195,8 @@ test("a pending auth-state request never exposes a consumed setup-token field", 
     await page.goto("/workflows", { waitUntil: "domcontentloaded" });
     await started;
     await expect(
-      page.getByRole("heading", { name: "正在检查登录状态", exact: true }),
-    ).toBeVisible();
+      page.getByRole("status"),
+    ).toHaveText("正在打开本机工作区…");
     await expect(page.getByLabel("本机一次性设置码")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "创建并进入", exact: true }),

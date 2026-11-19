@@ -18,6 +18,8 @@ import { performance } from "node:perf_hooks";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { verifyBundle } from "./verify-release.mjs";
+import { smokePlugin } from "./smoke-plugin.mjs";
+import { extractWindowsZip } from "./windows-zip.mjs";
 import {
   SyntheticReadyStdioTransport,
   redactSmokeDiagnostic,
@@ -96,28 +98,14 @@ try {
   const exec = promisify(execFile);
   await stage("archive extraction", async () => {
     if (process.platform === "win32") {
-      await exec(
-        "powershell.exe",
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "Expand-Archive -LiteralPath $env:FLOWHUB_ARCHIVE_PATH -DestinationPath $env:FLOWHUB_EXTRACT_DIR",
-        ],
-        {
-          env: {
-            ...process.env,
-            FLOWHUB_ARCHIVE_PATH: archive,
-            FLOWHUB_EXTRACT_DIR: dir,
-          },
-        },
-      );
+      await extractWindowsZip(archive, dir);
     } else await exec("tar", ["-xzf", archive, "-C", dir]);
   });
   const folders = await readdir(dir);
   assert.equal(folders.length, 1);
   const bundle = join(dir, folders[0]);
   await stage("extracted bundle integrity", () => verifyBundle(bundle));
+  await stage("extracted portable plugin connection and identity", () => smokePlugin(bundle));
   await stage("new assistant module tamper is rejected", async()=>{
     const file=join(bundle,"dist/packages/assistant-core/src/index.js"),original=await readFile(file);
     try{await writeFile(file,Buffer.concat([original,Buffer.from("\n// synthetic corruption\n")]));await assert.rejects(verifyBundle(bundle),/Hash mismatch/);}

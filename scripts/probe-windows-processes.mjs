@@ -4,9 +4,10 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execWithoutInput, inspectWindowsProcesses } from "../installer/windows/install-helper.mjs";
+import { windowsAutostart } from "../installer/windows/autostart.mjs";
 import { windowsTestEnvironment } from "./windows-test-environment.mjs";
 
-assert.equal(process.platform, "win32", "This read-only probe requires native Windows.");
+assert.equal(process.platform, "win32", "This probe requires native Windows.");
 async function main() {
 const started = Date.now();
 const records = await inspectWindowsProcesses();
@@ -42,6 +43,18 @@ try {
   assert.equal((await realpath(actual.target)).toLowerCase(), (await realpath(target)).toLowerCase());
   assert.equal(actual.arguments, argumentsText);
   console.log(JSON.stringify({ nativeUnicodeShellLink: "PASS", interface: "IShellLinkW", targetAndArgumentsVerified: true }));
+  const taskFixture = { programDir: folder, dataDir: join(temporary, "测试数据") };
+  try {
+    assert.equal((await windowsAutostart("status", taskFixture)).state, "disabled");
+    const enabled = await windowsAutostart("enable", taskFixture);
+    assert.equal(enabled.state, "registered");
+    assert.equal((await windowsAutostart("status", taskFixture)).taskName, enabled.taskName);
+    assert.equal((await windowsAutostart("enable", taskFixture)).taskName, enabled.taskName);
+  } finally {
+    await windowsAutostart("disable", taskFixture);
+  }
+  assert.equal((await windowsAutostart("status", taskFixture)).state, "disabled");
+  console.log(JSON.stringify({ nativeLogonTask: "PASS", scope: "isolated", unregistered: true }));
 } finally { await rm(temporary, {recursive:true,force:true}); }
 }
 await main().catch(async error => {

@@ -1,0 +1,12 @@
+{
+  "name": "flowhub-local",
+  "interface": { "displayName": "FlowHub 本机插件" },
+  "plugins": [
+    {
+      "name": "flowhub",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Developer Tools"
+    }
+  ]
+}

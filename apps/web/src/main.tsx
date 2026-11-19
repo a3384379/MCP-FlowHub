@@ -28,10 +28,16 @@ import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
+import { RunArtifacts } from "./features/runs/RunArtifacts";
+import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
+import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
+import { workflowRequirements } from "../../../packages/contracts/src/workflow-requirements";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
 import { subscribeEvents } from "./shared/v2";
+import { inCodexWorkspace, readCodexLaunch, workspaceDialog, workspaceHref, workspacePath } from "./shared/codex-workspace";
 import { mergeDraft } from "./shared/draft-merge";
+import { download } from "./shared/download";
 import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
@@ -81,16 +87,57 @@ class UiError extends Error {
     super(code + "：" + message);
   }
 }
-let sessionCheck: Promise<boolean> | null = null;
-async function api(
+let openingSession: Promise<J> | undefined;
+let codexLaunch = readCodexLaunch();
+function openLocalSession() {
+  if (inCodexWorkspace && !codexLaunch)
+    return Promise.reject(new UiError("AUTH_REQUIRED", "请从 Codex 侧栏重新打开 FlowHub。", 401));
+  openingSession ??= fetch(inCodexWorkspace ? "/api/v1/auth/codex-session" : "/api/v1/auth/local-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-FlowHub-Local": "1" },
+    body: JSON.stringify(inCodexWorkspace && codexLaunch ? { ticket: codexLaunch } : {}),
+  })
+    .then(async response => {
+      const value = await response.json();
+      if (!response.ok)
+        throw new UiError(
+          value.error?.code ?? "SERVICE_UNAVAILABLE",
+          inCodexWorkspace ? "请从 Codex 侧栏重新打开 FlowHub。" : "无法连接本机 FlowHub。",
+          response.status,
+        );
+      if (inCodexWorkspace) {
+        codexLaunch = undefined;
+        const check = await fetch("/api/v1/auth/session");
+        if (!check.ok) throw new UiError("AUTH_REQUIRED", "Codex 未保留本机工作区会话。", check.status);
+      }
+      csrf = value.data.csrf;
+      return value.data;
+    })
+    .finally(() => { openingSession = undefined; });
+  return openingSession;
+}
+
+let sessionRecovery: Promise<{ session: J; issued: boolean } | undefined> | undefined;
+function recoverLocalSession() {
+  sessionRecovery ??= fetch("/api/v1/auth/session")
+    .then(async check => {
+      if (check.status === 401) return { session: await openLocalSession(), issued: true };
+      if (check.ok) return { session: (await check.json()).data, issued: false };
+      return undefined;
+    })
+    .catch(() => undefined)
+    .finally(() => { sessionRecovery = undefined; });
+  return sessionRecovery;
+}
+
+async function apiResponse(
   path: string,
   method = "GET",
   body?: J,
   revision?: number,
   signal?: AbortSignal,
-  withMeta = false,
-): Promise<J> {
-  const response = await fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
+): Promise<Response> {
+  const sendRequest = () => fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
     method,
     headers: {
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
@@ -100,25 +147,42 @@ async function api(
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     ...(signal ? { signal } : {}),
   });
-  const value = await response.json();
-  if (response.status === 401 && !path.startsWith("/auth/")) {
-    sessionCheck ??= fetch("/api/v1/auth/session")
-      .then((check) => check.status === 401)
-      .catch(() => false)
-      .finally(() => {
-        sessionCheck = null;
-      });
-    if (await sessionCheck)
-      window.dispatchEvent(new Event("flowhub-session-expired"));
+  let response = await sendRequest();
+  const staleCsrf = response.status === 403 &&
+    (await response.clone().json().catch(() => null))?.error?.code === "CSRF_DENIED";
+  if ((response.status === 401 || staleCsrf) && !path.startsWith("/auth/")) {
+    const recovered = await recoverLocalSession();
+    if (recovered && (recovered.issued || staleCsrf)) {
+      csrf = recovered.session.csrf;
+      window.dispatchEvent(new Event("flowhub-session-restored"));
+      if (["GET", "HEAD"].includes(method)) {
+        response = await sendRequest();
+      }
+      else throw new UiError("AUTH_REQUIRED", "本机连接已恢复，请重试刚才的操作。", 401);
+    }
   }
-  if (!response.ok)
+  if (!response.ok) {
+    const value = await response.json().catch(() => null);
     throw new UiError(
-      String(value.error?.code ?? response.status),
-      value.error?.message ?? "请求失败",
+      String(value?.error?.code ?? response.status),
+      value?.error?.message ?? "请求失败",
       response.status,
-      value.error?.details,
+      value?.error?.details,
       path,
     );
+  }
+  return response;
+}
+
+async function api(
+  path: string,
+  method = "GET",
+  body?: J,
+  revision?: number,
+  signal?: AbortSignal,
+  withMeta = false,
+): Promise<J> {
+  const value = await (await apiResponse(path, method, body, revision, signal)).json();
   return withMeta ? value : value.data;
 }
 const pretty = (v: J) => JSON.stringify(v, null, 2);
@@ -431,16 +495,15 @@ function JsonEditor({
 function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [path, setPath] = useState(
-      location.pathname === "/" ? "/workflows" : location.pathname,
+      workspacePath() === "/" ? "/workflows" : workspacePath(),
     ),
     [session, setSession] = useState<J>(null),
     [auth, setAuth] = useState<J>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(false),
-    [password, setPassword] = useState(""),
-    [username, setUsername] = useState("admin");
+    [busy, setBusy] = useState(false);
   useEffect(() => { setNavigationOpen(false); }, [path]);
+  const [sessionEpoch, setSessionEpoch] = useState(0);
   const [workflows, setWorkflows] = useState<J[]>([]),
     [connections, setConnections] = useState<J[]>([]),
     [bindings, setBindings] = useState<J[]>([]),
@@ -450,6 +513,7 @@ function App() {
   const deletionPendingRef = useRef(false);
   const [deletionPending,setDeletionPending] = useState(false);
   const [credentials, setCredentials] = useState<J[]>([]);
+  const [runListState, setRunListState] = useState<"pending" | "ready" | { message: string }>("pending");
   const [runsMeta, setRunsMeta] = useState<J>(null),
     [runFilter, setRunFilter] = useState("");
   const runFilterRef = useRef(runFilter),
@@ -462,7 +526,9 @@ function App() {
     [dirty, setDirty] = useState(false),
     [selected, setSelected] = useState<string | null>(null),
     [run, setRun] = useState<J>(null),
-    [artifact, setArtifact] = useState<J>(null);
+    [previewArtifactId, setPreviewArtifactId] = useState<string | null>(null);
+  const [runLoadIssue, setRunLoadIssue] = useState<{ path: string; message: string } | null>(null);
+  const [runReload, setRunReload] = useState(0);
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
@@ -488,7 +554,6 @@ function App() {
       library.focus({ preventScroll: true });
     }
   }, [path]);
-  const artifactRequest = useRef(0);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
@@ -498,7 +563,7 @@ function App() {
   const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
   useEffect(() => {
     if (!["/assistant", "/editor"].includes(path) || !session) return;
-    history.replaceState(history.state, "", "/workflows");
+    history.replaceState(history.state, "", workspaceHref("/workflows"));
     setPath("/workflows");
     if (path === "/assistant") setAssistantOpenRequest(value => value + 1);
   }, [path, session]);
@@ -586,74 +651,76 @@ function App() {
       setBusy(false);
     }
   }, []);
-  const checkAuth = useCallback(async () => {
-    const state = await api("/auth/state");
-    let currentSession: J = null;
-    if (state.initialized) {
-      try {
-        currentSession = await api("/auth/session");
-      } catch (error) {
-        if (!(error instanceof UiError && error.status === 401)) throw error;
-      }
-    }
-    setAuth(state);
-    if (currentSession) {
-      csrf = currentSession.csrf;
-      setSession(currentSession);
-    }
+  const connectWorkspace = useCallback(async () => {
+    const currentSession = await openLocalSession();
+    setAuth(await api("/auth/state"));
+    setSession(currentSession);
+    if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
   }, []);
+  const openVault = () => {
+    const initialize = auth?.vaultInitialized === false;
+    setModal({
+      type: "unlock",
+      title: initialize ? "设置凭据库口令" : "解锁凭据库",
+      initialize,
+      password: "",
+    });
+  };
   const loadRuns = useCallback(
     async (cursor?: string, state = runFilterRef.current) => {
       const request = ++runListRequest.current;
+      setRunListState("pending");
       const params = new URLSearchParams({
         limit: "50",
         ...(cursor ? { cursor } : {}),
         ...(state ? { state } : {}),
       });
-      const result = await api(
-        "/runs?" + params,
-        "GET",
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      if (request !== runListRequest.current) return;
-      setRuns((old) =>
-        cursor
-          ? [
-              ...old,
-              ...result.data.filter(
-                (item: J) => !old.some((known) => known.id === item.id),
-              ),
-            ]
-          : result.data,
-      );
-      setRunsMeta(result.meta);
+      try {
+        const result = await api("/runs?" + params, "GET", undefined, undefined, undefined, true);
+        if (request !== runListRequest.current) return;
+        if (!Array.isArray(result?.data)) throw new Error("运行记录响应无效。");
+        setRuns((old) => cursor
+          ? [...old, ...result.data.filter((item: J) => !old.some((known) => known.id === item.id))]
+          : result.data);
+        setRunsMeta(result.meta);
+        setRunListState("ready");
+      } catch (e) {
+        if (request === runListRequest.current)
+          setRunListState({ message: (e as Error).message });
+      }
     },
     [],
   );
   const load = useCallback(async () => {
+    const runsLoad = loadRuns();
     const [w, c, b, t] = await Promise.all(
       ["/workflows", "/connections", "/bindings", "/tools"]
-        .map((p) => api(p))
-        .concat(loadRuns()),
+        .map((p) => api(p)),
     );
     setWorkflows(w.filter((workflow:J)=>!deletedWorkflows.current.has(workflow.id)));
     setConnections(c);
     setBindings(b);
     setTools(t);
+    await runsLoad;
   }, []);
   const navigate = (next: string, skipDirty = false) => {
     if(deletionPendingRef.current) return false;
-    if (!skipDirty && dirty && !confirm("草稿有未保存修改，是否离开？")) return false;
+    if (!skipDirty && dirty) {
+      if (inCodexWorkspace) {
+        void workspaceDialog("草稿有未保存修改，是否离开？", "离开").then(answer => {
+          if (answer) navigate(next, true);
+        });
+        return false;
+      }
+      if (!confirm("草稿有未保存修改，是否离开？")) return false;
+    }
     setDirty(false);
     jsonTextCache.current.clear();
     historyIndex.current++;
-    history.pushState({ flowhubIndex: historyIndex.current }, "", next);
+    history.pushState({ flowhubIndex: historyIndex.current }, "", workspaceHref(next));
     setPath(next);
     setModal(null);
-    setArtifact(null);
+    setPreviewArtifactId(null);
     return true;
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
@@ -669,9 +736,8 @@ function App() {
       navigate("/settings");
     } else {
       navigate("/settings");
-      setModal(destination.type === "unlock"
-        ? { type: "unlock", title: "解锁凭据库", password: "" }
-        : { type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
+      if (destination.type === "unlock") openVault();
+      else setModal({ type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
     }
   };
   useEffect(() => {
@@ -682,7 +748,9 @@ function App() {
         return;
       }
       const nextIndex = event.state?.flowhubIndex;
-      if (deletionPendingRef.current || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
+      const nextPath = workspacePath();
+      const askInPage = inCodexWorkspace && dirtyRef.current && !deletionPendingRef.current;
+      if (deletionPendingRef.current || askInPage || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
         if (
           typeof nextIndex === "number" &&
           nextIndex !== historyIndex.current
@@ -693,29 +761,26 @@ function App() {
           history.pushState(
             { flowhubIndex: historyIndex.current },
             "",
-            pathRef.current,
+            workspaceHref(pathRef.current),
           );
+        if (askInPage) void workspaceDialog("草稿有未保存修改，是否离开？", "离开").then(answer => {
+          if (answer) navigate(nextPath, true);
+        });
         return;
       }
       if (typeof nextIndex === "number") historyIndex.current = nextIndex;
-      setPath(location.pathname);
+      setPath(nextPath);
       setDirty(false);
       setModal(null);
       jsonTextCache.current.clear();
     };
-    const expired = () => {
-      csrf = "";
-      setSession(null);
-      setError(
-        "管理会话已失效，请重新登录。未保存草稿保留在当前页面，可先导出本地副本。",
-      );
-    };
+    const restored = () => setSessionEpoch(value => value + 1);
     window.addEventListener("popstate", pop);
-    window.addEventListener("flowhub-session-expired", expired);
-    void act(checkAuth);
+    window.addEventListener("flowhub-session-restored", restored);
+    void act(connectWorkspace);
     return () => {
       window.removeEventListener("popstate", pop);
-      window.removeEventListener("flowhub-session-expired", expired);
+      window.removeEventListener("flowhub-session-restored", restored);
     };
   }, []);
   useEffect(() => {
@@ -926,7 +991,7 @@ function App() {
       if(event.type!=="draft.changed" || deletedWorkflows.current.has(event.workflowId))return;
       void load();void syncRemoteRef.current(event);
     });
-  },[session]);
+  },[session, sessionEpoch]);
   useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
@@ -967,7 +1032,8 @@ function App() {
     if (/^\/runs\/[^/]+$/.test(path)) {
       const key = path.split("/")[2];
       setRun(null);
-      setArtifact(null);
+      setPreviewArtifactId(null);
+      setRunLoadIssue(null);
       let cursor = 0;
       let events: J[] = [];
       let refreshing = false;
@@ -975,9 +1041,9 @@ function App() {
         if (refreshing) return;
         refreshing = true;
         try {
-          let detail: J;
+          let hasNext = false;
           do {
-            detail = await api(
+            const detail = await api(
               "/runs/" + key + "?after=" + cursor,
               "GET",
               undefined,
@@ -990,21 +1056,28 @@ function App() {
               pathRef.current !== path
             )
               return;
+            if (detail?.runId !== key)
+              throw new Error("运行详情响应无效。");
+            const additionalEvents = Array.isArray(detail.events) ? detail.events : [];
             const seen = new Set(events.map((event) => event.seq));
             events = [
               ...events,
-              ...detail.events.filter((event: J) => !seen.has(event.seq)),
+              ...additionalEvents.filter((event: J) => !seen.has(event.seq)),
             ];
-            cursor = events.at(-1)?.seq ?? cursor;
+            const nextCursor = detail.eventCursor?.nextAfter ?? events.at(-1)?.seq ?? cursor;
+            hasNext = (detail.eventCursor?.hasMore ?? additionalEvents.length === 200) && nextCursor > cursor;
+            cursor = nextCursor;
             setRun({ ...detail, events });
-          } while (
-            (detail.eventCursor?.hasMore ?? detail.events.length === 200) &&
-            active
-          );
+            setRunLoadIssue(null);
+          } while (hasNext && active);
         } catch (e) {
-          if (active) {
-            setError((e as Error).message);
-            setFailure(e);
+          if (active && generation === routeGeneration.current && pathRef.current === path) {
+            const missing = e instanceof UiError && e.status === 404;
+            setRunLoadIssue({
+              path,
+              message: missing ? "这条记录不存在，或已超过保留期限。" : (e as Error).message,
+            });
+            if (missing && timer) clearInterval(timer);
           }
         } finally {
           refreshing = false;
@@ -1018,7 +1091,7 @@ function App() {
       controller.abort();
       if (timer) clearInterval(timer);
     };
-  }, [path, session]);
+  }, [path, session, runReload]);
   const refreshRun = async () => {
     if (run) {
       const currentPath = pathRef.current;
@@ -1032,7 +1105,7 @@ function App() {
                 ...detail,
                 events: [
                   ...old.events,
-                  ...detail.events.filter(
+                  ...(Array.isArray(detail.events) ? detail.events : []).filter(
                     (event: J) =>
                       !old.events.some((known: J) => known.seq === event.seq),
                   ),
@@ -1042,36 +1115,6 @@ function App() {
         );
     }
     await load();
-  };
-  const readArtifact = async (
-    artifactId: string,
-    offset = 0,
-    append = false,
-  ) => {
-    if (!run) return;
-    const sourcePath = pathRef.current,
-      generation = routeGeneration.current,
-      request = ++artifactRequest.current;
-    const detail = await api(
-      "/runs/" +
-        run.runId +
-        "/artifacts/" +
-        artifactId +
-        "?offset=" +
-        offset +
-        "&maxBytes=262144",
-    );
-    if (
-      pathRef.current !== sourcePath ||
-      generation !== routeGeneration.current ||
-      request !== artifactRequest.current
-    )
-      return;
-    setArtifact((previous: J) =>
-      append && previous?.artifactId === artifactId
-        ? { ...detail, content: previous.content + detail.content }
-        : detail,
-    );
   };
   const currentWorkflow = () => editorRef.current.draft;
   const editorSnapshot = () => structuredClone(editorRef.current);
@@ -1200,6 +1243,21 @@ function App() {
   const startVersion = modal?.type === "start" ? modal.published : null;
   const startWorkflow = startVersion?.snapshot.workflow;
   const node = draft?.draft.nodes.find((n: J) => n.id === selected);
+  const hostCapabilityId = node?.config.kind === "host_tool" ? node.config.capabilityRef?.capabilityId : undefined;
+  const hostCapabilityRevision = hostCapabilityId ? node.config.capabilityRef.revision : undefined;
+  const [hostContract, setHostContract] = useState<J>(null);
+  useEffect(() => {
+    if (!hostCapabilityId) return;
+    const controller = new AbortController();
+    const key = hostCapabilityId + "@" + hostCapabilityRevision;
+    void api("/api/v2/capabilities/" + encodeURIComponent(hostCapabilityId) +
+      "?includeSchemas=true&revision=" + hostCapabilityRevision, "GET", undefined, undefined, controller.signal)
+      .then(value => { if (!controller.signal.aborted) setHostContract({ key, value }); })
+      .catch(() => { if (!controller.signal.aborted) setHostContract({ key, value: null }); });
+    return () => controller.abort();
+  }, [hostCapabilityId, hostCapabilityRevision]);
+  const currentHostContract = hostContract?.key === hostCapabilityId + "@" + hostCapabilityRevision
+    ? hostContract : null;
   const selectedBinding =
     node?.type === "mcp_tool"
       ? bindings.find(
@@ -1552,8 +1610,8 @@ function App() {
         window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
       }
       if (m.type === "unlock") {
-        await api("/vault/unlock", "POST", { password: m.password });
-        setAuth({ ...auth, vaultLocked: false });
+        await api(m.initialize ? "/vault/initialize" : "/vault/unlock", "POST", { password: m.password });
+        setAuth({ ...auth, vaultInitialized: true, vaultLocked: false });
         window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
@@ -1579,108 +1637,25 @@ function App() {
       ? "connections"
       : (path.split("/")[1] ?? "workflows");
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
-  const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
-  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
+  const runDetailId = page === "runs" && /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2] : null;
+  const assistantRun = runDetailId && run?.runId === runDetailId ? run : null;
+  const currentRunIssue = runLoadIssue?.path === path ? runLoadIssue.message : null;
+  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(previewArtifactId?{artifactRefs:[previewArtifactId]}:{})}:{};
   const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
-  if (!auth)
-    return (
-      <div className="login">
-        <div className="login-card">
-          <div className="brand">
-            <b>F</b>FlowHub
-          </div>
-          <h1>正在检查登录状态</h1>
-          <p role="status">正在读取本机管理员状态…</p>
-          {error && (
-            <>
-              <div role="alert" className="banner error">
-                {error}
-              </div>
-              <button disabled={busy} onClick={() => act(checkAuth)}>
-                重试登录状态检查
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
   if (!session)
     return (
-      <div className="login">
-        <div className="login-card">
-          <div className="brand">
-            <b>F</b>FlowHub <small>LOCAL WORKFLOW HUB</small>
-          </div>
-          <h1>{auth?.initialized ? "欢迎回来" : "登录 FlowHub"}</h1>
-          <p>一个 MCP 入口，多条受控工作流。管理会话独立于 Agent 执行身份。</p>
-          {!auth.initialized && <p>默认账号：admin，默认密码：admin。</p>}
-          <label className="field">
-            管理员账号
-            <input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
-          </label>
-          <label className="field">
-            管理员密码
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")
-                  document.getElementById("login")?.click();
-              }}
-              placeholder={auth.initialized ? "请输入密码" : "默认密码：admin"}
-            />
-          </label>
-          {error && (
-            <div role="alert" className="banner error">
-              {error}
-            </div>
+      <div className="workspace-startup">
+        <div className="workspace-startup-card">
+          <div className="brand"><b>F</b>FlowHub</div>
+          {error ? (
+            <>
+              <h1>无法打开本机工作区</h1>
+              <div role="alert" className="banner error">{error}</div>
+              <button disabled={busy} onClick={() => act(connectWorkspace)}>重试连接</button>
+            </>
+          ) : (
+            <p role="status">正在打开本机工作区…</p>
           )}
-          {dirty && draft && (
-            <button
-              onClick={() =>
-                download(
-                  draft.id + "-unsaved.json",
-                  pretty(
-                    jsonTextCache.current.size
-                      ? {
-                          workflow: currentWorkflow(),
-                          pendingJsonText: Object.fromEntries(
-                            jsonTextCache.current,
-                          ),
-                        }
-                      : currentWorkflow(),
-                  ),
-                )
-              }
-            >
-              导出未保存草稿
-            </button>
-          )}
-          <button
-            id="login"
-            className="primary full"
-            disabled={busy || !auth}
-            onClick={() =>
-              act(async () => {
-                const s = await api(
-                  "/auth/session",
-                  "POST",
-                  { username, password },
-                );
-                csrf = s.csrf;
-                setSession(s);
-                setPassword("");
-                setAuth(await api("/auth/state"));
-              })
-            }
-          >
-            {busy ? "正在验证…" : "登录管理中心"}
-          </button>
-          <div className="login-note">
-            默认仅回环监听 · 凭据加密存储
-          </div>
         </div>
       </div>
     );
@@ -1691,11 +1666,6 @@ function App() {
         open={navigationOpen}
         close={() => setNavigationOpen(false)}
         navigate={navigate}
-        busy={busy}
-        logout={() => act(async () => {
-          try { await api("/auth/session", "DELETE"); }
-          finally { csrf = ""; setSession(null); setNavigationOpen(false); }
-        })}
       />
       <main>
         <header className="topbar">
@@ -1706,7 +1676,7 @@ function App() {
             <span className="breadcrumbs" aria-label="当前位置">
               <span>{navigationForPage(page)?.group ?? "工作空间"}</span><b>/</b>
               {page === "editor" ? <>
-                <a href="/workflows" onClick={event => {
+                <a href={workspaceHref("/workflows")} onClick={event => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                   event.preventDefault(); navigate("/workflows");
                 }}>{navigationLabel("workflows")}</a>
@@ -1729,7 +1699,7 @@ function App() {
           </div>
         </header>
         <div className="workspace">
-          {error && (
+          {error && !(modal?.type === "unlock" && failure?.path?.startsWith("/vault/")) && (
             <div className="banner error" role="alert">
               {error}
               <button onClick={() => setError("")}>×</button>
@@ -1741,7 +1711,7 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
-          {page === "models" && <ModelsPage api={api} onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })} />}
+          {page === "models" && <ModelsPage api={api} onUnlockVault={openVault} />}
           {page === "workflows" && (
             <>
               <PageHead
@@ -1870,6 +1840,7 @@ function App() {
                             : "未发布"}
                         </Badge>
                       </div>
+                      <ExecutionRequirements requirements={w.publishedRequirements} />
                       <div className="card-actions">
                         <button className="danger workflow-delete" disabled={busy || deletionPending} onClick={()=>setModal({
                           type:"delete-workflow",title:"删除工作流",workflow:w,idempotencyKey:uid(),
@@ -1915,7 +1886,7 @@ function App() {
               )}
               <div className="info">
                 ✧
-                内置生产与试运行流程均为纯合成演示。真实绑定必须通过独立验证；环境不明时，请明确选择方案。
+                内置流程使用合成数据。Codex 接力和 Mock 自测可直接使用，网页助手按需配置模型。
               </div>
             </>
           )}
@@ -2269,7 +2240,7 @@ function App() {
               >
                 <aside className="palette">
                   <h3>节点与工具</h3>
-                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} />}
+                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} knownBindings={bindings} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
                     <button key={type} onClick={() => addNode(type)}>
@@ -2597,6 +2568,12 @@ function App() {
                             </div>
                           </>
                         )}
+                        {hostCapabilityId && (
+                          <p>
+                            Codex 具名工具 · r{hostCapabilityRevision} ·{" "}
+                            {currentHostContract ? currentHostContract.value?.name ?? "契约暂不可读" : "正在读取冻结契约…"}
+                          </p>
+                        )}
                         {(node.type === "mcp_tool" ||
                           node.type === "agent_task") && (
                           <MappingFields
@@ -2609,7 +2586,7 @@ function App() {
                             nodeId={node.id}
                             inputSchema={draft.draft.inputSchema}
                             sourceNodes={sourceNodes}
-                            targetSchema={selectedTool?.inputSchema}
+                            targetSchema={selectedTool?.inputSchema ?? currentHostContract?.value?.inputSchema}
                             lockedArguments={
                               selectedBinding?.lockedArguments ?? {}
                             }
@@ -2641,6 +2618,28 @@ function App() {
                               })
                             }
                           />
+                        )}
+                        {(node.type === "mcp_tool" ||
+                          (node.type === "agent_task" && node.config.kind !== "host_skill")) && (
+                          <details className="business-rule-guide">
+                            <summary>业务核验规则</summary>
+                            <p>在节点配置中声明用来判断业务核验结果的输出字段和对应值。</p>
+                            {draft.draft.schemaVersion !== "flowhub.workflow/v2" ? (
+                              <button onClick={() => {
+                                rememberEdit();
+                                setDraft((old: J) => ({
+                                  ...old, draft: { ...old.draft, schemaVersion: "flowhub.workflow/v2" },
+                                }));
+                                setDirty(true);
+                              }}>升级当前草稿以配置核验规则</button>
+                            ) : (
+                              <pre>{pretty({ businessVerification: {
+                                pointer: "/state", verified: ["ok"], unavailable: ["unavailable"],
+                                failed: ["failed"], rowCountPointer: "/rowCount",
+                              } })}</pre>
+                            )}
+                            {node.config.businessVerification && <small>已声明核验字段 {node.config.businessVerification.pointer || "/"}</small>}
+                          </details>
                         )}
                         <JsonEditor
                           key={draft.id + "/nodes/" + node.id}
@@ -3112,6 +3111,13 @@ function App() {
                     ))}
                   </select>
                 </label>
+                {runListState === "pending" && <p role="status">正在读取运行记录…</p>}
+                {typeof runListState === "object" && (
+                  <>
+                    <p role="alert" className="error">无法读取运行记录。{runListState.message}</p>
+                    <button onClick={() => void loadRuns()}>重试读取运行记录</button>
+                  </>
+                )}
                 <table>
                   <thead>
                     <tr>
@@ -3139,13 +3145,15 @@ function App() {
                             tone={
                               r.state === "SUCCEEDED"
                                 ? "green"
-                                : r.state.startsWith("WAITING")
+                                : typeof r.state === "string" && r.state.startsWith("WAITING")
                                   ? "amber"
                                   : "gray"
                             }
                           >
-                            {statusLabels[r.state] ?? r.state}
+                            {statusLabels[r.state] ?? r.state ?? "状态未记录"}
                           </Badge>
+                          <RunBusinessOutcome summary={r.businessVerification} archived={r.reportArchived} />
+                          {r.syntheticExecution && <small>合成运行</small>}
                         </td>
                         <td>
                           {new Date(r.createdAt).toLocaleString("zh-CN", {
@@ -3161,10 +3169,10 @@ function App() {
                     ))}
                   </tbody>
                 </table>
-                {!runs.length && (
+                {runListState === "ready" && !runs.length && (
                   <Empty text="暂无运行，从工作流启动一次合成排查" />
                 )}
-                {runsMeta?.hasMore && (
+                {runListState === "ready" && runsMeta?.hasMore && (
                   <button
                     disabled={busy}
                     onClick={() => act(() => loadRuns(runsMeta.nextCursor))}
@@ -3175,16 +3183,31 @@ function App() {
               </section>
             </>
           )}
-          {page === "runs" &&
-            /^\/runs\/[^/]+$/.test(path) &&
-            run &&
-            run.runId === path.split("/")[2] && (
+          {runDetailId && (!assistantRun || currentRunIssue) && (
+            <>
+              {!assistantRun && (
+                <PageHead eyebrow="RUN DETAIL" title="运行详情" text={runDetailId}>
+                  <button onClick={() => navigate("/runs")}>返回运行记录</button>
+                </PageHead>
+              )}
+              <section className="panel">
+                {currentRunIssue ? (
+                  <>
+                    <p role="alert" className="error">无法读取运行详情。{currentRunIssue}</p>
+                    <button onClick={() => setRunReload(value => value + 1)}>重试读取运行详情</button>
+                  </>
+                ) : <p role="status">正在读取运行详情…</p>}
+              </section>
+            </>
+          )}
+          {assistantRun && (
               <>
                 <PageHead
                   eyebrow="RUN DETAIL"
-                  title={run.workflowId}
-                  text={run.runId + " · v" + run.version}
+                  title={run.workflowId ?? "运行详情"}
+                  text={run.version ? run.runId + " · v" + run.version : run.runId}
                 >
+                  <button onClick={() => navigate("/runs")}>返回运行记录</button>
                   <Badge>{run.environment} · 不可变快照</Badge>
                   <button
                     onClick={() =>
@@ -3203,27 +3226,43 @@ function App() {
                 </PageHead>
                 <div className="run-summary">
                   <Badge tone={run.state === "SUCCEEDED" ? "green" : "amber"}>
-                    {statusLabels[run.state] ?? run.state}
+                    {statusLabels[run.state] ?? run.state ?? "状态未记录"}
                   </Badge>
                   <span>revision {run.revision}</span>
-                  <code>{run.snapshotHash.slice(0, 28)}…</code>
+                  {run.syntheticExecution && <Badge>合成运行</Badge>}
+                  {typeof run.snapshotHash === "string" && run.snapshotHash
+                    ? <code>{run.snapshotHash.slice(0, 28)}…</code>
+                    : <span>快照哈希未记录</span>}
                   {run.waitingReason && (
                     <span className="error">{run.waitingReason}</span>
                   )}
                 </div>
-                <section className="panel"><button onClick={openAssistant}>使用助手解释当前运行</button><p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p></section>
+                <section className="panel">
+                  <RunBusinessOutcome summary={run.businessVerification} archived={run.reportArchived} detail />
+                  <ExecutionEvidence evidence={run.validationEvidence} hostResult={run.hostResultReceived} synthetic={run.syntheticExecution} />
+                  <button onClick={openAssistant}>使用助手解释当前运行</button>
+                  <p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p>
+                </section>
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
                     <p>当前节点：{run.currentNode}</p>
-                    {run.nodeDetails?.map((node: J) => <details key={node.nodeId}>
-                      <summary>{node.title} · {run.steps[node.nodeId]}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                    {Array.isArray(run.nodeDetails) && run.nodeDetails.map((node: J) => <details key={node.nodeId}>
+                      <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                      {node.executor && <p>执行者 {({
+                        codex_host: "Codex 宿主", assistant_local: "内置助手",
+                        hub_direct: "FlowHub", hub_template: "FlowHub 模板",
+                      } as Record<string, string>)[node.executor] ?? node.executor}
+                        {node.source?.name && " · " + node.source.name}
+                        {(node.source?.synthetic || node.source?.verification === "synthetic_fixture") && " · 合成"}
+                        {node.source?.verification === "host_reported" && " · 由宿主回传"}
+                      </p>}
                       {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
                       {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
                       {node.errorCode && <p className="error">{node.errorCode}</p>}
                     </details>)}
                     <div className="timeline">
-                      {Object.entries(run.steps).map(([id, state]) => (
+                      {Object.entries(run.steps ?? {}).map(([id, state]) => (
                         <div
                           key={id}
                           className={state === "SUCCEEDED" ? "done" : ""}
@@ -3248,15 +3287,9 @@ function App() {
                   <div>
                     {run.vaultLocked && (
                       <div className="banner">
-                        凭据库已锁定，需管理员解锁后才能交付或推进检查点。
+                        凭据库已锁定，解锁后才能交付或推进检查点。
                         <button
-                          onClick={() =>
-                            setModal({
-                              type: "unlock",
-                              title: "解锁凭据库",
-                              password: "",
-                            })
-                          }
+                          onClick={openVault}
                         >
                           解锁
                         </button>
@@ -3267,6 +3300,7 @@ function App() {
                         <Badge>WAITING_AGENT · {run.checkpoint.kind}</Badge>
                         <h2>{run.checkpoint.nodeId} · 宿主待办</h2>
                         <p>{run.checkpoint.instruction}</p>
+                        <RunContinuation key={run.runId} run={run} />
                         <RunAnalysisControl api={api} run={run}/>
                         <small>
                           等待已连接的 Codex 通过 workflow_status
@@ -3320,7 +3354,9 @@ function App() {
                       <button
                         onClick={() =>
                           act(async () => {
-                            const reason = prompt(
+                            const reason = inCodexWorkspace
+                              ? await workspaceDialog("人工复核并创建新运行", "创建新运行", "复核原因")
+                              : prompt(
                               "复核原因（保留原运行终态，创建新运行）",
                             );
                             if (reason) {
@@ -3337,125 +3373,14 @@ function App() {
                         人工复核并创建新运行
                       </button>
                     )}
-                    <section className="panel">
-                      <h2>
-                        证据与报告 <small>{run.artifacts.length} 个</small>
-                      </h2>
-                      {run.artifacts.map((a: J) => (
-                        <div className="artifact" key={a.id}>
-                          <span>
-                            {a.mimeType === "text/markdown" ? "▧" : "▤"}
-                          </span>
-                          <div>
-                            <strong>
-                              {a.nodeId} · {a.mimeType}
-                            </strong>
-                            <small>
-                              {a.id} · {a.byteLength} bytes
-                            </small>
-                          </div>
-                          <button onClick={() => act(() => readArtifact(a.id))}>
-                            查看
-                          </button>
-                        </div>
-                      ))}
-                      {!run.artifacts.length && <Empty text="尚未收集到证据" />}
-                      {artifact && (
-                        <div className="evidence">
-                          <div className="row">
-                            <Badge tone="green">内容已存储 · SHA-256</Badge>
-                            <button
-                              onClick={() =>
-                                download(
-                                  [
-                                    run.workflowId,
-                                    run.runId,
-                                    new Date(run.createdAt)
-                                      .toISOString()
-                                      .slice(0, 10),
-                                    artifact.artifactId,
-                                  ].join("-") +
-                                    (artifact.mimeType === "text/markdown"
-                                      ? ".md"
-                                      : artifact.mimeType === "text/html"
-                                        ? ".html"
-                                        : artifact.mimeType ===
-                                            "application/json"
-                                          ? ".json"
-                                          : ".txt"),
-                                  artifact.content,
-                                  artifact.mimeType,
-                                )
-                              }
-                            >
-                              下载当前块
-                            </button>
-                          </div>
-                          <pre>{artifact.content}</pre>
-                          <code className="artifact-hash">
-                            SHA-256：{artifact.sha256}
-                          </code>
-                          <dl className="verification-details">
-                            <dt>内容保存</dt>
-                            <dd>
-                              {artifact.verification?.contentStored === true
-                                ? "实际内容已保存"
-                                : "未声明"}
-                            </dd>
-                            <dt>结构校验</dt>
-                            <dd>
-                              {artifact.verification?.formatValidated === true
-                                ? "通过"
-                                : "未声明或未通过"}
-                            </dd>
-                            <dt>证据引用校验</dt>
-                            <dd>
-                              {artifact.verification
-                                ?.evidenceReferencesValidated === true
-                                ? "通过"
-                                : "未声明或未通过"}
-                            </dd>
-                            <dt>Skill 执行</dt>
-                            <dd>
-                              {artifact.verification?.skillExecution ===
-                              "host_reported"
-                                ? "宿主声明，Hub 未独立证实"
-                                : artifact.verification?.skillExecution ===
-                                    "not_used"
-                                  ? "未使用宿主 Skill（模板生成）"
-                                  : (artifact.verification?.skillExecution ??
-                                    "未声明")}
-                            </dd>
-                            <dt>事实审查</dt>
-                            <dd>
-                              {artifact.verification?.factualReview ===
-                              "human_reviewed"
-                                ? "已记录人工复核"
-                                : "未人工审查"}
-                            </dd>
-                          </dl>
-                          {!artifact.eof && (
-                            <button
-                              onClick={() =>
-                                act(() =>
-                                  readArtifact(
-                                    artifact.artifactId,
-                                    artifact.nextOffset,
-                                    true,
-                                  ),
-                                )
-                              }
-                            >
-                              继续读取下一块
-                            </button>
-                          )}
-                          <small>
-                            格式和引用校验不代表事实已人工复核；Skill
-                            执行仅为宿主声明。
-                          </small>
-                        </div>
-                      )}
-                    </section>
+                    <RunArtifacts
+                      key={run.runId}
+                      runId={run.runId}
+                      artifacts={Array.isArray(run.artifacts) ? run.artifacts : []}
+                      onPreview={setPreviewArtifactId}
+                      getChunk={(path, signal) => api(path, "GET", undefined, undefined, signal)}
+                      getDownload={(path, signal) => apiResponse(path, "GET", undefined, undefined, signal)}
+                    />
                     <section className="panel">
                       <h2>事件时间线</h2>
                       {run.events.map((e: J) => (
@@ -3480,7 +3405,7 @@ function App() {
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
                 title={navigationLabel("settings")}
-                text="配置唯一 MCP 入口、独立管理权限与本机配置和凭据库。"
+                text="管理 MCP 宿主身份、本机凭据和数据备份。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3511,7 +3436,7 @@ function App() {
                 </section>
                 <CredentialLibrary api={api}
                   onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
-                  onUnlock={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+                  onUnlock={openVault}
                   onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
                   onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
@@ -3562,7 +3487,7 @@ function App() {
         </div>
         <footer>
           FLOWHUB <span>一个入口 · 受控执行 · 证据可追踪</span>
-          <small>本机工作空间 / 独立管理员</small>
+          <small>本机工作空间</small>
         </footer>
       </main>
       <FloatingAssistant
@@ -3575,7 +3500,7 @@ function App() {
         runs={runs}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
-        onUnlockVault={() => setModal({ type: "unlock", title: "解锁凭据库", password: "" })}
+        onUnlockVault={openVault}
       />
       {modal && (
         <div
@@ -3760,6 +3685,8 @@ function App() {
                   后端校验：{modal.validation.ok ? "通过" : "未通过"} ·{" "}
                   {modal.validation.nodeCount} 个节点
                 </p>
+                <ExecutionRequirements requirements={workflowRequirements(modal.workflow)} />
+                <ExecutionEvidence evidence={modal.validation.validationEvidence} />
                 <DefinitionDiff
                   before={modal.previous}
                   after={modal.workflow}
@@ -3994,12 +3921,18 @@ function App() {
                 />
               </>
             ) : modal.type === "unlock" ? (
-              <Field
-                label="凭据库口令"
-                type="password"
-                value={modal.password}
-                onChange={(password) => setModal({ ...modal, password })}
-              />
+              <>
+                {modal.initialize && <p>请设置 12–256 个字符的口令，用于加密保存的 MCP 凭据和模型 Key。</p>}
+                <Field
+                  label="凭据库口令"
+                  type="password"
+                  value={modal.password}
+                  onChange={(password) => setModal({ ...modal, password })}
+                />
+                {error && failure?.path?.startsWith("/vault/") && (
+                  <p role="alert" className="error">{error}</p>
+                )}
+              </>
             ) : modal.type === "secret" ? (
               <>
                 <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
@@ -4348,16 +4281,6 @@ function Empty({ text }: { text: string }) {
       <p>{text}</p>
     </div>
   );
-}
-function download(filename: string, content: string, mimeType = "text/plain") {
-  const url = URL.createObjectURL(
-    new Blob([content], { type: mimeType + ";charset=utf-8" }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 createRoot(document.getElementById("root")!).render(<App />);
 

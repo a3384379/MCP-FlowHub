@@ -1,0 +1,590 @@
+{
+  "id": "plugin-e2e-1795009648023",
+  "name": "插件实测：合成订单核对与报告",
+  "description": "FlowHub workflow",
+  "environment": "test",
+  "tags": [],
+  "draft": {
+    "schemaVersion": "flowhub.workflow/v2",
+    "workflowId": "plugin-e2e-1795009648023",
+    "name": "插件实测：合成订单核对与报告",
+    "description": "FlowHub workflow",
+    "version": "1.0.0",
+    "environment": "test",
+    "mode": "guided",
+    "tags": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "orderNo": {
+          "type": "string",
+          "pattern": "^DEMO-[A-Za-z0-9-]{1,64}$",
+          "examples": [
+            "DEMO-PLUGIN-01"
+          ]
+        },
+        "needDetails": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "orderNo",
+        "needDetails"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "orderNo": "DEMO-PLUGIN-01",
+          "needDetails": true
+        }
+      ]
+    },
+    "bindings": {
+      "lookup": "binding_2cfe18d3e2a23611bc63293f"
+    },
+    "nodes": [
+      {
+        "id": "input",
+        "title": "输入",
+        "type": "input",
+        "config": {}
+      },
+      {
+        "id": "end",
+        "title": "结束",
+        "type": "end",
+        "config": {
+          "resultRef": {
+            "ref": {
+              "source": "input",
+              "pointer": ""
+            }
+          }
+        }
+      },
+      {
+        "id": "lookup",
+        "type": "mcp_tool",
+        "title": "查询合成订单",
+        "config": {
+          "bindingKey": "lookup",
+          "argumentsMappings": {
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            }
+          },
+          "capabilityRef": {
+            "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+            "revision": 1
+          },
+          "toolName": "synthetic_order_lookup",
+          "toolSchemaHash": "sha256:c4df0adea8d3ca4a78c89b7a4eb6e845f42786cb415d22df4f5235e225cb67d7"
+        }
+      },
+      {
+        "id": "detail",
+        "type": "mcp_tool",
+        "title": "按条件补充核对",
+        "config": {
+          "bindingKey": "lookup",
+          "argumentsMappings": {
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            }
+          },
+          "capabilityRef": {
+            "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+            "revision": 1
+          },
+          "toolName": "synthetic_order_lookup",
+          "toolSchemaHash": "sha256:c4df0adea8d3ca4a78c89b7a4eb6e845f42786cb415d22df4f5235e225cb67d7"
+        }
+      },
+      {
+        "id": "analysis",
+        "type": "agent_task",
+        "title": "Codex 整理合成回执",
+        "config": {
+          "kind": "analysis",
+          "instructions": "Summarize only the supplied synthetic lookup. Preserve original business fields.",
+          "inputMappings": {
+            "/lookup": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "lookup"
+              }
+            }
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "summary"
+            ],
+            "additionalProperties": false
+          },
+          "executorRef": "codex_host"
+        }
+      },
+      {
+        "id": "branch",
+        "type": "condition",
+        "title": "是否补充核对",
+        "config": {
+          "expression": {
+            "op": "eq",
+            "left": {
+              "ref": {
+                "source": "input",
+                "pointer": "/needDetails"
+              }
+            },
+            "right": {
+              "value": true
+            }
+          }
+        }
+      },
+      {
+        "id": "report",
+        "type": "report_template",
+        "title": "生成证据报告",
+        "config": {
+          "templateRef": "incident-markdown/v1",
+          "inputMappings": {
+            "/analysis": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "analysis"
+              }
+            },
+            "/lookup": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "lookup"
+              }
+            },
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            },
+            "/question": {
+              "value": "插件完整链路验收：仅核对本地合成订单，不作生产排障结论。"
+            }
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "reportMarkdown": {
+                "type": "string"
+              },
+              "evidenceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "reportMarkdown",
+              "evidenceRefs"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "input",
+        "target": "lookup",
+        "port": "next"
+      },
+      {
+        "source": "lookup",
+        "target": "analysis",
+        "port": "next"
+      },
+      {
+        "source": "analysis",
+        "target": "branch",
+        "port": "next"
+      },
+      {
+        "source": "branch",
+        "target": "detail",
+        "port": "true"
+      },
+      {
+        "source": "branch",
+        "target": "report",
+        "port": "false"
+      },
+      {
+        "source": "detail",
+        "target": "report",
+        "port": "next"
+      },
+      {
+        "source": "report",
+        "target": "end",
+        "port": "next"
+      }
+    ],
+    "budgets": {
+      "maxRunSeconds": 60,
+      "maxToolCalls": 20,
+      "maxNodeExecutions": 100,
+      "maxAgentCheckpoints": 10,
+      "maxOutputBytes": 262144,
+      "maxRows": 100,
+      "maxToolSeconds": 10,
+      "maxRetries": 0
+    },
+    "executionRequirements": {
+      "requiresCodex": true,
+      "executors": [
+        "hub_direct",
+        "codex_host"
+      ],
+      "capabilityRefs": [
+        {
+          "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+          "revision": 1
+        },
+        {
+          "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+          "revision": 1
+        }
+      ]
+    }
+  },
+  "layout": {
+    "lookup": {
+      "x": 400,
+      "y": 420
+    },
+    "detail": {
+      "x": 400,
+      "y": 560
+    },
+    "analysis": {
+      "x": 400,
+      "y": 700
+    },
+    "branch": {
+      "x": 400,
+      "y": 840
+    },
+    "report": {
+      "x": 400,
+      "y": 980
+    }
+  },
+  "revision": 2,
+  "defaultVersion": null,
+  "enabled": true,
+  "createdAt": "2026-11-18T13:47:28.834Z",
+  "updatedAt": "2026-11-18T13:47:28.856Z",
+  "createdBy": "execution",
+  "layoutRevision": 1,
+  "workflow": {
+    "schemaVersion": "flowhub.workflow/v2",
+    "workflowId": "plugin-e2e-1795009648023",
+    "name": "插件实测：合成订单核对与报告",
+    "description": "FlowHub workflow",
+    "version": "1.0.0",
+    "environment": "test",
+    "mode": "guided",
+    "tags": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "orderNo": {
+          "type": "string",
+          "pattern": "^DEMO-[A-Za-z0-9-]{1,64}$",
+          "examples": [
+            "DEMO-PLUGIN-01"
+          ]
+        },
+        "needDetails": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "orderNo",
+        "needDetails"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "orderNo": "DEMO-PLUGIN-01",
+          "needDetails": true
+        }
+      ]
+    },
+    "bindings": {
+      "lookup": "binding_2cfe18d3e2a23611bc63293f"
+    },
+    "nodes": [
+      {
+        "id": "input",
+        "title": "输入",
+        "type": "input",
+        "config": {}
+      },
+      {
+        "id": "end",
+        "title": "结束",
+        "type": "end",
+        "config": {
+          "resultRef": {
+            "ref": {
+              "source": "input",
+              "pointer": ""
+            }
+          }
+        }
+      },
+      {
+        "id": "lookup",
+        "type": "mcp_tool",
+        "title": "查询合成订单",
+        "config": {
+          "bindingKey": "lookup",
+          "argumentsMappings": {
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            }
+          },
+          "capabilityRef": {
+            "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+            "revision": 1
+          },
+          "toolName": "synthetic_order_lookup",
+          "toolSchemaHash": "sha256:c4df0adea8d3ca4a78c89b7a4eb6e845f42786cb415d22df4f5235e225cb67d7"
+        }
+      },
+      {
+        "id": "detail",
+        "type": "mcp_tool",
+        "title": "按条件补充核对",
+        "config": {
+          "bindingKey": "lookup",
+          "argumentsMappings": {
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            }
+          },
+          "capabilityRef": {
+            "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+            "revision": 1
+          },
+          "toolName": "synthetic_order_lookup",
+          "toolSchemaHash": "sha256:c4df0adea8d3ca4a78c89b7a4eb6e845f42786cb415d22df4f5235e225cb67d7"
+        }
+      },
+      {
+        "id": "analysis",
+        "type": "agent_task",
+        "title": "Codex 整理合成回执",
+        "config": {
+          "kind": "analysis",
+          "instructions": "Summarize only the supplied synthetic lookup. Preserve original business fields.",
+          "inputMappings": {
+            "/lookup": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "lookup"
+              }
+            }
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "summary"
+            ],
+            "additionalProperties": false
+          },
+          "executorRef": "codex_host"
+        }
+      },
+      {
+        "id": "branch",
+        "type": "condition",
+        "title": "是否补充核对",
+        "config": {
+          "expression": {
+            "op": "eq",
+            "left": {
+              "ref": {
+                "source": "input",
+                "pointer": "/needDetails"
+              }
+            },
+            "right": {
+              "value": true
+            }
+          }
+        }
+      },
+      {
+        "id": "report",
+        "type": "report_template",
+        "title": "生成证据报告",
+        "config": {
+          "templateRef": "incident-markdown/v1",
+          "inputMappings": {
+            "/analysis": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "analysis"
+              }
+            },
+            "/lookup": {
+              "ref": {
+                "source": "node",
+                "pointer": "",
+                "nodeId": "lookup"
+              }
+            },
+            "/orderNo": {
+              "ref": {
+                "source": "input",
+                "pointer": "/orderNo"
+              }
+            },
+            "/question": {
+              "value": "插件完整链路验收：仅核对本地合成订单，不作生产排障结论。"
+            }
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "reportMarkdown": {
+                "type": "string"
+              },
+              "evidenceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "reportMarkdown",
+              "evidenceRefs"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "input",
+        "target": "lookup",
+        "port": "next"
+      },
+      {
+        "source": "lookup",
+        "target": "analysis",
+        "port": "next"
+      },
+      {
+        "source": "analysis",
+        "target": "branch",
+        "port": "next"
+      },
+      {
+        "source": "branch",
+        "target": "detail",
+        "port": "true"
+      },
+      {
+        "source": "branch",
+        "target": "report",
+        "port": "false"
+      },
+      {
+        "source": "detail",
+        "target": "report",
+        "port": "next"
+      },
+      {
+        "source": "report",
+        "target": "end",
+        "port": "next"
+      }
+    ],
+    "budgets": {
+      "maxRunSeconds": 60,
+      "maxToolCalls": 20,
+      "maxNodeExecutions": 100,
+      "maxAgentCheckpoints": 10,
+      "maxOutputBytes": 262144,
+      "maxRows": 100,
+      "maxToolSeconds": 10,
+      "maxRetries": 0
+    },
+    "executionRequirements": {
+      "requiresCodex": true,
+      "executors": [
+        "hub_direct",
+        "codex_host"
+      ],
+      "capabilityRefs": [
+        {
+          "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+          "revision": 1
+        },
+        {
+          "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+          "revision": 1
+        }
+      ]
+    }
+  },
+  "capabilityRefs": [
+    {
+      "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+      "revision": 1
+    },
+    {
+      "capabilityId": "cap_704e8ecf6e6408b0c5974fd1",
+      "revision": 1
+    }
+  ],
+  "issues": [],
+  "instanceId": "ea6c7f72-b6a7-4de2-901f-1b4375637549"
+}

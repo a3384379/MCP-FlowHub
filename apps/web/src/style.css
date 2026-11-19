@@ -692,6 +692,19 @@ dd {
   margin-left: auto;
   font-size: 11px;
 }
+.run-artifact {
+  flex-wrap: wrap;
+}
+.run-artifact-meta {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.run-artifact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .event {
   display: flex;
   gap: 15px;
@@ -709,6 +722,8 @@ dd {
 }
 .evidence pre {
   max-height: 620px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .banner {
   background: #fff8e8;
@@ -769,7 +784,7 @@ footer small {
   font-size: 10px;
   letter-spacing: 0;
 }
-.login {
+.workspace-startup {
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -777,7 +792,7 @@ footer small {
     radial-gradient(ellipse at top, #e1edff, transparent 60%), #f2f6fc;
   padding: 30px;
 }
-.login-card {
+.workspace-startup-card {
   width: 480px;
   max-width: 100%;
   background: white;
@@ -786,26 +801,15 @@ footer small {
   border-radius: 20px;
   box-shadow: 0 22px 70px #224e8510;
 }
-.login-card .brand {
+.workspace-startup-card .brand {
   font-size: 27px;
   flex-wrap: wrap;
 }
-.login-card .brand small {
-  display: block;
-  width: 100%;
-  margin-left: 46px;
-}
-.login-card p {
+.workspace-startup-card p {
   font-size: 13px;
 }
-.login-card h1 {
+.workspace-startup-card h1 {
   font-size: 25px;
-}
-.login-note {
-  font-size: 11px;
-  color: #91a2b7;
-  margin-top: 22px;
-  text-align: center;
 }
 .modal-backdrop {
   position: fixed;
@@ -1124,3 +1128,20 @@ footer small {
 .vault-notice span { flex: 1 1 180px; }
 .vault-notice button { flex-shrink: 0; }
 .assistant-composer .vault-notice { margin: 0 0 8px; padding: 6px 8px; }
+
+.execution-requirements small,
+.run-business-outcome small {
+  display: block;
+}
+
+.run-business-outcome {
+  margin-top: 6px;
+}
+
+.business-rule-guide {
+  margin: 12px 0;
+}
+
+.release-evidence {
+  margin-block: 10px;
+}

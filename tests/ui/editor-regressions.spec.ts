@@ -619,7 +619,7 @@ test("a save finishing after navigation cannot replace another workflow", async 
   }
 });
 
-test("session expiry retains focused JSON text while a wrong vault password leaves the admin session active", async ({
+test("session expiry reconnects in place and retains focused JSON text", async ({
   page,
 }) => {
   await admin(page);
@@ -640,7 +640,7 @@ test("session expiry retains focused JSON text while a wrong vault password leav
       json: {
         error: {
           code: "AUTH_REQUIRED",
-          message: "Administrator login required.",
+          message: "Local workspace session required.",
         },
       },
     });
@@ -659,16 +659,7 @@ test("session expiry retains focused JSON text while a wrong vault password leav
     await editor.fill(raw);
     await page.context().clearCookies();
     release.resolve();
-    await expect(
-      page.getByRole("button", { name: "登录管理中心", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "导出未保存草稿", exact: true }),
-    ).toBeVisible();
-    await page.getByLabel("管理员密码").fill(password);
-    await page
-      .getByRole("button", { name: "登录管理中心", exact: true })
-      .click();
+    await expect.poll(async () => (await page.request.get("/api/v1/auth/session")).status()).toBe(200);
     await expect(page.getByLabel("节点配置（映射 / Schema）")).toHaveValue(raw);
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "系统设置", exact: true }).click();

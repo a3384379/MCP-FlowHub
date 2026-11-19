@@ -108,8 +108,9 @@ export function ConnectionSetup({
     updateBusy(true);
     setError("");
     try {
-      await api("/vault/unlock", "POST", { password });
+      await api(meta?.vaultInitialized === false ? "/vault/initialize" : "/vault/unlock", "POST", { password });
       if (!mounted.current) return;
+      setMeta(current => current ? { ...current, vaultInitialized: true } : current);
       setLocked(false);
       setPassword("");
       setNotice("本地库已解锁，填写内容已保留。");
@@ -416,7 +417,7 @@ export function ConnectionSetup({
         在模型设置中单独管理。
       </p>
       <div className="d-vault-status">
-        本地库：{locked ? "已锁定" : meta ? "已解锁" : "正在读取…"}
+        本地库：{meta?.vaultInitialized === false ? "尚未设置口令" : locked ? "已锁定" : meta ? "已解锁" : "正在读取…"}
       </div>
       {locked && (
         <div className="d-config-unlock">
@@ -431,7 +432,8 @@ export function ConnectionSetup({
               }}
               aria-label="凭据库口令"
               type="password"
-              autoComplete="current-password"
+              autoComplete={meta?.vaultInitialized === false ? "new-password" : "current-password"}
+              minLength={meta?.vaultInitialized === false ? 12 : undefined}
               disabled={working}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -442,7 +444,7 @@ export function ConnectionSetup({
             disabled={working || !password}
             onClick={() => void unlock()}
           >
-            解锁凭据库
+            {meta?.vaultInitialized === false ? "设置凭据库口令" : "解锁凭据库"}
           </button>
         </div>
       )}

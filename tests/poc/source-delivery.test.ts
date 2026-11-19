@@ -60,6 +60,8 @@ async function fixture(t: TestContext) {
   await put(root, "apps/web/src/features/settings/CredentialLibrary.tsx", "export const CredentialLibrary = () => null;\n");
   await put(root, ".github/workflows/ci.yml", "name: fixture\n");
   await put(root, "templates/report.md", "# Synthetic report\n");
+  await put(root, "plugins/flowhub/plugin.json", '{"name":"flowhub"}\n');
+  await put(root, "plugins/flowhub/skills/flowhub-setup/SKILL.md", "# Synthetic skill\n");
   await put(root, "examples/workflow.json", '{"environment":"synthetic"}\n');
   const stage = async () => {
     const snapshot = await createSourceSnapshot(root, bundle);
@@ -85,6 +87,8 @@ test("offline source snapshot preserves original build inputs and excludes local
     "scripts/.env.local",
     "docs/credentials.json",
     "tests/secrets.json",
+    "plugins/flowhub/.env",
+    "plugins/flowhub/data/connection.json",
     "apps/private.key",
   ])
     await put(root, path, "PRIVATE_FIXTURE_SENTINEL\n");
@@ -100,6 +104,9 @@ test("offline source snapshot preserves original build inputs and excludes local
     "package.json",
     "package-lock.json",
     "playwright.config.ts",
+    "plugins/flowhub/plugin.json",
+    "plugins/flowhub/.codex-plugin/plugin.json",
+    "plugins/flowhub/skills/flowhub-setup/SKILL.md",
   ])
     assert.ok(Object.hasOwn(snapshot.files, path), path);
   assert.equal(

@@ -1,0 +1,26 @@
+✔ plugin config defaults without creating state; invalid settings fail closed (4.570667ms)
+✔ plugin config keeps restricted identity and only writes references outside the package (2.218292ms)
+✔ plugin config rejects links instead of silently changing identity (1.53375ms)
+✔ plugin entry runs through a symlinked parent directory (29.88225ms)
+✔ native plugin staging includes portable manifests, skills and marketplace; tamper is rejected (22.086625ms)
+✔ offline source snapshot preserves original build inputs and excludes local state (39.182334ms)
+✔ source verification rejects changed bytes and a replaced source tree identity (30.26675ms)
+▶ runtime contract, example and template contents must match recoverable source
+  ✔ contracts (19.717167ms)
+  ✔ examples (18.513208ms)
+  ✔ templates (18.862833ms)
+✔ runtime contract, example and template contents must match recoverable source (57.533042ms)
+✔ runtime file additions and source manifest path escapes are rejected (18.828ms)
+▶ source capture refuses symlinks and credential-bearing npm configuration
+  ✔ npm credentials (7.318625ms)
+  ✔ symlink (8.615625ms)
+✔ source capture refuses symlinks and credential-bearing npm configuration (16.21025ms)
+✔ a source edit during packaging requires a fresh candidate (19.61325ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 214.410084

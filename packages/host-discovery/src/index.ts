@@ -13,8 +13,39 @@ export type {DiscoveryRuntime} from "./runtime.js";
 const exec=promisify(execFile);
 export const executionLocation=process.platform==="win32"?"windows_native":process.platform==="darwin"?"macos":process.env.WSL_DISTRO_NAME?"wsl":"linux";
 export async function locateCodex() {
-  for(const root of (process.env.PATH??"").split(delimiter)) for(const file of process.platform==="win32"?["codex.exe","codex.cmd"]:["codex"])
-    try {const path=await realpath(join(root,file));if((await stat(path)).isFile()&&!/\.cmd$/i.test(path))return path;}catch{}
+  const windows = process.platform === "win32";
+  const roots = (process.env.PATH ?? "").split(delimiter).filter(isAbsolute);
+  const file = windows ? "codex.exe" : "codex";
+  async function firstExisting(paths: string[]) {
+    for (const candidate of paths) {
+      try {
+        const path = await realpath(candidate);
+        if ((await stat(path)).isFile()) return path;
+      } catch { /* Continue through installed executable candidates. */ }
+    }
+    return null;
+  }
+  const onPath = await firstExisting(roots.map(root => join(root, file)));
+  if (onPath || !windows) return onPath;
+
+  const applicationRoots = [
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Programs", "Codex"),
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "OpenAI", "Codex"),
+    process.env.ProgramFiles && join(process.env.ProgramFiles, "OpenAI", "Codex"),
+  ].filter((path): path is string => !!path && isAbsolute(path));
+  const desktopBinaries = (directory: string) =>
+    ["resources/codex.exe", "app/resources/codex.exe", "resources/bin/codex.exe", "app/resources/bin/codex.exe"]
+      .map(path => join(directory, path));
+  const desktop = await firstExisting(applicationRoots.flatMap(desktopBinaries));
+  if (desktop) return desktop;
+  try {
+    const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    const result = exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+      "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-AppxPackage -Name 'OpenAI.*' | Where-Object { $_.Name -match 'Codex|ChatGPT' } | Select-Object -First 8 -ExpandProperty InstallLocation"],
+      { windowsHide: true, timeout: 5000, maxBuffer: 32768 });
+    result.child.stdin?.end();
+    return await firstExisting((await result).stdout.split(/\r?\n/).filter(isAbsolute).flatMap(desktopBinaries));
+  } catch { /* Package discovery may be unavailable on managed Windows. */ }
   return null;
 }
 export type DiscoveryControl = { signal?: AbortSignal; deadline?: number };
@@ -102,14 +133,13 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
           :{kind:"static_candidate",profile:context.profile??null,declarations:declarations(name),declarationOrder:"read_order_not_precedence"}});
     }
   };
-  let effective=false;
+  let effective=false, untrustedProject=false;
   if(context.executionLocation!==executionLocation)report(context.id,"EXECUTION_LOCATION_UNSUPPORTED");
   else if(context.codexPath&&context.discoveryMode!=="config_only")try{
     const help=await output(context,["mcp","list","--help"],control,runtime);
     // The local reading choice must not silently let an untrusted project's
     // config enter through the CLI's own trust settings. Without a documented
     // no-project flag, retain conservative static candidates in that case.
-    let untrustedProject=false;
     if(!context.projectTrusted)try{untrustedProject=(await stat(projectPath)).isFile();}catch{}
     if(untrustedProject)report(projectPath,"PROJECT_CONFIGURATION_NOT_TRUSTED");
     const profileSupported=!context.profile||/(?:^|\s)--profile(?:[=\s,<]|$)/m.test(await output(context,["--help"],control,runtime));
@@ -165,20 +195,34 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
       let installed=Object.hasOwn(config.plugins??{},key);
       try{const marker=JSON.parse(await readFile(join(base,".codex-remote-plugin-install.json"),"utf8"));installed ||= marker.schema_version===1;}catch{}
       if(!installed)continue;
-      let versions:string[]=[];try{versions=await readdir(base);}catch{continue;}
-      const candidates:Json[]=[];
+      let versions:string[], canonicalBase:string;
+      try {
+        canonicalBase=await safeChild(cache,relative(cache,base));
+        if(canonicalBase!==join(await realpath(cache),market,name)) {
+          report(base,"SOURCE_UNREADABLE");continue;
+        }
+        versions=await readdir(canonicalBase);
+      } catch {continue;}
+      const candidates=new Map<string, Json>();
+      const aliases=new Map<string,string>();
       for(const version of versions.filter(v=>!v.startsWith(".")).slice(0,50)) {
-        const root=join(base,version);try {
+        try {
+          // A cache alias (for example Chrome's latest) is another path to the
+          // same installation. Also confine symlinks to this plugin's own root.
+          const root=await safeChild(canonicalBase,version);
+          const canonicalVersion=basename(root);
+          if(dirname(root)!==canonicalBase)continue;
+          if(candidates.has(root)){aliases.set(version,root);continue;}
           const path=await safeChild(root,".codex-plugin/plugin.json"),manifest=JSON.parse(await readFile(path,"utf8"));
           // This adapter supports the legacy unversioned format only. A plugin's
           // release `version` is separate from an explicitly declared format version.
           ensure(["schemaVersion","schema_version","manifest_version"].every(key=>manifest[key]===undefined),"PLUGIN_MANIFEST_UNSUPPORTED","Plugin manifest format version is unsupported.");
-          if(manifest.name===name)candidates.push({root,manifest,version});
+          if(manifest.name===name){candidates.set(root,{root,manifest,version:canonicalVersion});aliases.set(version,root);}
         }catch{}
       }
       const selected=config.plugins?.[key]?.version;
-      const item=selected?candidates.find(c=>c.version===selected):candidates.length===1?candidates[0]:null;
-      if(!item){report(base,candidates.length>1?"PLUGIN_VERSION_AMBIGUOUS":"PLUGIN_MANIFEST_UNSUPPORTED");continue;}
+      const item=selected?candidates.get(aliases.get(selected)??""):candidates.size===1?candidates.values().next().value:null;
+      if(!item){report(base,candidates.size>1?"PLUGIN_VERSION_AMBIGUOUS":"PLUGIN_MANIFEST_UNSUPPORTED");continue;}
       const enabled=config.plugins?.[key]?.enabled!==false;
       components.push({sourceKey:key,name,description:typeof item.manifest.description==="string"?item.manifest.description.slice(0,8000):"",kind:"plugin",installed:true,enabled,version:item.version,path:item.root,executor:"informational",manifestHash:hash(item.manifest)});
       try{
@@ -198,18 +242,22 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
   }
   await addLocalMarketplaces(context,components,report);
   if(context.useAppServer&&context.codexPath&&context.discoveryMode!=="config_only")try{
-    const response=await readAppServer(context,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
+    // A registered context can survive a Codex update.
+    ensure(!untrustedProject&&(!context.profile||effective),"HOST_VERSION_UNSUPPORTED","App Server scan cannot establish the selected project/profile.");
+    const host={...context,codexVersion:(await output(context,["--version"],control,runtime)).trim()};
+    const response=await readAppServer(host,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
+    for(const group of response.data)if(group.errors?.length)report(context.id,"HOST_SKILLS_PARTIAL");
     for(const group of response.data??[])for(const skill of group.skills??[]) {
       const existing=components.find(c=>c.path===skill.path||dirname(c.path??"")===skill.path);
       if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
       else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
     }
     if(depth==="catalog") {
-      const catalog=await readAppServer(context,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
+      const catalog=await readAppServer(host,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
       for(const server of catalog.data??[]) {
         const matches=sources.filter(s=>s.name===server.name),source=matches.length===1?matches[0]:undefined;
-        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
+        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
         for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,serverSourceKey:source?.sourceKey??null,ambiguousSource:matches.length>1,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
       }

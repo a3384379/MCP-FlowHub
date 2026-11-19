@@ -10,9 +10,11 @@ import {
 } from "@modelcontextprotocol/node";
 import { tokenMatches } from "./local-config.js";
 
+export const WEB_POLICY = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+
 /** Official SDK owns ALL modern and legacy wire adaptation. */
 export function createLocalHttp(
-  factory: (subject: string) => McpServer,
+  factory: (subject: string, codexSidebar: boolean) => McpServer,
   token: string,
   authorize?: (header: string | undefined) => string | undefined,
 ) {
@@ -25,7 +27,7 @@ export function createLocalHttp(
     (context) => {
       const subject = context.authInfo?.clientId;
       if (!subject) throw new Error("MCP authentication context is required.");
-      return factory(subject);
+      return factory(subject, context.authInfo?.scopes.includes("flowhub:codex-sidebar") === true);
     },
     { legacy: "stateless", maxRequestBodySize: 262144 },
   );
@@ -48,7 +50,7 @@ export function createLocalHttp(
     reply.header("Cache-Control", "no-store");
     reply.header(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      WEB_POLICY,
     );
   });
   app.route({
@@ -56,7 +58,8 @@ export function createLocalHttp(
     url: "/mcp",
     // Bind authentication to the matched route, including encoded/absolute URLs.
     onRequest: async (request, reply) => {
-      const subject = tokenMatches(request.headers.authorization, token)
+      const personal = tokenMatches(request.headers.authorization, token);
+      const subject = personal
         ? "execution"
         : authorize?.(request.headers.authorization);
       if (!subject)
@@ -69,7 +72,9 @@ export function createLocalHttp(
       (request.raw as typeof request.raw & { auth: AuthInfo }).auth = {
         token: "[validated]",
         clientId: subject,
-        scopes: ["workflow:execute"],
+        scopes: personal && request.headers["x-flowhub-codex-sidebar"] === "1"
+          ? ["workflow:execute", "flowhub:codex-sidebar"]
+          : ["workflow:execute"],
       };
     },
     handler: async (request, reply) => {

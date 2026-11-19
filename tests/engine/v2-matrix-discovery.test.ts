@@ -55,6 +55,28 @@ const importRequest = (cap: Json, key: string) => ({
   environment: "test", lockedArguments: {}, idempotencyKey: key,
 });
 
+test("Chrome's latest alias resolves to its canonical installed version without hiding real ambiguity", async t => {
+  const f = await fixture(t);
+  const version = await installed(f, "chrome", 1);
+  const base = join(version, "..");
+  await writeFile(join(f.home, "config.toml"), '[plugins."chrome@matrix-market"]\nenabled=true\n');
+  await symlink(version, join(base, "latest"), process.platform === "win32" ? "junction" : "dir");
+  const outside = await installed(f, "other", 1);
+  await writeFile(join(outside, ".codex-plugin/plugin.json"), JSON.stringify({ name: "chrome" }));
+  await symlink(outside, join(base, "outside"), process.platform === "win32" ? "junction" : "dir");
+  const context = await f.context({ discoveryMode: "config_only" });
+  const scan = await f.scan(context, "alias");
+  assert.ok(!scan.issues.some((issue: Json) => issue.code === "PLUGIN_VERSION_AMBIGUOUS"));
+  assert.equal(scan.components.find((item: Json) => item.kind === "plugin" && item.name === "chrome")?.version, "1.0");
+  assert.equal(scan.components.filter((item: Json) => item.kind === "skill" && item.parent === "chrome@matrix-market").length, 1);
+  await mkdir(join(base, "2.0", ".codex-plugin"), { recursive: true });
+  await writeFile(join(base, "2.0", ".codex-plugin/plugin.json"), JSON.stringify({ name: "chrome" }));
+  assert.ok((await f.scan(context, "distinct")).issues.some((issue: Json) => issue.code === "PLUGIN_VERSION_AMBIGUOUS"));
+  await writeFile(join(f.home, "config.toml"), '[plugins."chrome@matrix-market"]\nenabled=true\nversion="latest"\n');
+  const pinned = await f.scan(context, "alias-pin");
+  assert.equal(pinned.components.find((item: Json) => item.kind === "plugin" && item.name === "chrome")?.version, "1.0");
+});
+
 async function installed(f: Awaited<ReturnType<typeof fixture>>, name: string, skills = 0, servers: Json = {}) {
   const root = join(f.home, "plugins/cache/matrix-market", name, "1.0");
   await mkdir(join(root, ".codex-plugin"), { recursive: true });

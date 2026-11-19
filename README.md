@@ -2,7 +2,7 @@
 
 面向 Codex 等 AI Harness 的轻量级、可视化 MCP 能力编排与管理工具，优先服务个人开发者。配置一次工作流，之后由 Codex 选择并执行。
 
-当前版本 **2.0.0-alpha.2**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
+当前版本 **2.0.0-alpha.8**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
 
 ## 启动
 
@@ -12,12 +12,18 @@ Node **24.19.0**、npm **11.9.0**：
     npm run build
     npm start
 
-默认 http://127.0.0.1:18473。默认账号 `admin`，默认密码 `admin`，首次登录自动初始化管理员与凭据库，无需一次性设置码。已设置的管理员口令保持不变；重启后凭据库可使用原口令解锁。另一个终端运行 `npm run mcp`，或按接入设置生成受限宿主配置。
+打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。首次添加 MCP 凭据或模型 Key 时设置独立的凭据库口令，已有凭据库在服务重启后使用原口令解锁。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
 
     npm start -- --data-dir /tmp/flowhub-dev --port 18474
     npm run mcp -- --data-dir /tmp/flowhub-dev
 
 Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/share/mcp-flowhub），Windows 为 %LOCALAPPDATA%\MCP-FlowHub。程序与数据分离。
+
+## Codex 插件包
+
+`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装；在独立终端用包内 `flowhub-plugin start` 启动后台。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
+
+复制程序无需修改 manifest 中的本机路径。业务数据和身份引用保存在包外；跨系统需使用目标平台原生包。安装、数据迁移、更新和卸载见 [插件包指南](docs/PLUGIN_PACKAGE.md)。
 
 ## 能力
 

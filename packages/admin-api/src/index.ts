@@ -24,6 +24,7 @@ import {
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
@@ -38,6 +39,7 @@ import {
 import { backupDirectory, localBackups, preflightLocalBackup } from "./local-backups.js";
 import { hostIntegration, localCliPath, offlineRestoreInstructions } from "./settings-integration.js";
 import { credentialInventory } from "../../security/src/credential-metadata.js";
+import type { CodexLaunches } from "./codex-launch.js";
 import {
   bindingImpact,
   eventCursor,
@@ -52,6 +54,7 @@ export async function registerAdmin(
   authoring = new AuthoringService(engine),
   registry = new CapabilityRegistry(engine),
   application?: Application,
+  codexLaunches?: CodexLaunches,
 ) {
   const { repo, vault, connectors } = engine,
     auth = new AdminAuth(repo),
@@ -144,7 +147,7 @@ export async function registerAdmin(
       (["GET", "HEAD"].includes(req.method) &&
         ["/api/v1/health", "/api/v1/auth/state"].includes(path)) ||
       (req.method === "POST" &&
-        ["/api/v1/auth/session", "/api/v1/auth/bootstrap"].includes(path))
+        ["/api/v1/auth/session", "/api/v1/auth/bootstrap", "/api/v1/auth/local-session", "/api/v1/auth/codex-session"].includes(path))
     )
       return;
     auth.check(
@@ -153,13 +156,15 @@ export async function registerAdmin(
       !["GET", "HEAD", "OPTIONS"].includes(req.method),
     );
   });
-  const loginCookie = (reply: Json, session: Json) =>
+  const setSessionCookie = (reply: Json, session: Json, codex = false) => {
+    closeInvalidEventStreams();
     reply.header(
       "Set-Cookie",
-      "flowhub_session=" +
-        session.token +
-        "; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800",
+      codex
+        ? `flowhub_codex_session=${session.token}; HttpOnly; SameSite=None; Secure; Partitioned; Path=/; Max-Age=28800`
+        : `flowhub_session=${session.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`,
     );
+  };
   app.get("/api/v1/auth/state", async () =>
     data({
       initialized: auth.initialized,
@@ -168,6 +173,40 @@ export async function registerAdmin(
       version: VERSION,
     }),
   );
+  const requireLocalOrigin = (req: FastifyRequest) => {
+    const address = app.server.address();
+    ensure(
+      address && typeof address === "object" && address.address === "127.0.0.1" &&
+        req.ip === "127.0.0.1" &&
+        req.headers.host === `127.0.0.1:${address.port}` &&
+        req.headers.origin === `http://127.0.0.1:${address.port}` &&
+        req.headers["x-flowhub-local"] === "1" &&
+        (req.headers["sec-fetch-site"] === undefined || req.headers["sec-fetch-site"] === "same-origin"),
+      "ORIGIN_DENIED",
+      "A same-origin request from the local workspace is required.",
+      403,
+    );
+  };
+  app.post("/api/v1/auth/local-session", async (req, reply) => {
+    requireLocalOrigin(req);
+    body(req, []);
+    try {
+      return data({ csrf: auth.check(req.headers.cookie, undefined, false, false).csrf });
+    } catch (error) {
+      if (!(error instanceof HubError && error.code === "AUTH_REQUIRED")) throw error;
+    }
+    const session = auth.session();
+    setSessionCookie(reply, session);
+    return data({ csrf: session.csrf });
+  });
+  app.post("/api/v1/auth/codex-session", async (req, reply) => {
+    requireLocalOrigin(req);
+    const { ticket } = body(req, ["ticket"]);
+    ensure(codexLaunches?.redeem(ticket), "AUTH_REQUIRED", "Reopen FlowHub from the Codex sidebar.", 401);
+    const session = auth.session(true);
+    setSessionCookie(reply, session, true);
+    return data({ csrf: session.csrf });
+  });
   app.post("/api/v1/auth/bootstrap", async (req, reply) => {
     auth.throttle("bootstrap");
     const b = body(req, ["setupToken", "password"]);
@@ -190,7 +229,7 @@ export async function registerAdmin(
     });
     await unlink(setupPath);
     const session = auth.session();
-    loginCookie(reply, session);
+    setSessionCookie(reply, session);
     return data({ csrf: session.csrf });
   });
   app.post("/api/v1/auth/session", async (req, reply) => {
@@ -211,7 +250,7 @@ export async function registerAdmin(
       });
     }
     const session = auth.login(b.password, b.username);
-    loginCookie(reply, session);
+    setSessionCookie(reply, session);
     return data({ csrf: session.csrf });
   });
   app.get("/api/v1/auth/session", async (req) =>
@@ -225,6 +264,21 @@ export async function registerAdmin(
       "flowhub_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
     );
     return data({ loggedOut: true });
+  });
+  app.post("/api/v1/vault/initialize", async (req) => {
+    const b = body(req, ["password"]);
+    ensure(!vault.initialized, "VAULT_EXISTS", "Vault already initialized.", 409);
+    try {
+      repo.tx(() => {
+        vault.initialize(b.password);
+        repo.audit("admin", "vault:initialize", "vault");
+      });
+    } catch (error) {
+      vault.lock();
+      throw error;
+    }
+    auth.resetThrottle("vault");
+    return data({ initialized: true, locked: false });
   });
   app.post("/api/v1/vault/unlock", async (req) => {
     auth.throttle("vault");
@@ -727,7 +781,15 @@ export async function registerAdmin(
     return data(next);
   });
 
-  app.get("/api/v1/workflows", async () => data(repo.all("workflows").filter(w=>!w.deletedAt)));
+  app.get("/api/v1/workflows", async () => data(repo.all("workflows").filter(w => !w.deletedAt).map(w => {
+    const published = w.defaultVersion && repo.get("versions", w.id + "@" + w.defaultVersion);
+    return {
+      ...w,
+      ...(published?.snapshot?.workflow ? {
+        publishedRequirements: workflowRequirements(published.snapshot.workflow),
+      } : {}),
+    };
+  })));
   app.post("/api/v1/workflows", async (req) => {
     const b = body(req, ["workflow"], ["layout"]);
     return data(authoring.saveRaw(b.workflow, undefined, b.layout ?? {}));
@@ -757,7 +819,13 @@ export async function registerAdmin(
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
     ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
-    return data(engine.validateDraft(w.draft));
+    return data({
+      ...engine.validateDraft(w.draft),
+      validationEvidence: {
+        draftRevision: w.revision, structure: "SUCCEEDED",
+        ...authoring.publicationEvidence?.(w.id, w.revision),
+      },
+    });
   });
   app.post("/api/v1/workflows/:id/publish", async (req) => {
     const b = body(
@@ -918,9 +986,12 @@ export async function registerAdmin(
   app.get("/api/v1/runs/:id", async (req) => {
     const runId = param(req),
       { after, limit } = eventPageQuery(req.query);
-    const status = engine.status(runId, owner(runId), after, limit);
+    const runOwner = owner(runId);
+    const status = engine.status(runId, runOwner, after, limit);
     return data({
       ...status,
+      hostIdentityLabel: runOwner === "execution" ? "本机个人编排身份"
+        : repo.get("clients", runOwner)?.label ?? "原受限宿主身份",
       eventCursor: eventCursor(repo, runId, after, limit, status.events),
     });
   });
@@ -995,6 +1066,24 @@ export async function registerAdmin(
         owner(param(req)),
       ),
     );
+  });
+  app.get("/api/v1/runs/:id/artifacts/:artifactId/download", async (req, reply) => {
+    const runId = param(req);
+    const artifact = engine.artifactContent(runId, param(req, "artifactId"), owner(runId));
+    const extensions: Record<string, string> = {
+      "text/markdown": "md",
+      "text/html": "html",
+      "application/json": "json",
+      "application/mcp+json": "json",
+    };
+    const safeId = String(artifact.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const extension = Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
+    const filename = "flowhub-" + safeId + "." + extension;
+    return reply
+      .type("application/octet-stream")
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .header("Cache-Control", "no-store")
+      .send(Buffer.from(artifact.content, "utf8"));
   });
   app.post("/api/v1/support-bundles/preview", async () =>
     data(supportPreview()),

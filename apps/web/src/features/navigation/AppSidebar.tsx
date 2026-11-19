@@ -13,7 +13,7 @@ import { useVisualViewport } from "../../shared/viewport";
 export function NavigationIcon({
   name,
 }: {
-  name: NavigationKey | "menu" | "close" | "logout";
+  name: NavigationKey | "menu" | "close";
 }) {
   const paths = {
     workflows: (
@@ -58,11 +58,6 @@ export function NavigationIcon({
     ),
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
-    logout: (
-      <>
-        <path d="M9 4H4v16h5M9 12h12M16 7l5 5-5 5" />
-      </>
-    ),
   };
   return (
     <svg
@@ -87,16 +82,12 @@ type Props = {
   open: boolean;
   close: () => void;
   navigate: (path: string) => boolean;
-  logout: () => void;
-  busy: boolean;
 };
 
 function SidebarContent({
   page,
   close,
   navigate,
-  logout,
-  busy,
   mobile = false,
 }: Props & { mobile?: boolean }) {
   const active = navigationForPage(page)?.key;
@@ -143,19 +134,6 @@ function SidebarContent({
           </section>
         ))}
       </nav>
-      <div className="app-sidebar-account">
-        <span className="app-avatar" aria-hidden="true">
-          AD
-        </span>
-        <div>
-          <strong>本机管理员</strong>
-          <small>本地运行模式</small>
-        </div>
-        <button aria-label="退出登录" disabled={busy} onClick={logout}>
-          <NavigationIcon name="logout" />
-          <span className="navigation-logout-label">退出登录</span>
-        </button>
-      </div>
     </aside>
   );
 }

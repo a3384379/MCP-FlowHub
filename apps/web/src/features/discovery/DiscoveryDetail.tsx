@@ -1,3 +1,4 @@
+import { capabilityUsage } from "./capability-usage";
 import { useEffect, useRef, useState } from "react";
 import { ConnectionSetup } from "./ConnectionSetup";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
@@ -267,6 +268,7 @@ export function DiscoveryDetail({
     !!e.capabilityId &&
     e.enabled &&
     !e.stale &&
+    !(e.entityKind === "mcp_tool" && e.executor === "codex_host" && e.hasToolContract === false) &&
     ["ready", "host_only"].includes(e.availability);
   const beginImport = (e: Entity) => {
     setImportTarget(e);
@@ -508,11 +510,7 @@ export function DiscoveryDetail({
                 </div>
                 <div>
                   <small>使用位置</small>
-                  {entity.executor === "hub_direct"
-                    ? "可导入 FlowHub"
-                    : entity.executor === "codex_host"
-                      ? "Codex 宿主"
-                      : "说明与组件集合"}
+                  {capabilityUsage({ ...entity, kind: entity.entityKind })}
                 </div>
                 <div>
                   <small>
@@ -564,6 +562,7 @@ export function DiscoveryDetail({
                               <span className="d-mono">{tool.name}</span>
                             )}
                             <p>{displaySummary(tool, english)}</p>
+                            <small>{capabilityUsage({ ...tool, kind: "mcp_tool" })}</small>
                             <div className="d-actions">
                               <button onClick={() => onNavigate(tool.id)}>
                                 参数与结果

@@ -247,6 +247,22 @@ export class WorkflowTesting {
     const {acceptedSuite,executionSnapshot,selectedCaseIds,...publicRun}=run;
     return {...publicRun,stale};
   }
+  publicationEvidence(workflowId: string, draftRevision: number) {
+    const tests = this.repo.db.prepare(`SELECT id, json_extract(body,'$.createdAt') AS createdAt
+      FROM workflow_test_runs WHERE json_extract(body,'$.workflowId')=@workflowId
+      AND json_extract(body,'$.draftRevision')=@draftRevision AND json_extract(body,'$.mode')=@mode
+      ORDER BY createdAt DESC, id DESC LIMIT 1`);
+    return Object.fromEntries(["mock", "contract", "live"].map(mode => {
+      const latest = tests.get({ workflowId, draftRevision, mode }) as { id: string } | undefined;
+      if (!latest) return [mode, { status: "NOT_RUN" }];
+      try {
+        const run = this.status(latest.id);
+        return [mode, { id: latest.id, status: run.stale ? "STALE" : run.status }];
+      } catch {
+        return [mode, { id: latest.id, status: "STALE" }];
+      }
+    }));
+  }
   private executionSnapshot(suite:Json,scoped=false) {
     const draft=clone(this.repo.get("workflows",suite.workflowId).draft),connections:Json[]=[],bindings:Json[]=[],capabilities:Json[]=[];
     // Whitelist simulation contracts. Never copy transport, endpoints, source configuration or credential references.
