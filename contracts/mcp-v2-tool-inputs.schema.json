@@ -370,7 +370,7 @@
     },
     "workflow_advance": {
       "title": "workflow_advance inputSchema",
-      "description": "向当前 WAITING_AGENT 检查点提交 Agent 结果，或报告当前 host_skill 不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
+      "description": "认领具名宿主工具，向当前 WAITING_AGENT 检查点提交结构化结果，或报告宿主不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
       "type": "object",
       "properties": {
         "runId": {
@@ -438,6 +438,7 @@
                 "capabilityRevision": {"type": "integer", "minimum": 1},
                 "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
                 "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
                 "payload": {"type": "object"}
               },
               "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "payload"],
@@ -452,6 +453,8 @@
                 "capabilityRevision": {"type": "integer", "minimum": 1},
                 "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
                 "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+                "errorMessage": {"type": "string", "minLength": 1, "maxLength": 2000},
                 "code": {"enum": ["AUTH_REQUIRED", "HOST_CAPABILITY_UNAVAILABLE", "HOST_CONTRACT_MISMATCH", "OUTCOME_UNKNOWN"]}
               },
               "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "code"],

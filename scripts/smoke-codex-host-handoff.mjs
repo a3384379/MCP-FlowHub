@@ -72,8 +72,9 @@ async function api(path, body) {
   const response = await fetch("http://127.0.0.1:" + daemon.port + path, { method: body ? "POST" : "GET", headers: { Cookie: cookie, "X-CSRF-Token": csrf, "Content-Type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
   return { status: response.status, body: await response.json() };
 }
+const callHub = (tool, args) => rpc("mcpServer/tool/call", { threadId, server: "flowhub_runtime", tool, arguments: args });
 async function hub(tool, args) {
-  const result = await rpc("mcpServer/tool/call", { threadId, server: "flowhub_runtime", tool, arguments: args });
+  const result = await callHub(tool, args);
   assert.notEqual(result.isError, true, JSON.stringify(result.structuredContent));
   return result.structuredContent ?? JSON.parse(result.content[0].text);
 }
@@ -180,10 +181,17 @@ try {
     assert.notEqual(hostResult.isError, true);
     const submitted = { ...envelope, expectedRevision: claim.acceptedRevision, idempotencyKey: "result-" + nodeId,
       submission: { type: "host_tool_result", claimId: claim.claimId, capabilityId: checkpoint.capabilityRef.capabilityId,
-        capabilityRevision: checkpoint.capabilityRef.revision, argumentsHash: checkpoint.argumentsHash, payload: hostResult.structuredContent } };
+        capabilityRevision: checkpoint.capabilityRef.revision, argumentsHash: checkpoint.argumentsHash,
+        ...(hostResults.length ? { evidenceRefs: [hostResults[0]] } : {}), payload: hostResult.structuredContent } };
     const result = await hub("workflow_advance", submitted);
     assert.deepEqual(await hub("workflow_advance", submitted), result);
+    assert.equal(result.receipt.origin, "codex_host");
     assert.equal(result.receipt.verification, "host_reported");
+    if (hostResults.length) assert.deepEqual(result.receipt.evidenceRefs, [hostResults[0]]);
+    const settledClaim = await callHub("workflow_advance", claimRequest);
+    assert.equal(settledClaim.isError, true);
+    assert.match(JSON.stringify(settledClaim), /CHECKPOINT_CLAIM_INACTIVE/);
+    assert.equal(JSON.stringify(settledClaim).includes(claim.claimId), false);
     hostResults.push(result.receipt.artifactId);
   }
   const status = await waitFor(run.runId, status => status.state === "SUCCEEDED");
@@ -241,7 +249,7 @@ try {
     platform: process.platform, arch: process.arch, node: process.versions.node, workflowId: created.workflowId,
     runId: run.runId, directRunId: directRun.runId, scanStatus: scanned.status, terminalState: status.state,
     reportFormats: [markdown.mimeType, html.mimeType], codexHostToolCalls: calls.length,
-    zeroRows: true, providerRequests, rpcTrace: trace,
+    zeroRows: true, receiptEvidenceLinked: true, settledClaimRejected: true, providerRequests, rpcTrace: trace,
     fixtureBoundary: "Actual local Codex App Server and MCP transports, using an owned synthetic service and an isolated Codex home. No model inference or enterprise privileges." };
   await writeFile(join(evidence, "codex-host-handoff.receipt.json"), JSON.stringify(receipt, null, 2)); console.log(JSON.stringify(receipt, null, 2));
 } finally {

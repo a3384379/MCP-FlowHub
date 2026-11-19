@@ -64,10 +64,21 @@ export function validateWorkflowDocument(w: Workflow) {
   if(w?.schemaVersion==="flowhub.workflow/v2"&&Array.isArray(w.nodes))for(const node of w.nodes)
     if(node?.type==="agent_task"&&node.config?.kind==="host_tool")assertSafeNativeObjectSchema(node.config.outputSchema);
   validate(workflowSchema,w);
-  for (const node of w.nodes)
+  for (const [index, node] of w.nodes.entries()) {
+    if (node.config.kind === "host_tool" && Object.keys(node.config.receiptScopeMappings ?? {}).length &&
+        node.config.requireHostReceipt !== true) {
+      const issue = {
+        code: "HOST_RECEIPT_REQUIRED",
+        message: "Receipt scope mappings require structured host receipts.",
+        nodeId: node.id,
+        path: "/nodes/" + index + "/config/receiptScopeMappings",
+      };
+      throw new HubError(issue.code, issue.message, 422, { issues: [issue] });
+    }
     if (node.config.businessVerification)
       validateBusinessRule(node.config.businessVerification,
         node.type === "agent_task" ? node.config.outputSchema : undefined);
+  }
 }
 export function validateWorkflow(
   w: Workflow,
@@ -217,23 +228,23 @@ export function validateWorkflow(
       assertObjectPayloadSchema(w.inputSchema);
       issuePath = nodePath;
     }
-    for (const map of [
-      n.config.argumentsMappings,
-      n.config.inputMappings,
-    ].filter(Boolean)) {
+    for (const field of ["argumentsMappings", "inputMappings"]) {
+      const map = n.config[field];
+      if (!map) continue;
       const keys = Object.keys(map);
       for (const key of keys) {
-        issuePath = nodePath + (map === n.config.argumentsMappings ? "/argumentsMappings/" : "/inputMappings/") + encodePointer(key);
+        issuePath = nodePath + "/" + field + "/" + encodePointer(key);
         parts(key);
         ensure(
           !keys.some((other) => other !== key && overlap(key, other)),
           "MAPPING_INVALID",
           "Overlapping destination paths.",
         );
+        references(map[key], n.id);
       }
     }
-    // Traverse expressions and mappings only: schemas/const data are inert.
-    for (const key of ["argumentsMappings", "inputMappings", "expression", "resultRef"])
+    // Traverse expressions only. Schemas and literal values are inert.
+    for (const key of ["expression", "resultRef"])
       if (n.config[key]) {
         issuePath = nodePath + "/" + key;
         references(n.config[key], n.id);
@@ -273,8 +284,10 @@ export function validateWorkflow(
             target, targetSchema, n.id + key);
         } else validateMappedLiteral(targetSchema, key, expr.value);
       }
-      for (const [key, value] of Object.entries(lockedArguments))
+      for (const [key, value] of Object.entries(lockedArguments)) {
+        issuePath = nodePath + "/bindingKey";
         validateMappedLiteral(targetSchema, key, value);
+      }
       const arrayPaths = new Set<string>();
       for (const path of supplied) {
         const keys = parts(path);
@@ -290,6 +303,7 @@ export function validateWorkflow(
         const indices = [...new Set(supplied.filter((path) => path.startsWith(parent + "/"))
           .map((path) => Number(parts(path)[depth])))].sort((a, b) => a - b);
         const target = schemaAt(targetSchema, parent);
+        issuePath = nodePath + "/" + field + "/" + encodePointer(parent);
         ensure(indices.every((value, index) => value === index) &&
           indices.length >= (target.minItems ?? 0) && indices.length <= (target.maxItems ?? 10000),
           "MAPPING_INVALID", "Array mappings must provide contiguous items within schema bounds at " + n.id + parent);

@@ -68,14 +68,6 @@ export function DiscoveryIssues({
               {["connection", "credentials", "sync"].includes(action.type) && (
                 <button onClick={() => onGuide(issue)}>处理说明</button>
               )}
-              {action.type === "sync" && (
-                <button
-                  disabled={busy}
-                  onClick={() => onAction({ ...issue, code: "unsupported" })}
-                >
-                  手动连接
-                </button>
-              )}
               {issue.entityId ? (
                 <button onClick={() => onDetail(issue.entityId)}>
                   查看详情

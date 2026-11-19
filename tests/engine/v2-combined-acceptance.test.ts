@@ -14,6 +14,7 @@ import {AuthoringService} from "../../packages/workflow-authoring/src/index.js";
 import {registerAdmin} from "../../packages/admin-api/src/index.js";
 import {resolveSource,scanHost} from "../../packages/host-discovery/src/index.js";
 import {get,hash,type Json} from "../../packages/contracts/src/domain.js";
+import {hasVerifiedSourceConnectionRoute} from "../../packages/contracts/src/source-connection.js";
 import {nodeScriptRuntime} from "../helpers/discovery-runtime.js";
 
 async function fixture(t:any) {
@@ -28,7 +29,11 @@ async function fixture(t:any) {
   t.after(async()=>{await http.close();await registry.close();await engine.close();db.close();await rm(root,{recursive:true,force:true});});
   const context=(extra:Json={})=>registry.context({codexHome:home,cwd,codexPath:cli,...extra});
   const scan=async(c:Json,key:string,depth="metadata")=>{const accepted=registry.scan({contextId:c.id,depth,idempotencyKey:key});await registry.idle();const status=registry.status(accepted.scanId);assert.ok(["SUCCEEDED","PARTIAL"].includes(status.status),JSON.stringify(status));return status;};
-  const api=(url:string,payload:Json)=>http.inject({method:"POST",url,payload,headers:{cookie:"flowhub_session="+session.token,"x-csrf-token":session.csrf}});
+  const api=(url:string,payload:Json,revision?:number)=>http.inject({
+    method:revision===undefined?"POST":"PATCH",url,payload,
+    headers:{cookie:"flowhub_session="+session.token,"x-csrf-token":session.csrf,
+      ...(revision===undefined?{}:{"if-match":String(revision)})},
+  });
   return {root,home,cwd,userPath,projectPath,cli,calls,db,repo,vault,engine,registry,authoring,context,scan,api};
 }
 
@@ -157,4 +162,48 @@ test("AUTHOR-08 combined: simultaneous capability/binding drift rejects partial 
   const request={workflowId:reviewed.id,expectedRevision:f.authoring.get(reviewed.id).revision,version:"1.0.1",expectedBindingRevisions:{[binding.id]:binding.revision+1},expectedCapabilityRevisions:{[cap.id]:2},idempotencyKey:"review-all-current"};
   const next=f.authoring.publish(request);assert.equal(next.snapshot.bindings[0].revision,binding.revision+1);assert.equal(next.snapshot.capabilities[0].capabilityRevision,2);
   const accepted=state();assert.deepEqual(f.authoring.publish(request),next);assert.equal(state(),accepted);assert.equal(JSON.stringify(f.repo.get("versions",old.id)),oldBytes);
+});
+
+test("explicit source setup and re-import recover source affinity after manual connection edits", async t => {
+  const f = await fixture(t), mcp = await realCatalog(f);
+  const cap = await mcp.catalog("route-catalog");
+  const source = f.repo.get("capability_sources", cap.sourceRefs[0].sourceId);
+  const configure = (revision: number, key: string) => f.registry.configureSource({
+    sourceId: source.id, expectedRevision: revision, idempotencyKey: key,
+  });
+  const firstConfig = await configure(source.revision, "first-config");
+  async function edit(connectionId: string) {
+    const before = f.repo.get("connections", connectionId);
+    assert.equal(hasVerifiedSourceConnectionRoute(before), true);
+    const args = [...before.args, "--read-only"];
+    const response = await f.api("/api/v1/connections/" + before.id, { args }, before.revision);
+    assert.equal(response.statusCode, 200, response.body);
+    const after = f.repo.get("connections", connectionId);
+    assert.deepEqual(after.args, args);
+    assert.equal(hasVerifiedSourceConnectionRoute(after), false);
+    return after;
+  }
+  const editedConfig = await edit(firstConfig.connectionId);
+  const repairedConfig = await configure(firstConfig.revision, "restore-config");
+  assert.notEqual(repairedConfig.connectionId, firstConfig.connectionId);
+  assert.deepEqual(f.repo.get("connections", firstConfig.connectionId), editedConfig);
+  assert.equal(hasVerifiedSourceConnectionRoute(f.repo.get("connections", repairedConfig.connectionId)), true);
+  const current = await mcp.catalog("route-restored");
+  const importAgain = (key: string) => f.registry.import({
+    capabilityId: current.id, expectedSourceRevision: current.revision,
+    target: "hub_direct", environment: "test", lockedArguments: {}, idempotencyKey: key,
+  });
+  const initial = await importAgain("route-initial");
+  const edited = await edit(initial.connectionId);
+  const invalidated = f.repo.get("bindings", initial.bindingId);
+  assert.ok(invalidated);
+  assert.equal(Object.hasOwn(invalidated, "sourceCapabilityId"), false);
+  const repaired = await importAgain("route-repaired");
+  assert.notEqual(repaired.connectionId, initial.connectionId);
+  assert.notEqual(repaired.bindingId, initial.bindingId);
+  assert.equal(f.repo.get("bindings", repaired.bindingId).validationStatus, "UNVERIFIED");
+  assert.deepEqual(await importAgain("route-repaired-repeat"), repaired);
+  assert.deepEqual(f.repo.get("connections", initial.connectionId), edited);
+  assert.equal(hasVerifiedSourceConnectionRoute(f.repo.get("connections", repaired.connectionId)), true);
+  await assert.rejects(readFile(mcp.marker), { code: "ENOENT" });
 });

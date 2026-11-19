@@ -40,7 +40,11 @@ export function issueAction(issue: Issue) {
     };
   if (code === "CODEX_AUTH_REQUIRED")
     return { type: "guide", label: "恢复 Codex 授权", help: "在当前 Codex 项目恢复该 MCP 的授权，然后回到发现页同步目录。" };
-  if (code === "CATALOG_NOT_SYNCED")
+  if (code === "HOST_SOURCE_AMBIGUOUS")
+    return { type: "guide", label: "检查同名来源", help: "查看当前 Codex 项目中的同名服务和插件。确认工具来源后，再同步 Codex 工具目录。" };
+  if (code === "DIRECT_CATALOG_NOT_SYNCED")
+    return { type: "credentials", label: "检测 FlowHub 直连", help: "打开此服务的直连配置，按已登记连接重试目录检测。" };
+  if (code === "CATALOG_NOT_SYNCED" || (code === "HOST_CATALOG_PARTIAL" && issue.entityId))
     return {
       type: "sync",
       label: "同步 Codex 工具目录",
@@ -66,6 +70,7 @@ export function issueAction(issue: Issue) {
       "STATIC_PROFILE_PARTIAL",
       "STATIC_RESOLUTION_PARTIAL",
       "APP_SERVER_PARTIAL",
+      "HOST_SKILLS_PARTIAL",
       "HOST_VERSION_UNSUPPORTED",
       "HOST_CATALOG_PARTIAL",
       "EXECUTION_LOCATION_UNSUPPORTED",

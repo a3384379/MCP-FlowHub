@@ -26,6 +26,7 @@ import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js"
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { formattedReport } from "../../workflow-core/src/report-html.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
+import { hasVerifiedSourceConnectionRoute, sourceConnectionRouteHash } from "../../contracts/src/source-connection.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
@@ -536,17 +537,33 @@ export async function registerAdmin(
       verifiedSdk: null,
       tools: [],
     };
+    const routeChanged = sourceConnectionRouteHash(c) !== sourceConnectionRouteHash(next);
+    if (routeChanged) {
+      delete next.sourceId;
+      delete next.sourceFingerprint;
+      delete next.sourceRouteHash;
+      delete next.catalogFingerprint;
+    } else if (hasVerifiedSourceConnectionRoute(c)) {
+      next.sourceRouteHash = sourceConnectionRouteHash(c);
+    }
     assertMcpCredentialPurpose(next);
-    repo.put("connections", c.id, next, expected);
-    for (const binding of repo
-      .all("bindings")
-      .filter((b) => b.connectionId === c.id))
-      repo.put("bindings", binding.id, {
-        ...binding,
-        validationStatus: "UNVERIFIED",
-        revision: binding.revision + 1,
-      });
-    repo.audit("admin", "connection:update", c.id);
+    repo.tx(() => {
+      repo.put("connections", c.id, next, expected);
+      for (const binding of repo.all("bindings").filter(b => b.connectionId === c.id)) {
+        const invalidated = {
+          ...binding,
+          validationStatus: binding.revoked || binding.validationStatus === "REVOKED" ? "REVOKED" : "UNVERIFIED",
+          verification: null,
+          revision: binding.revision + 1,
+        };
+        if (routeChanged) {
+          delete invalidated.sourceCapabilityId;
+          delete invalidated.sourceCapabilityRevision;
+        }
+        repo.put("bindings", binding.id, invalidated, binding.revision);
+      }
+      repo.audit("admin", "connection:update", c.id);
+    });
     return data(next);
   });
   app.post("/api/v1/connections/:id/test", async (req) =>

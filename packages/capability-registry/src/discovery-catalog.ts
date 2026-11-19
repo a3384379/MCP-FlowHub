@@ -53,7 +53,8 @@ export class DiscoveryCatalog {
   }
   present(entity: Json): Json {
     const saved = this.latestPresentation(entity.id),
-      context = this.repo.get("host_contexts", entity.contextId);
+      context = this.repo.get("host_contexts", entity.contextId),
+      changedContext = !context || entity.contextRevision !== context.revision;
     const state = saved
       ? saved.sourceFingerprint !== entity.sourceFingerprint
         ? "stale"
@@ -91,7 +92,8 @@ export class DiscoveryCatalog {
     };
     return {
       ...entity,
-      stale: entity.stale || !context || entity.contextRevision !== context.revision,
+      stale: entity.stale || changedContext,
+      ...(changedContext ? { hostCatalogStatus: undefined, hostAuthRequired: false, hostCatalogReady: false } : {}),
       entityId: entity.id,
       pluginDisplayName: pluginDisplayName ?? entity.pluginName ?? null,
       pluginPresentationRevision: pluginText?.revision ?? 0,
@@ -168,6 +170,21 @@ export class DiscoveryCatalog {
         stale: source.stale || source.lastObservation?.scanId !== job.id,
         evidenceRefs: ["source:configuration"],
       });
+    for (const server of job.hostCatalog?.servers ?? [])
+      if (!server.sourceKeys.length && !entities.some((e) => e.entityKind === "mcp_server" && e.name === server.name && !e.stale))
+        add({
+          id: hostServerId(context.id, server.name),
+          entityKind: "mcp_server",
+          name: server.name,
+          description: "",
+          executor: "codex_host",
+          availability: "host_only",
+          enabled: true,
+          stale: false,
+          sourceKey: "app-server:" + server.name,
+          hostCatalogStatus: server.status,
+          evidenceRefs: ["host:catalog"],
+        });
     for (const cap of capabilities) {
       const source = sources.find(
         (s) => s.id === cap.sourceRefs?.[0]?.sourceId,
@@ -196,14 +213,11 @@ export class DiscoveryCatalog {
               name: cap.serverName,
               description: "",
               executor: "codex_host",
-              availability: component?.ambiguousSource
-                ? "ambiguous"
-                : "host_only",
-              enabled: !component?.ambiguousSource,
+              availability: "host_only",
+              enabled: true,
               stale: cap.stale,
               sourceKey: "app-server:" + cap.serverName,
               evidenceRefs: ["host:catalog"],
-              ambiguousSource: component?.ambiguousSource ?? false,
             });
         }
       }
@@ -215,11 +229,15 @@ export class DiscoveryCatalog {
         description: cap.description ?? "",
         capabilityId: cap.id,
         capabilityRevision: cap.revision,
-        hasToolContract: cap.kind === "mcp_tool" && !!cap.inputSchema && !!cap.outputSchema,
+        hasToolContract: cap.kind === "mcp_tool" &&
+          [cap.inputSchema, cap.outputSchema].every(schema => schema && typeof schema === "object" && !Array.isArray(schema)),
         capabilityFingerprint: cap.sourceFingerprint,
         enabled: cap.enabled === "enabled",
         executor: cap.executor,
         availability: cap.availability,
+        ...(cap.executor === "codex_host" && cap.kind === "mcp_tool"
+          ? {hostCatalogStatus: cap.stale ? (parent?.hostCatalogStatus ?? cap.hostCatalogStatus) : "ready"}
+          : {}),
         stale:
           cap.stale ||
           source?.stale ||
@@ -283,11 +301,14 @@ export class DiscoveryCatalog {
           e.parentId === server.id && e.entityKind === "mcp_tool" && !e.stale,
       );
       server.toolCount =
-        server.discovery === "schema_discovered" || children.length
+        server.discovery === "schema_discovered" || server.hostCatalogStatus === "ready" || children.length
           ? children.length
           : null;
       server.hostCatalogReady = children.some((tool) => tool.executor === "codex_host" && tool.enabled && tool.hasToolContract);
-      server.hostAuthRequired = (job.issues ?? []).some((issue: Json) => issue.code === "CODEX_AUTH_REQUIRED" && [server.sourceKey, server.name].includes(issue.source));
+      server.hostAuthRequired = server.hostCatalogStatus === "auth_required" ||
+        (!server.hostCatalogStatus && (job.issues ?? []).some((issue: Json) =>
+          issue.code === "CODEX_AUTH_REQUIRED" && [server.sourceKey, server.name].includes(issue.source)));
+      server.cachedToolCount = entities.filter(e => e.parentId === server.id && e.entityKind === "mcp_tool" && e.stale).length;
       server.catalogFingerprint = hash(
         children.map((e) => [e.id, e.capabilityFingerprint]).sort(),
       );
@@ -364,35 +385,38 @@ export class DiscoveryCatalog {
           e.entityKind === "mcp_server" &&
           e.enabled &&
           !e.self &&
-          !e.stale &&
-          !e.hostCatalogReady &&
-          [
-            "credentials_required",
-            "unreachable",
-            "unsupported",
-            "not_checked",
-            "ambiguous",
-          ].includes(e.availability),
+          !e.stale,
       );
     const stale = entities.filter(
       (e) =>
         (e.stale || !current || e.contextRevision !== context.revision) &&
         ["mcp_server", "skill", "plugin"].includes(e.entityKind),
     );
-    const represented = new Set([...actionable, ...stale].map((e) => e.id));
-    const problems = [
-      ...actionable.map((e) => ({
-        code:
-          job.depth !== "catalog" && !e.preparedConnectionId && e.availability !== "ambiguous"
-            ? "CATALOG_NOT_SYNCED"
-            : e.availability === "not_checked" ? "CATALOG_NOT_SYNCED" : e.availability,
+    const setupIssues = actionable.flatMap((e) => {
+      const issue = (code: string) => ({
+        code,
         entityId: e.id,
         name: e.name,
         displayName: this.present(e).displayName,
         executor: e.executor,
         connectionSetup: e.connectionSetup,
         source: e.locator?.path ?? e.path,
-      })),
+      });
+      const values = [];
+      if (e.hostAuthRequired) values.push(issue("CODEX_AUTH_REQUIRED"));
+      else if (e.hostCatalogStatus === "ambiguous") values.push(issue("HOST_SOURCE_AMBIGUOUS"));
+      const directIncomplete = ["credentials_required", "unreachable", "unsupported", "not_checked"].includes(e.availability);
+      if (e.preparedConnectionId && directIncomplete)
+        values.push(issue("DIRECT_CATALOG_NOT_SYNCED"));
+      else if (!values.length && directIncomplete && !e.hostCatalogReady && e.hostCatalogStatus !== "ready")
+        values.push(issue(job.depth === "catalog" && e.availability !== "not_checked"
+          ? e.availability
+          : e.hostCatalogStatus === "partial" ? "HOST_CATALOG_PARTIAL" : "CATALOG_NOT_SYNCED"));
+      return values;
+    });
+    const represented = new Set([...setupIssues.map((e) => e.entityId), ...stale.map((e) => e.id)]);
+    const problems = [
+      ...setupIssues,
       ...stale.map((e) => ({
         code: "SOURCE_STALE",
         entityId: e.id,
@@ -400,7 +424,9 @@ export class DiscoveryCatalog {
         source: e.locator?.path ?? e.path,
       })),
       ...issues
-        .filter((i: Json) => !represented.has(i.sourceId))
+        .filter((i: Json) => !represented.has(i.sourceId) && !setupIssues.some((issue) =>
+          issue.code === i.code && actionable.some((entity) =>
+            issue.entityId === entity.id && [entity.name, entity.sourceKey].includes(i.source))))
         .map((issue: Json) => ({
           ...issue,
           ...(entities.some((e) => e.id === issue.sourceId)
@@ -441,13 +467,14 @@ export class DiscoveryCatalog {
       terms = text(a.query).toLowerCase().split(/\s+/).filter(Boolean);
     const items = all.filter(
       (e) =>
-        !e.stale &&
+        (a.status === "stale" ? e.stale : a.status === "all" || !e.stale) &&
         (!a.kind || e.entityKind === a.kind) &&
-        (!a.executor || e.executor === a.executor) &&
+        (!a.executor || e.executor === a.executor ||
+          a.executor === "codex_host" && e.entityKind === "mcp_server" && e.hostCatalogStatus === "ready") &&
         (!a.parentId ||
           e.parentId === a.parentId ||
           e.pluginId === a.parentId) &&
-        (!a.status || e.availability === a.status) &&
+        (!a.status || ["all", "stale"].includes(a.status) || e.availability === a.status || e.hostCatalogStatus === a.status) &&
         (!a.source || (a.source === "plugin" ? !!e.pluginId : !e.pluginId)) &&
         terms.every((term) =>
           [

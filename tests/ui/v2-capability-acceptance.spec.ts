@@ -21,9 +21,11 @@ async function authenticate(page:Page):Promise<Api> {
 async function discoveryFixture(withCapabilities=true) {
   const root=await realpath(await mkdtemp(join(process.env.FLOWHUB_UI_DATA_DIR!,"capability-acceptance-")));
   const home=join(root,"codex-home"),cwd=join(root,"project"),cli=join(root,"synthetic-codex.mjs"),servers=join(home,"servers.json"),delay=join(root,"delay-ms"),calls=join(root,"cli-calls.jsonl"),mcpStarted=join(root,"mcp-started"),skillExecuted=join(root,"skill-executed");
+  const hostAuthStatus=join(root,"host-auth-status");
   const skillName="ui-synthetic-report-"+randomUUID().slice(0,8),sourceName="ui-synthetic-mcp-"+randomUUID().slice(0,8),mcp=join(root,"synthetic-mcp.mjs");
   await mkdir(home);await mkdir(cwd);await writeFile(join(home,"config.toml"),"");await writeFile(delay,"700");
-  await writeFile(cli,`import fs from 'node:fs';import readline from 'node:readline';const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(calls)},JSON.stringify(args)+'\\n');if(args.includes('--version'))console.log('codex-cli 0.169.0-alpha.11.1');else if(args.includes('--help'))console.log('--json');else if(args.includes('app-server'))readline.createInterface({input:process.stdin}).on('line',line=>{const m=JSON.parse(line);if(!m.id)return;const tool={name:'read_browser_host',inputSchema:{type:'object',properties:{resource:{type:'string'}},required:['resource'],additionalProperties:false},outputSchema:{type:'object',properties:{summary:{type:'string'}},required:['summary'],additionalProperties:false}};const data=m.method==='mcpServerStatus/list'&&${JSON.stringify(withCapabilities)}?[{name:${JSON.stringify(sourceName)},tools:{read_browser_host:tool},authStatus:'unsupported'}]:[];console.log(JSON.stringify({id:m.id,result:m.method==='initialize'?{}:{data}}));});else if(args.includes('--json')){await new Promise(r=>setTimeout(r,Number(fs.readFileSync(${JSON.stringify(delay)},'utf8'))));console.log(fs.readFileSync(${JSON.stringify(servers)},'utf8'));}else process.exit(2);`);
+  await writeFile(hostAuthStatus,"unsupported");
+  await writeFile(cli,`import fs from 'node:fs';import readline from 'node:readline';const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(calls)},JSON.stringify(args)+'\\n');if(args.includes('--version'))console.log('codex-cli 0.169.0-alpha.11.1');else if(args.includes('--help'))console.log('--json');else if(args.includes('app-server'))readline.createInterface({input:process.stdin}).on('line',line=>{const m=JSON.parse(line);if(!m.id)return;const tool={name:'read_browser_host',inputSchema:{type:'object',properties:{resource:{type:'string'}},required:['resource'],additionalProperties:false},outputSchema:{type:'object',properties:{summary:{type:'string'}},required:['summary'],additionalProperties:false}};const data=m.method==='mcpServerStatus/list'&&${JSON.stringify(withCapabilities)}?[{name:${JSON.stringify(sourceName)},tools:{read_browser_host:tool},authStatus:fs.readFileSync(${JSON.stringify(hostAuthStatus)},'utf8')}]:[];console.log(JSON.stringify({id:m.id,result:m.method==='initialize'?{}:{data}}));});else if(args.includes('--json')){await new Promise(r=>setTimeout(r,Number(fs.readFileSync(${JSON.stringify(delay)},'utf8'))));console.log(fs.readFileSync(${JSON.stringify(servers)},'utf8'));}else process.exit(2);`);
   // The wrapper launches the real SDK mock server, not a mocked browser route.
   await writeFile(mcp,`import fs from 'node:fs';fs.appendFileSync(${JSON.stringify(mcpStarted)},'started\\n');const {serveStdio}=await import(${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server/stdio"))});const {createMockServer}=await import(${JSON.stringify(pathToFileURL(resolve("dist/packages/mock-mcps/src/index.js")).href)});serveStdio(createMockServer,{legacy:'serve'});`);
   await writeFile(servers,JSON.stringify(withCapabilities?[{name:sourceName,enabled:true,transport:{type:"stdio",command:process.execPath,args:[mcp]}}]:[]));
@@ -32,7 +34,7 @@ async function discoveryFixture(withCapabilities=true) {
     await writeFile(join(skill,"script.mjs"),`import fs from 'node:fs';fs.writeFileSync(${JSON.stringify(skillExecuted)},'must not execute during discovery or insertion');`);
     await writeFile(join(skill,"SKILL.md"),`---\nname: ${skillName}\ndescription: Synthetic browser acceptance report Skill requiring Codex host execution.\n---\nThis indexed fixture is not evidence of actual Codex host execution. script.mjs must never run while discovering or inserting this capability.\n`);
   }
-  return {root,home,cwd,cli,servers,delay,calls,mcpStarted,skillExecuted,skillName,sourceName};
+  return {root,home,cwd,cli,servers,delay,calls,mcpStarted,skillExecuted,skillName,sourceName,hostAuthStatus};
 }
 async function openDiscovery(page:Page,api:Api,fixture:Awaited<ReturnType<typeof discoveryFixture>>) {
   const context=await api("/api/v2/host-contexts","POST",{codexHome:fixture.home,cwd:fixture.cwd,codexPath:fixture.cli,discoveryMode:"auto"});
@@ -128,6 +130,45 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
     expect(persisted.issues.some((issue:any)=>["SCHEMA_INVALID","TEMPLATE_INVALID"].includes(issue.code))).toBe(false);
     await page.reload();await expect(page.locator(".react-flow__node")).toHaveCount(4);await expect(page.locator(".react-flow__node").filter({hasText:skill.name})).toHaveCount(1);await expect(picker.getByRole("alert")).toHaveCount(0);
     await expect(readFile(fixture.skillExecuted,"utf8")).rejects.toMatchObject({code:"ENOENT"});expect(errors).toEqual([]);
+  } finally {await rm(fixture.root,{recursive:true,force:true});}
+});
+
+test("known Codex authorization loss blocks cached tool insertion and preserves the original catalog for inspection",async({page})=>{
+  const api=await authenticate(page),fixture=await discoveryFixture();
+  try {
+    const context=await openDiscovery(page,api,fixture);
+    const scanStatus=page.locator(".d-scan-status");
+    await expect(scanStatus).toContainText("扫描完成");
+    await page.getByRole("button",{name:"同步 Codex 工具目录",exact:true}).click();
+    const row=page.locator(".d-cap-row").filter({hasText:fixture.sourceName});
+    await expect(row).toContainText("由 Codex 执行");
+    const catalog=await api("/api/v2/discovery/catalog?contextId="+context.id+"&kind=mcp_server");
+    const sourceId=catalog.items.find((entity:any)=>entity.name===fixture.sourceName).id;
+    const workflowId=await createBlank(api,"检查 Codex 目录授权状态");
+    await page.goto("/workflows/"+workflowId+"/editor");
+    const picker=page.locator(".v2-capability-picker");
+    await picker.getByLabel("能力来源").selectOption(sourceId);
+    await expect(picker.getByRole("button",{name:/^read_browser_host/})).toBeEnabled();
+    await writeFile(fixture.hostAuthStatus,"notLoggedIn");
+    await page.goto("/discovery");
+    await page.getByRole("button",{name:"同步 Codex 工具目录",exact:true}).click();
+    await expect(row).toContainText("Codex 授权需恢复");
+    await row.getByRole("button").click();
+    const tool=page.getByRole("dialog").locator(".d-tool-card").filter({hasText:"read_browser_host"});
+    await expect(tool).toContainText("Codex 授权需恢复");
+    await expect(tool.getByRole("button",{name:"用 Codex 添加到流程",exact:true})).toBeDisabled();
+    await tool.getByRole("button",{name:"参数与结果",exact:true}).click();
+    await expect(page.getByRole("dialog").getByRole("heading",{name:"read_browser_host",exact:true})).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button",{name:"重新扫描",exact:true}).click();
+    await expect(scanStatus).toContainText("扫描完成");
+    await expect(row).toContainText("Codex 授权需恢复");
+    await page.goto("/workflows/"+workflowId+"/editor");
+    await picker.getByLabel("能力来源").selectOption(sourceId);
+    const unavailable=picker.getByRole("button",{name:/^read_browser_host/});
+    await expect(unavailable).toBeDisabled();
+    await expect(unavailable).toContainText("Codex 授权需恢复");
+    await expect(readFile(fixture.mcpStarted,"utf8")).rejects.toMatchObject({code:"ENOENT"});
   } finally {await rm(fixture.root,{recursive:true,force:true});}
 });
 

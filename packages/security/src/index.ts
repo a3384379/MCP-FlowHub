@@ -253,6 +253,9 @@ export class Vault {
         hostArguments: r.checkpoint?.argumentsDelivery
           ? this.decrypt(r.checkpoint.argumentsDelivery, r.id + ":arguments:" + r.checkpoint.id)
           : undefined,
+        hostClaim: r.checkpoint?.hostClaim?.delivery
+          ? this.decrypt(r.checkpoint.hostClaim.delivery, r.id + ":claim:" + r.checkpoint.id)
+          : undefined,
         outputs: Object.entries(r.operationalOutputs ?? {}).map(
           ([nodeId, encrypted]) => ({
             nodeId,
@@ -289,6 +292,10 @@ export class Vault {
           if (c.hostArguments !== undefined)
             c.record.checkpoint.argumentsDelivery = this.encrypt(
               c.hostArguments, c.record.id + ":arguments:" + c.record.checkpoint.id,
+            );
+          if (c.hostClaim !== undefined)
+            c.record.checkpoint.hostClaim.delivery = this.encrypt(
+              c.hostClaim, c.record.id + ":claim:" + c.record.checkpoint.id,
             );
           for (const output of c.outputs)
             c.record.operationalOutputs[output.nodeId] = this.encrypt(

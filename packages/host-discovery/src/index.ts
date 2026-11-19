@@ -106,8 +106,18 @@ const safeChild=async(root:string,child:string)=>{
   const path=await realpath(resolve(root,child)),rel=relative(await realpath(root),path);
   ensure(!rel.startsWith("..")&&!isAbsolute(rel),"SOURCE_UNREADABLE","Plugin component escaped its installed root.");return path;
 };
+type HostCatalogStatus = "ready" | "partial" | "auth_required" | "ambiguous";
+type HostCatalogServer = { name:string; sourceKeys:string[]; status:HostCatalogStatus };
+function matchesServerDetails(source:Json,server:Json) {
+  if(typeof server.pluginId==="string"&&source.locator.plugin!==server.pluginId)return false;
+  if(server.pluginId===null&&source.locator.plugin)return false;
+  if(typeof server.httpOrigin!=="string")return true;
+  try{return new URL(source.config.url).origin===new URL(server.httpOrigin).origin;}catch{return false;}
+}
 export async function scanHost(context:Json,depth="metadata",control:DiscoveryControl={},identity:Json={},runtime:DiscoveryRuntime={}) {
   const sources:Json[]=[],issues:Json[]=[],components:Json[]=[];let quality="partial";
+  const readCatalog=depth==="host_catalog"||depth==="catalog"&&context.useAppServer;
+  const hostCatalog:{complete:boolean;servers:HostCatalogServer[]}|undefined=readCatalog?{complete:false,servers:[]}:undefined;
   const report=(path:string,code:string)=>issues.push({source:path,code});
   let config:Json={};
   const skillOverrides=new Map<string,boolean>();
@@ -245,30 +255,46 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
     // A registered context can survive a Codex update.
     ensure(!untrustedProject&&(!context.profile||effective),"HOST_VERSION_UNSUPPORTED","App Server scan cannot establish the selected project/profile.");
     const host={...context,codexVersion:(await output(context,["--version"],control,runtime)).trim()};
-    const response=await readAppServer(host,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
-    for(const group of response.data)if(group.errors?.length)report(context.id,"HOST_SKILLS_PARTIAL");
-    for(const group of response.data??[])for(const skill of group.skills??[]) {
-      const existing=components.find(c=>c.path===skill.path||dirname(c.path??"")===skill.path);
-      if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
-      else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
-    }
-    if(depth==="catalog"||depth==="host_catalog") {
-      const catalog=await readAppServer(host,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
-      for(const server of catalog.data??[]) {
-        const matches=sources.filter(s=>s.name===server.name),source=matches.length===1?matches[0]:undefined;
-        if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
-        if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
-        if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
-        if(server.authStatus==="notLoggedIn")report(source?.sourceKey??server.name,"CODEX_AUTH_REQUIRED");
-        for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,serverSourceKey:source?.sourceKey??null,ambiguousSource:matches.length>1,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
+    try {
+      const response=await readAppServer(host,"skills/list",{cwds:[context.canonicalCwd],forceReload:true},control,runtime);
+      for(const group of response.data)if(group.errors?.length)report(context.id,"HOST_SKILLS_PARTIAL");
+      for(const group of response.data)for(const skill of group.skills) {
+        const existing=components.find(c=>c.path===skill.path||dirname(c.path??"")===skill.path);
+        if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
+        else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
       }
+    } catch(error) {
+      if(!readCatalog&&error instanceof HubError&&error.code==="HOST_VERSION_UNSUPPORTED")throw error;
+      report(context.id,"HOST_SKILLS_PARTIAL");
+    }
+    if(hostCatalog&&!control.signal?.aborted) {
+      const catalog=await readAppServer(host,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
+      const groups=new Map<string,Json[]>();
+      for(const server of catalog.data)groups.set(server.name,[...(groups.get(server.name)??[]),server]);
+      for(const [name,servers] of groups) {
+        const server=servers[0],candidates=sources.filter(s=>s.name===name);
+        if(candidates.some(s=>selfSource(s,identity))||selfSource(server,identity)||
+          selfSource({name:server.serverInfo?.name,config:{instanceId:server.serverInfo?.instanceId}},identity))continue;
+        const matches=candidates.filter(source=>matchesServerDetails(source,server));
+        if(servers.length>1||candidates.length&&matches.length!==1) {
+          hostCatalog.servers.push({name,sourceKeys:candidates.map(source=>source.sourceKey),status:"ambiguous"});
+          report(name,"HOST_SOURCE_AMBIGUOUS");
+          continue;
+        }
+        const source=matches[0],status=server.authStatus==="notLoggedIn"?"auth_required":server.toolsError?"partial":"ready";
+        hostCatalog.servers.push({name,sourceKeys:source?[source.sourceKey]:[],status});
+        if(server.toolsError)report(source?.sourceKey??name,"HOST_CATALOG_PARTIAL");
+        if(server.authStatus==="notLoggedIn")report(source?.sourceKey??server.name,"CODEX_AUTH_REQUIRED");
+        for(const tool of Object.values(server.tools) as Json[])components.push({sourceKey:"app-server:"+name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:name,serverSourceKey:source?.sourceKey??null,executor:"codex_host",enabled:source?source.enabled&&toolEnabled(source.config,tool.name):true,...(status==="ready"?{}:{hostCatalogStatus:status})});
+      }
+      hostCatalog.complete=!catalog.nextCursor;
       if(catalog.nextCursor)report(context.id,"HOST_CATALOG_PARTIAL");
     }
   }catch(error){report(context.id,error instanceof HubError&&error.code==="HOST_VERSION_UNSUPPORTED"?"HOST_VERSION_UNSUPPORTED":"APP_SERVER_PARTIAL");}
   else if(depth==="host_catalog")report(context.id,"HOST_VERSION_UNSUPPORTED");
   if(!effective)issues.push({source:context.id,code:"STATIC_RESOLUTION_PARTIAL"});
   if(control.signal?.aborted)throw new HubError("DISCOVERY_CANCELLED","Discovery cancelled.");
-  return {sources,components,issues,resolutionQuality:quality,coverage:issues.length?"partial":"complete"};
+  return {sources,components,issues,hostCatalog,resolutionQuality:quality,coverage:issues.length?"partial":"complete"};
 }
 
 /** Re-read the selected source only; no credentials are persisted in the public directory. */

@@ -23,6 +23,7 @@ export const issueLabels: Record<string, string> = {
   STATIC_RESOLUTION_PARTIAL: "当前使用静态配置，生效范围尚未完全确认",
   STATIC_PROFILE_PARTIAL: "Profile 的生效配置尚未完全确认",
   APP_SERVER_PARTIAL: "宿主目录读取不完整",
+  HOST_SKILLS_PARTIAL: "Codex 技能目录读取不完整",
   CODEX_AUTH_REQUIRED: "Codex 授权需恢复",
   HOST_VERSION_UNSUPPORTED: "当前设置无法读取 Codex 工具目录",
   HOST_CATALOG_PARTIAL: "宿主工具目录不完整",
@@ -30,6 +31,7 @@ export const issueLabels: Record<string, string> = {
   SKILL_METADATA_INVALID: "技能介绍格式无法解析",
   SKILL_DEPENDENCY_INVALID: "技能依赖声明无法解析",
   CATALOG_NOT_SYNCED: "尚未同步工具目录",
+  DIRECT_CATALOG_NOT_SYNCED: "FlowHub 直连目录待检测",
   CREDENTIALS_REQUIRED: "需要连接配置",
   credentials_required: "需要连接配置",
   unreachable: "连接暂不可达",
@@ -49,7 +51,21 @@ export const presentationLabels: Record<string, string> = {
   stale: "中文说明待更新",
   original: "原始中文介绍",
 };
+export function hostCatalogReason(entity: Entity) {
+  if (entity.hostAuthRequired || entity.hostCatalogStatus === "auth_required")
+    return "Codex 授权需恢复";
+  if (entity.hostCatalogStatus === "ambiguous" || entity.ambiguousSource)
+    return "Codex 服务来源无法唯一对应";
+  if (entity.hostCatalogStatus === "partial")
+    return "Codex 工具目录读取不完整";
+  if (entity.hostCatalogStatus === "unavailable")
+    return "当前 Codex 目录未列出此服务";
+  return "";
+}
 export function entityStatus(e: Entity) {
+  const hostReason = hostCatalogReason(e);
+  if (e.enabled && hostReason && (e.entityKind === "mcp_tool" || e.hostAuthRequired || !e.preparedConnectionId))
+    return { text: hostReason, tone: "amber" };
   if (e.stale) return { text: "来源已失效 / 待同步", tone: "gray" };
   if (e.self) return { text: "FlowHub 自身 · 禁止导入", tone: "gray" };
   if (e.installation === "available_only")
@@ -58,8 +74,9 @@ export function entityStatus(e: Entity) {
     return { text: e.enabled === false ? "已安装 · 已停用 · 市场来源冲突" : "已安装 · 市场来源冲突", tone: "amber" };
   if (e.ambiguousSource || e.availability === "ambiguous") return { text: "来源待确认", tone: "amber" };
   if (!e.enabled) return { text: "已停用", tone: "gray" };
-  if (e.hostAuthRequired) return { text: "Codex 授权需恢复", tone: "amber" };
   if (e.hostCatalogReady) return { text: "由 Codex 执行", tone: "purple" };
+  if (e.entityKind === "mcp_server" && e.hostCatalogStatus === "ready")
+    return { text: "Codex 目录已同步", tone: "purple" };
   if (e.importState)
     return {
       text: e.importState.verified

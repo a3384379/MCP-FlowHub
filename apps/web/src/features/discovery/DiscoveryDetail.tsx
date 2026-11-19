@@ -6,6 +6,7 @@ import { DiscoveryDrawer } from "./DiscoveryDrawer";
 import {
   displayName,
   displaySummary,
+  hostCatalogReason,
   Icon,
   kinds,
   presentationLabels,
@@ -126,6 +127,7 @@ export function DiscoveryDetail({
       kind: "mcp_tool",
       parentId: e.id,
       limit: "20",
+      status: "all",
       ...(next ? { cursor: next } : {}),
     });
     const token = readGeneration.current,
@@ -172,7 +174,7 @@ export function DiscoveryDetail({
         if (
           activateCredentials.current &&
           !value.stale &&
-          value.connectionSetup !== "manual" &&
+          value.connectionSetup === "references" &&
           value.executor === "hub_direct"
         ) {
           activateCredentials.current = false;
@@ -265,12 +267,13 @@ export function DiscoveryDetail({
     setWorkflow(null);
     setAnchor("");
     if (!id) return;
-    const [draft, bindings] = await Promise.all([
+    const [draft, bindings, connections] = await Promise.all([
       v2("/workflows/" + encodeURIComponent(id) + "/draft"),
       importTarget?.executor === "hub_direct" ? api("/bindings") : Promise.resolve([]),
+      importTarget?.executor === "hub_direct" ? api("/connections") : Promise.resolve([]),
     ]);
     if (!current()) return;
-    setBindingOptions(importTarget?.executor === "hub_direct" ? directBindings(forPicker(importTarget), bindings, draft.draft.environment) : []);
+    setBindingOptions(importTarget?.executor === "hub_direct" ? directBindings(forPicker(importTarget), bindings, draft.draft.environment, connections) : []);
     setBindingId("");
     setWorkflow(draft);
     const input = draft.draft.nodes.find((node: Entity) => node.type === "input");
@@ -289,7 +292,7 @@ export function DiscoveryDetail({
           : "工具目录读取成功不等于执行验证。"}
       </span>
       {!editing && !credentials && !importTarget && !entity.stale && !entity.self &&
-        entity.entityKind === "mcp_server" && entity.enabled && (
+        entity.entityKind === "mcp_server" && entity.enabled && entity.sourceId && (
           <button disabled={working} onClick={() => {
             if (entity.executor === "hub_direct" && entity.connectionSetup === "references") void beginCredentials();
             else onManage({ type: "connection", name: entity.name });
@@ -328,7 +331,7 @@ export function DiscoveryDetail({
           {entity.executor === "hub_direct" ? "用直连添加到流程" : "用 Codex 添加到流程"}
           <Icon name="chevron" />
         </button>
-      ) : entity.entityKind === "mcp_server" && !entity.self && entity.enabled ? (
+      ) : entity.entityKind === "mcp_server" && !entity.self && entity.enabled && !entity.hostCatalogReady ? (
         <button className="primary" onClick={() => { close(); onSync(); }}>
           同步 Codex 工具目录
         </button>
@@ -483,7 +486,13 @@ export function DiscoveryDetail({
                 </div>
                 <div>
                   <small>使用位置</small>
-                  {entity.hostCatalogReady ? "由 Codex 执行 · 目录已同步" : capabilityUsage({ ...entity, kind: entity.entityKind })}
+                  {entity.entityKind !== "mcp_server"
+                    ? capabilityUsage({ ...entity, kind: entity.entityKind })
+                    : entity.hostCatalogReady
+                      ? "由 Codex 执行 · 目录已同步"
+                      : hostCatalogReason(entity) || (entity.hostCatalogStatus === "ready"
+                        ? "Codex 目录已同步"
+                        : "Codex 工具目录待同步")}
                 </div>
                 <div>
                   <small>
@@ -528,14 +537,15 @@ export function DiscoveryDetail({
                         )}
                       </h3>
                       {tools.length ? (
-                        [...tools].sort((a, b) => Number(b.executor === "codex_host") - Number(a.executor === "codex_host")).map((tool) => (
+                        [...tools].sort((a, b) => Number(a.stale) - Number(b.stale) ||
+                          Number(b.executor === "codex_host") - Number(a.executor === "codex_host")).map((tool) => (
                           <article className="d-tool-card" key={tool.id}>
                             <strong>{displayName(tool, english)}</strong>
                             {tool.displayName !== tool.name && (
                               <span className="d-mono">{tool.name}</span>
                             )}
                             <p>{displaySummary(tool, english)}</p>
-                            <small>{capabilityUsage({ ...tool, kind: "mcp_tool" })}</small>
+                            <small>{tool.stale ? hostCatalogReason(tool) || "保留的旧目录" : capabilityUsage({ ...tool, kind: "mcp_tool" })}</small>
                             <div className="d-actions">
                               <button onClick={() => onNavigate(tool.id)}>
                                 参数与结果
@@ -555,7 +565,7 @@ export function DiscoveryDetail({
                         <p>
                           {entity.toolCount === 0
                             ? "此服务的实际目录没有工具。"
-                            : "工具目录尚不可用，请配置连接或同步目录。"}
+                            : hostCatalogReason(entity) || "请同步 Codex 工具目录。"}
                         </p>
                       )}
                       {cursor && (

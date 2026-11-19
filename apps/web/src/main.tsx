@@ -1273,12 +1273,13 @@ function App() {
           tool.name === node.config.toolName,
       )
     : null;
+  const predecessors = node ? mandatoryNodes(currentWorkflow(), node.id) : new Set<string>();
   const sourceNodes = node
     ? draft.draft.nodes
         .filter(
           (source: J) =>
             source.type !== "input" &&
-            mandatoryNodes(currentWorkflow(), node.id).has(source.id),
+            predecessors.has(source.id),
         )
         .map((source: J) => ({
           id: source.id,
@@ -2032,7 +2033,7 @@ function App() {
                     : "固定环境"}
                 </Badge>
                 <span>{dirty ? "● 有未保存修改" : "✓ 已从服务端加载"} · r{draft.revision}</span>
-                {draft.draft.executionRequirements?.requiresCodex&&<Badge>需要 Codex 宿主</Badge>}
+                {workflowRequirements(draft.draft).requiresCodex && <Badge>需要 Codex 宿主</Badge>}
                 <button onClick={openAssistant}>AI 助手</button>
                 <button
                   disabled={!undoCount || busy || jsonInvalid}
@@ -2576,11 +2577,15 @@ function App() {
                           </p>
                         )}
                         {node.config.kind === "host_tool" && node.config.requireHostReceipt && (
-                          <details>
-                            <summary>回执范围字段</summary>
-                            <p>如果工具结果会返回订单号、资源或时间范围，在节点配置中把输出字段映射到调用参数。回执中的值必须和派发参数一致。</p>
-                            <pre>{pretty({ receiptScopeMappings: node.config.receiptScopeMappings ?? { "/orderNo": "/orderNo" } })}</pre>
-                          </details>
+                          <ReceiptScopeFields
+                            key={"receipt-scopes:" + node.id}
+                            value={node.config.receiptScopeMappings ?? {}}
+                            inputSchema={currentHostContract?.value?.inputSchema}
+                            outputSchema={node.config.outputSchema}
+                            onChange={(receiptScopeMappings) => changeNode({
+                              config: { ...node.config, receiptScopeMappings },
+                            })}
+                          />
                         )}
                         {(node.type === "mcp_tool" ||
                           node.type === "agent_task") && (
@@ -3258,18 +3263,24 @@ function App() {
                     {run.nodeDetails?.some((node: J) => node.nodeId === run.currentNode && node.executor === "codex_host") &&
                       hostReceiptHint(run.waitingReason) && <p className="error">{hostReceiptHint(run.waitingReason)}</p>}
                     {Array.isArray(run.nodeDetails) && run.nodeDetails.map((node: J) => <details key={node.nodeId}>
-                      <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                      <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""}{node.durationMs > 0 ? " · " + node.durationMs + " ms" : ""}</summary>
                       {node.executor && <p>执行者 {({
                         codex_host: "Codex 宿主", assistant_local: "内置助手",
                         hub_direct: "FlowHub", hub_template: "FlowHub 模板",
                       } as Record<string, string>)[node.executor] ?? node.executor}
                         {node.source?.name && " · " + node.source.name}
                         {(node.source?.synthetic || node.source?.verification === "synthetic_fixture") && " · 合成"}
-                        {node.source?.checkpointId && " · Codex 回报"}
+                        {node.source?.origin === "flowhub" ? " · FlowHub 状态记录"
+                          : (node.source?.origin === "codex_host" || node.source?.checkpointId ||
+                            node.source?.verification === "host_reported" || node.source?.verification === "synthetic_fixture")
+                            && " · Codex 回报"}
                         {node.executor === "hub_direct" && run.steps?.[node.nodeId] === "SUCCEEDED" && " · FlowHub 已记录调用"}
                       </p>}
                       {node.source?.argumentsHash && <p>回执参数摘要 <code>{node.source.argumentsHash}</code></p>}
                       {node.source?.toolCallId && <p>宿主调用 ID <code>{node.source.toolCallId}</code></p>}
+                      {node.errorCode && node.source?.artifactId && run.artifacts?.some((artifact: J) => artifact.id === node.source.artifactId) && (
+                        <p>失败诊断见运行产物 <code>{node.source.artifactId}</code></p>
+                      )}
                       {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
                       {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
                       {node.errorCode && <p className="error">{(node.executor === "codex_host" && hostReceiptHint(node.errorCode)) || node.errorCode}</p>}
@@ -3313,6 +3324,7 @@ function App() {
                         <Badge>WAITING_AGENT · {run.checkpoint.kind}</Badge>
                         <h2>{run.checkpoint.nodeId} · 宿主待办</h2>
                         <p>{run.checkpoint.instruction}</p>
+                        {run.checkpoint.claimedAt && <p>当前检查点已认领，等待接力会话提交回执。</p>}
                         <RunContinuation key={run.runId} run={run} />
                         <RunAnalysisControl api={api} run={run}/>
                         <small>
@@ -4303,21 +4315,50 @@ type SchemaField = {
   required: boolean;
   schema: J;
 };
-function schemaFields(schema: J, pointer = "", required = true): SchemaField[] {
-  if (!isObject(schema)) return [];
-  const result: SchemaField[] = [
-    { pointer, type: schema.type ?? "unknown", required, schema },
-  ];
-  if (schema.type === "object")
-    for (const [name, child] of Object.entries(schema.properties ?? {}))
-      result.push(
-        ...schemaFields(
-          child,
-          pointer + "/" + name.replaceAll("~", "~0").replaceAll("/", "~1"),
-          required && (schema.required ?? []).includes(name),
-        ),
-      );
-  return result;
+function valueAtPointer(value: J, pointer: string) {
+  const parts = pointer ? pointer.slice(1).split("/") : [];
+  for (const part of parts) {
+    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
+    if (!value || typeof value !== "object" || !Object.hasOwn(value, key)) return undefined;
+    value = value[key];
+  }
+  return value;
+}
+function schemaFields(root: J): SchemaField[] {
+  const fields: SchemaField[] = [];
+  function visit(schema: J, pointer: string, required: boolean, seen: Set<string>, depth: number) {
+    if (!isObject(schema) || depth >= 24 || fields.length >= 1024) return;
+    if (typeof schema.$ref === "string" && schema.$ref.startsWith("#/") && !seen.has(schema.$ref)) {
+      let target: J;
+      try { target = valueAtPointer(root, decodeURIComponent(schema.$ref.slice(1))); }
+      catch { return; }
+      const { $ref, ...annotations } = schema;
+      if (isObject(target)) {
+        visit({ ...target, ...annotations }, pointer, required, new Set([...seen, $ref]), depth + 1);
+        return;
+      }
+    }
+    const types = (Array.isArray(schema.type) ? schema.type : [schema.type])
+      .filter((type: unknown): type is string => typeof type === "string");
+    fields.push({ pointer, type: types.join(" / ") || "unknown", required, schema });
+    const guaranteed = required && types.length === 1;
+    if (types.includes("object") && isObject(schema.properties)) {
+      const requiredNames = Array.isArray(schema.required) ? schema.required : [];
+      for (const [name, child] of Object.entries(schema.properties))
+        visit(child, pointer + "/" + name.replaceAll("~", "~0").replaceAll("/", "~1"),
+          guaranteed && requiredNames.includes(name), seen, depth + 1);
+    }
+    if (types.includes("array")) {
+      const prefix = Array.isArray(schema.prefixItems) ? schema.prefixItems : [];
+      const minimum = Number.isSafeInteger(schema.minItems) ? schema.minItems : 0;
+      const count = Math.min(Math.max(minimum, prefix.length), 16);
+      for (let index = 0; index < count; index++)
+        visit(prefix[index] ?? schema.items, pointer + "/" + index,
+          guaranteed && index < minimum, seen, depth + 1);
+    }
+  }
+  visit(root, "", true, new Set(), 0);
+  return fields;
 }
 function mandatoryNodes(workflow: J, targetId: string): Set<string> {
   const ids = new Set<string>(workflow.nodes.map((n: J) => n.id));
@@ -4368,7 +4409,7 @@ function LiteralField({
   onDirty: () => void;
 }) {
   const persistence = useContext(EditorTextContext);
-  const key = persistence ? persistence.scope + "/literal/" + label : label;
+  const key = literalTextKey(persistence, label);
   const [text, setText] = useState(
     persistence?.cache.get(key) ?? JSON.stringify(value),
   );
@@ -4409,6 +4450,9 @@ function LiteralField({
     </label>
   );
 }
+function literalTextKey(editor: React.ContextType<typeof EditorTextContext>, label: string) {
+  return editor ? editor.scope + "/literal/" + label : label;
+}
 function hostReceiptHint(code: string) {
   return ({
     AUTH_REQUIRED: "等待恢复 Codex 授权。恢复后可继续当前运行。",
@@ -4421,14 +4465,69 @@ function hostReceiptHint(code: string) {
 
 function exampleAt(schema: J, pointer: string, field?: SchemaField) {
   if (field?.schema.examples?.length) return field.schema.examples[0];
-  let example = schema?.examples?.[0];
-  const parts = pointer ? pointer.slice(1).split("/") : [];
-  for (const part of parts) {
-    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
-    if (!example || typeof example !== "object" || !Object.hasOwn(example, key)) return undefined;
-    example = example[key];
-  }
-  return example;
+  return valueAtPointer(schema?.examples?.[0], pointer);
+}
+
+function ReceiptScopeFields({ value, inputSchema, outputSchema, onChange }: {
+  value: Record<string, string>;
+  inputSchema: J;
+  outputSchema: J;
+  onChange: (value: Record<string, string>) => void;
+}) {
+  const [output, setOutput] = useState("");
+  const [input, setInput] = useState("");
+  const outputs = schemaFields(outputSchema).filter(field => validMappingPointer(field.pointer) && field.required && !Object.hasOwn(value, field.pointer));
+  const inputs = schemaFields(inputSchema).filter(field => validMappingPointer(field.pointer) && field.required);
+  const limitReached = Object.keys(value).length >= 16;
+  return (
+    <details className="mapping-form">
+      <summary>回执范围字段</summary>
+      <p>为工具结果中返回的订单号、资源或时间范围指定对应的调用参数，回执校验时会逐项比对。</p>
+      {Object.keys(value).length === 0 && <small>未配置回执范围比对。</small>}
+      {Object.entries(value).map(([pointer, argument]) => (
+        <div className="mapping-row" key={pointer}>
+          <div className="row">
+            <code>{pointer} ← {argument}</code>
+            <button aria-label={"移除范围比对 " + pointer} onClick={() => {
+              const remaining = { ...value };
+              delete remaining[pointer];
+              onChange(remaining);
+            }}>×</button>
+          </div>
+        </div>
+      ))}
+      {limitReached && <small>已添加 16 条范围比对。</small>}
+      {!limitReached && outputs.length > 0 && inputs.length > 0 && <>
+        <label className="field">
+          回执输出字段
+          <select aria-label="回执输出字段" value={output} onChange={(event) => setOutput(event.target.value)}>
+            <option value="">选择必填输出字段</option>
+            {outputs.map(field => <option key={field.pointer} value={field.pointer}>{field.pointer} · {field.type}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          对应调用参数
+          <select aria-label="对应调用参数" value={input} onChange={(event) => setInput(event.target.value)}>
+            <option value="">选择必填调用参数</option>
+            {inputs.map(field => <option key={field.pointer} value={field.pointer}>{field.pointer} · {field.type}</option>)}
+          </select>
+        </label>
+        <button
+          disabled={!outputs.some(field => field.pointer === output) || !inputs.some(field => field.pointer === input)}
+          onClick={() => { onChange({ ...value, [output]: input }); setOutput(""); setInput(""); }}
+        >添加范围比对</button>
+      </>}
+    </details>
+  );
+}
+
+function validMappingPointer(pointer: string) {
+  return pointer.length <= 512 && /^(?:\/(?:[^~/]|~[01])*)+$/.test(pointer) &&
+    !pointer.split("/").some(part => ["__proto__", "prototype", "constructor"].includes(part));
+}
+
+function pointerOverlap(left: string, right: string) {
+  return left === right || left.startsWith(right + "/") || right.startsWith(left + "/");
 }
 
 type SourceNode = { id: string; title: string; schema: J };
@@ -4530,19 +4629,19 @@ function MappingFields({
 }) {
   const [target, setTarget] = useState("");
   const [error, setError] = useState("");
-  const fields = schemaFields(targetSchema).filter(
-    (field) =>
-      field.pointer &&
-      !Object.keys(lockedArguments).some(
-        (locked) =>
-          field.pointer === locked ||
-          field.pointer.startsWith(locked + "/") ||
-          locked.startsWith(field.pointer + "/"),
-      ),
-  );
+  const editor = useContext(EditorTextContext);
+  const discardLiteral = (pointer: string) => {
+    const key = literalTextKey(editor, pointer + " 常量");
+    editor?.cache.delete(key);
+    onValidityChange(key, true);
+  };
+  const locked = Object.keys(lockedArguments);
+  const mapped = Object.keys(value);
+  const fields = schemaFields(targetSchema).filter(field => validMappingPointer(field.pointer) &&
+    !locked.some(path => pointerOverlap(field.pointer, path)));
   const fieldsByPointer = new Map(fields.map((field) => [field.pointer, field]));
   const missing = fields.filter((field) => field.required &&
-    !Object.keys(value).some((path) => field.pointer === path || field.pointer.startsWith(path + "/") || path.startsWith(field.pointer + "/")));
+    !mapped.some(path => pointerOverlap(field.pointer, path)));
   const patch = (key: string, expression: J) =>
     onChange({ ...value, [key]: expression });
   return (
@@ -4563,6 +4662,7 @@ function MappingFields({
             <button
               aria-label={"移除映射 " + key}
               onClick={() => {
+                discardLiteral(key);
                 const next = { ...value };
                 delete next[key];
                 onChange(next);
@@ -4574,7 +4674,8 @@ function MappingFields({
           <select
             aria-label={key + " 来源"}
             value={expression.ref?.source ?? "literal"}
-            onChange={(event) =>
+            onChange={(event) => {
+              if (!expression.ref) discardLiteral(key);
               patch(
                 key,
                 event.target.value === "literal"
@@ -4588,8 +4689,8 @@ function MappingFields({
                           : {}),
                       },
                     },
-              )
-            }
+              );
+            }}
           >
             <option value="literal">固定常量</option>
             <option value="input">工作流输入</option>
@@ -4627,7 +4728,7 @@ function MappingFields({
           >
             <option value="">按工具 Schema 选择字段</option>
             {fields
-              .filter((field) => !Object.hasOwn(value, field.pointer))
+              .filter((field) => !mapped.some(path => pointerOverlap(field.pointer, path)))
               .map((field) => (
                 <option key={field.pointer} value={field.pointer}>
                   {field.pointer} · {field.type}{" "}
@@ -4647,15 +4748,12 @@ function MappingFields({
       {error && <p className="error">{error}</p>}
       <button
         onClick={() => {
-          if (
-            !/^(?:\/(?:[^~/]|~[01])*)+$/.test(target) ||
-            target
-              .split("/")
-              .some((part) =>
-                ["__proto__", "prototype", "constructor"].includes(part),
-              )
-          ) {
+          if (!validMappingPointer(target)) {
             setError("请选择合法目标字段");
+            return;
+          }
+          if ([...locked, ...mapped].some(path => pointerOverlap(target, path))) {
+            setError("目标字段与已锁定或已有映射的参数重叠");
             return;
           }
           patch(target, { ref: { source: "input", pointer: "" } });

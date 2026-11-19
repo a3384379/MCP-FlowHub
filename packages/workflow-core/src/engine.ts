@@ -12,6 +12,7 @@ import {
   id,
   now,
   hash,
+  stable,
   clone,
   validate,
   mappings,
@@ -214,6 +215,7 @@ export class Engine {
         });
         continue;
       }
+      if (this.expireCheckpoint(run)) continue;
       if (run.dispatch) {
         this.repo.tx(() => {
           const attempt = this.repo.get("attempts", run.dispatch);
@@ -484,24 +486,28 @@ export class Engine {
         !query.includes("生产") &&
         !query.includes("试运行") &&
         new Set(page.map((item) => item.flow.environment)).size > 1,
-      items: page.map(({ flow, v, matchedBy }) => ({
-        workflowId: flow.workflowId,
-        name: flow.name,
-        version: v.version,
-        environment: flow.environment,
-        mode: flow.mode,
-        tags: flow.tags,
-        requires: flow.inputSchema.required,
-        matchedBy,
-        demoOnly: v.snapshot.bindings.every((b: Json) => b.simulationOnly),
-        validationStatus: v.snapshot.bindings.every(
-          (b: Json) => b.simulationOnly,
-        )
-          ? "MOCK_VERIFIED"
-          : "BINDING_VERIFIED",
-      })),
+      items: page.map(({ flow, v, matchedBy }) => {
+        const demoOnly = this.demoOnly(v.snapshot);
+        return {
+          workflowId: flow.workflowId,
+          name: flow.name,
+          version: v.version,
+          environment: flow.environment,
+          mode: flow.mode,
+          tags: flow.tags,
+          requires: flow.inputSchema.required,
+          matchedBy,
+          demoOnly,
+          validationStatus: demoOnly ? "MOCK_VERIFIED"
+            : v.snapshot.bindings.length ? "BINDING_VERIFIED" : "UNVERIFIED",
+        };
+      }),
       nextCursor,
     };
+  }
+  private demoOnly(snapshot: Json) {
+    return snapshot.simulationOnly === true ||
+      (snapshot.bindings.length > 0 && snapshot.bindings.every((binding: Json) => binding.simulationOnly === true));
   }
   private bindingsReady(snapshot: Json) {
     for (const b of snapshot.bindings) {
@@ -632,48 +638,49 @@ export class Engine {
     );
     return r;
   }
+  private expireCheckpoint(run: Json) {
+    const checkpoint = run.checkpoint;
+    if (!checkpoint || checkpoint.expiresAt > Date.now() || terminal.has(run.state)) return false;
+    this.repo.tx(() => {
+      if (checkpoint.hostClaim) {
+        this.failHostCall(run, checkpoint, "OUTCOME_UNKNOWN");
+      } else {
+        run.state = run.steps[checkpoint.nodeId] = "FAILED";
+        run.errorCode = "CHECKPOINT_EXPIRED";
+        delete run.checkpoint;
+        this.save(run, "CHECKPOINT_EXPIRED", checkpoint.nodeId);
+      }
+    });
+    return true;
+  }
   private runStatus(runId: string, owner: string, view: "full" | "checkpoint") {
     const r = this.owned(runId, owner);
-    if (
-      r.checkpoint &&
-      r.checkpoint.expiresAt < Date.now() &&
-      !terminal.has(r.state)
-    ) {
-      this.repo.tx(() => {
-        if (r.checkpoint.hostClaim) {
-          this.failHostCall(r, r.checkpoint, "OUTCOME_UNKNOWN");
-        } else {
-          r.state = "FAILED";
-          r.errorCode = "CHECKPOINT_EXPIRED";
-          delete r.checkpoint;
-          r.revision++;
-          this.repo.put("runs", r.id, r);
-          this.repo.event(r.id, "CHECKPOINT_EXPIRED");
-        }
-      });
-    }
+    this.expireCheckpoint(r);
     const artifacts = this.repo
       .all("artifacts")
       .filter((a) => a.runId === r.id)
       .map(({ content, ...a }) => a);
     let checkpoint;
     if (r.checkpoint) {
-      const { delivery, tokenHash, argumentsDelivery, hostClaim, ...info } = r.checkpoint;
-      const resolvedArguments = argumentsDelivery && !this.vault.locked ? this.hostArguments(r, r.checkpoint) : undefined;
+      const { delivery, tokenHash, argumentsDelivery, hostClaim, inputs, resolvedArguments: legacyArguments, ...info } = r.checkpoint;
+      const hostTool = info.kind === "host_tool";
+      const resolvedArguments = hostTool && !this.vault.locked
+        ? this.hostArguments(r, { id: info.id, argumentsDelivery, resolvedArguments: legacyArguments })
+        : undefined;
       checkpoint = {
         ...info,
         ...(!this.vault.locked
           ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) }
           : {}),
         ...(hostClaim ? { claimedAt: hostClaim.claimedAt } : {}),
-        ...(argumentsDelivery ? {
-          inputs: view === "full" ? resolvedArguments : undefined,
+        ...(hostTool ? {
+          inputs: view === "full" ? resolvedArguments ?? (!this.vault.locked ? inputs : undefined) : undefined,
           resolvedArguments,
         } : Object.keys(r.operationalOutputs ?? {}).length ? {
           inputs: this.vault.locked ? undefined : mappings(
             r.snapshot.workflow.nodes.find((node: Node) => node.id === info.nodeId)?.config.inputMappings,
             r.inputs, this.operationalOutputs(r)),
-        } : {}),
+        } : { inputs }),
         availableEvidence: artifacts,
         ...(view === "full" || info.kind === "host_skill" ? { nodeOutcomes: r.steps } : {}),
       };
@@ -738,12 +745,15 @@ export class Engine {
       : checkpoint.resolvedArguments;
   }
   private recordHostReceipt(run: Json, checkpoint: Json, submission?: Json, errorCode?: string, artifactId?: string) {
-    const verification = run.snapshot.simulationOnly ? "synthetic_fixture" : "host_reported";
+    const origin = submission ? "codex_host" : "flowhub";
+    const verification = !submission ? "engine_recorded"
+      : run.snapshot.simulationOnly ? "synthetic_fixture" : "host_reported";
     const receipt = {
-      executor: "codex_host", verification, checkpointId: checkpoint.id, nodeId: checkpoint.nodeId,
+      executor: "codex_host", origin, verification, checkpointId: checkpoint.id, nodeId: checkpoint.nodeId,
       capabilityRef: checkpoint.capabilityRef, toolName: checkpoint.capability?.name,
       ...(checkpoint.argumentsHash ? { argumentsHash: checkpoint.argumentsHash } : {}),
       ...(submission?.toolCallId ? { toolCallId: submission.toolCallId } : {}),
+      ...(submission?.evidenceRefs?.length ? { evidenceRefs: submission.evidenceRefs } : {}),
       ...(artifactId ? { artifactId } : {}),
       ...(checkpoint.hostClaim ? { claimedAt: checkpoint.hostClaim.claimedAt } : {}),
       ...(errorCode ? { errorCode } : {}),
@@ -752,26 +762,56 @@ export class Engine {
     run.hostReported ??= {};
     run.hostReported[checkpoint.nodeId] = receipt;
     this.repo.event(run.id, errorCode ? "HOST_TOOL_FAILED" : "HOST_TOOL_REPORTED", receipt);
+    return receipt;
   }
   private failHostCall(run: Json, checkpoint: Json, code: string, submission?: Json) {
-    this.recordHostReceipt(run, checkpoint, submission, code);
+    if (submission) this.validateEvidenceRefs(run, submission.evidenceRefs);
+    const artifact = submission?.errorMessage
+      ? this.storeArtifact(run, checkpoint.nodeId, JSON.stringify({
+        code,
+        message: this.vault.protectDiagnostic(submission.errorMessage),
+      }), "application/json", { contentStored: true, executor: "codex_host",
+        verification: run.snapshot.simulationOnly ? "synthetic_fixture" : "host_reported" })
+      : undefined;
+    const receipt = this.recordHostReceipt(run, checkpoint, submission, code, artifact?.id);
     const state = code === "OUTCOME_UNKNOWN" ? "OUTCOME_UNKNOWN"
       : code === "HOST_CONTRACT_MISMATCH" ? "FAILED" : "BLOCKED";
+    if (state === "OUTCOME_UNKNOWN") run.toolCalls++;
     run.state = run.steps[checkpoint.nodeId] = state;
     run.errorCode = code;
     delete run.checkpoint;
     run.revision++;
+    run.updatedAt = now();
     this.repo.put("runs", run.id, run);
-    return { runId: run.id, state, acceptedRevision: run.revision };
+    return { runId: run.id, state, acceptedRevision: run.revision, receipt };
+  }
+  private deliverHostClaim(run: Json, checkpointId: string, revision: number, legacyClaimId?: string) {
+    const checkpoint = run.checkpoint;
+    ensure(run.state === "WAITING_AGENT" && run.revision === revision &&
+      checkpoint?.id === checkpointId && checkpoint.hostClaim,
+      "CHECKPOINT_CLAIM_INACTIVE", "This claim no longer authorizes a tool dispatch.", 409);
+    ensure(!this.expireCheckpoint(run), "CHECKPOINT_EXPIRED", "The host claim expired.", 409);
+    ensure(!this.vault.locked, "CREDENTIAL_LOCKED", "Unlock vault to deliver the host claim.", 423);
+    this.bindingsReady(run.snapshot);
+    const claim = checkpoint.hostClaim;
+    const claimId = claim.delivery
+      ? this.vault.decrypt(claim.delivery, run.id + ":claim:" + checkpoint.id)
+      : legacyClaimId;
+    ensure(typeof claimId === "string" && claim.hash === hash(claimId),
+      "CHECKPOINT_CLAIM_INACTIVE", "This claim no longer authorizes a tool dispatch.", 409);
+    return claimId;
   }
   advance(args: Arguments, owner = "execution", claimId?:string) {
-    this.owned(String(args.runId), owner);
+    const run = this.owned(String(args.runId), owner);
+    ensure(this.allowed(run.workflowId, owner), "WORKFLOW_NOT_AVAILABLE", "Run unavailable.", 404);
+    const expired = run.checkpoint?.id === args.checkpointId && this.expireCheckpoint(run);
     const response = this.repo.command(
       owner,
       "advance",
       String(args.idempotencyKey),
       args,
       () => {
+        ensure(!expired, "CHECKPOINT_EXPIRED", "Checkpoint expired or invalid.", 409);
         const r = this.owned(String(args.runId), owner),
           cp = r.checkpoint;
         ensure(
@@ -783,7 +823,8 @@ export class Engine {
         const claim=this.repo.get("settings","checkpoint-claim:"+r.id+":"+cp.id);
         ensure(!claim||claim.expiresAt<Date.now()||claim.claimId===claimId,"CHECKPOINT_CLAIMED","Another executor is consuming this checkpoint.",409);
         ensure(
-          r.revision === args.expectedRevision && cp.id === args.checkpointId,
+          r.revision === args.expectedRevision && cp.expectedRevision === args.expectedRevision &&
+            cp.id === args.checkpointId && cp.nodeId === r.current,
           "REVISION_CONFLICT",
           "Stale checkpoint/revision.",
           409,
@@ -812,12 +853,19 @@ export class Engine {
             "HOST_RECEIPT_REQUIRED", "Submit a structured receipt for the current Codex tool checkpoint.", 409);
           if (submission.type === "host_tool_claim") {
             ensure(!cp.hostClaim, "CHECKPOINT_CLAIMED", "This host checkpoint is already claimed.", 409);
+            ensure(r.toolCalls < r.snapshot.workflow.budgets.maxToolCalls,
+              "BUDGET_EXCEEDED", "Tool call budget exhausted before the host claim.");
             const hostClaimId = id("claim");
-            cp.hostClaim = { hash: hash(hostClaimId), claimedAt: now() };
+            cp.hostClaim = {
+              hash: hash(hostClaimId),
+              delivery: this.vault.encrypt(hostClaimId, r.id + ":claim:" + cp.id),
+              claimedAt: now(),
+            };
             cp.expectedRevision = ++r.revision;
+            r.updatedAt = now();
             this.repo.put("runs", r.id, r);
             this.repo.event(r.id, "HOST_TOOL_CLAIMED", { nodeId: n.id, checkpointId: cp.id, argumentsHash: cp.argumentsHash });
-            return { runId: r.id, state: r.state, acceptedRevision: r.revision, claimId: hostClaimId };
+            return { runId: r.id, state: r.state, acceptedRevision: r.revision, claimCheckpointId: cp.id };
           }
           ensure(cp.hostClaim?.hash === hash(submission.claimId),
             "CHECKPOINT_CLAIMED", "The receipt must provide the active claim ID.", 409);
@@ -842,23 +890,25 @@ export class Engine {
         } else {
           payload = this.validateQueryScope(r, n, submission.payload);
           if (n.config.kind === "host_tool") {
-            try { validate(this.hostCapability(r.snapshot, n).outputSchema, payload); }
-            catch (error) {
-              if (hostSubmission && error instanceof HubError && error.code === "INPUT_INVALID")
-                throw new HubError("HOST_RECEIPT_SCHEMA_INVALID", error.message, 422, error.details);
-              throw error;
-            }
+            validate(this.hostCapability(r.snapshot, n).outputSchema, payload,
+              hostSubmission ? "HOST_RECEIPT_SCHEMA_INVALID" : undefined);
             if (n.config.receiptScopeMappings) {
               const resolved = this.hostArguments(r, cp);
               for (const [outputPointer, inputPointer] of Object.entries(n.config.receiptScopeMappings))
-                ensure(hash(get(payload, outputPointer)) === hash(get(resolved, String(inputPointer))),
+                ensure(stable(get(payload, outputPointer)) === stable(get(resolved, String(inputPointer))),
                   "SCOPE_OVERRIDE_DENIED", "Host result differs from the pinned request scope at " + outputPointer);
             }
           } else validate(n.config.outputSchema, payload);
         }
-        this.validateEvidence(r, payload);
+        if (hostSubmission) {
+          this.validateEvidenceRefs(r, submission.evidenceRefs);
+          r.toolCalls++;
+        } else this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
-        this.recordBusinessOutput(r, n, payload);
+        const business = this.recordBusinessOutput(r, n, payload);
+        if (hostSubmission && business?.rowCount !== undefined)
+          ensure(business.rowCount <= r.snapshot.workflow.budgets.maxRows, "BUDGET_EXCEEDED",
+            "The receipt's declared row count exceeds the workflow budget.");
         r.nodeExecutors ??= {};
         r.nodeExecutors[n.id] = submission.type === "host_skill_unavailable" ? "hub_template"
           : claimId ? "assistant_local" : "codex_host";
@@ -883,12 +933,22 @@ export class Engine {
         r.current = this.next(r, n.id);
         r.state = "RUNNING";
         r.revision++;
+        r.updatedAt = now();
         this.repo.put("runs", r.id, r);
         this.repo.event(r.id, "AGENT_RESULT_ACCEPTED", { nodeId: n.id });
         return { runId: r.id, acceptedRevision: r.revision,
           ...(hostSubmission ? { receipt: r.hostReported[n.id] } : {}) };
       },
     );
+    const { claimCheckpointId, claimId: legacyClaimId } = response;
+    if (claimCheckpointId || legacyClaimId) {
+      ensure(!expired, "CHECKPOINT_EXPIRED", "The host claim expired.", 409);
+      const active = this.owned(response.runId, owner);
+      const activeClaimId = this.deliverHostClaim(
+        active, claimCheckpointId ?? String(args.checkpointId), response.acceptedRevision, legacyClaimId,
+      );
+      return { runId: response.runId, state: response.state, acceptedRevision: response.acceptedRevision, claimId: activeClaimId };
+    }
     if (!response.state) this.schedule(response.runId);
     return response;
   }
@@ -1027,13 +1087,7 @@ export class Engine {
     const allowed = new Set(this.evidenceIds(r.id));
     const check = (x: Json) => {
       if (!x || typeof x !== "object") return;
-      if (x.evidenceRefs)
-        for (const ref of x.evidenceRefs)
-          ensure(
-            allowed.has(ref),
-            "ARTIFACT_INVALID",
-            "Evidence must belong to this run.",
-          );
+      if (x.evidenceRefs) this.validateEvidenceRefs(r, x.evidenceRefs, allowed);
       if (x.kind === "confirmed")
         ensure(
           x.evidenceRefs?.length > 0,
@@ -1046,6 +1100,12 @@ export class Engine {
           else check(child);
     };
     check(payload);
+  }
+  private validateEvidenceRefs(run: Json, refs?: Json, allowed?: Set<string>) {
+    if (refs === undefined) return;
+    const available = allowed ?? new Set(this.evidenceIds(run.id));
+    ensure(Array.isArray(refs) && refs.every((ref: Json) => available.has(ref)),
+      "ARTIFACT_INVALID", "Evidence must belong to this run and be available.");
   }
   private canStoreArtifact(r: Json, bytes: number) {
     return bytes <= Math.min(r.snapshot.workflow.budgets.maxOutputBytes, 262144) &&
@@ -1123,8 +1183,10 @@ export class Engine {
   private recordBusinessOutput(run: Json, node: Node, value: Json) {
     const rule = node.config.businessVerification;
     if (!rule) return;
+    const result = classifyBusinessOutput(rule, value);
     run.businessResults ??= {};
-    run.businessResults[node.id] = classifyBusinessOutput(rule, value);
+    run.businessResults[node.id] = result;
+    return result;
   }
   private validateQueryScope(r: Json, n: Node, submitted: Json) {
     const payload = clone(submitted);
@@ -1133,7 +1195,7 @@ export class Engine {
       let actual: Json;
       try { actual = get(payload, scope.pointer); }
       catch { continue; } // The output schema reports missing required fields.
-      ensure(hash(actual) === hash(expected),
+      ensure(stable(actual) === stable(expected),
         "SCOPE_OVERRIDE_DENIED", "Agent cannot change a declared query input scope.");
     }
     return payload;
@@ -1204,6 +1266,7 @@ export class Engine {
           binding?.allowedQueryTemplates?.length > 0 ||
           node.config.outputSchemaRef ===
             "flowhub://schemas/query-template-result/v1" ||
+          (node.config.kind === "host_tool" && node.config.outputSchema?.properties?.rows?.type === "array") ||
           Array.isArray(r.outputs[node.id]?.rows)
         );
       }),
@@ -1284,7 +1347,7 @@ export class Engine {
       ),
       尚未验证的假设:
         "未经过人工事实复核；截断或未覆盖范围仍有证据缺口。" +
-        (r.snapshot.bindings.some((b: Json) => b.simulationOnly)
+        (r.snapshot.simulationOnly || r.snapshot.bindings.some((b: Json) => b.simulationOnly)
           ? "合成演示不代表实际生产系统结论。"
           : "真实系统结论仍需独立核验。"),
       建议下一步: (
@@ -1846,7 +1909,7 @@ export class Engine {
         })),
         reportContract: REPORT_HEADINGS,
         snapshotHash: v.contentHash,
-        demoOnly: v.snapshot.bindings.every((b: Json) => b.simulationOnly),
+        demoOnly: this.demoOnly(v.snapshot),
       };
     }
     if (name === "workflow_start") return this.start(args, owner);

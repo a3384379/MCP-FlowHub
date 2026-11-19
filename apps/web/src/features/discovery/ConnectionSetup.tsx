@@ -67,7 +67,8 @@ export function ConnectionSetup({
       .then((result) => {
         if (!alive) return;
         setMeta(result);
-        setLocked(result.vaultLocked);
+        setLocked(result.vaultLocked && result.fields.length > 0);
+        setSaved(result.preparedConnectionId ? { revision: result.revision } : null);
         setChoices(
           Object.fromEntries(
             result.fields.map((f: Entity) => [
@@ -143,6 +144,7 @@ export function ConnectionSetup({
         );
         setError(message(e));
         if ((e as any).code === "CREDENTIAL_LOCKED") setLocked(true);
+        await onChanged().catch(() => {});
       }
     }
   };
@@ -412,13 +414,12 @@ export function ConnectionSetup({
       onSubmit={(event) => void submit(event)}
     >
       <h3>连接配置</h3>
-      <p>
-        普通配置、认证凭据和待确认项分别填写，值均在本机加密保存。模型 Key
-        在模型设置中单独管理。
-      </p>
-      <div className="d-vault-status">
-        本地库：{meta?.vaultInitialized === false ? "尚未设置口令" : locked ? "已锁定" : meta ? "已解锁" : "正在读取…"}
-      </div>
+      {meta && (meta.fields.length ? <>
+        <p>连接配置与认证凭据在本机加密保存。</p>
+        <div className="d-vault-status">
+          本地库：{meta.vaultInitialized === false ? "尚未设置口令" : locked ? "已锁定" : "已解锁"}
+        </div>
+      </> : null)}
       {locked && (
         <div className="d-config-unlock">
           <label>
@@ -491,7 +492,7 @@ export function ConnectionSetup({
       {meta?.fields.length === 0 && (
         <p>此服务未声明需要填写的配置项，可保存并检测连接。</p>
       )}
-      <label className="d-check">
+      {meta?.fields.length > 0 && <label className="d-check">
         <input
           type="checkbox"
           disabled={disabled}
@@ -515,7 +516,7 @@ export function ConnectionSetup({
           }}
         />
         使用来源已有配置（加密保存）
-      </label>
+      </label>}
       <div className="d-actions">
         <button type="button" disabled={working} onClick={onManage}>
           管理配置与凭据库

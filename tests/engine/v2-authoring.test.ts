@@ -6,6 +6,8 @@ import { Vault } from "../../packages/security/src/index.js";
 import { Connectors } from "../../packages/mcp-connectors/src/registry.js";
 import { Engine } from "../../packages/workflow-core/src/engine.js";
 import { AuthoringService } from "../../packages/workflow-authoring/src/index.js";
+import { hash, type Json } from "../../packages/contracts/src/domain.js";
+import { sourceConnectionRouteHash } from "../../packages/contracts/src/source-connection.js";
 
 export function authoringFixture() {
   const db=new Database(":memory:"),repo=new Repository(db),vault=new Vault(repo),engine=new Engine(repo,vault,new Connectors(repo,vault));
@@ -93,4 +95,184 @@ test("AUTHOR-06 referenced deletion is denied atomically and explicit cascade re
   assert.equal(f.repo.changes().length,events+1);assert.equal(f.repo.all("authoring_commands").length,commands+1);
   const published=f.authoring.publish({workflowId:"authoring-demo",expectedRevision:3,version:"1.0.0",expectedBindingRevisions:{},expectedCapabilityRevisions:{},idempotencyKey:"publish-after-cascade"});
   assert.deepEqual(published.snapshot.workflow.nodes,after.draft.nodes);
+});
+
+function switchFixture() {
+  const f = authoringFixture();
+  f.create();
+  const contextId = "ordered-context";
+  const source = { id: "ordered-source", contextId, revision: 1, contextRevision: 1,
+    enabled: true, sourceFingerprint: "synthetic-ordered-source" };
+  f.repo.insert("host_contexts", contextId, { id: contextId, revision: 1 });
+  f.repo.insert("capability_sources", source.id, source);
+  const scopedSchema = { type: "object", properties: { traceId: { type: "string" } },
+    required: ["traceId"], additionalProperties: false };
+  const tool = { name: "read_trace", inputSchema: scopedSchema, outputSchema: scopedSchema,
+    schemaHash: "sha256:" + hash({ inputSchema: scopedSchema, outputSchema: scopedSchema }) };
+  const common = { contextId, contextRevision: 1, kind: "mcp_tool", name: tool.name,
+    revision: 1, enabled: "enabled", stale: false, inputSchema: scopedSchema, outputSchema: scopedSchema, tool };
+  const direct = { ...common, id: "direct-read", capabilityId: "direct-read", executor: "hub_direct",
+    provenance: { serverSourceFingerprint: source.sourceFingerprint }, sourceRefs: [{ sourceId: source.id, revision: 1 }] };
+  const host = { ...common, id: "codex-read", capabilityId: "codex-read", executor: "codex_host",
+    provenance: { serverSourceId: source.id, serverSourceFingerprint: source.sourceFingerprint } };
+  for (const capability of [direct, host]) {
+    f.repo.insert("capabilities", capability.id, capability);
+    f.repo.insert("capability_revisions", capability.id + "@1",
+      { ...capability, id: capability.id + "@1", capabilityRevision: 1 });
+  }
+  const connection = { id: "ordered-connection", revision: 1, sourceId: source.id, sourceFingerprint: source.sourceFingerprint,
+    transport: "streamable_http", protocolEra: "modern", endpoint: "http://127.0.0.1:1/synthetic-ordered",
+    allowedHosts: ["127.0.0.1"], disabled: false, tools: [tool] };
+  f.repo.insert("connections", connection.id, { ...connection, sourceRouteHash: sourceConnectionRouteHash(connection) });
+  const binding = { id: "direct-binding", environment: "test", revision: 1, connectionId: connection.id,
+    connectionRevision: 1, sourceCapabilityId: direct.id, sourceCapabilityRevision: 1, allowedTools: [tool.name],
+    lockedArguments: {}, allowedQueryTemplates: [], maxRows: 100, timeoutSeconds: 10,
+    simulationOnly: false, validationStatus: "BINDING_VERIFIED" };
+  f.repo.insert("bindings", binding.id, binding);
+  const mappings = { "/traceId": { ref: { source: "input", pointer: "/traceId" } } };
+  const businessRule = { pointer: "/traceId", verified: ["demo-verified"],
+    unavailable: ["demo-unavailable"], failed: ["demo-failed"] };
+  const added = f.patch([
+    { op: "set_input_schema", schema: scopedSchema },
+    { op: "set_binding", key: "read", bindingId: binding.id },
+    { op: "add_node", nodeId: "trace", nodeType: "mcp_tool", title: "Read trace",
+      capabilityRef: { capabilityId: direct.id, revision: 1 },
+      config: { bindingKey: "read", argumentsMappings: mappings, businessVerification: businessRule } },
+    { op: "disconnect", source: "input", target: "end", port: "next" },
+    { op: "connect", source: "input", target: "trace", port: "next" },
+    { op: "connect", source: "trace", target: "end", port: "next" },
+    { op: "update_node", nodeId: "end", changes: { config: { resultRef: { ref: { source: "node", nodeId: "trace", pointer: "/traceId" } } } } },
+  ]);
+  assert.deepEqual(added.issues, []);
+  return { ...f, added, binding, direct, host, connection, source, mappings, businessRule,
+    switchToCodex: { op: "switch_tool_executor", nodeId: "trace", capabilityId: host.id, revision: 1 } };
+}
+
+test("executor switches preserve graph, mappings and business verification, with requirements bound to each published version", async t => {
+  const f = switchFixture();
+  t.after(f.close);
+  const before = f.authoring.get("authoring-demo");
+  const original = f.authoring.publish({ workflowId: before.id, expectedRevision: before.revision, version: "1.0.0",
+    expectedBindingRevisions: { [f.binding.id]: 1 }, expectedCapabilityRevisions: { [f.direct.id]: 1 }, idempotencyKey: "publish-direct" });
+  const switched = f.patch([f.switchToCodex], before.revision + 1, "switch-codex");
+  assert.deepEqual(f.patch([f.switchToCodex], before.revision + 1, "switch-codex"), switched);
+  assert.deepEqual(switched.issues, []);
+  const current = f.authoring.get(before.id);
+  assert.deepEqual(current.layout, before.layout);
+  assert.deepEqual(current.draft.edges, before.draft.edges);
+  assert.deepEqual(current.draft.bindings, {});
+  assert.equal(current.draft.mode, "guided");
+  assert.deepEqual(current.draft.nodes.find((node: Json) => node.id === "trace"), {
+    id: "trace", title: "Read trace", type: "agent_task", config: {
+      kind: "host_tool", executorRef: "codex_host", requireHostReceipt: true,
+      instructions: "Call the frozen Codex tool and submit its structured result.",
+      inputMappings: f.mappings, outputSchema: f.host.outputSchema, capabilityRef: { capabilityId: f.host.id, revision: 1 },
+      businessVerification: f.businessRule,
+    },
+  });
+  assert.equal(current.draft.executionRequirements.requiresCodex, true);
+  const publishedHost = f.authoring.publish({ workflowId: before.id, expectedRevision: current.revision,
+    version: "2.0.0", expectedBindingRevisions: {}, expectedCapabilityRevisions: { [f.host.id]: 1 }, idempotencyKey: "publish-host" });
+  const switchBack = f.patch([
+    { op: "set_binding", key: "reviewed", bindingId: f.binding.id },
+    { op: "switch_tool_executor", nodeId: "trace", capabilityId: f.direct.id, revision: 1, bindingKey: "reviewed" },
+  ], current.revision + 1, "switch-direct");
+  assert.deepEqual(switchBack.issues, []);
+  const restored = f.authoring.get(before.id);
+  const restoredNode = restored.draft.nodes.find((node: Json) => node.id === "trace");
+  assert.deepEqual(restoredNode.config.argumentsMappings, f.mappings);
+  assert.deepEqual(restoredNode.config.businessVerification, f.businessRule);
+  assert.equal(restored.draft.executionRequirements.requiresCodex, false);
+  for (const [version, frozen, requiresCodex, hostNodes] of [
+    ["1.0.0", original, false, []],
+    ["2.0.0", publishedHost, true, [{ id: "trace", title: "Read trace" }]],
+  ] as const) {
+    assert.equal(f.repo.get("versions", before.id + "@" + version).contentHash, frozen.contentHash);
+    const requirements = f.engine.handle("workflow_get", { workflowId: before.id, version }).executionRequirements;
+    assert.equal(requirements.requiresCodex, requiresCodex);
+    assert.deepEqual(requirements.hostNodes, hostNodes);
+  }
+});
+
+test("executor switches require current source and actual direct binding affinity and retain binding constraints", async t => {
+  const variants: { name: string; code?: string; adjust: (f: ReturnType<typeof switchFixture>) => void }[] = [
+    { name: "unrelated binding", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, sourceCapabilityId: "other" }) },
+    { name: "wrong binding environment", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, environment: "staging" }) },
+    { name: "unrelated connection", adjust: f => f.repo.put("connections", f.connection.id, { ...f.connection, sourceId: "other" }) },
+    { name: "changed approved endpoint", adjust: f => {
+      const connection = f.repo.get("connections", f.connection.id);
+      f.repo.put("connections", connection.id, { ...connection, endpoint: "http://127.0.0.1:2/other" });
+    } },
+    { name: "historical edited connection without route evidence", adjust: f => {
+      f.repo.put("connections", f.connection.id, { ...f.connection, revision: 2 });
+      f.repo.put("bindings", f.binding.id, { ...f.binding, connectionRevision: 2 });
+    } },
+    { name: "locked parameters", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, lockedArguments: { "/traceId": "demo" } }) },
+    { name: "narrower row budget", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, maxRows: 10 }) },
+    { name: "shorter tool timeout", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, timeoutSeconds: 1 }) },
+    { name: "simulation-only binding", adjust: f => f.repo.put("bindings", f.binding.id, { ...f.binding, simulationOnly: true }) },
+    { name: "stale context", code: "CAPABILITY_STALE", adjust: f =>
+      f.repo.put("host_contexts", f.host.contextId, { id: f.host.contextId, revision: 2 }) },
+  ];
+  for (const { name, code, adjust } of variants) await t.test(name, async sub => {
+    const f = switchFixture();
+    sub.after(f.close);
+    adjust(f);
+    const before = f.authoring.get("authoring-demo");
+    const eventCount = f.repo.changes().length;
+    assert.throws(() => f.patch([
+      { op: "set_metadata", changes: { name: "must roll back" } }, f.switchToCodex,
+    ], f.added.revision), { code: code ?? "ENVIRONMENT_OVERRIDE_DENIED" });
+    assert.deepEqual(f.authoring.get("authoring-demo"), before);
+    assert.equal(f.repo.changes().length, eventCount);
+  });
+});
+
+test("scope mappings need structured receipts and guaranteed, compatible fields", async t => {
+  const f = switchFixture();
+  t.after(f.close);
+  const switched = f.patch([f.switchToCodex], f.added.revision);
+  const before = f.authoring.get("authoring-demo");
+  const host = before.draft.nodes.find((node: Json) => node.id === "trace");
+  const update = (config: Json) => [{ op: "update_node", nodeId: "trace", changes: { config } }];
+  const { requireHostReceipt, ...legacy } = host.config;
+  const scope = { "/traceId": "/traceId" };
+  for (const config of [legacy, { ...legacy, requireHostReceipt: false }]) {
+    assert.throws(() => f.patch(update({ ...config, receiptScopeMappings: scope }), switched.revision),
+      { code: "HOST_RECEIPT_REQUIRED" });
+    assert.equal(f.authoring.get(before.id).revision, switched.revision);
+  }
+  const invalid = f.patch(update({ ...host.config, receiptScopeMappings: { "/traceId": "/unbound" } }), switched.revision);
+  assert.deepEqual(invalid.issues.map((issue: Json) => [issue.code, issue.path]), [
+    ["REFERENCE_INVALID", "/nodes/2/config/receiptScopeMappings/~1traceId"],
+  ]);
+  const valid = f.patch(update({ ...host.config, receiptScopeMappings: scope }), invalid.revision);
+  assert.deepEqual(valid.issues, []);
+  assert.throws(() => f.patch([
+    { op: "set_binding", key: "read", bindingId: f.binding.id },
+    { op: "switch_tool_executor", nodeId: "trace", capabilityId: f.direct.id, revision: 1, bindingKey: "read" },
+  ], valid.revision), { code: "ENVIRONMENT_OVERRIDE_DENIED" });
+});
+
+test("raw draft save and semantic undo derive executor requirements from current nodes", async t => {
+  const f = switchFixture();
+  t.after(f.close);
+  const switched = f.patch([f.switchToCodex], f.added.revision);
+  const current = f.authoring.get("authoring-demo");
+  const saved = f.authoring.saveRaw({ ...current.draft, executionRequirements: {
+    requiresCodex: false, executors: [], capabilityRefs: [],
+  } }, current.revision, current.layout, current.layoutRevision);
+  assert.equal(saved.draft.executionRequirements.requiresCodex, true);
+  const changed = f.patch([
+    { op: "add_node", nodeId: "assistant", nodeType: "agent_task", title: "Later assistant", config: {
+      kind: "analysis", instructions: "Review synthetic trace", executorRef: "assistant_local",
+      inputMappings: {}, outputSchema: { type: "object", properties: {}, additionalProperties: false },
+    } },
+  ], saved.revision);
+  f.authoring.undo({ workflowId: current.id, expectedRevision: changed.revision,
+    commandId: switched.commandId, idempotencyKey: "undo-switch" });
+  const finalDraft = f.authoring.get(current.id).draft;
+  assert.deepEqual(finalDraft.executionRequirements.executors, ["hub_direct", "assistant_local"]);
+  assert.equal(finalDraft.executionRequirements.requiresCodex, false);
+  assert.ok(finalDraft.nodes.some((node: Json) => node.id === "assistant"));
 });

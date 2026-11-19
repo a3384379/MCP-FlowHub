@@ -6,12 +6,18 @@ import type { Engine } from "../../workflow-core/src/engine.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { driftIssue } from "./capability-drift.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
+import { hasVerifiedSourceConnectionRoute } from "../../contracts/src/source-connection.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
 const deleteSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/workflow-delete.schema.json"),"utf8"));
 const refs = (w: Workflow): Json[] => w.nodes.flatMap(n => n.config.capabilityRef ? [n.config.capabilityRef] : []);
 const mentions = (value: Json, nodeId: string): boolean => !!value && typeof value === "object" &&
   (value.ref?.nodeId === nodeId || (!Object.hasOwn(value,"value") && Object.values(value).some(v => mentions(v,nodeId))));
+function refreshExecutionRequirements(workflow: Workflow) {
+  if (workflow.schemaVersion !== "flowhub.workflow/v2") return;
+  const { requiresCodex, executors, capabilityRefs } = workflowRequirements(workflow);
+  workflow.executionRequirements = { requiresCodex, executors, capabilityRefs };
+}
 
 /** All entry points share this application service; only the daemon owns its repository. */
 export class AuthoringService {
@@ -43,29 +49,52 @@ export class AuthoringService {
     return { items: rows.slice(0, limit), hasMore: rows.length > limit };
   }
   private switchToolExecutor(workflow: Workflow, node: Json, op: Json) {
+    ensure(workflow.schemaVersion === "flowhub.workflow/v2", "INPUT_INVALID", "Executor switching requires a v2 draft.");
     const ref = node.config.capabilityRef;
     const previous = ref && this.repo.get("capability_revisions", ref.capabilityId + "@" + ref.revision);
-    const next = this.repo.get("capabilities", op.capabilityId);
-    ensure(next && next.revision === op.revision && !next.stale && next.enabled === "enabled",
+    const current = this.repo.get("capabilities", op.capabilityId);
+    const next = this.repo.get("capability_revisions", op.capabilityId + "@" + op.revision);
+    const context = current && this.repo.get("host_contexts", current.contextId);
+    ensure(current && current.revision === op.revision && !current.stale && current.enabled === "enabled" &&
+      next?.capabilityId === op.capabilityId && (next.capabilityRevision ?? next.revision) === op.revision &&
+      context && context.revision === current.contextRevision,
       "CAPABILITY_STALE", "The replacement tool has changed.", 409);
     const toCodex = next.executor === "codex_host";
     const host = toCodex ? next : previous;
     const direct = toCodex ? previous : next;
+    const sourceRef = direct?.sourceRefs?.[0];
+    const source = sourceRef && this.repo.get("capability_sources", sourceRef.sourceId);
     ensure(host?.executor === "codex_host" && direct?.executor === "hub_direct" &&
-      host.kind === "mcp_tool" && direct.kind === "mcp_tool" && host.outputSchema &&
+      host.kind === "mcp_tool" && direct.kind === "mcp_tool" && direct.tool?.schemaHash &&
+      host.inputSchema && host.outputSchema && direct.inputSchema && direct.outputSchema &&
       host.contextId === direct.contextId && host.provenance?.serverSourceId &&
-      host.provenance.serverSourceId === direct.sourceRefs?.[0]?.sourceId &&
+      host.provenance.serverSourceId === sourceRef?.sourceId &&
+      source?.enabled && !source.stale && !source.self && source.contextId === context.id &&
+      source.contextRevision === context.revision && (toCodex || source.revision === sourceRef.revision) &&
       !!host.provenance.serverSourceFingerprint && host.provenance.serverSourceFingerprint === direct.provenance?.serverSourceFingerprint &&
+      host.provenance.serverSourceFingerprint === source.sourceFingerprint &&
       host.name === direct.name &&
       hash(host.inputSchema) === hash(direct.inputSchema) && hash(host.outputSchema) === hash(direct.outputSchema),
       "HOST_CONTRACT_MISMATCH", "Switching requires the same source, tool and input/output contracts.", 409);
+    const directBindingKey = toCodex ? node.config.bindingKey : op.bindingKey;
+    const binding = this.repo.get("bindings", workflow.bindings[directBindingKey] ?? "");
+    const connection = binding && this.repo.get("connections", binding.connectionId);
+    const tool = connection?.tools?.find((item: Json) => item.name === direct.name);
+    ensure(binding && !binding.revoked && binding.validationStatus !== "REVOKED" &&
+      binding.environment === workflow.environment && binding.allowedTools.includes(direct.name) &&
+      binding.sourceCapabilityId === direct.capabilityId &&
+      binding.sourceCapabilityRevision === (direct.capabilityRevision ?? direct.revision) &&
+      connection && !connection.disabled && connection.revision === binding.connectionRevision &&
+      connection.sourceId === source.id && connection.sourceFingerprint === source.sourceFingerprint &&
+      hasVerifiedSourceConnectionRoute(connection) && tool?.schemaHash === direct.tool.schemaHash,
+      "ENVIRONMENT_OVERRIDE_DENIED", "Select a direct binding for this source, tool revision and workflow environment.", 409);
     const capabilityRef = { capabilityId: op.capabilityId, revision: op.revision };
     const businessVerification = node.config.businessVerification;
     if (toCodex) {
-      const oldKey = node.config.bindingKey;
-      const oldBinding = this.repo.get("bindings", workflow.bindings[oldKey] ?? "");
-      ensure(node.type === "mcp_tool" && !op.bindingKey && oldBinding &&
-        !Object.keys(oldBinding.lockedArguments ?? {}).length && !oldBinding.allowedQueryTemplates?.length &&
+      ensure(node.type === "mcp_tool" && !op.bindingKey && node.config.toolName === direct.name &&
+        node.config.toolSchemaHash === direct.tool.schemaHash && !binding.simulationOnly &&
+        !Object.keys(binding.lockedArguments).length && !binding.allowedQueryTemplates.length &&
+        binding.maxRows >= workflow.budgets.maxRows && binding.timeoutSeconds >= workflow.budgets.maxToolSeconds &&
         !node.config.rowLimitArgument && !node.config.outputSchemaRef && !node.config.resultAdapterRef,
         "ENVIRONMENT_OVERRIDE_DENIED", "Reauthor a node with locked bindings or execution-specific constraints before switching.");
       node.type = "agent_task";
@@ -73,16 +102,15 @@ export class AuthoringService {
         instructions: "Call the frozen Codex tool and submit its structured result.",
         inputMappings: node.config.argumentsMappings, outputSchema: next.outputSchema, capabilityRef, businessVerification };
       workflow.mode = "guided";
-      if (!workflow.nodes.some(n => n.type === "mcp_tool" && n.config.bindingKey === oldKey))
-        delete workflow.bindings[oldKey];
+      if (!workflow.nodes.some(n => n.type === "mcp_tool" && n.config.bindingKey === directBindingKey))
+        delete workflow.bindings[directBindingKey];
     } else {
-      const binding = this.repo.get("bindings", workflow.bindings[op.bindingKey] ?? "");
-      ensure(node.config.kind === "host_tool" && !Object.keys(node.config.receiptScopeMappings ?? {}).length &&
-        next.tool && binding && !binding.revoked && binding.environment === workflow.environment &&
-        binding.sourceCapabilityId === next.id && binding.sourceCapabilityRevision === next.revision,
+      ensure(node.type === "agent_task" && node.config.kind === "host_tool" &&
+        hash(node.config.outputSchema) === hash(host.outputSchema) &&
+        !Object.keys(node.config.receiptScopeMappings ?? {}).length,
         "ENVIRONMENT_OVERRIDE_DENIED", "Select a matching direct binding and review tool-specific receipt scope rules.");
       node.type = "mcp_tool";
-      node.config = { bindingKey: op.bindingKey, argumentsMappings: node.config.inputMappings,
+      node.config = { bindingKey: directBindingKey, argumentsMappings: node.config.inputMappings,
         toolName: next.name, toolSchemaHash: next.tool.schemaHash, capabilityRef, businessVerification };
     }
     if (!businessVerification) delete node.config.businessVerification;
@@ -138,6 +166,8 @@ export class AuthoringService {
   saveRaw(w: Workflow, expected: number | undefined, layout: Json, expectedLayoutRevision?: number) {
     return this.repo.tx(() => {
       validateWorkflowDocument(w);
+      w = clone(w);
+      refreshExecutionRequirements(w);
       const before=this.repo.get("workflows",w.workflowId);
       ensure(!before?.deletedAt,"NOT_FOUND","工作流已删除，不能保存或重新导入相同 ID。",404);
       if(before) ensure(expectedLayoutRevision===(before.layoutRevision??1) ||
@@ -274,10 +304,7 @@ export class AuthoringService {
           default: throw new HubError("INPUT_INVALID","Unknown operation.");
         }
       }
-      if (w.schemaVersion === "flowhub.workflow/v2") {
-        const { requiresCodex, executors, capabilityRefs } = workflowRequirements(w);
-        w.executionRequirements = { requiresCodex, executors, capabilityRefs };
-      }
+      if (!layoutOnly) refreshExecutionRequirements(w);
       validateWorkflowDocument(w); // Incomplete graphs may persist; illegal DSL/config never does.
       const revision=before.revision+(layoutOnly?0:1);
       const record={...before,draft:w,workflow:undefined,issues:undefined,capabilityRefs:undefined,name:w.name,description:w.description,tags:w.tags,layout,layoutRevision,revision,updatedAt:now()};
@@ -343,8 +370,9 @@ export class AuthoringService {
         const exists=draft.edges.some((e:Json)=>edgeKey(e)===key);ensure(exists===newEdges.has(key),"REVISION_CONFLICT","Edge changed after the action.",409);
         draft.edges=draft.edges.filter((e:Json)=>edgeKey(e)!==key);if(oldEdges.has(key))draft.edges.push(clone(oldEdges.get(key)));
       }
-      const metadata=(value:Json)=>Object.fromEntries(Object.entries(value).filter(([k])=>!["nodes","edges","bindings"].includes(k)));
+      const metadata=(value:Json)=>Object.fromEntries(Object.entries(value).filter(([k])=>!["nodes","edges","bindings","executionRequirements"].includes(k)));
       revert(draft,metadata(command.beforeDraft),metadata(command.afterDraft),"/");revert(draft.bindings,command.beforeDraft.bindings,command.afterDraft.bindings,"/bindings/");revert(layout,command.beforeLayout,command.afterLayout,"/layout/");
+      if (!same(draft, current.draft)) refreshExecutionRequirements(draft);
       const removed=current.draft.nodes.filter((n:Json)=>!liveNodes[n.id]).map((n:Json)=>n.id);
       ensure(!draft.edges.some((e:Json)=>removed.includes(e.source)||removed.includes(e.target))&&!draft.nodes.some((n:Json)=>removed.some((key:string)=>mentions(n.config,key))),"REFERENCE_IN_USE","Later edits reference a node this undo would remove.",409);
       validateWorkflowDocument(draft);

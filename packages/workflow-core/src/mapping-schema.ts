@@ -2,22 +2,27 @@ import { ensure, get, parts, validate, type Json } from "../../contracts/src/dom
 
 // Downstream catalogs may use local definitions. Every lookup retains its root
 // document; a property schema is never compiled as a detached document.
+function referenceTarget(reference: string, root: Json, seen: string[]): Json {
+  ensure(typeof reference === "string" && reference.startsWith("#/"),
+    "SCHEMA_INVALID", "Only local schema references are supported.");
+  ensure(!seen.includes(reference) && seen.length < 24,
+    "SCHEMA_INVALID", "Recursive schema references are unsupported.");
+  try { return get(root, decodeURIComponent(reference.slice(1))); }
+  catch { ensure(false, "SCHEMA_INVALID", "Local schema reference is missing or invalid."); }
+}
+
 function dereference(schema: Json, root: Json, seen: string[] = []): Json {
   if (!schema?.$ref) return schema;
-  ensure(typeof schema.$ref === "string" && schema.$ref.startsWith("#/"),
-    "SCHEMA_INVALID", "Only local schema references are supported.");
-  ensure(!seen.includes(schema.$ref) && seen.length < 24,
-    "SCHEMA_INVALID", "Recursive schema references are unsupported.");
-  let target: Json;
-  try { target = get(root, schema.$ref.slice(1)); }
-  catch { ensure(false, "SCHEMA_INVALID", "Local schema reference is missing."); }
-  return { ...dereference(target, root, [...seen, schema.$ref]),
+  const target = dereference(referenceTarget(schema.$ref, root, seen), root, [...seen, schema.$ref]);
+  if (target === false) return false;
+  return { ...target,
     ...Object.fromEntries(Object.entries(schema).filter(([key]) => key !== "$ref")) };
 }
 
-export function schemaAt(root: Json, pointer: string, requirePresent = false): Json {
-  let schema = dereference(root, root);
+function declaredSchemaAt(root: Json, pointer: string, requirePresent = false): Json {
+  let schema = root;
   for (const key of parts(pointer)) {
+    schema = dereference(schema, root);
     ensure(schema && typeof schema === "object", "REFERENCE_INVALID", "Reference schema missing.");
     const types = Array.isArray(schema.type) ? schema.type : [schema.type];
     if (requirePresent)
@@ -31,37 +36,45 @@ export function schemaAt(root: Json, pointer: string, requirePresent = false): J
           "Reference array item is not guaranteed to exist.");
       schema = schema.prefixItems?.[Number(key)] ?? schema.items;
     } else {
+      const fields = schema.properties ?? {};
+      ensure(Object.hasOwn(fields, key), "REFERENCE_INVALID", "Reference field not declared.");
       if (requirePresent)
         ensure(schema.required?.includes(key), "REFERENCE_OPTIONAL",
           "Reference field is optional; use an exists condition instead.");
-      schema = schema.properties?.[key];
+      schema = fields[key];
     }
     ensure(schema !== undefined, "REFERENCE_INVALID", "Reference field not declared.");
-    schema = dereference(schema, root);
   }
   ensure(schema !== undefined, "REFERENCE_INVALID", "Reference schema missing.");
   return schema;
 }
 
-function standalone(schema: Json, root: Json, depth = 0, references: string[] = []): Json {
-  ensure(depth < 32, "SCHEMA_LIMIT", "Schema reference expansion too deep.");
+export function schemaAt(root: Json, pointer: string, requirePresent = false): Json {
+  return dereference(declaredSchemaAt(root, pointer, requirePresent), root);
+}
+
+function standalone(schema: Json, root: Json, budget = { remaining: 8192 },
+  depth = 0, references: string[] = []): Json {
+  ensure(depth < 32 && --budget.remaining >= 0, "SCHEMA_LIMIT", "Mapping schema expansion exceeds limits.");
+  const expand = (child: Json) => standalone(child, root, budget, depth + 1, references);
   if (schema?.$ref) {
-    ensure(!references.includes(schema.$ref), "SCHEMA_INVALID", "Recursive schema references are unsupported.");
-    references = [...references, schema.$ref];
+    const { $ref, ...siblings } = schema;
+    const referenced = standalone(referenceTarget($ref, root, references), root, budget, depth + 1, [...references, $ref]);
+    if (!Object.keys(siblings).length) return referenced;
+    const expanded = expand(siblings);
+    return { ...expanded, allOf: [referenced, ...(expanded.allOf ?? [])] };
   }
-  schema = dereference(schema, root);
   if (!schema || typeof schema !== "object") return schema;
   const result: Json = {};
   for (const [key, value] of Object.entries(schema)) {
     if (["$id", "$defs", "definitions"].includes(key)) continue;
     if (["properties", "patternProperties", "dependentSchemas"].includes(key))
-      result[key] = Object.fromEntries(Object.entries(value as Json).map(([name, child]) =>
-        [name, standalone(child, root, depth + 1, references)]));
+      result[key] = Object.fromEntries(Object.entries(value as Json).map(([name, child]) => [name, expand(child)]));
     else if (["allOf", "anyOf", "oneOf", "prefixItems"].includes(key))
-      result[key] = (value as Json[]).map((child) => standalone(child, root, depth + 1, references));
+      result[key] = (value as Json[]).map(expand);
     else if (["items", "contains", "propertyNames", "additionalProperties", "unevaluatedProperties",
       "unevaluatedItems", "not", "if", "then", "else", "contentSchema"].includes(key))
-      result[key] = standalone(value, root, depth + 1, references);
+      result[key] = expand(value);
     // const, enum, examples and annotations are inert JSON, including `$ref` keys.
     else result[key] = value;
   }
@@ -69,16 +82,22 @@ function standalone(schema: Json, root: Json, depth = 0, references: string[] = 
 }
 
 export function validateMappedLiteral(root: Json, pointer: string, value: Json) {
-  validate(standalone(schemaAt(root, pointer), root), value);
+  validate(standalone(declaredSchemaAt(root, pointer), root), value);
 }
 
 export function assertAssignable(source: Json, sourceRoot: Json, target: Json,
   targetRoot: Json, path: string, depth = 0) {
   ensure(depth < 24, "SCHEMA_LIMIT", "Mapping schema nesting too deep.");
   source = dereference(source, sourceRoot); target = dereference(target, targetRoot);
-  const types = (schema: Json): string[] => schema?.type
-    ? Array.isArray(schema.type) ? schema.type : [schema.type] : [];
-  const from = types(source), to = types(target);
+  ensure(target !== false, "TYPE_MISMATCH", "Mapping target has no valid values at " + path);
+  const types = (schema: Json, infer = false): string[] => {
+    if (schema?.type) return Array.isArray(schema.type) ? schema.type : [schema.type];
+    if (!infer) return [];
+    const values = schema && Object.hasOwn(schema, "const") ? [schema.const] : schema?.enum ?? [];
+    return values.map((value: Json) => value === null ? "null" : Array.isArray(value) ? "array" :
+      Number.isInteger(value) ? "integer" : typeof value);
+  };
+  const from = types(source, true), to = types(target);
   ensure(!to.length || (from.length && from.every((type) =>
     to.includes(type) || (type === "integer" && to.includes("number")))),
     "TYPE_MISMATCH", "Mapping type mismatch at " + path);

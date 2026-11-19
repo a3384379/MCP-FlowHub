@@ -20,9 +20,21 @@ async function setup(t:any) {
   const db=new Database(":memory:"),repo=new Repository(db),vault=new Vault(repo),engine=new Engine(repo,vault,new Connectors(repo,vault)),registry=new CapabilityRegistry(engine,{hostRuntime:nodeScriptRuntime});
   t.after(async()=>{await registry.close();await engine.close();db.close();await rm(root,{recursive:true,force:true});});
   const cli=join(root,"fake-codex.mjs");
-  await writeFile(cli,`import fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('--version'))console.log('codex-cli 0.164.0-alpha.11.1');else if(a.includes('--help'))console.log('--json');else console.log(fs.readFileSync(${JSON.stringify(join(home,"cli.json"))},'utf8'));`);
+  const hostCatalog=join(home,"host-catalog.json");
+  await writeFile(cli,`import fs from 'node:fs';import readline from 'node:readline';
+const a=process.argv.slice(2);
+if(a.includes('--version'))console.log('codex-cli 0.164.0-alpha.11.1');
+else if(a.includes('--help'))console.log('--json');
+else if(a.includes('app-server'))readline.createInterface({input:process.stdin}).on('line',line=>{
+  const m=JSON.parse(line);if(!m.id)return;
+  const fixture=JSON.parse(fs.readFileSync(${JSON.stringify(hostCatalog)},'utf8'));
+  if(m.method==='skills/list'&&fixture.skillsError)console.log(JSON.stringify({id:m.id,error:{code:-32601,message:'Synthetic skill listing unavailable'}}));
+  else console.log(JSON.stringify({id:m.id,result:m.method==='initialize'?{}:m.method==='mcpServerStatus/list'?fixture:{data:[]}}));
+});
+else console.log(fs.readFileSync(${JSON.stringify(join(home,"cli.json"))},'utf8'));`);
   await writeFile(join(home,"cli.json"),"[]");
-  return {root,home,cwd,repo,registry,context:async()=>{const context=await registry.context({codexHome:home,cwd,codexPath:cli});assert.equal(context.codexVersion,"codex-cli 0.164.0-alpha.11.1","Synthetic CLI must execute; fallback cannot satisfy this fixture.");return context;}};
+  await writeFile(hostCatalog,'{"data":[]}');
+  return {root,home,cwd,repo,registry,hostCatalog,context:async()=>{const context=await registry.context({codexHome:home,cwd,codexPath:cli});assert.equal(context.codexVersion,"codex-cli 0.164.0-alpha.11.1","Synthetic CLI must execute; fallback cannot satisfy this fixture.");return context;}};
 }
 test("read-only discovery distinguishes installed plugins, disabled components and marketplace entries",async t=>{
   const f=await setup(t);
@@ -122,6 +134,114 @@ async function scanned(f:Awaited<ReturnType<typeof setup>>,context:any,key:strin
   const scan=f.registry.scan({contextId:context.id,depth,idempotencyKey:key});await f.registry.idle();return f.registry.status(scan.scanId);
 }
 const request=(cap:any,key:string,environment="test")=>({capabilityId:cap.id,expectedSourceRevision:cap.revision,target:"hub_direct",environment,lockedArguments:{},idempotencyKey:key});
+
+test("Codex-only sync keeps per-server coverage, blocks cached tools on explicit auth or omission, and preserves the diagnosis on metadata scans",async t=>{
+  const f=await setup(t),names=["protected","unreachable","empty","healthy","omitted"];
+  await writeFile(join(f.home,"cli.json"),JSON.stringify(names.map(name=>({
+    name,enabled:true,transport:{type:"http",url:"https://"+name+".invalid/mcp",bearer_token_env_var:"FIXTURE_TOKEN"},
+  }))));
+  let directProbes=0;
+  f.registry.engine.connectors.discover=async c=>{directProbes++;return {...c,tools:[]};};
+  const definitions=Object.fromEntries(names.map(name=>[name,{...fixtureTool(name+"-read"),outputSchema:{type:"object"}}]));
+  const server=(name:string,tools:Record<string,unknown>,extra={})=>({name,tools,authStatus:"unknown",...extra});
+  await writeFile(f.hostCatalog,JSON.stringify({data:names.map(name=>server(name,{read:definitions[name]}))}));
+  const context=await f.context();
+  assert.equal((await scanned(f,context,"host-only","host_catalog")).status,"SUCCEEDED");
+  const find=(name:string)=>f.registry.search({contextId:context.id,executor:"codex_host",query:name+"-read"}).items[0];
+  const original=find("protected");
+  assert.equal(original.stale,false);
+  await f.registry.import({...request(original,"known-auth-first"),target:"codex_host"});
+  await writeFile(f.hostCatalog,JSON.stringify({nextCursor:"more",data:[
+    server("protected",{read:definitions.protected},{authStatus:"notLoggedIn"}),
+    server("unreachable",{},{toolsError:"401 SYNTHETIC_DO_NOT_EXPOSE"}),
+    server("empty",{}),
+    server("healthy",{read:definitions.healthy}),
+  ]}));
+  assert.equal((await scanned(f,context,"partial-host","host_catalog")).status,"PARTIAL");
+  for(const name of ["protected","unreachable","empty","omitted"]) {
+    const cap=find(name);assert.equal(cap.stale,true,name);
+    await assert.rejects(f.registry.import({...request(cap,"cannot-add-"+name),target:"codex_host"}),{code:"CAPABILITY_STALE"});
+  }
+  assert.equal(find("healthy").stale,false);
+  const list=()=>f.registry.catalog.search({contextId:context.id,kind:"mcp_server"});
+  assert.deepEqual(list().items.find((entity:any)=>entity.name==="empty")?.toolCount,0);
+  assert.deepEqual(list().items.find((entity:any)=>entity.name==="protected")?.hostAuthRequired,true);
+  assert.deepEqual(list().items.find((entity:any)=>entity.name==="unreachable")?.hostAuthRequired,false);
+  assert.ok(!JSON.stringify(list()).includes("SYNTHETIC_DO_NOT_EXPOSE"));
+  const old=f.registry.get({capabilityId:original.id,includeSchemas:true});assert.equal(old.stale,true);assert.ok(old.outputSchema);
+  await scanned(f,context,"metadata-after-host","metadata");
+  assert.deepEqual(list().items.find((entity:any)=>entity.name==="protected")?.hostAuthRequired,true);
+  assert.equal(directProbes,0);
+  assert.equal(f.repo.all("connections").length,0);
+  assert.equal(f.repo.all("bindings").length,0);
+});
+
+test("an explicitly selected direct connection retains its actionable failure without changing the ready host path",async t=>{
+  const f=await setup(t);await synthetic(f);
+  await writeFile(f.hostCatalog,JSON.stringify({data:[
+    {name:"one",tools:{read:{...fixtureTool(),outputSchema:{type:"object"}}}},
+  ]}));
+  const context=await f.context();
+  await scanned(f,context,"before-direct","host_catalog");
+  const [source]=f.registry.catalog.search({contextId:context.id,kind:"mcp_server"}).items;
+  const host=f.registry.search({contextId:context.id,sourceId:source.id,executor:"codex_host"}).items[0];
+  assert.ok(host);
+  assert.equal(f.registry.catalog.overview(context.id).issues.length,0);
+  const prepared=await f.registry.configureSource({sourceId:source.id,expectedRevision:source.configurationRevision,idempotencyKey:"explicit-opt-in"});
+  f.registry.engine.connectors.discover=async()=>{throw new Error("synthetic connector error");};
+  await assert.rejects(f.registry.detectSource(source.id,prepared.revision),/synthetic connector error/);
+  const current=f.registry.catalog.get(source.id);
+  assert.equal(current.hostCatalogReady,true);
+  assert.equal(current.availability,"unreachable");
+  assert.equal(f.registry.get({capabilityId:host.id}).stale,false);
+  assert.ok(f.registry.catalog.overview(context.id).issues.some((issue:any)=>issue.code==="DIRECT_CATALOG_NOT_SYNCED"&&issue.entityId===source.id));
+  f.registry.engine.connectors.discover=async c=>({...c,tools:[fixtureTool("direct-read")]});
+  await f.registry.detectSource(source.id,prepared.revision);
+  const sameHost=f.registry.get({capabilityId:host.id});
+  assert.equal(sameHost.revision,host.revision);
+  assert.equal(sameHost.stale,false);
+  assert.equal(f.registry.catalog.get(source.id).availability,"ready");
+  assert.equal(f.registry.catalog.overview(context.id).issues.length,0);
+  await f.registry.import({...request(sameHost,"still-host"),target:"codex_host"});
+});
+
+test("a failed Skill request does not block an independently available Codex tool catalog",async t=>{
+  const f=await setup(t);await synthetic(f);
+  await writeFile(f.hostCatalog,JSON.stringify({skillsError:true,data:[
+    {name:"one",tools:{read:{...fixtureTool(),outputSchema:{type:"object"}}}},
+  ]}));
+  const context=await f.context(),result=await scanned(f,context,"host-skill-optional","host_catalog");
+  assert.equal(result.status,"PARTIAL");
+  const cap=f.registry.search({contextId:context.id,executor:"codex_host"}).items[0];
+  assert.ok(cap);assert.equal(cap.stale,false);assert.equal(cap.hasToolContract,true);
+});
+
+test("static same-name sources cannot reuse a cached host identity and exact plugin evidence resolves the selected source",async t=>{
+  const f=await setup(t);
+  await synthetic(f,{name:"shared"});
+  const tool={...fixtureTool(),outputSchema:{type:"object"}};
+  const report=(extra={})=>writeFile(f.hostCatalog,JSON.stringify({data:[{name:"shared",tools:{read:tool},...extra}]}));
+  const context=await f.context();
+  await report();await scanned(f,context,"original-host","host_catalog");
+  const prior=f.registry.search({contextId:context.id,executor:"codex_host"}).items[0];
+  const plugin=join(f.home,"plugins/cache/market/independent/1.0");
+  await mkdir(join(plugin,".codex-plugin"),{recursive:true});
+  await writeFile(join(plugin,".codex-plugin/plugin.json"),JSON.stringify({name:"independent",mcpServers:"./.mcp.json"}));
+  await writeFile(join(plugin,".mcp.json"),JSON.stringify({mcpServers:{shared:{url:"https://plugin.invalid/mcp"}}}));
+  await writeFile(join(f.home,"config.toml"),'[plugins."independent@market"]\nenabled = true\n');
+  await scanned(f,context,"ambiguous","host_catalog");
+  const sources=()=>f.registry.catalog.search({contextId:context.id,kind:"mcp_server"}).items;
+  assert.equal(sources().length,2);
+  assert.ok(sources().every((entity:any)=>entity.hostCatalogStatus==="ambiguous"));
+  assert.equal(f.registry.get({capabilityId:prior.id}).stale,true);
+  await report({pluginId:"independent@market",httpOrigin:"https://plugin.invalid"});
+  await scanned(f,context,"verified-plugin","host_catalog");
+  const current=f.registry.search({contextId:context.id,executor:"codex_host"}).items.find((cap:any)=>!cap.stale);
+  assert.ok(current);
+  assert.notEqual(current.id,prior.id);
+  assert.equal(current.provenance.serverSourceId,sources().find((entity:any)=>!!entity.pluginId).id);
+  assert.notEqual(current.provenance.serverSourceId,prior.provenance.serverSourceId);
+});
 
 test("source and tool disables invalidate old catalog and never reconnect during import",async t=>{
   const f=await setup(t);let calls=0;f.registry.engine.connectors.discover=async c=>{calls++;return {...c,tools:[fixtureTool("read"),fixtureTool("delete")]};};

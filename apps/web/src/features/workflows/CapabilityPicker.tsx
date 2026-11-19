@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Api } from "../../shared/v2";
 import { capabilityUsage } from "../discovery/capability-usage";
+import { hostCatalogReason } from "../discovery/shared";
 export const canAddCapability = (cap: any) =>
     !cap.stale &&
+    !cap.discovery?.stale &&
     cap.enabled === "enabled" &&
     ((cap.executor === "hub_direct" &&
       cap.kind === "mcp_tool" &&
@@ -11,17 +13,22 @@ export const canAddCapability = (cap: any) =>
         cap.availability === "host_only" &&
         (cap.kind === "skill" ||
           (cap.kind === "mcp_tool" && cap.hasToolContract === true))));
-export const directBindings = (cap: any, bindings: any[], environment: string) =>
+export const directBindings = (cap: any, bindings: any[], environment: string, connections?: any[]) =>
     bindings.filter(
       (binding) =>
         binding.sourceCapabilityId === cap.id &&
         binding.environment === environment &&
         !binding.revoked &&
+        !binding.simulationOnly &&
         binding.validationStatus !== "REVOKED" &&
-        binding.sourceCapabilityRevision === cap.revision,
+        binding.allowedTools?.includes(cap.name) &&
+        binding.sourceCapabilityRevision === cap.revision &&
+        (!connections || connections.some(connection =>
+          connection.id === binding.connectionId && !connection.disabled && connection.revision === binding.connectionRevision)),
     );
 async function ensureDirectBinding(api: Api, cap: any, environment: string, bindingId?: string) {
-  const candidates = directBindings(cap, await api("/bindings"), environment);
+  const [bindings, connections] = await Promise.all([api("/bindings"), api("/connections")]);
+  const candidates = directBindings(cap, bindings, environment, connections);
   const binding = bindingId ? candidates.find(item => item.id === bindingId) : candidates.length === 1 ? candidates[0] : undefined;
   if (binding) return binding;
   if (bindingId) throw new Error("所选绑定已变化，请刷新后重新选择");
@@ -163,19 +170,30 @@ export function CapabilityPicker({
 }) {
   const [caps, setCaps] = useState<any[]>([]),
     [query, setQuery] = useState(""),
+    [submittedQuery, setSubmittedQuery] = useState(""),
     [executor, setExecutor] = useState("codex_host"),
     [contextId, setContextId] = useState(() => localStorage.getItem("flowhub.discovery.context") ?? ""),
     [contexts, setContexts] = useState<any[]>([]),
     [sourceId, setSourceId] = useState(""),
     [sources, setSources] = useState<any[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
+    [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [selectedCapability, setSelectedCapability] = useState<any>(null),
     [bindingChoices, setBindingChoices] = useState<Record<string, string>>({});
   const request = useRef(0);
+  const apiRef = useRef(api);
+  apiRef.current = api;
+  const context = contexts.find(item => item.id === contextId);
+  const scanId = context?.catalogScanId ?? context?.lastScanId;
+  const filters = new URLSearchParams({
+    query: submittedQuery, contextId, executor, ...(sourceId ? { sourceId } : {}),
+  }).toString();
   const selectedNode = draft.draft.nodes.find((node: any) => node.id === selected);
   const selectedRef = selectedNode?.config.capabilityRef;
+  const insertAnchor = selected ?? draft.draft.nodes.find((node: any) => node.type === "input")?.id;
+  const canInsert = draft.draft.edges.some((edge: any) => edge.source === insertAnchor && edge.port === "next");
   useEffect(() => {
     setSelectedCapability(null);
     if (!selectedRef) return;
@@ -185,39 +203,58 @@ export function CapabilityPicker({
       .catch(() => {});
     return () => { active = false; };
   }, [selectedRef?.capabilityId, selectedRef?.revision]);
-  const load = async (next?: string) => {
+  const load = async (key: string, next?: string) => {
     const generation = ++request.current;
-    const filters = new URLSearchParams({
-      query,
-      ...(contextId ? { contextId } : {}),
-      ...(executor ? { executor } : {}),
-      ...(sourceId ? { sourceId } : {}),
-      ...(next ? { cursor: next } : {}),
-    });
-    const data = await api("/api/v2/capabilities?" + filters);
-    if (generation !== request.current) return;
-    setCaps((old) => (next ? [...old, ...data.items] : data.items));
-    setCursor(data.nextCursor);
+    const params = new URLSearchParams(key);
+    if (next) params.set("cursor", next);
+    else {
+      setCaps([]);
+      setCursor(null);
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiRef.current("/api/v2/capabilities?" + params);
+      if (generation !== request.current) return;
+      setCaps((old) => (next ? [...old, ...data.items] : data.items));
+      setCursor(data.nextCursor);
+    } catch (e) {
+      if (generation !== request.current) return;
+      if (next && (e as any).code === "CAPABILITY_STALE") {
+        void load(key);
+        return;
+      }
+      setError((e as Error).message);
+    } finally {
+      if (generation === request.current) setLoading(false);
+    }
   };
   useEffect(() => {
-    void api("/api/v2/host-contexts")
-      .then(async (contexts: any[]) => {
+    let active = true;
+    void apiRef.current("/api/v2/host-contexts")
+      .then((contexts: any[]) => {
+        if (!active) return;
         setContexts(contexts);
         setContextId((id) => contexts.some((context) => context.id === id) ? id : (contexts[0]?.id ?? ""));
-        const all = await Promise.all(
-          contexts
-            .filter((c) => c.lastScanId)
-            .map((c) => api("/api/v2/host-scans/" + c.lastScanId)),
-        );
-        setSources(all.flatMap((s) => s.sources ?? []));
+        if (!contexts.length) setLoading(false);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => { if (active) { setError(e.message); setLoading(false); } });
+    return () => { active = false; };
   }, []);
   useEffect(() => {
-    setCaps([]);
-    setCursor(null);
-    void load().catch((e) => setError(e.message));
-  }, [executor, contextId]);
+    setSources([]);
+    if (!scanId) return;
+    let active = true;
+    void apiRef.current("/api/v2/host-scans/" + encodeURIComponent(scanId))
+      .then(scan => { if (active) setSources((scan.sources ?? []).filter((source: any) => !source.stale)); })
+      .catch(e => { if (active) setError(e.message); });
+    return () => { active = false; };
+  }, [scanId]);
+  useEffect(() => {
+    if (!context) return;
+    void load(filters);
+    return () => { request.current++; };
+  }, [filters, context?.id]);
   const add = async (cap: any, switching = false) => {
     setBusy(true);
     setError("");
@@ -271,13 +308,17 @@ export function CapabilityPicker({
           ))}
         </select>
       </label>
-      <button onClick={() => void load().catch((e) => setError(e.message))}>
+      <button disabled={!context || busy} onClick={() => {
+        if (query === submittedQuery) void load(filters);
+        else setSubmittedQuery(query);
+      }}>
         搜索能力
       </button>
       {error && <p role="alert">{error}</p>}
       {dirty && <p>保存画布上的修改后，可以添加工具或切换调用位置。</p>}
+      {!canInsert && <p>请选择有下一步的串行节点作为插入位置。</p>}
       {executor === "codex_host" && draft.draft.mode === "auto" && <p>添加宿主节点后，草稿将改为 Codex 接力模式。</p>}
-      {!caps.length ? (
+      {loading ? <p>正在读取能力目录…</p> : !caps.length ? (
         <p>{executor === "codex_host" ? "请在 Codex 发现同步宿主工具目录。" : "独立运行时，请先启用并检测 FlowHub 直连。"}</p>
       ) : (
         caps.filter(c => c.executor === executor && (!contextId || c.contextId === contextId)).map((c) => {
@@ -292,9 +333,10 @@ export function CapabilityPicker({
                 {bindings.map(binding => <option key={binding.id} value={binding.id}>{binding.name} · {binding.connectionId}</option>)}
               </select>
             </label>}
-            <button disabled={disabled} onClick={() => void add(c)}>
+            <button disabled={disabled || !canInsert} onClick={() => void add(c)}>
               {c.name}
-              <small>{capabilityUsage(c)} · r{c.revision}</small>
+              <small>{hostCatalogReason(c.discovery ?? c) ||
+                (c.stale || c.discovery?.stale ? "保留的旧目录" : capabilityUsage(c))} · r{c.revision}</small>
               {c.executor === "hub_direct" && <small>{draft.draft.environment} · {
                 bindings.length > 1 ? "请选择绑定" : bindings[0]?.name ?? "添加时登记绑定"
               }</small>}
@@ -307,7 +349,8 @@ export function CapabilityPicker({
       )}
       {cursor && (
         <button
-          onClick={() => void load(cursor).catch((e) => setError(e.message))}
+          disabled={loading || busy}
+          onClick={() => void load(filters, cursor)}
         >
           加载更多能力
         </button>

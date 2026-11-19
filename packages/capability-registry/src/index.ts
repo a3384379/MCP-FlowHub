@@ -1,6 +1,7 @@
 import { isAbsolute } from "node:path";
 import { hash, id, now, ensure, validate, HubError, type Json } from "../../contracts/src/domain.js";
 import { validArguments, type ToolName } from "../../contracts/src/index.js";
+import { hasVerifiedSourceConnectionRoute, sourceConnectionRouteHash } from "../../contracts/src/source-connection.js";
 import { createContext, scanHost, resolveSource, selfSource, sourcePolicy, toolEnabled,type DiscoveryRuntime } from "../../host-discovery/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { DiscoveryCatalog } from "./discovery-catalog.js";
@@ -72,8 +73,9 @@ export class CapabilityRegistry {
     ensure(source&&source.enabled&&!source.self&&!source.stale,"CAPABILITY_STALE","Source unavailable; rescan first.",409);
     ensure(context?.revision===source.contextRevision,"CONTEXT_CHANGED","Context changed; rescan first.",409);
     const connection=source.preparedConnectionId?this.repo.get("connections",source.preparedConnectionId):null;
-    const prepared=connection?.sourceFingerprint===source.sourceFingerprint?connection:null;
-    return {sourceId,contextId:source.contextId,revision:source.revision,vaultLocked:this.engine.vault.locked,vaultInitialized:this.engine.vault.initialized,
+    const prepared=hasVerifiedSourceConnectionRoute(connection)&&!connection.disabled&&
+      connection.sourceId===source.id&&connection.sourceFingerprint===source.sourceFingerprint?connection:null;
+    return {sourceId,contextId:source.contextId,revision:source.revision,preparedConnectionId:prepared?.id??null,vaultLocked:this.engine.vault.locked,vaultInitialized:this.engine.vault.initialized,
       fields:storedConfigurationFields(source).map(field=>({...field,declaredKind:field.kind,
         kind:field.kind==="unknown"?(prepared?.configurationKinds?.[field.name]??field.kind):field.kind,
         selectedRef:field.location==="bearer"?prepared?.secretRef??null:prepared?.envRefs?.[field.name]??null})),
@@ -139,11 +141,22 @@ export class CapabilityRegistry {
       }
       connection.envRefs=refs;connection.configurationKinds=kinds;
       connection.sourceFingerprint=source.sourceFingerprint;
-      connection.id="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs,connection.secretRef??null,connection.configurationKinds]).slice(0,24);
-      const previous=this.repo.get("connections",connection.id);connection.revision=(previous?.revision??0)+1;
-      if(!previous)this.repo.insert("connections",connection.id,connection);
+      connection.sourceRouteHash=sourceConnectionRouteHash(connection);
+      const connectionId="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs,connection.secretRef??null,connection.configurationKinds]).slice(0,24);
+      const named=this.repo.get("connections",connectionId);
+      const last=this.repo.get("connections",current.preparedConnectionId??"");
+      const matching=[last,named].find(candidate=>candidate&&!candidate.disabled&&
+        candidate.sourceId===source.id&&candidate.sourceFingerprint===source.sourceFingerprint&&
+        hash(candidate.configurationKinds??{})===hash(kinds)&&
+        sourceConnectionRouteHash(candidate)===connection.sourceRouteHash);
+      connection.id=matching?.id??(named?id("conn"):connectionId);
+      if(!matching)this.repo.insert("connections",connection.id,connection);
+      else if(matching.sourceRouteHash!==connection.sourceRouteHash)
+        this.repo.put("connections",matching.id,{...matching,sourceRouteHash:connection.sourceRouteHash},matching.revision);
       this.repo.put("capability_sources",source.id,{...current,preparedConnectionId:connection.id,revision:current.revision+1,discovery:"metadata_only",availability:"not_checked"},a.expectedRevision);
-      for(const cap of this.contextCapabilities(context.id))if(cap.sourceRefs?.some((r:Json)=>r.sourceId===source.id))this.putCapability({...cap,stale:true,availability:"not_checked"});
+      for(const cap of this.contextCapabilities(context.id))
+        if(cap.executor==="hub_direct"&&cap.sourceRefs?.some((r:Json)=>r.sourceId===source.id))
+          this.putCapability({...cap,stale:true,availability:"not_checked"});
       this.refreshConfigurationCatalog(context);
       return {connectionId:connection.id,entryRefs:{...entryRefs},revision:current.revision+1};
     });
@@ -165,7 +178,9 @@ export class CapabilityRegistry {
     const source=this.repo.get("capability_sources",sourceId),context=this.repo.get("host_contexts",source.contextId);
     ensure(source.revision===expectedRevision,"CAPABILITY_STALE","Source changed; reopen connection settings.",409);
     const connection=this.repo.get("connections",source.preparedConnectionId??"");
-    ensure(connection?.sourceFingerprint===source.sourceFingerprint,"CREDENTIALS_REQUIRED","Save connection configuration first.");
+    ensure(hasVerifiedSourceConnectionRoute(connection)&&!connection.disabled&&
+      connection.sourceId===source.id&&connection.sourceFingerprint===source.sourceFingerprint,
+      "CREDENTIALS_REQUIRED","Save connection configuration first.");
     const latest=()=>this.repo.db.prepare("SELECT id FROM discovery_jobs WHERE json_extract(body,'$.contextId')=? ORDER BY json_extract(body,'$.generation') DESC LIMIT 1").get(context.id) as Json;
     const jobId=latest()?.id,job=jobId&&this.repo.get("discovery_jobs",jobId);
     ensure(job&&terminal.includes(job.status),"SCAN_IN_PROGRESS","Wait for the current scan to finish.",409);
@@ -174,7 +189,23 @@ export class CapabilityRegistry {
     try {
       const config=await resolveSource(context,source.locator,{signal:controller.signal},this.options.hostRuntime);
       ensure(hash(config)===source.sourceFingerprint,"CAPABILITY_STALE","Source file changed; rescan first.",409);
-      const result=await this.engine.connectors.discover(connection,{signal:controller.signal,deadline:Date.now()+(this.options.sourceTimeoutMs??10000)});
+      const unchanged=()=>this.repo.get("host_contexts",context.id)?.revision===context.revision&&latest()?.id===jobId&&
+        hash(this.repo.get("capability_sources",sourceId))===hash(source)&&hash(this.repo.get("connections",connection.id))===hash(connection);
+      const result=await this.engine.connectors.discover(connection,{signal:controller.signal,deadline:Date.now()+(this.options.sourceTimeoutMs??10000)})
+        .catch(error=>{
+          if(this.closing||controller.signal.aborted||!unchanged())throw error;
+          const code=error instanceof HubError?error.code:"CONNECTION_FAILED";
+          this.repo.tx(()=>{
+            this.repo.put("capability_sources",sourceId,{...source,discovery:"failed",
+              availability:["CREDENTIAL_LOCKED","AUTH_REQUIRED"].includes(code)?"credentials_required":"unreachable"});
+            for(const cap of this.contextCapabilities(context.id))
+              if(!cap.stale&&cap.executor==="hub_direct"&&cap.sourceRefs?.some((r:Json)=>r.sourceId===sourceId))
+                this.putCapability({...cap,stale:true});
+            this.refreshConfigurationCatalog(context);
+            this.repo.changed("connection.catalog.checked",{sourceId,contextId:context.id});
+          });
+          throw error;
+        });
       ensure(!controller.signal.aborted&&!this.closing,"DISCOVERY_CANCELLED","Connection detection cancelled or timed out.");
       ensure(!this.discoveredSelf(result),"SELF_REFERENCE_DENIED","FlowHub cannot be its own downstream.");
       return this.repo.tx(()=>{
@@ -184,7 +215,9 @@ export class CapabilityRegistry {
         for(const tool of result.tools) {
           const enabled=toolEnabled(config,tool.name),cap=this.putCapability({id:"cap_"+hash([context.id,source.sourceKey,tool.name]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:"mcp_tool",name:tool.name,description:tool.description??"",executor:"hub_direct",availability:enabled?"ready":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",inputSchema:tool.inputSchema,outputSchema:tool.outputSchema??null,tool,sourceRefs:[{sourceId,revision:source.revision}],provenance:{synthetic:false,discovered:true,serverSourceFingerprint:source.sourceFingerprint}});seen.add(cap.id);
         }
-        for(const cap of this.contextCapabilities(context.id))if(cap.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!seen.has(cap.id))this.putCapability({...cap,stale:true});
+        for(const cap of this.contextCapabilities(context.id))
+          if(cap.executor==="hub_direct"&&!cap.stale&&cap.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!seen.has(cap.id))
+            this.putCapability({...cap,stale:true});
         this.repo.put("capability_sources",sourceId,{...source,discovery:"schema_discovered",availability:"ready",lastCatalogAt:now(),lastObservation:{...source.lastObservation,connectionChecked:true,at:now()}});
         this.refreshConfigurationCatalog(context);
         this.repo.changed("connection.catalog.checked",{sourceId,contextId:context.id});
@@ -239,6 +272,25 @@ export class CapabilityRegistry {
     try {
       const scan=await abortable(scanHost(context,depth,{signal:controller.signal,deadline},this.identity,this.options.hostRuntime),controller.signal);check();
       const sourceIds=new Set<string>(),capIds=new Set<string>(),changes:Json[]=[];
+      const previousJob=context.catalogScanId?this.repo.get("discovery_jobs",context.catalogScanId):undefined;
+      const hostCatalog=scan.hostCatalog??(previousJob?.contextRevision===context.revision?previousJob.hostCatalog:undefined);
+      const hostObservations=new Map(scan.hostCatalog?.servers.flatMap(server=>server.sourceKeys.map(key=>[key,server] as const)));
+      const sourceIdentities=(rows:Json[],fingerprint:(row:Json)=>string)=>{
+        const byName=new Map<string,string[]>();
+        for(const row of rows)byName.set(row.name,[...(byName.get(row.name)??[]),fingerprint(row)]);
+        return byName;
+      };
+      const previousSources=sourceIdentities(this.contextSources(context.id).filter(s=>s.kind==="mcp_server"&&!s.stale&&s.contextRevision===context.revision),s=>s.sourceKey+":"+s.sourceFingerprint);
+      const currentSources=sourceIdentities(scan.sources,s=>s.sourceKey+":"+hash(s.config));
+      const sourcesChanged=(name:string)=>hash((previousSources.get(name)??[]).sort())!==hash((currentSources.get(name)??[]).sort());
+      for(const component of scan.components)if(component.kind==="host_tool") {
+        const prior=this.repo.get("capabilities","cap_"+hash([context.id,component.sourceKey]).slice(0,24));
+        const parent=component.serverSourceKey?"src_"+hash([context.id,component.serverSourceKey]).slice(0,24):null;
+        // Retain existing identities for the same source. When a namespace now
+        // resolves to a different source, its tools require distinct references.
+        if(prior&&(prior.provenance?.serverSourceId??null)!==parent)
+          component.sourceKey+="@"+(parent??"host");
+      }
       const safeComponents=scan.components.map(({content,...c}:Json)=>c);
       update({status:"DISCOVERING_CATALOG",components:safeComponents,resolutionQuality:scan.resolutionQuality,issues:scan.issues});
       let index=0;
@@ -256,9 +308,13 @@ export class CapabilityRegistry {
           value.discovery=prior.discovery;value.availability=prior.availability;value.self=prior.self;value.executor=prior.executor;
           value.lastCatalogAt=prior.lastCatalogAt??(prior.discovery==="schema_discovered"?prior.discoveredAt:null);
         }
+        if(scan.hostCatalog)value.hostCatalogStatus=hostObservations.get(source.sourceKey)?.status??(scan.hostCatalog.complete?"unavailable":"partial");
+        else if(sameSource&&!sourcesChanged(source.name)&&prior.hostCatalogStatus)value.hostCatalogStatus=prior.hostCatalogStatus;
         value.lastObservation={scanId,depth,at:now(),connectionChecked:false};
         sourceIds.add(sourceId);
-        const prepared=prior?.preparedConnectionId?this.repo.get("connections",prior.preparedConnectionId):undefined,configured=prepared?.sourceFingerprint===sourceFingerprint;
+        const prepared=prior?.preparedConnectionId?this.repo.get("connections",prior.preparedConnectionId):undefined;
+        const configured=hasVerifiedSourceConnectionRoute(prepared)&&!prepared.disabled&&
+          prepared.sourceId===sourceId&&prepared.sourceFingerprint===sourceFingerprint;
         if(configured)value.preparedConnectionId=prepared.id;
         if(!prior||prior.sourceFingerprint!==sourceFingerprint)changes.push({sourceId,name:source.name,change:prior?"changed":"added",fromRevision:prior?.revision??null,toRevision:value.revision});
         if(depth==="catalog"&&source.enabled&&!self&&(!direct||(policy.requiresCredentials&&!configured)))scan.issues.push({sourceId,code:policy.unsupported?"SOURCE_CONFIGURATION_UNSUPPORTED":direct?"CREDENTIALS_REQUIRED":"HOST_CAPABILITY_UNAVAILABLE"});
@@ -275,7 +331,7 @@ export class CapabilityRegistry {
           }
         }catch(e){check();value.discovery="failed";value.availability=e instanceof HubError&&e.code==="SELF_REFERENCE_DENIED"?"unsupported":"unreachable";if(e instanceof HubError&&e.code==="SELF_REFERENCE_DENIED"){value.self=true;value.executor="informational";}scan.issues.push({sourceId,code:e instanceof HubError?e.code:"CONNECTION_FAILED"});}
         check();this.repo.put("capability_sources",sourceId,value);
-        for(const old of this.contextCapabilities(context.id))if(old.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!capIds.has(old.id)) {
+        for(const old of this.contextCapabilities(context.id))if(old.executor==="hub_direct"&&old.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!capIds.has(old.id)) {
           const disabled=!source.enabled||!toolEnabled(source.config,old.name)||self;
           const changed=!sameSource||old.sourceRefs.find((ref:Json)=>ref.sourceId===sourceId)?.revision!==value.revision;
           if(disabled||changed||(depth==="catalog"&&value.discovery!=="schema_discovered"))this.putCapability({...old,enabled:disabled?"disabled":old.enabled,availability:disabled?"disabled":value.availability,stale:changed||old.stale,sourceRefs:[{sourceId,revision:value.revision}]});
@@ -293,20 +349,31 @@ export class CapabilityRegistry {
         this.repo.put("capability_sources",sourceId,componentSource);sourceIds.add(sourceId);
         const cap=this.putCapability({id:"cap_"+hash([context.id,component.sourceKey]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:skill?"skill":"mcp_tool",name:component.name,description:component.description,
           executor:"codex_host",availability:enabled?"host_only":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",
+          ...(component.hostCatalogStatus?{hostCatalogStatus:component.hostCatalogStatus,stale:true}:{}),
           ...(skill?{contentHash:component.contentHash,skillContent:component.content??null,...(component.dependencyHash?{dependencyHash:component.dependencyHash}:{})}:{inputSchema:component.tool.inputSchema,outputSchema:component.tool.outputSchema??null,tool:component.tool,serverName:component.serverName}),
           sourceRefs:[{sourceId,revision:componentSource.revision}],provenance:{hostReported:component.hostReported??!skill,path:component.path,freshAppServerSession:!skill,...parentIdentity}});capIds.add(cap.id);
       }
-      if(depth!=="catalog")for(const cap of this.contextCapabilities(context.id))if(cap.kind==="mcp_tool"&&cap.executor==="codex_host"&&cap.provenance?.serverSourceId&&!capIds.has(cap.id)) {
-        const parent=this.repo.get("capability_sources",cap.provenance.serverSourceId);
-        if(!parent||parent.stale||!parent.enabled||parent.sourceFingerprint!==cap.provenance.serverSourceFingerprint)this.putCapability({...cap,stale:true,...(!parent?.enabled?{enabled:"disabled",availability:"disabled"}:{})});
+      for(const cap of this.contextCapabilities(context.id))if(cap.kind==="mcp_tool"&&cap.executor==="codex_host"&&!capIds.has(cap.id)) {
+        const parentId=cap.provenance?.serverSourceId,parent=parentId&&this.repo.get("capability_sources",parentId);
+        const disabled=parent&&sourceIds.has(parent.id)&&!parent.enabled;
+        const stale=scan.hostCatalog||cap.contextRevision!==context.revision||sourcesChanged(cap.serverName)||
+          parentId&&(!parent||!sourceIds.has(parentId)||parent.sourceFingerprint!==cap.provenance.serverSourceFingerprint);
+        if(stale&&(!cap.stale||disabled&&cap.enabled!=="disabled"))
+          this.putCapability({...cap,stale:true,...(disabled?{enabled:"disabled",availability:"disabled"}:{})});
       }
       this.repo.tx(()=>{check();
         if(scan.issues.length===0) {
-          for(const old of this.contextSources(context.id))if(!sourceIds.has(old.id)&&!(depth==="metadata"&&old.kind==="host_tool"&&old.contextRevision===context.revision)){this.repo.put("capability_sources",old.id,{...old,stale:true});changes.push({sourceId:old.id,name:old.name,change:"removed"});}
+          for(const old of this.contextSources(context.id)) {
+            const preserveHost=old.kind==="host_tool"&&!scan.hostCatalog&&old.contextRevision===context.revision;
+            if(!sourceIds.has(old.id)&&!preserveHost) {
+              this.repo.put("capability_sources",old.id,{...old,stale:true});
+              changes.push({sourceId:old.id,name:old.name,change:"removed"});
+            }
+          }
           for(const old of this.contextCapabilities(context.id))if(!capIds.has(old.id)&&
-            (old.kind==="skill"||(old.executor==="codex_host"&&(depth==="catalog"||depth==="host_catalog"))||(!sourceIds.has(old.sourceRefs[0]?.sourceId)&&!(depth==="metadata"&&old.executor==="codex_host"&&old.contextRevision===context.revision))||(depth==="catalog"&&this.repo.get("capability_sources",old.sourceRefs[0]?.sourceId)?.discovery==="schema_discovered")))this.putCapability({...old,stale:true});
+            !old.stale&&(old.kind==="skill"||old.executor==="hub_direct"&&(!sourceIds.has(old.sourceRefs[0]?.sourceId)||(depth==="catalog"&&this.repo.get("capability_sources",old.sourceRefs[0]?.sourceId)?.discovery==="schema_discovered"))))this.putCapability({...old,stale:true});
         }
-        update({status:scan.issues.length?"PARTIAL":"SUCCEEDED",coverage:scan.issues.length?"partial":"complete",issues:scan.issues,completedAt:now(),sources:this.contextSources(context.id),components:safeComponents,changes});
+        update({status:scan.issues.length?"PARTIAL":"SUCCEEDED",coverage:scan.issues.length?"partial":"complete",issues:scan.issues,completedAt:now(),sources:this.contextSources(context.id),components:safeComponents,changes,...(hostCatalog?{hostCatalog}:{})});
         this.catalog.replace(context,this.repo.get("discovery_jobs",scanId),this.contextSources(context.id),this.contextCapabilities(context.id));
       });
     }catch(e){controller.abort();const code=e instanceof HubError?e.code:"SOURCE_UNREADABLE";update({status:code==="DISCOVERY_CANCELLED"?"CANCELLED":["SCAN_SUPERSEDED","CONTEXT_CHANGED"].includes(code)?"PARTIAL":"FAILED",issues:[{code}],coverage:"partial",completedAt:now()});}
@@ -332,7 +399,7 @@ export class CapabilityRegistry {
     if(a.cursor){try{cursor=JSON.parse(Buffer.from(a.cursor,"base64url").toString());ensure(cursor.f===fingerprint&&typeof cursor.a==="string","INPUT_INVALID","Cursor filter changed.");after=cursor.a;}catch{throw new HubError("INPUT_INVALID","Invalid capability cursor.");}}
     const where:string[]=[],params:Json[]=[];
     for(const field of ["contextId","kind","executor"])if(a[field]){where.push("json_extract(body,'$."+field+"')=?");params.push(a[field]);}
-    if(a.sourceId){where.push("EXISTS(SELECT 1 FROM json_each(json_extract(body,'$.sourceRefs')) r WHERE json_extract(r.value,'$.sourceId')=?)");params.push(a.sourceId);}
+    if(a.sourceId){where.push("(json_extract(body,'$.provenance.serverSourceId')=? OR EXISTS(SELECT 1 FROM json_each(json_extract(body,'$.sourceRefs')) r WHERE json_extract(r.value,'$.sourceId')=?))");params.push(a.sourceId,a.sourceId);}
     if(a.environment){where.push("EXISTS(SELECT 1 FROM bindings b WHERE json_extract(b.body,'$.sourceCapabilityId')=capabilities.id AND json_extract(b.body,'$.environment')=?)");params.push(a.environment);}
     for(const term of String(a.query).toLowerCase().split(/\s+/).filter(Boolean)){where.push("instr(lower(json_extract(body,'$.name')||' '||coalesce(json_extract(body,'$.description'),'')||' '||coalesce((SELECT json_extract(e.body,'$.searchText') FROM discovery_entities e WHERE e.id=capabilities.id),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'') FROM discovery_entities e JOIN discovery_entities g ON g.id=json_extract(e.body,'$.pluginId') JOIN discovery_presentations p ON json_extract(p.body,'$.entityId')=g.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(g.body,'$.sourceFingerprint') WHERE e.id=capabilities.id ORDER BY p.revision DESC LIMIT 1),'')||' '||coalesce((SELECT json_extract(p.body,'$.displayName')||' '||coalesce(json_extract(p.body,'$.summary'),'')||' '||coalesce(json_extract(p.body,'$.description'),'') FROM discovery_presentations p JOIN discovery_entities e ON e.id=capabilities.id WHERE json_extract(p.body,'$.entityId')=capabilities.id AND json_extract(p.body,'$.sourceFingerprint')=json_extract(e.body,'$.sourceFingerprint') ORDER BY p.revision DESC LIMIT 1),'')),?)>0");params.push(term);}
     const clause=where.length?" WHERE "+where.join(" AND "):"";
@@ -382,18 +449,33 @@ export class CapabilityRegistry {
     ensure(!selfSource({name:source.name,config},this.identity),"SELF_REFERENCE_DENIED","FlowHub cannot be its own downstream.");
     ensure(toolEnabled(config,cap.name),"CAPABILITY_STALE","Tool disabled by source policy.",409);
     const policy=sourcePolicy(config);ensure(!policy.credentialArgs&&!policy.embeddedUrl&&!policy.unsupported,"CREDENTIAL_IMPORT_UNSUPPORTED","Source requires separate local connection configuration.");
-    const prepared=source.preparedConnectionId?this.repo.get("connections",source.preparedConnectionId):undefined,configured=prepared?.sourceFingerprint===source.sourceFingerprint;
+    const prepared=source.preparedConnectionId?this.repo.get("connections",source.preparedConnectionId):undefined;
+    const configured=hasVerifiedSourceConnectionRoute(prepared)&&!prepared.disabled&&
+      prepared.sourceId===source.id&&prepared.sourceFingerprint===source.sourceFingerprint;
     if(!configured&&policy.requiresCredentials)return {status:"configuration_required",missing:source.credentialVariables,reason:"Register credential references through local connection settings."};
     const connection=configured?prepared:this.connection(config,source.id,false,source.sourceFingerprint),discovered=await this.engine.connectors.discover(connection);
     ensure(!this.discoveredSelf(discovered),"SELF_REFERENCE_DENIED","FlowHub cannot be its own downstream.");
     const tool=discovered.tools.find((t:Json)=>t.name===cap.name);ensure(tool&&hash(tool.inputSchema)===hash(cap.inputSchema)&&hash(tool.outputSchema??null)===hash(cap.outputSchema??null),"CAPABILITY_STALE","Tool schema changed; rescan before importing.",409);
     return this.repo.command(owner,"capability.import",a.idempotencyKey,a,()=>{
-      ensure(!this.closing&&this.repo.get("capabilities",cap.id)?.revision===cap.revision&&this.repo.get("host_contexts",context.id)?.revision===context.revision&&this.repo.get("capability_sources",source.id)?.revision===source.revision,"CAPABILITY_STALE","Source or capability changed while importing.",409);
+      ensure(!this.closing&&this.repo.get("capabilities",cap.id)?.revision===cap.revision&&
+        this.repo.get("host_contexts",context.id)?.revision===context.revision&&
+        this.repo.get("capability_sources",source.id)?.revision===source.revision&&
+        (!configured||hash(this.repo.get("connections",prepared.id)??null)===hash(prepared)),
+        "CAPABILITY_STALE","Source or capability changed while importing.",409);
       const tools=discovered.tools.filter((t:Json)=>toolEnabled(config,t.name)).sort((left:Json,right:Json)=>left.name.localeCompare(right.name)),catalogFingerprint=hash(tools);
-      const connectionId="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs??{},connection.secretRef??null,discovered.protocolEra??null,catalogFingerprint]).slice(0,24);
-      const previous=this.repo.get("connections",connectionId);
-      const executionConnection={...discovered,id:connectionId,revision:1,verifiedRevision:1,tools,catalogFingerprint};
-      if(previous)ensure(previous.catalogFingerprint===catalogFingerprint,"CAPABILITY_STALE","Stored catalog identity differs.",409);
+      const routeHash=sourceConnectionRouteHash(discovered);
+      const canonicalId="conn_"+hash([source.id,source.sourceFingerprint,connection.envRefs??{},connection.secretRef??null,discovered.protocolEra??null,catalogFingerprint]).slice(0,24);
+      const named=this.repo.get("connections",canonicalId);
+      const matches=(candidate:Json)=>candidate&&!candidate.disabled&&candidate.sourceId===source.id&&
+        candidate.sourceFingerprint===source.sourceFingerprint&&candidate.catalogFingerprint===catalogFingerprint&&
+        sourceConnectionRouteHash(candidate)===routeHash;
+      const previous=matches(named)?named:named&&this.repo.all("connections").find(matches);
+      const connectionId=previous?.id??(named?id("conn"):canonicalId);
+      const executionConnection={...discovered,id:connectionId,revision:1,verifiedRevision:1,tools,catalogFingerprint,sourceRouteHash:routeHash};
+      if(previous) {
+        if(previous.sourceRouteHash!==routeHash)
+          this.repo.put("connections",previous.id,{...previous,sourceRouteHash:routeHash},previous.revision);
+      }
       else this.repo.insert("connections",connectionId,executionConnection);
       const bindingId="binding_"+hash([source.id,connectionId,cap.id,cap.revision,a.environment,a.lockedArguments]).slice(0,24),binding={id:bindingId,revision:1,name:cap.name,connectionId,connectionRevision:(previous??executionConnection).revision,environment:a.environment,
         allowedTools:[cap.name],lockedArguments:a.lockedArguments,allowedQueryTemplates:[],simulationOnly:false,validationStatus:"UNVERIFIED",maxRows:100,timeoutSeconds:10,sourceCapabilityId:cap.id,sourceCapabilityRevision:cap.revision};
