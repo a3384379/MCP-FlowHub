@@ -24,6 +24,7 @@ import {
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { formattedReport } from "../../workflow-core/src/report-html.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
@@ -1044,6 +1045,9 @@ export async function registerAdmin(
   );
   app.get("/api/v1/runs/:id/artifacts/:artifactId", async (req) => {
     const q = req.query as Json,
+      runId = param(req),
+      artifactId = param(req, "artifactId"),
+      runOwner = owner(runId),
       offset = Number(q.offset ?? 0),
       maxBytes = Number(q.maxBytes ?? 65536);
     ensure(
@@ -1055,21 +1059,27 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Invalid chunk bounds.",
     );
+    if (q.format === "html" && offset === 0) {
+      const artifact = engine.artifactContent(runId, artifactId, runOwner);
+      const html = formattedReport(artifact);
+      if (html !== undefined) {
+        const byteLength = Buffer.byteLength(artifact.content);
+        return data({
+          artifactId, runId, mimeType: "text/html", content: html,
+          sha256: artifact.sha256, byteLength, offset, nextOffset: byteLength,
+          eof: true, verification: artifact.verification,
+          rendered: true, reformatted: html !== artifact.content,
+        });
+      }
+    }
     return data(
-      engine.readArtifact(
-        {
-          runId: param(req),
-          artifactId: param(req, "artifactId"),
-          offset,
-          maxBytes,
-        },
-        owner(param(req)),
-      ),
+      engine.readArtifact({ runId, artifactId, offset, maxBytes }, runOwner),
     );
   });
   app.get("/api/v1/runs/:id/artifacts/:artifactId/download", async (req, reply) => {
     const runId = param(req);
     const artifact = engine.artifactContent(runId, param(req, "artifactId"), owner(runId));
+    const html = (req.query as Json).format === "html" ? formattedReport(artifact) : undefined;
     const extensions: Record<string, string> = {
       "text/markdown": "md",
       "text/html": "html",
@@ -1077,13 +1087,14 @@ export async function registerAdmin(
       "application/mcp+json": "json",
     };
     const safeId = String(artifact.id).replace(/[^a-zA-Z0-9_-]/g, "_");
-    const extension = Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
+    const extension = html !== undefined ? "html"
+      : Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
     const filename = "flowhub-" + safeId + "." + extension;
     return reply
       .type("application/octet-stream")
       .header("Content-Disposition", `attachment; filename="${filename}"`)
       .header("Cache-Control", "no-store")
-      .send(Buffer.from(artifact.content, "utf8"));
+      .send(Buffer.from(html ?? artifact.content, "utf8"));
   });
   app.post("/api/v1/support-bundles/preview", async () =>
     data(supportPreview()),

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 import {
   Client,
@@ -186,9 +187,14 @@ test("automatic incident run has no approval controls and a restricted host comp
       const artifact = completed.artifacts.find((entry: { mimeType: string }) => entry.mimeType === mimeType);
       const artifactPath = "/runs/" + runId + "/artifacts/" + artifact.id;
       const row = page.locator(".artifact").filter({ hasText: artifact.id });
+      await row.getByRole("button", { name: "查看", exact: true }).click();
+      const doc = page.frameLocator('iframe[title="报告内容"]');
+      await expect(doc.getByRole("heading", { name: "问题摘要" })).toBeVisible();
+      await doc.getByRole("navigation", { name: "报告目录" }).getByRole("link", { name: "证据索引" }).click();
+      await expect(doc.locator("h2:target")).toHaveText("证据索引");
       const [download] = await Promise.all([
         page.waitForEvent("download"),
-        row.getByRole("button", { name: "下载", exact: true }).click(),
+        row.getByRole("button", { name: extension === "md" ? "下载 MD" : "下载", exact: true }).click(),
       ]);
       expect(download.suggestedFilename()).toBe("flowhub-" + artifact.id + "." + extension);
       expect(await download.failure()).toBeNull();
@@ -199,6 +205,23 @@ test("automatic incident run has no approval controls and a restricted host comp
       expect(served.headers()["content-type"]).toBe("application/octet-stream");
       expect(served.headers()["cache-control"]).toBe("no-store");
       expect(await served.body()).toEqual(bytes);
+      const [readable] = extension === "html" ? [download] : await Promise.all([
+        page.waitForEvent("download"),
+        row.getByRole("button", { name: "下载 HTML", exact: true }).click(),
+      ]);
+      const path = test.info().outputPath("report-from-" + extension + ".html");
+      await readable.saveAs(path);
+      const offline = await page.context().browser()!.newContext({ offline: true });
+      try {
+        const saved = await offline.newPage();
+        await saved.goto(pathToFileURL(path).href);
+        await expect(saved.getByRole("heading", { name: "问题摘要" })).toBeVisible();
+        await expect(saved.locator("main")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+        await saved.getByRole("navigation", { name: "报告目录" }).getByRole("link", { name: "证据索引" }).click();
+        await expect(saved.locator("h2:target")).toHaveText("证据索引");
+      } finally {
+        await offline.close();
+      }
     }
     await page.screenshot({
       path: "artifacts/ui-automatic-run.png",

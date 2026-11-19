@@ -17,6 +17,8 @@ type ArtifactChunk = {
   sha256: string;
   nextOffset: number;
   eof: boolean;
+  rendered?: boolean;
+  reformatted?: boolean;
   verification?: {
     contentStored?: boolean;
     formatValidated?: boolean;
@@ -49,7 +51,7 @@ function Verification({ chunk }: { chunk: ArtifactChunk }) {
   const skill = evidence?.skillExecution;
   return (
     <>
-      <code className="artifact-hash">SHA-256：{chunk.sha256}</code>
+      <code className="artifact-hash">归档 SHA-256：{chunk.sha256}</code>
       <dl className="verification-details">
         <dt>内容保存</dt>
         <dd>{evidence?.contentStored ? "实际内容已保存" : "未声明"}</dd>
@@ -123,7 +125,8 @@ export function RunArtifacts({
   const artifactPath = (artifactId: string) =>
     `/runs/${encodeURIComponent(runId)}/artifacts/${encodeURIComponent(artifactId)}`;
 
-  async function openPreview(id: string, previous?: ArtifactChunk) {
+  async function openPreview(artifact: ArtifactSummary, previous?: ArtifactChunk) {
+    const { id, mimeType } = artifact;
     previewRequest.current?.abort();
     const request = new AbortController();
     previewRequest.current = request;
@@ -132,8 +135,10 @@ export function RunArtifacts({
     setPreview({ id, pending: true, chunk: previous });
     try {
       const offset = previous?.nextOffset ?? 0;
+      const format =
+        mimeType === "text/html" || mimeType === "text/markdown" ? "&format=html" : "";
       const chunk = await getChunk(
-        artifactPath(id) + "?offset=" + offset + "&maxBytes=262144",
+        artifactPath(id) + "?offset=" + offset + "&maxBytes=262144" + format,
         request.signal,
       );
       if (request.signal.aborted) return;
@@ -159,14 +164,14 @@ export function RunArtifacts({
     }
   }
 
-  async function saveArtifact(id: string) {
+  async function saveArtifact(id: string, formatted = false) {
     if (downloadRequest.current) return;
     const request = new AbortController();
     downloadRequest.current = request;
-    setDownload({ id, pending: true, message: "正在准备原始附件…" });
+    setDownload({ id, pending: true, message: "正在准备附件…" });
     try {
       const response = await getDownload(
-        artifactPath(id) + "/download",
+        artifactPath(id) + "/download" + (formatted ? "?format=html" : ""),
         request.signal,
       );
       if (response.headers.get("Content-Type") !== "application/octet-stream") {
@@ -232,17 +237,25 @@ export function RunArtifacts({
                       previewRequest.current?.abort();
                       setPreview(null);
                       onPreview(null);
-                    } else void openPreview(artifact.id);
+                    } else void openPreview(artifact);
                   }}
                 >
                   {selected ? "收起查看" : "查看"}
                 </button>
                 <button
                   disabled={expired || download?.pending}
-                  onClick={() => void saveArtifact(artifact.id)}
+                  onClick={() => void saveArtifact(artifact.id, artifact.mimeType === "text/html")}
                 >
-                  下载
+                  {artifact.mimeType === "text/markdown" ? "下载 MD" : "下载"}
                 </button>
+                {artifact.mimeType === "text/markdown" && (
+                  <button
+                    disabled={expired || download?.pending}
+                    onClick={() => void saveArtifact(artifact.id, true)}
+                  >
+                    下载 HTML
+                  </button>
+                )}
               </div>
             </div>
             {currentDownload && (
@@ -269,7 +282,29 @@ export function RunArtifacts({
                 )}
                 {selected.chunk && (
                   <>
-                    <pre tabIndex={0}>{selected.chunk.content}</pre>
+                    {selected.chunk.rendered ? (
+                      <iframe
+                        className="report-preview"
+                        title="报告内容"
+                        sandbox=""
+                        referrerPolicy="no-referrer"
+                        // A fragment-only href in srcdoc resolves against the parent URL.
+                        srcDoc={selected.chunk.content.replace(
+                          /href="#(section-\d+)"/g,
+                          'href="about:srcdoc#$1"',
+                        )}
+                      />
+                    ) : (
+                      <pre tabIndex={0}>{selected.chunk.content}</pre>
+                    )}
+                    {artifact.mimeType === "text/html" && selected.chunk.reformatted && (
+                      <button
+                        disabled={expired || download?.pending}
+                        onClick={() => void saveArtifact(artifact.id)}
+                      >
+                        下载归档原件
+                      </button>
+                    )}
                     <Verification chunk={selected.chunk} />
                   </>
                 )}
@@ -277,7 +312,7 @@ export function RunArtifacts({
                   <button
                     disabled={selected.pending}
                     onClick={() =>
-                      void openPreview(artifact.id, selected.chunk)
+                      void openPreview(artifact, selected.chunk)
                     }
                   >
                     {selected.error ? "重试读取" : "继续读取下一块"}

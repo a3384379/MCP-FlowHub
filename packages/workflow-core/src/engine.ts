@@ -33,6 +33,7 @@ import { queryScopes } from "./query-scope.js";
 import { schemaAt } from "./mapping-schema.js";
 import { MCP_RAW_RESULT } from "../../mcp-connectors/src/results.js";
 import { validateReportEvidence } from "./report-verification.js";
+import { legacyReportHtml, renderReportHtml, reportRenderer } from "./report-html.js";
 import { businessSummary, classifyBusinessOutput } from "./business-verification.js";
 import { businessStateLabel } from "../../contracts/src/business-verification.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
@@ -955,6 +956,10 @@ export class Engine {
     };
     check(payload);
   }
+  private canStoreArtifact(r: Json, bytes: number) {
+    return bytes <= Math.min(r.snapshot.workflow.budgets.maxOutputBytes, 262144) &&
+      r.totalBytes + bytes <= 10485760;
+  }
   private storeArtifact(
     r: Json,
     nodeId: string,
@@ -964,8 +969,7 @@ export class Engine {
   ) {
     const bytes = Buffer.byteLength(content);
     ensure(
-      bytes <= Math.min(r.snapshot.workflow.budgets.maxOutputBytes, 262144) &&
-        r.totalBytes + bytes <= 10485760,
+      this.canStoreArtifact(r, bytes),
       "BUDGET_EXCEEDED",
       "Artifact exceeds byte budget.",
     );
@@ -1062,38 +1066,32 @@ export class Engine {
       "ARTIFACT_INVALID",
       "Report references an unknown artifact.",
     );
-    const clean = text,
-      verification = {
-        contentStored: true,
-        formatValidated: true,
-        evidenceReferencesValidated: true,
-        skillExecution,
-        factualReview: "not_performed",
-        businessVerification: businessSummary(r),
-      };
+    const verification = {
+      contentStored: true,
+      formatValidated: true,
+      evidenceReferencesValidated: true,
+      skillExecution,
+      factualReview: "not_performed",
+      businessVerification: businessSummary(r),
+    };
     const evidence = this.repo.all("artifacts").filter((artifact) =>
       artifact.runId === r.id && artifact.expiresAt > Date.now());
     validateReportEvidence(text, payload.evidenceRefs ?? [], evidence);
-    validateReportEvidence(clean, payload.evidenceRefs ?? [], evidence);
     const markdown = this.storeArtifact(
       r,
       n.id,
-      clean,
+      text,
       "text/markdown",
       verification,
     );
-    const escaped = clean
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-    const html =
-      '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'"><title>FlowHub 排查报告</title><style>body{max-width:960px;margin:40px auto;padding:24px;font:15px/1.9 system-ui;color:#172b46}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style><pre>' +
-      escaped +
-      "</pre></html>";
-    this.storeArtifact(r, n.id, html, "text/html", {
+    const html = renderReportHtml(text);
+    // The styled document can be reproduced on demand if its layout would
+    // exceed the archive budget for a previously valid report.
+    const fits = this.canStoreArtifact(r, Buffer.byteLength(html));
+    this.storeArtifact(r, n.id, fits ? html : legacyReportHtml(text), "text/html", {
       ...verification,
       sourceMarkdownArtifact: markdown.id,
+      ...(fits ? { reportRenderer } : {}),
     });
     r.reportArchived = true;
   }
