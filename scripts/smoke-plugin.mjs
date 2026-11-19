@@ -18,6 +18,7 @@ import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { verifyBundle } from "./verify-release.mjs";
+import { extractWindowsZip } from "./windows-zip.mjs";
 
 const exec = promisify(execFile);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -479,22 +480,7 @@ if (
   const extracted = await mkdtemp(join(tmpdir(), "FlowHub 插件归档 "));
   try {
     if (process.platform === "win32")
-      await exec(
-        "powershell.exe",
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "Expand-Archive -LiteralPath $env:FLOWHUB_ARCHIVE_PATH -DestinationPath $env:FLOWHUB_EXTRACT_DIR",
-        ],
-        {
-          env: {
-            ...process.env,
-            FLOWHUB_ARCHIVE_PATH: archive,
-            FLOWHUB_EXTRACT_DIR: extracted,
-          },
-        },
-      );
+      await extractWindowsZip(archive, extracted);
     else await exec("tar", ["-xzf", archive, "-C", extracted]);
     const folders = await readdir(extracted);
     assert.equal(folders.length, 1);

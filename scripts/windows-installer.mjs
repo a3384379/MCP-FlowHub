@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyBundle } from "./verify-release.mjs";
-import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { extractWindowsZip } from "./windows-zip.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const exec = promisify(execFile);
@@ -79,6 +79,8 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
   const pkg = JSON.parse(await readFile(join(sourceRoot, "package.json"), "utf8"));
   assert.equal(hash(await readFile(fileURLToPath(import.meta.url))), hash(await readFile(join(sourceRoot, "scripts/windows-installer.mjs"))),
     "The installer builder must match the bundle's recoverable source; rebuild the offline bundle after source changes.");
+  assert.equal(hash(await readFile(new URL("./windows-zip.mjs", import.meta.url))), hash(await readFile(join(sourceRoot, "scripts/windows-zip.mjs"))),
+    "The ZIP helper must match the bundle's recoverable source; rebuild the offline bundle after source changes.");
   assert.equal(process.versions.node, pkg.engines.node, "Use the pinned Node runtime for the native Windows build.");
   assert.match(pkg.version, /^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/);
   const pin = JSON.parse(await readFile(join(sourceRoot, "installer/windows/toolchain.json"), "utf8"));
@@ -102,12 +104,7 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
 
   const temporary = await mkdtemp(join(tmpdir(), "flowhub-windows-installer-"));
   try {
-    const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
-    // Expand only the exact reviewed archive into a new private staging path.
-    // No downloads, system NSIS installation, PATH lookup or package manager.
-    await execWithoutInput(powershell, ["-NoProfile", "-NonInteractive", "-Command",
-      "$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath $env:FLOWHUB_NSIS_ARCHIVE -DestinationPath $env:FLOWHUB_NSIS_STAGE"],
-    { env: { ...process.env, FLOWHUB_NSIS_ARCHIVE: resolve(archive), FLOWHUB_NSIS_STAGE: temporary }, windowsHide: true, timeout: 60_000 });
+    await extractWindowsZip(archive, temporary);
     const nsisDir = join(temporary, pin.directory);
     const compiler = join(nsisDir, "makensis.exe");
     assert.ok((await lstat(compiler)).isFile());

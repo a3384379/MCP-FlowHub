@@ -19,7 +19,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { verifyBundle } from "./verify-release.mjs";
 import { smokePlugin } from "./smoke-plugin.mjs";
-import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { extractWindowsZip } from "./windows-zip.mjs";
 import {
   SyntheticReadyStdioTransport,
   redactSmokeDiagnostic,
@@ -98,25 +98,7 @@ try {
   const exec = promisify(execFile);
   await stage("archive extraction", async () => {
     if (process.platform === "win32") {
-      const script = "$ErrorActionPreference='Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; " +
-        "[System.IO.Compression.ZipFile]::ExtractToDirectory($env:FLOWHUB_ARCHIVE_PATH,$env:FLOWHUB_EXTRACT_DIR)";
-      await execWithoutInput(
-        join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-EncodedCommand",
-          Buffer.from(script, "utf16le").toString("base64"),
-        ],
-        {
-          windowsHide: true,
-          env: {
-            ...process.env,
-            FLOWHUB_ARCHIVE_PATH: archive,
-            FLOWHUB_EXTRACT_DIR: dir,
-          },
-        },
-      );
+      await extractWindowsZip(archive, dir);
     } else await exec("tar", ["-xzf", archive, "-C", dir]);
   });
   const folders = await readdir(dir);

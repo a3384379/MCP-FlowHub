@@ -14,7 +14,7 @@ import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { verifyBundle } from "./verify-release.mjs";
 import { stagePlugin } from "./package-plugin.mjs";
-import { execWithoutInput } from "../installer/windows/install-helper.mjs";
+import { createWindowsZip } from "./windows-zip.mjs";
 import {
   assertSourceUnchanged,
   createSourceSnapshot,
@@ -238,25 +238,7 @@ try {
 
   const archive = `${bundle}${process.platform === "win32" ? ".zip" : ".tar.gz"}`;
   if (process.platform === "win32") {
-    const script = "$ErrorActionPreference='Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; " +
-      "[System.IO.Compression.ZipFile]::CreateFromDirectory($env:FLOWHUB_BUNDLE_DIR,$env:FLOWHUB_ARCHIVE_PATH,[System.IO.Compression.CompressionLevel]::Optimal,$true)";
-    await execWithoutInput(
-      join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-EncodedCommand",
-        Buffer.from(script, "utf16le").toString("base64"),
-      ],
-      {
-        windowsHide: true,
-        env: {
-          ...process.env,
-          FLOWHUB_BUNDLE_DIR: bundle,
-          FLOWHUB_ARCHIVE_PATH: archive,
-        },
-      },
-    );
+    await createWindowsZip(bundle, archive);
   } else {
     await exec("tar", ["-czf", archive, "-C", dirname(bundle), name]);
   }
