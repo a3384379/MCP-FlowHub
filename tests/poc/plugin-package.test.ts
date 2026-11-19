@@ -137,6 +137,10 @@ test("native plugin staging includes portable manifests, skills and marketplace;
     const bundle = join(root, platform);
     await stagePlugin(bundle, resolve("."), platform);
     await verifyPlugin(bundle, platform);
+    const skill = join(bundle, "skills", "flowhub-setup", "SKILL.md");
+    const skillText = await readFile(skill, "utf8");
+    await writeFile(skill, skillText.replace(/\r?\n/g, "\r\n"));
+    await verifyPlugin(bundle, platform);
     await assert.rejects(
       verifyPlugin(bundle, platform, "stale-version"),
       /Plugin and application versions must match/,

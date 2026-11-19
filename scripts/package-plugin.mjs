@@ -127,6 +127,7 @@ export async function verifyPlugin(bundle, platform, version) {
       join(bundle, "skills", name, "SKILL.md"),
       "utf8",
     );
-    assert.ok(text.startsWith("---\nname: " + name + "\n"));
+    const frontmatterStart = text.split(/\r?\n/, 2);
+    assert.deepEqual(frontmatterStart, ["---", "name: " + name]);
   }
 }
