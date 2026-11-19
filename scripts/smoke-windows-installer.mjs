@@ -158,7 +158,7 @@ try {
   const pluginEntry = join(appDir, "scripts/flowhub-plugin.mjs");
   const taskCommand = async action => JSON.parse((await exec(runtime,
     [pluginEntry, "autostart", action, "--data-dir", dataDir],
-    { env, windowsHide: true, timeout: 30_000 })).stdout);
+    { env, windowsHide: true, timeout: 75_000 })).stdout);
   assert.equal((await taskCommand("status")).state, "disabled");
   const loginTask = await taskCommand("enable");
   autostartRegistered = true;

@@ -59,6 +59,9 @@ test("Windows logon task uses the bundled runtime, stable data identity and curr
   await assert.rejects(windowsAutostart("status", options, async () => {
     throw Object.assign(new Error("scheduler failed"), { stderr: "Access is denied." });
   }), /Access is denied/);
+  await assert.rejects(windowsAutostart("status", options, async () => {
+    throw Object.assign(new Error("scheduler timed out"), { killed: true, signal: "SIGTERM", stderr: "#< CLIXML" });
+  }), /计划任务服务响应超时/);
 });
 
 async function put(root: string, name: string, content: string) {

@@ -4,8 +4,10 @@ import { win32 } from "node:path";
 import { promisify } from "node:util";
 
 const exec = promisify(execFile);
+const taskCommandTimeout = 60_000;
 const taskScript = String.raw`
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $sid = $identity.User.Value
@@ -128,9 +130,9 @@ export async function windowsAutostart(action, options, run = exec) {
     ).toString("base64");
     const execution = run(
       powershell,
-      ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-InputFormat", "None", "-EncodedCommand", encoded],
       {
-        timeout: 20000,
+        timeout: taskCommandTimeout,
         windowsHide: true,
         env: {
           ...process.env,
@@ -146,8 +148,10 @@ export async function windowsAutostart(action, options, run = exec) {
     execution.child?.stdin?.end();
     output = JSON.parse((await execution).stdout.trim());
   } catch (error) {
-    const diagnostic = String(error.stderr?.trim() ||
-      (Number.isInteger(error.code) ? "Windows PowerShell exited with code " + error.code : error.message))
+    const stderr = error.stderr?.trim().replace(/^#< CLIXML(?:\r?\n|$)/, "");
+    const diagnostic = String(error.killed && error.signal === "SIGTERM"
+      ? "等待 Windows 计划任务服务响应超时"
+      : stderr || (Number.isInteger(error.code) ? "Windows PowerShell exited with code " + error.code : error.message))
       .trim()
       .split(/\r?\n/)
       .slice(0, 3)
