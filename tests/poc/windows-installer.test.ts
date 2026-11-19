@@ -48,7 +48,8 @@ test("Windows logon task uses the bundled runtime, stable data identity and curr
   const simulated = async (executable: string, args: string[], launch: { env: Record<string, string> }) => {
     assert.match(executable, /System32\\WindowsPowerShell\\v1\.0\\powershell\.exe$/i);
     assert.ok(!args.includes("Bypass"));
-    assert.match(args.at(-1)!, /-LogonType Interactive -RunLevel Limited/);
+    assert.equal(args.at(-2), "-EncodedCommand");
+    assert.match(Buffer.from(args.at(-1)!, "base64").toString("utf16le"), /-LogonType Interactive -RunLevel Limited/);
     assert.equal(launch.env.FLOWHUB_TASK_ACTION, "enable");
     assert.equal(launch.env.FLOWHUB_TASK_PORT, task.port);
     assert.equal(launch.env.FLOWHUB_TASK_ARGUMENTS, task.argumentsPrefix);

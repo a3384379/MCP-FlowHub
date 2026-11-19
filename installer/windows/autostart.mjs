@@ -122,9 +122,13 @@ export async function windowsAutostart(action, options, run = exec) {
   );
   let output;
   try {
+    const encoded = Buffer.from(
+      "try {\n" + taskScript + "\n} catch {\n[Console]::Error.WriteLine($_.Exception.Message)\nexit 1\n}",
+      "utf16le",
+    ).toString("base64");
     const execution = run(
       powershell,
-      ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", taskScript],
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
       {
         timeout: 20000,
         windowsHide: true,
@@ -142,7 +146,8 @@ export async function windowsAutostart(action, options, run = exec) {
     execution.child?.stdin?.end();
     output = JSON.parse((await execution).stdout.trim());
   } catch (error) {
-    const diagnostic = String(error.stderr || error.message)
+    const diagnostic = String(error.stderr?.trim() ||
+      (Number.isInteger(error.code) ? "Windows PowerShell exited with code " + error.code : error.message))
       .trim()
       .split(/\r?\n/)
       .slice(0, 3)
