@@ -111,6 +111,14 @@ for (let i = 0; i < declarations.length; i++) {
       description: "Authenticated event stream; Last-Event-ID or after cursor",
       content: { "text/event-stream": { schema: { type: "string" } } },
     };
+  if (route === "/api/v1/runs/:id/artifacts/:artifactId/download") {
+    operation.summary = "Download the complete original run artifact";
+    operation.responses[200] = {
+      description: "Original artifact bytes with Content-Disposition attachment",
+      content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } },
+    };
+    operation.responses[404] = { description: "Run or artifact missing, expired, or outside the selected run" };
+  }
   (paths[path] ??= {})[method] = operation;
 }
 const document = {

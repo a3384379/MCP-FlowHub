@@ -1,5 +1,6 @@
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { request as httpRequest, type IncomingHttpHeaders } from "node:http";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -204,6 +205,48 @@ test("successful vault verification clears attempts while consecutive wrong pass
   const limited = await unlock(nextPassword);
   assert.equal(limited.status, 429);
   assert.equal(limited.json.error.code, "RATE_LIMITED");
+});
+
+test("artifact download returns the complete file and enforces session, run and retention boundaries", async (t) => {
+  const { daemon, call, api, adminHeaders, token } = await fixture(t);
+  const start = (idempotencyKey: string) => api("/runs", {
+    workflowId: "incident-staging", version: "1.0.0", mode: "guided", inputs, idempotencyKey,
+  });
+  const run = await start("artifact-http-first");
+  const otherRun = await start("artifact-http-second");
+  const content = "合成报告 🚀\r\n".repeat(20000);
+  const artifact = {
+    id: "historical-report",
+    runId: run.runId,
+    nodeId: "report",
+    mimeType: "text/markdown",
+    byteLength: Buffer.byteLength(content),
+    sha256: createHash("sha256").update(content).digest("hex"),
+    expiresAt: Date.now() + 60000,
+    content,
+  };
+  daemon.engine.repo.put("artifacts", artifact.id, artifact);
+  const path = "/api/v1/runs/" + run.runId + "/artifacts/" + artifact.id;
+  const downloadPath = path + "/download";
+  assert.equal((await call(downloadPath)).status, 401);
+  assert.equal((await call(downloadPath, undefined, { Authorization: "Bearer " + token })).status, 401);
+  const preview = await call(path + "?offset=0&maxBytes=262144", undefined, adminHeaders);
+  assert.equal(preview.status, 200);
+  assert.equal(preview.json.data.eof, false);
+  const download = await call(downloadPath, undefined, adminHeaders);
+  assert.equal(download.status, 200);
+  assert.equal(download.headers["content-type"], "application/octet-stream");
+  assert.equal(download.headers["content-disposition"], 'attachment; filename="flowhub-historical-report.md"');
+  assert.equal(download.text, content);
+  const mismatch = await call(downloadPath.replace(run.runId, otherRun.runId), undefined, adminHeaders);
+  assert.equal(mismatch.status, 404);
+  assert.equal(mismatch.json.error.code, "ARTIFACT_NOT_AVAILABLE");
+  daemon.engine.repo.put("artifacts", artifact.id, { ...artifact, expiresAt: Date.now() - 1000 });
+  for (const target of [path, downloadPath]) {
+    const expired = await call(target, undefined, adminHeaders);
+    assert.equal(expired.status, 404);
+    assert.equal(expired.json.error.code, "ARTIFACT_NOT_AVAILABLE");
+  }
 });
 
 test("SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets", async (t) => {

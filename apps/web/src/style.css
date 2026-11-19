@@ -692,6 +692,19 @@ dd {
   margin-left: auto;
   font-size: 11px;
 }
+.run-artifact {
+  flex-wrap: wrap;
+}
+.run-artifact-meta {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.run-artifact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .event {
   display: flex;
   gap: 15px;
@@ -709,6 +722,8 @@ dd {
 }
 .evidence pre {
   max-height: 620px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .banner {
   background: #fff8e8;

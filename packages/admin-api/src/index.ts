@@ -1049,6 +1049,24 @@ export async function registerAdmin(
       ),
     );
   });
+  app.get("/api/v1/runs/:id/artifacts/:artifactId/download", async (req, reply) => {
+    const runId = param(req);
+    const artifact = engine.artifactContent(runId, param(req, "artifactId"), owner(runId));
+    const extensions: Record<string, string> = {
+      "text/markdown": "md",
+      "text/html": "html",
+      "application/json": "json",
+      "application/mcp+json": "json",
+    };
+    const safeId = String(artifact.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const extension = Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
+    const filename = "flowhub-" + safeId + "." + extension;
+    return reply
+      .type("application/octet-stream")
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .header("Cache-Control", "no-store")
+      .send(Buffer.from(artifact.content, "utf8"));
+  });
   app.post("/api/v1/support-bundles/preview", async () =>
     data(supportPreview()),
   );

@@ -860,15 +860,19 @@ export class Engine {
       r.id,
     );
   }
-  readArtifact(args: Arguments, owner = "execution") {
-    this.owned(String(args.runId), owner);
-    const a = this.repo.get("artifacts", String(args.artifactId));
+  artifactContent(runId: string, artifactId: string, owner: string) {
+    this.owned(runId, owner);
+    const a = this.repo.get("artifacts", artifactId);
     ensure(
-      a && a.runId === args.runId && a.expiresAt > Date.now(),
+      a && a.runId === runId && a.expiresAt > Date.now(),
       "ARTIFACT_NOT_AVAILABLE",
       "Artifact unavailable.",
       404,
     );
+    return a;
+  }
+  readArtifact(args: Arguments, owner = "execution") {
+    const a = this.artifactContent(String(args.runId), String(args.artifactId), owner);
     const bytes = Buffer.from(a.content, "utf8"),
       offset = Number(args.offset ?? 0),
       max = Number(args.maxBytes ?? 65536);

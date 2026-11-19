@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   Client,
@@ -181,6 +181,25 @@ test("automatic incident run has no approval controls and a restricted host comp
     );
     await expect(page.getByText("调用参数", { exact: true })).toHaveCount(2);
     await expect(page.locator(".artifact")).toHaveCount(4);
+    const completed = await status();
+    for (const [mimeType, extension] of [["text/markdown", "md"], ["text/html", "html"]]) {
+      const artifact = completed.artifacts.find((entry: { mimeType: string }) => entry.mimeType === mimeType);
+      const artifactPath = "/runs/" + runId + "/artifacts/" + artifact.id;
+      const row = page.locator(".artifact").filter({ hasText: artifact.id });
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        row.getByRole("button", { name: "下载", exact: true }).click(),
+      ]);
+      expect(download.suggestedFilename()).toBe("flowhub-" + artifact.id + "." + extension);
+      expect(await download.failure()).toBeNull();
+      const bytes = await readFile((await download.path())!);
+      expect(bytes.length).toBe(artifact.byteLength);
+      expect(createHash("sha256").update(bytes).digest("hex")).toBe(artifact.sha256);
+      const served = await page.request.get("/api/v1" + artifactPath + "/download");
+      expect(served.headers()["content-type"]).toBe("application/octet-stream");
+      expect(served.headers()["cache-control"]).toBe("no-store");
+      expect(await served.body()).toEqual(bytes);
+    }
     await page.screenshot({
       path: "artifacts/ui-automatic-run.png",
       fullPage: true,

@@ -28,11 +28,13 @@ import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
+import { RunArtifacts } from "./features/runs/RunArtifacts";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
 import { subscribeEvents } from "./shared/v2";
 import { inCodexWorkspace, readCodexLaunch, workspaceDialog, workspaceHref, workspacePath } from "./shared/codex-workspace";
 import { mergeDraft } from "./shared/draft-merge";
+import { download } from "./shared/download";
 import { mcpOutputSchema } from "../../../packages/contracts/src/mcp-output-schema";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
@@ -125,14 +127,13 @@ function recoverLocalSession() {
   return sessionRecovery;
 }
 
-async function api(
+async function apiResponse(
   path: string,
   method = "GET",
   body?: J,
   revision?: number,
   signal?: AbortSignal,
-  withMeta = false,
-): Promise<J> {
+): Promise<Response> {
   const sendRequest = () => fetch(path.startsWith("/api/v2/") ? path : "/api/v1" + path, {
     method,
     headers: {
@@ -144,8 +145,8 @@ async function api(
     ...(signal ? { signal } : {}),
   });
   let response = await sendRequest();
-  let value = await response.json();
-  const staleCsrf = response.status === 403 && value.error?.code === "CSRF_DENIED";
+  const staleCsrf = response.status === 403 &&
+    (await response.clone().json().catch(() => null))?.error?.code === "CSRF_DENIED";
   if ((response.status === 401 || staleCsrf) && !path.startsWith("/auth/")) {
     const recovered = await recoverLocalSession();
     if (recovered && (recovered.issued || staleCsrf)) {
@@ -153,19 +154,32 @@ async function api(
       window.dispatchEvent(new Event("flowhub-session-restored"));
       if (["GET", "HEAD"].includes(method)) {
         response = await sendRequest();
-        value = await response.json();
       }
       else throw new UiError("AUTH_REQUIRED", "本机连接已恢复，请重试刚才的操作。", 401);
     }
   }
-  if (!response.ok)
+  if (!response.ok) {
+    const value = await response.json().catch(() => null);
     throw new UiError(
-      String(value.error?.code ?? response.status),
-      value.error?.message ?? "请求失败",
+      String(value?.error?.code ?? response.status),
+      value?.error?.message ?? "请求失败",
       response.status,
-      value.error?.details,
+      value?.error?.details,
       path,
     );
+  }
+  return response;
+}
+
+async function api(
+  path: string,
+  method = "GET",
+  body?: J,
+  revision?: number,
+  signal?: AbortSignal,
+  withMeta = false,
+): Promise<J> {
+  const value = await (await apiResponse(path, method, body, revision, signal)).json();
   return withMeta ? value : value.data;
 }
 const pretty = (v: J) => JSON.stringify(v, null, 2);
@@ -496,6 +510,7 @@ function App() {
   const deletionPendingRef = useRef(false);
   const [deletionPending,setDeletionPending] = useState(false);
   const [credentials, setCredentials] = useState<J[]>([]);
+  const [runListState, setRunListState] = useState<"pending" | "ready" | { message: string }>("pending");
   const [runsMeta, setRunsMeta] = useState<J>(null),
     [runFilter, setRunFilter] = useState("");
   const runFilterRef = useRef(runFilter),
@@ -508,7 +523,9 @@ function App() {
     [dirty, setDirty] = useState(false),
     [selected, setSelected] = useState<string | null>(null),
     [run, setRun] = useState<J>(null),
-    [artifact, setArtifact] = useState<J>(null);
+    [previewArtifactId, setPreviewArtifactId] = useState<string | null>(null);
+  const [runLoadIssue, setRunLoadIssue] = useState<{ path: string; message: string } | null>(null);
+  const [runReload, setRunReload] = useState(0);
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
@@ -534,7 +551,6 @@ function App() {
       library.focus({ preventScroll: true });
     }
   }, [path]);
-  const artifactRequest = useRef(0);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
@@ -650,44 +666,39 @@ function App() {
   const loadRuns = useCallback(
     async (cursor?: string, state = runFilterRef.current) => {
       const request = ++runListRequest.current;
+      setRunListState("pending");
       const params = new URLSearchParams({
         limit: "50",
         ...(cursor ? { cursor } : {}),
         ...(state ? { state } : {}),
       });
-      const result = await api(
-        "/runs?" + params,
-        "GET",
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      if (request !== runListRequest.current) return;
-      setRuns((old) =>
-        cursor
-          ? [
-              ...old,
-              ...result.data.filter(
-                (item: J) => !old.some((known) => known.id === item.id),
-              ),
-            ]
-          : result.data,
-      );
-      setRunsMeta(result.meta);
+      try {
+        const result = await api("/runs?" + params, "GET", undefined, undefined, undefined, true);
+        if (request !== runListRequest.current) return;
+        if (!Array.isArray(result?.data)) throw new Error("运行记录响应无效。");
+        setRuns((old) => cursor
+          ? [...old, ...result.data.filter((item: J) => !old.some((known) => known.id === item.id))]
+          : result.data);
+        setRunsMeta(result.meta);
+        setRunListState("ready");
+      } catch (e) {
+        if (request === runListRequest.current)
+          setRunListState({ message: (e as Error).message });
+      }
     },
     [],
   );
   const load = useCallback(async () => {
+    const runsLoad = loadRuns();
     const [w, c, b, t] = await Promise.all(
       ["/workflows", "/connections", "/bindings", "/tools"]
-        .map((p) => api(p))
-        .concat(loadRuns()),
+        .map((p) => api(p)),
     );
     setWorkflows(w.filter((workflow:J)=>!deletedWorkflows.current.has(workflow.id)));
     setConnections(c);
     setBindings(b);
     setTools(t);
+    await runsLoad;
   }, []);
   const navigate = (next: string, skipDirty = false) => {
     if(deletionPendingRef.current) return false;
@@ -706,7 +717,7 @@ function App() {
     history.pushState({ flowhubIndex: historyIndex.current }, "", workspaceHref(next));
     setPath(next);
     setModal(null);
-    setArtifact(null);
+    setPreviewArtifactId(null);
     return true;
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
@@ -1018,7 +1029,8 @@ function App() {
     if (/^\/runs\/[^/]+$/.test(path)) {
       const key = path.split("/")[2];
       setRun(null);
-      setArtifact(null);
+      setPreviewArtifactId(null);
+      setRunLoadIssue(null);
       let cursor = 0;
       let events: J[] = [];
       let refreshing = false;
@@ -1026,9 +1038,9 @@ function App() {
         if (refreshing) return;
         refreshing = true;
         try {
-          let detail: J;
+          let hasNext = false;
           do {
-            detail = await api(
+            const detail = await api(
               "/runs/" + key + "?after=" + cursor,
               "GET",
               undefined,
@@ -1041,21 +1053,28 @@ function App() {
               pathRef.current !== path
             )
               return;
+            if (detail?.runId !== key)
+              throw new Error("运行详情响应无效。");
+            const additionalEvents = Array.isArray(detail.events) ? detail.events : [];
             const seen = new Set(events.map((event) => event.seq));
             events = [
               ...events,
-              ...detail.events.filter((event: J) => !seen.has(event.seq)),
+              ...additionalEvents.filter((event: J) => !seen.has(event.seq)),
             ];
-            cursor = events.at(-1)?.seq ?? cursor;
+            const nextCursor = detail.eventCursor?.nextAfter ?? events.at(-1)?.seq ?? cursor;
+            hasNext = (detail.eventCursor?.hasMore ?? additionalEvents.length === 200) && nextCursor > cursor;
+            cursor = nextCursor;
             setRun({ ...detail, events });
-          } while (
-            (detail.eventCursor?.hasMore ?? detail.events.length === 200) &&
-            active
-          );
+            setRunLoadIssue(null);
+          } while (hasNext && active);
         } catch (e) {
-          if (active) {
-            setError((e as Error).message);
-            setFailure(e);
+          if (active && generation === routeGeneration.current && pathRef.current === path) {
+            const missing = e instanceof UiError && e.status === 404;
+            setRunLoadIssue({
+              path,
+              message: missing ? "这条记录不存在，或已超过保留期限。" : (e as Error).message,
+            });
+            if (missing && timer) clearInterval(timer);
           }
         } finally {
           refreshing = false;
@@ -1069,7 +1088,7 @@ function App() {
       controller.abort();
       if (timer) clearInterval(timer);
     };
-  }, [path, session]);
+  }, [path, session, runReload]);
   const refreshRun = async () => {
     if (run) {
       const currentPath = pathRef.current;
@@ -1083,7 +1102,7 @@ function App() {
                 ...detail,
                 events: [
                   ...old.events,
-                  ...detail.events.filter(
+                  ...(Array.isArray(detail.events) ? detail.events : []).filter(
                     (event: J) =>
                       !old.events.some((known: J) => known.seq === event.seq),
                   ),
@@ -1093,36 +1112,6 @@ function App() {
         );
     }
     await load();
-  };
-  const readArtifact = async (
-    artifactId: string,
-    offset = 0,
-    append = false,
-  ) => {
-    if (!run) return;
-    const sourcePath = pathRef.current,
-      generation = routeGeneration.current,
-      request = ++artifactRequest.current;
-    const detail = await api(
-      "/runs/" +
-        run.runId +
-        "/artifacts/" +
-        artifactId +
-        "?offset=" +
-        offset +
-        "&maxBytes=262144",
-    );
-    if (
-      pathRef.current !== sourcePath ||
-      generation !== routeGeneration.current ||
-      request !== artifactRequest.current
-    )
-      return;
-    setArtifact((previous: J) =>
-      append && previous?.artifactId === artifactId
-        ? { ...detail, content: previous.content + detail.content }
-        : detail,
-    );
   };
   const currentWorkflow = () => editorRef.current.draft;
   const editorSnapshot = () => structuredClone(editorRef.current);
@@ -1630,8 +1619,10 @@ function App() {
       ? "connections"
       : (path.split("/")[1] ?? "workflows");
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
-  const assistantRun=page==="runs"&&run&&path.split("/")[2]===run.runId?run:null;
-  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(artifact?.artifactId?{artifactRefs:[artifact.artifactId]}:{})}:{};
+  const runDetailId = page === "runs" && /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2] : null;
+  const assistantRun = runDetailId && run?.runId === runDetailId ? run : null;
+  const currentRunIssue = runLoadIssue?.path === path ? runLoadIssue.message : null;
+  const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(previewArtifactId?{artifactRefs:[previewArtifactId]}:{})}:{};
   const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
   if (!session)
     return (
@@ -3073,6 +3064,13 @@ function App() {
                     ))}
                   </select>
                 </label>
+                {runListState === "pending" && <p role="status">正在读取运行记录…</p>}
+                {typeof runListState === "object" && (
+                  <>
+                    <p role="alert" className="error">无法读取运行记录。{runListState.message}</p>
+                    <button onClick={() => void loadRuns()}>重试读取运行记录</button>
+                  </>
+                )}
                 <table>
                   <thead>
                     <tr>
@@ -3100,12 +3098,12 @@ function App() {
                             tone={
                               r.state === "SUCCEEDED"
                                 ? "green"
-                                : r.state.startsWith("WAITING")
+                                : typeof r.state === "string" && r.state.startsWith("WAITING")
                                   ? "amber"
                                   : "gray"
                             }
                           >
-                            {statusLabels[r.state] ?? r.state}
+                            {statusLabels[r.state] ?? r.state ?? "状态未记录"}
                           </Badge>
                         </td>
                         <td>
@@ -3122,10 +3120,10 @@ function App() {
                     ))}
                   </tbody>
                 </table>
-                {!runs.length && (
+                {runListState === "ready" && !runs.length && (
                   <Empty text="暂无运行，从工作流启动一次合成排查" />
                 )}
-                {runsMeta?.hasMore && (
+                {runListState === "ready" && runsMeta?.hasMore && (
                   <button
                     disabled={busy}
                     onClick={() => act(() => loadRuns(runsMeta.nextCursor))}
@@ -3136,16 +3134,31 @@ function App() {
               </section>
             </>
           )}
-          {page === "runs" &&
-            /^\/runs\/[^/]+$/.test(path) &&
-            run &&
-            run.runId === path.split("/")[2] && (
+          {runDetailId && (!assistantRun || currentRunIssue) && (
+            <>
+              {!assistantRun && (
+                <PageHead eyebrow="RUN DETAIL" title="运行详情" text={runDetailId}>
+                  <button onClick={() => navigate("/runs")}>返回运行记录</button>
+                </PageHead>
+              )}
+              <section className="panel">
+                {currentRunIssue ? (
+                  <>
+                    <p role="alert" className="error">无法读取运行详情。{currentRunIssue}</p>
+                    <button onClick={() => setRunReload(value => value + 1)}>重试读取运行详情</button>
+                  </>
+                ) : <p role="status">正在读取运行详情…</p>}
+              </section>
+            </>
+          )}
+          {assistantRun && (
               <>
                 <PageHead
                   eyebrow="RUN DETAIL"
-                  title={run.workflowId}
-                  text={run.runId + " · v" + run.version}
+                  title={run.workflowId ?? "运行详情"}
+                  text={run.version ? run.runId + " · v" + run.version : run.runId}
                 >
+                  <button onClick={() => navigate("/runs")}>返回运行记录</button>
                   <Badge>{run.environment} · 不可变快照</Badge>
                   <button
                     onClick={() =>
@@ -3164,10 +3177,12 @@ function App() {
                 </PageHead>
                 <div className="run-summary">
                   <Badge tone={run.state === "SUCCEEDED" ? "green" : "amber"}>
-                    {statusLabels[run.state] ?? run.state}
+                    {statusLabels[run.state] ?? run.state ?? "状态未记录"}
                   </Badge>
                   <span>revision {run.revision}</span>
-                  <code>{run.snapshotHash.slice(0, 28)}…</code>
+                  {typeof run.snapshotHash === "string" && run.snapshotHash
+                    ? <code>{run.snapshotHash.slice(0, 28)}…</code>
+                    : <span>快照哈希未记录</span>}
                   {run.waitingReason && (
                     <span className="error">{run.waitingReason}</span>
                   )}
@@ -3177,14 +3192,14 @@ function App() {
                   <section className="panel">
                     <h2>执行步骤</h2>
                     <p>当前节点：{run.currentNode}</p>
-                    {run.nodeDetails?.map((node: J) => <details key={node.nodeId}>
-                      <summary>{node.title} · {run.steps[node.nodeId]}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                    {Array.isArray(run.nodeDetails) && run.nodeDetails.map((node: J) => <details key={node.nodeId}>
+                      <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
                       {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
                       {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
                       {node.errorCode && <p className="error">{node.errorCode}</p>}
                     </details>)}
                     <div className="timeline">
-                      {Object.entries(run.steps).map(([id, state]) => (
+                      {Object.entries(run.steps ?? {}).map(([id, state]) => (
                         <div
                           key={id}
                           className={state === "SUCCEEDED" ? "done" : ""}
@@ -3294,125 +3309,14 @@ function App() {
                         人工复核并创建新运行
                       </button>
                     )}
-                    <section className="panel">
-                      <h2>
-                        证据与报告 <small>{run.artifacts.length} 个</small>
-                      </h2>
-                      {run.artifacts.map((a: J) => (
-                        <div className="artifact" key={a.id}>
-                          <span>
-                            {a.mimeType === "text/markdown" ? "▧" : "▤"}
-                          </span>
-                          <div>
-                            <strong>
-                              {a.nodeId} · {a.mimeType}
-                            </strong>
-                            <small>
-                              {a.id} · {a.byteLength} bytes
-                            </small>
-                          </div>
-                          <button onClick={() => act(() => readArtifact(a.id))}>
-                            查看
-                          </button>
-                        </div>
-                      ))}
-                      {!run.artifacts.length && <Empty text="尚未收集到证据" />}
-                      {artifact && (
-                        <div className="evidence">
-                          <div className="row">
-                            <Badge tone="green">内容已存储 · SHA-256</Badge>
-                            <button
-                              onClick={() =>
-                                download(
-                                  [
-                                    run.workflowId,
-                                    run.runId,
-                                    new Date(run.createdAt)
-                                      .toISOString()
-                                      .slice(0, 10),
-                                    artifact.artifactId,
-                                  ].join("-") +
-                                    (artifact.mimeType === "text/markdown"
-                                      ? ".md"
-                                      : artifact.mimeType === "text/html"
-                                        ? ".html"
-                                        : artifact.mimeType ===
-                                            "application/json"
-                                          ? ".json"
-                                          : ".txt"),
-                                  artifact.content,
-                                  artifact.mimeType,
-                                )
-                              }
-                            >
-                              下载当前块
-                            </button>
-                          </div>
-                          <pre>{artifact.content}</pre>
-                          <code className="artifact-hash">
-                            SHA-256：{artifact.sha256}
-                          </code>
-                          <dl className="verification-details">
-                            <dt>内容保存</dt>
-                            <dd>
-                              {artifact.verification?.contentStored === true
-                                ? "实际内容已保存"
-                                : "未声明"}
-                            </dd>
-                            <dt>结构校验</dt>
-                            <dd>
-                              {artifact.verification?.formatValidated === true
-                                ? "通过"
-                                : "未声明或未通过"}
-                            </dd>
-                            <dt>证据引用校验</dt>
-                            <dd>
-                              {artifact.verification
-                                ?.evidenceReferencesValidated === true
-                                ? "通过"
-                                : "未声明或未通过"}
-                            </dd>
-                            <dt>Skill 执行</dt>
-                            <dd>
-                              {artifact.verification?.skillExecution ===
-                              "host_reported"
-                                ? "宿主声明，Hub 未独立证实"
-                                : artifact.verification?.skillExecution ===
-                                    "not_used"
-                                  ? "未使用宿主 Skill（模板生成）"
-                                  : (artifact.verification?.skillExecution ??
-                                    "未声明")}
-                            </dd>
-                            <dt>事实审查</dt>
-                            <dd>
-                              {artifact.verification?.factualReview ===
-                              "human_reviewed"
-                                ? "已记录人工复核"
-                                : "未人工审查"}
-                            </dd>
-                          </dl>
-                          {!artifact.eof && (
-                            <button
-                              onClick={() =>
-                                act(() =>
-                                  readArtifact(
-                                    artifact.artifactId,
-                                    artifact.nextOffset,
-                                    true,
-                                  ),
-                                )
-                              }
-                            >
-                              继续读取下一块
-                            </button>
-                          )}
-                          <small>
-                            格式和引用校验不代表事实已人工复核；Skill
-                            执行仅为宿主声明。
-                          </small>
-                        </div>
-                      )}
-                    </section>
+                    <RunArtifacts
+                      key={run.runId}
+                      runId={run.runId}
+                      artifacts={Array.isArray(run.artifacts) ? run.artifacts : []}
+                      onPreview={setPreviewArtifactId}
+                      getChunk={(path, signal) => api(path, "GET", undefined, undefined, signal)}
+                      getDownload={(path, signal) => apiResponse(path, "GET", undefined, undefined, signal)}
+                    />
                     <section className="panel">
                       <h2>事件时间线</h2>
                       {run.events.map((e: J) => (
@@ -4311,16 +4215,6 @@ function Empty({ text }: { text: string }) {
       <p>{text}</p>
     </div>
   );
-}
-function download(filename: string, content: string, mimeType = "text/plain") {
-  const url = URL.createObjectURL(
-    new Blob([content], { type: mimeType + ";charset=utf-8" }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 createRoot(document.getElementById("root")!).render(<App />);
 
