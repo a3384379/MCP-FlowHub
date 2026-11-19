@@ -5,6 +5,7 @@ import { promisify, parseArgs } from "node:util";
 import { appendFile, lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
+import { windowsAutostart } from "./autostart.mjs";
 
 const exec = promisify(execFile);
 export function execWithoutInput(executable, args, options) {
@@ -17,6 +18,7 @@ export function execWithoutInput(executable, args, options) {
 const product = "MCP-FlowHub";
 const markerName = ".flowhub-install.json";
 const ownedRootFiles = ["flowhub.cmd", "installer-helper.mjs", "NSIS-COPYING.txt", "NSIS-NOTICE.txt"];
+const autostartPayload = "scripts/windows-autostart.mjs";
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const normalize = (path) => resolve(path).toLowerCase();
 const contains = (parent, child) => {
@@ -137,6 +139,8 @@ export async function preflight({ installDir, dataDir, processInspector = inspec
     fail("INSTALL_DIRECTORY_NOT_EMPTY", "Choose an empty directory or the existing managed FlowHub installation. Unrelated files will not be overwritten.");
   if (state && normalize(state.dataDir ?? "") !== normalize(dataDir))
     fail("INSTALL_OWNER_INVALID", "The recorded data directory differs from the expected independent data directory.");
+  if (!requireInstalled && state && !state.payloadFiles.includes(autostartPayload) && await stat(join(installDir, "autostart.mjs")))
+    fail("INSTALL_FILE_COLLISION", "An unmanaged file conflicts with the Windows autostart helper.");
   if (await stat(join(dataDir, "daemon.lock")))
     fail("INSTALL_DAEMON_LOCKED", "Stop the daemon before installing, upgrading or uninstalling. A stale daemon.lock must be checked manually; it is never removed by the installer.");
   assertProcessesStopped(await processInspector(), installDir);
@@ -226,6 +230,8 @@ export async function installApplication(options) {
 export async function uninstallApplication(options) {
   const state = await preflight({ ...options, requireInstalled: true });
   const appDir = join(options.installDir, "app");
+  const hasAutostart = state.payloadFiles.includes(autostartPayload);
+  const rootFiles = hasAutostart ? [...ownedRootFiles, "autostart.mjs"] : ownedRootFiles;
   // Validate every target before the first deletion. Never follow junctions or
   // remove an unlisted file, including files added by the user after installation.
   for (const name of state.payloadFiles) {
@@ -234,15 +240,18 @@ export async function uninstallApplication(options) {
     const info = await stat(target);
     if (info && !info.isFile()) fail("INSTALL_OWNER_INVALID", "A managed file is no longer a regular file; no files were removed.");
   }
-  for (const name of ownedRootFiles) {
+  for (const name of rootFiles) {
     const target = join(options.installDir, name);
     await noLinks(target);
     const info = await stat(target);
     if (info && !info.isFile()) fail("INSTALL_OWNER_INVALID", "A managed program file was replaced by a directory; no files were removed.");
   }
+  if (process.platform === "win32" && hasAutostart) {
+    await windowsAutostart("disable", { programDir: appDir, dataDir: options.dataDir });
+  }
   for (const name of state.payloadFiles) await removeOwnedFile(appDir, name);
   await pruneEmptyDirectories(appDir, state.payloadFiles);
-  for (const name of ownedRootFiles) await removeOwnedFile(options.installDir, name);
+  for (const name of rootFiles) await removeOwnedFile(options.installDir, name);
   await unlink(join(options.installDir, markerName));
   return { dataRetained: true, dataDir: options.dataDir };
 }

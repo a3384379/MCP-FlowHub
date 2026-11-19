@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "../../shared/download";
+import { RunBusinessOutcome } from "./RunOutcome";
+import type { BusinessSummary } from "../../../../../packages/contracts/src/business-verification";
 
 type ArtifactSummary = {
   id: string;
@@ -21,6 +23,7 @@ type ArtifactChunk = {
     evidenceReferencesValidated?: boolean;
     skillExecution?: string;
     factualReview?: string;
+    businessVerification?: BusinessSummary;
   };
 };
 type Preview = {
@@ -71,6 +74,12 @@ function Verification({ chunk }: { chunk: ArtifactChunk }) {
             : "未人工审查"}
         </dd>
       </dl>
+      {evidence?.businessVerification && (
+        <div>
+          <small>报告归档时的核验结果</small>
+          <RunBusinessOutcome summary={evidence.businessVerification} detail />
+        </div>
+      )}
       <small>
         结构与证据引用由系统校验。报告事实和 Skill 执行的核验状态见上方。
       </small>

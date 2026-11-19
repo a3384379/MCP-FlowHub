@@ -127,6 +127,7 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
       FLOWHUB_OUTPUT: stagedOutput,
       FLOWHUB_BUNDLE: resolve(bundle),
       FLOWHUB_HELPER: join(sourceRoot, "installer/windows/install-helper.mjs"),
+      FLOWHUB_AUTOSTART: join(sourceRoot, "installer/windows/autostart.mjs"),
       FLOWHUB_MANIFEST: manifestPath,
       FLOWHUB_LAUNCHER: join(sourceRoot, "installer/windows/flowhub.cmd"),
       FLOWHUB_NSIS_LICENSE: join(nsisDir, "COPYING"),

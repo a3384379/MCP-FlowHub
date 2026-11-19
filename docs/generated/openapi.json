@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MCP FlowHub management API",
-    "version": "2.0.0-alpha.7",
+    "version": "2.0.0-alpha.8",
     "description": "Generated from actual registered route declarations and required/optional body fields. Dynamic fields are additionally constrained by runtime schemas and domain rules: consult contracts/source for field types and conditional validation. MCP /mcp uses the official SDK and is separate from this administrator API."
   },
   "servers": [

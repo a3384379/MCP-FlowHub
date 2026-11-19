@@ -5,6 +5,7 @@ import { clone, ensure, hash, id, now, validate, HubError, type Json, type Workf
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
 import { driftIssue } from "./capability-drift.js";
+import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
 
 const batchSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/authoring-batch.schema.json"),"utf8"));
 const deleteSchema = JSON.parse(readFileSync(resolve(projectRoot,"contracts/workflow-delete.schema.json"),"utf8"));
@@ -14,7 +15,8 @@ const mentions = (value: Json, nodeId: string): boolean => !!value && typeof val
 
 /** All entry points share this application service; only the daemon owns its repository. */
 export class AuthoringService {
-  constructor(readonly engine: Engine) {}
+  constructor(readonly engine: Engine,
+    readonly publicationEvidence?: (workflowId: string, revision: number) => Json) {}
   get repo() { return this.engine.repo; }
   authorize(owner: string, workflowId?: string) {
     if (owner === "admin" || owner === "execution") return;
@@ -226,11 +228,10 @@ export class AuthoringService {
           default: throw new HubError("INPUT_INVALID","Unknown operation.");
         }
       }
-      if(w.schemaVersion==="flowhub.workflow/v2") w.executionRequirements={
-        requiresCodex:w.nodes.some(n=>n.type==="agent_task" && (n.config.executorRef==="codex_host" || ["host_tool","host_skill"].includes(n.config.kind))),
-        executors:[...new Set(w.nodes.map(n=>n.type==="mcp_tool"?"hub_direct":n.type==="agent_task"?(n.config.executorRef??"codex_host"):null).filter(Boolean))],
-        capabilityRefs:refs(w),
-      };
+      if (w.schemaVersion === "flowhub.workflow/v2") {
+        const { requiresCodex, executors, capabilityRefs } = workflowRequirements(w);
+        w.executionRequirements = { requiresCodex, executors, capabilityRefs };
+      }
       validateWorkflowDocument(w); // Incomplete graphs may persist; illegal DSL/config never does.
       const revision=before.revision+(layoutOnly?0:1);
       const record={...before,draft:w,workflow:undefined,issues:undefined,capabilityRefs:undefined,name:w.name,description:w.description,tags:w.tags,layout,layoutRevision,revision,updatedAt:now()};
@@ -256,7 +257,9 @@ export class AuthoringService {
   publishLegacy(workflowId: string, expectedRevision?: number, changeNote = "", expectedBindingRevisions?: Record<string,number>) {
     return this.repo.tx(() => {
       ensure(this.repo.get("workflows",workflowId)?.draft.schemaVersion!=="flowhub.workflow/v2","CAPABILITY_STALE","Publish v2 drafts through the reviewed capability revision contract.",409);
-      const result=this.engine.publish(workflowId,expectedRevision,changeNote,expectedBindingRevisions);
+      const revision = this.repo.get("workflows", workflowId)?.revision;
+      const result=this.engine.publish(workflowId,expectedRevision,changeNote,expectedBindingRevisions,
+        revision && this.publicationEvidence?.(workflowId, revision));
       this.repo.changed("draft.changed",{workflowId,revision:this.repo.get("workflows",workflowId).revision});
       return result;
     });
@@ -321,7 +324,8 @@ export class AuthoringService {
       ensure(check.valid,"WORKFLOW_INVALID",JSON.stringify(check.issues));
       const draft={...record.draft,version:a.version};validateWorkflowDocument(draft);
       this.repo.put("workflows",a.workflowId,{...record,draft});
-      const result=this.engine.publish(a.workflowId,a.expectedRevision,"v2 authoring",a.expectedBindingRevisions);
+      const result=this.engine.publish(a.workflowId,a.expectedRevision,"v2 authoring",a.expectedBindingRevisions,
+        this.publicationEvidence?.(a.workflowId, a.expectedRevision));
       this.repo.changed("draft.changed",{workflowId:a.workflowId,revision:this.repo.get("workflows",a.workflowId).revision});
       return result;
     });

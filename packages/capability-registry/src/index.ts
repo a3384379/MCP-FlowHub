@@ -346,7 +346,9 @@ export class CapabilityRegistry {
         SELECT p.id,p.revision FROM discovery_presentations p JOIN filtered f ON f.id=json_extract(p.body,'$.entityId') ORDER BY p.id
       )) AS presentations,
       (SELECT json_group_array(json(summary)) FROM (
-        SELECT json_remove(c.body,'$.inputSchema','$.outputSchema','$.tool','$.skillContent') AS summary
+        SELECT json_set(json_remove(c.body,'$.inputSchema','$.outputSchema','$.tool','$.skillContent'),
+          '$.hasToolContract', json(CASE WHEN json_type(c.body,'$.inputSchema')='object'
+            AND json_type(c.body,'$.outputSchema')='object' THEN 'true' ELSE 'false' END)) AS summary
         FROM capabilities c JOIN filtered f ON f.id=c.id WHERE c.id>? ORDER BY c.id LIMIT ?
       )) AS page`).get(...params,after,limit+1) as {versions:string|null;presentations:string|null;page:string};
     const snapshot=hash([result.versions??"",result.presentations??""]).slice(0,16);if(a.cursor)ensure(cursor!.s===snapshot,"CAPABILITY_STALE","Capability cursor snapshot changed.",409);

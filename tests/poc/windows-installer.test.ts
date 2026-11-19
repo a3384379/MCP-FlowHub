@@ -13,6 +13,7 @@ const { installApplication, uninstallApplication, preflight, validateWindowsPath
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
 const { windowsTestEnvironment } = await import(pathToFileURL(resolve("scripts/windows-test-environment.mjs")).href);
+const { taskDefinition, windowsAutostart } = await import(pathToFileURL(resolve("installer/windows/autostart.mjs")).href);
 const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
 
 test("offline Windows processes retain OS identity without global tools, credentials or Node injection", () => {
@@ -34,6 +35,29 @@ test("noninteractive installer probes receive EOF and preserve Unicode output an
   const result = await execWithoutInput(process.execPath, ["-e", script], { timeout: 5000 });
   assert.deepEqual(JSON.parse(result.stdout), { target: "C:\\用户\\程序 files\\node.exe" });
   await assert.rejects(execWithoutInput(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>process.exit(7));"], { timeout: 5000 }), { code: 7 });
+});
+
+test("Windows logon task uses the bundled runtime, stable data identity and current-user ownership", async () => {
+  const options = { programDir: "C:\\用户\\FlowHub 程序", dataDir: "D:\\同一数据 目录", port: "19222" };
+  const task = taskDefinition(options);
+  assert.equal(task.node, "C:\\用户\\FlowHub 程序\\runtime\\node.exe");
+  assert.equal(task.key, taskDefinition({ ...options, port: "18473", programDir: "C:\\另一安装" }).key);
+  assert.match(task.argumentsPrefix, /" serve --data-dir "D:\\同一数据 目录" --port$/);
+  assert.throws(() => taskDefinition({ ...options, dataDir: options.programDir + "\\data" }), /independent/);
+  for (const port of ["0", "65536", "18473 extra"]) assert.throws(() => taskDefinition({ ...options, port }), /PORT/);
+  const simulated = async (executable: string, args: string[], launch: { env: Record<string, string> }) => {
+    assert.match(executable, /System32\\WindowsPowerShell\\v1\.0\\powershell\.exe$/i);
+    assert.ok(!args.includes("Bypass"));
+    assert.match(args.at(-1)!, /-LogonType Interactive -RunLevel Limited/);
+    assert.equal(launch.env.FLOWHUB_TASK_ACTION, "enable");
+    assert.equal(launch.env.FLOWHUB_TASK_PORT, task.port);
+    assert.equal(launch.env.FLOWHUB_TASK_ARGUMENTS, task.argumentsPrefix);
+    return { stdout: '{"state":"different_installation"}' };
+  };
+  await assert.rejects(windowsAutostart("enable", options, simulated), /AUTOSTART_CONFLICT/);
+  await assert.rejects(windowsAutostart("status", options, async () => {
+    throw Object.assign(new Error("scheduler failed"), { stderr: "Access is denied." });
+  }), /Access is denied/);
 });
 
 async function put(root: string, name: string, content: string) {

@@ -48,6 +48,8 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
   test.setTimeout(90000);const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
   const api=await authenticate(page),fixture=await discoveryFixture();
   try {
+    if ((await api("/api/v1/auth/state")).vaultLocked)
+      await api("/api/v1/vault/unlock", "POST", { password: "Synthetic-browser-password-041" });
     const context=await openDiscovery(page,api,fixture),status=page.locator(".v2-discovery [role=status]");
     await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
     await page.getByRole("tab",{name:/Skills 技能/}).click(); await expect(page.locator(".d-cap-row").filter({hasText:fixture.skillName})).toContainText("仅 Codex 调用"); await page.getByRole("tab",{name:/MCP 服务/}).click();
@@ -67,6 +69,7 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
     const workflowId=await createBlank(api,"真实能力插入与持久化");await page.goto("/workflows/"+workflowId+"/editor");await expect(page.locator(".react-flow__node")).toHaveCount(2);
     const picker=page.locator(".v2-capability-picker");
     await picker.getByLabel("能力来源").selectOption(direct.sourceRefs[0].sourceId);await picker.getByLabel("查找工具",{exact:true}).fill(direct.name);await picker.getByRole("button",{name:"搜索能力",exact:true}).click();
+    await expect(picker.getByRole("button",{name:/^synthetic_order_lookup/})).toContainText("FlowHub 直连");
     const imported=page.waitForResponse(response=>response.url().endsWith("/api/v2/capabilities/"+direct.id+"/import")&&response.request().method()==="POST");
     const patched=page.waitForResponse(response=>response.url().endsWith("/api/v2/workflows/"+workflowId+"/operations")&&response.request().method()==="POST");
     await picker.getByRole("button",{name:/^synthetic_order_lookup/}).click();

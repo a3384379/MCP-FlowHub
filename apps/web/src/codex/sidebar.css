@@ -67,3 +67,10 @@ aside input { width: 100%; min-width: 0; }
   header { gap: 10px; }
   header a { margin-left: 0; }
 }
+
+.management-entry { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+#management-feedback { margin: 12px clamp(16px, 3vw, 42px); }
+#workspace-url { width: min(32ch, 100%); }
+@media (max-width: 640px) {
+  .management-entry { margin-left: 0; }
+}

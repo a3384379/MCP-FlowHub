@@ -174,6 +174,7 @@ async function codexPluginSmoke(codex, bundle, env, toolCount) {
       names,
       [
         "flowhub:flowhub-author",
+        "flowhub:flowhub-run",
         "flowhub:flowhub-setup",
         "flowhub:flowhub-test-report",
       ],

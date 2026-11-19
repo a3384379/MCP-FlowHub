@@ -42,8 +42,15 @@ document.body.innerHTML = `
     <button id="workflows-tab" aria-current="page">工作流</button>
     <button id="capabilities-tab">能力目录</button>
   </nav>
-  <a id="open-web" target="_blank" rel="noopener noreferrer">打开完整管理页 ↗</a>
+  <div class="management-entry">
+    <a id="open-web" target="_blank" rel="noopener noreferrer">打开完整管理页 ↗</a>
+    <button id="copy-web" type="button">复制本机地址</button>
+  </div>
 </header>
+<div id="management-feedback" hidden>
+  <p id="management-status" role="status"></p>
+  <label id="management-address" hidden>本机地址 <input id="workspace-url" readonly></label>
+</div>
 <div id="connection" role="status">正在连接 FlowHub…</div>
 <button id="retry" hidden>重试连接</button>
 <main id="workflows" hidden>
@@ -106,14 +113,34 @@ const connected = element("connection");
 const retry = element<HTMLButtonElement>("retry");
 const fallback = element<HTMLAnchorElement>("open-web");
 fallback.href = document.body.dataset.workspace!;
+const workspaceUrl = element<HTMLInputElement>("workspace-url");
+workspaceUrl.value = fallback.href;
+workspaceUrl.addEventListener("focus", () => workspaceUrl.select());
+function managementFeedback(text: string, showAddress = false) {
+  element("management-feedback").hidden = false;
+  element("management-status").textContent = text;
+  element("management-address").hidden = !showAddress;
+}
+element("copy-web").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(fallback.href);
+    managementFeedback("已复制本机地址。");
+  } catch {
+    managementFeedback("请复制本机地址，在浏览器打开。", true);
+    workspaceUrl.focus();
+  }
+});
 fallback.addEventListener("click", async event => {
-  if (!app.getHostCapabilities()?.openLinks) return;
+  if (!app.getHostCapabilities()?.openLinks) {
+    managementFeedback("已尝试在浏览器打开，可手动访问本机地址。", true);
+    return;
+  }
   event.preventDefault();
   try {
     if ((await app.openLink({ url: fallback.href })).isError) throw Error();
+    managementFeedback("已请求打开管理页，请查看 Codex 标签页或系统浏览器。");
   } catch {
-    connected.hidden = false;
-    connected.textContent = "可复制本机地址 " + fallback.href + "，在浏览器打开。";
+    managementFeedback("Codex 未打开管理页。请复制本机地址，在浏览器打开。", true);
   }
 });
 

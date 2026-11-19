@@ -62,7 +62,8 @@ test("real compatible catalog selects and persists an actual ID, reuses its save
     await expect(page.getByRole("button",{name:"测试文本 / 工具 / 流式",exact:true}).first()).toBeDisabled();
     await expect(page.getByText("凭据库已锁定",{exact:false})).toBeVisible();
     await page.getByLabel("模型配置名称",{exact:true}).fill("解锁前保留的模型草稿");
-    await page.getByRole("button",{name:"解锁凭据库",exact:true}).click();
+    await expect(page.locator("#model-save-block")).toContainText("先解锁本机凭据库");
+    await page.getByRole("button",{name:"去解锁凭据库",exact:true}).click();
     const unlock=page.getByRole("dialog",{name:"解锁凭据库",exact:true});
     await unlock.getByLabel("凭据库口令",{exact:true}).fill("Synthetic-browser-password-041");
     await unlock.getByRole("button",{name:"确认",exact:true}).click();

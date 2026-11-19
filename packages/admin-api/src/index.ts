@@ -24,6 +24,7 @@ import {
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
@@ -780,7 +781,15 @@ export async function registerAdmin(
     return data(next);
   });
 
-  app.get("/api/v1/workflows", async () => data(repo.all("workflows").filter(w=>!w.deletedAt)));
+  app.get("/api/v1/workflows", async () => data(repo.all("workflows").filter(w => !w.deletedAt).map(w => {
+    const published = w.defaultVersion && repo.get("versions", w.id + "@" + w.defaultVersion);
+    return {
+      ...w,
+      ...(published?.snapshot?.workflow ? {
+        publishedRequirements: workflowRequirements(published.snapshot.workflow),
+      } : {}),
+    };
+  })));
   app.post("/api/v1/workflows", async (req) => {
     const b = body(req, ["workflow"], ["layout"]);
     return data(authoring.saveRaw(b.workflow, undefined, b.layout ?? {}));
@@ -810,7 +819,13 @@ export async function registerAdmin(
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
     ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
-    return data(engine.validateDraft(w.draft));
+    return data({
+      ...engine.validateDraft(w.draft),
+      validationEvidence: {
+        draftRevision: w.revision, structure: "SUCCEEDED",
+        ...authoring.publicationEvidence?.(w.id, w.revision),
+      },
+    });
   });
   app.post("/api/v1/workflows/:id/publish", async (req) => {
     const b = body(
@@ -971,9 +986,12 @@ export async function registerAdmin(
   app.get("/api/v1/runs/:id", async (req) => {
     const runId = param(req),
       { after, limit } = eventPageQuery(req.query);
-    const status = engine.status(runId, owner(runId), after, limit);
+    const runOwner = owner(runId);
+    const status = engine.status(runId, runOwner, after, limit);
     return data({
       ...status,
+      hostIdentityLabel: runOwner === "execution" ? "本机个人编排身份"
+        : repo.get("clients", runOwner)?.label ?? "原受限宿主身份",
       eventCursor: eventCursor(repo, runId, after, limit, status.events),
     });
   });

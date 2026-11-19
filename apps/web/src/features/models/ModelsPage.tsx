@@ -25,6 +25,17 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
   }catch(e){if(live.current&&request===generation.current)setError(explain(e));}finally{if(live.current&&request===generation.current)setCatalogBusy(false);}};
   const selected=catalog?.models.find(item=>item.id===model);
   const available=!!selected&&(!selected.shutdownDate||selected.shutdownDate>new Date().toISOString().slice(0,10));
+  const manualModel = service === "custom" && manual;
+  const canRefresh = !busy && !catalogBusy && !!baseUrl && (!!key || !!current?.keyConfigured && vault.locked === false);
+  const saveBlock = busy ? "保存进行中。" : catalogBusy ? "正在读取模型目录。"
+    : vault.locked === null ? "等待读取本机凭据库状态。"
+    : vault.locked ? (vault.initialized === false ? "先设置本机凭据库口令。" : "先解锁本机凭据库。")
+    : !baseUrl.trim() || !name.trim() ? "填写配置名称和 Base URL。"
+    : !manualModel && !catalog
+      ? (key || current?.keyConfigured ? "刷新可用模型目录后再保存。" : "填写 API Key，再刷新可用模型目录。")
+    : manualModel ? (model.trim() ? "" : "填写兼容服务提供的模型标识。")
+    : available ? "" : "在目录中选择一个可用模型。";
+  const modelPicker = useRef<HTMLSelectElement>(null);
   const save=async()=>{setBusy(true);setError("");try{
     if((service==="openai"||!manual)&&!available)throw new Error("请先从官方接口刷新模型列表，再选择可用模型。");
     const request=generation.current;
@@ -39,7 +50,7 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
   return <section className="v2-page"><h1>模型设置</h1><p>选择模型服务后查询可用模型。API Key 保存在本机凭据库；Codex、画布和 Mock 不依赖此配置。</p>
     <VaultNotice vault={vault} unlock={onUnlockVault} />
     {error&&<p className="banner error" role="alert">{error}</p>}
-    <div className="v2-two-columns"><form className="panel" onSubmit={e=>{e.preventDefault();void save();}}>
+    <div className="v2-two-columns"><form className="panel" onSubmit={e=>{e.preventDefault();if(!saveBlock)void save();}}>
       <h2>{current?"修改模型":"添加模型"}</h2>
       <label className="field">模型服务<select aria-label="模型服务" disabled={busy} value={service} onChange={e=>chooseService(e.target.value)}>{MODEL_SERVICES.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       {service==="openai"&&<p>使用 OpenAI API Key；ChatGPT/Codex 中显示的模型名称需以当前 API Key 的查询结果为准。</p>}
@@ -48,12 +59,12 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
       <label className="field">Base URL<input required type="url" readOnly={service==="openai"} disabled={busy} value={baseUrl} onChange={e=>{invalidate();setBaseUrl(e.target.value);}}/></label>
       <small>请求会按所选协议使用 /responses 或 /chat/completions，完整接口地址也会自动归一化。</small>
       <label className="field">API Key<input type="password" disabled={busy} autoComplete="off" value={key} onChange={e=>{invalidate();setKey(e.target.value);}} placeholder={current?.keyConfigured?"已配置；留空保留原 Key":"只在此输入，不放入聊天"}/></label>
-      <button type="button" disabled={busy||catalogBusy||(!key&&!current?.keyConfigured)||!baseUrl||(!key&&vault.locked!==false)} onClick={()=>void refreshModels()}>{catalogBusy?"正在查询模型…":"刷新可用模型"}</button>
+      <button type="button" disabled={!canRefresh} onClick={()=>void refreshModels()}>{catalogBusy?"正在查询模型…":"刷新可用模型"}</button>
       <p role="status">{catalogBusy?"正在请求模型服务目录…":catalog?"已从模型接口获取 "+catalog.models.length+" 个模型 · "+catalog.fetchedAt:"填写 API Key 或编辑已有配置后，刷新模型列表。"}</p>
       {service==="custom"&&<label><input type="checkbox" disabled={catalogBusy||busy} checked={manual} onChange={e=>setManual(e.target.checked)}/>输入自定义模型名称</label>}
       {manual&&service==="custom"?<label className="field">Model<input required disabled={catalogBusy||busy} value={model} onChange={e=>setModel(e.target.value)} placeholder="填写兼容服务实际模型标识"/></label>:<>
         <label className="field">搜索模型<input disabled={!catalog||busy} value={filter} onChange={e=>setFilter(e.target.value)}/></label>
-        <label className="field">Model<select aria-label="Model" required disabled={busy||catalogBusy||!catalog} value={model} onChange={e=>setModel(e.target.value)}><option value="">请选择模型</option>{model&&!visibleModels.some(item=>item.id===model)&&<option value={model} disabled>{model}（当前配置，未在列表中）</option>}{visibleModels.map(item=><option value={item.id} disabled={!!item.shutdownDate&&item.shutdownDate<=new Date().toISOString().slice(0,10)} key={item.id}>{item.id}{item.shutdownDate?" · 停用日期 "+item.shutdownDate:""}</option>)}</select></label>
+        <label className="field">Model<select aria-label="Model" ref={modelPicker} required disabled={busy||catalogBusy||!catalog} value={model} onChange={e=>setModel(e.target.value)}><option value="">请选择模型</option>{model&&!visibleModels.some(item=>item.id===model)&&<option value={model} disabled>{model}（当前配置，未在列表中）</option>}{visibleModels.map(item=><option value={item.id} disabled={!!item.shutdownDate&&item.shutdownDate<=new Date().toISOString().slice(0,10)} key={item.id}>{item.id}{item.shutdownDate?" · 停用日期 "+item.shutdownDate:""}</option>)}</select></label>
         {catalog&&!catalog.models.length&&<p>服务未返回可用模型，请检查 API 项目权限。</p>}
         {catalog&&model&&!selected&&<p className="banner">当前模型 {model} 不在这个 Key 的目录中，请重新选择；原配置尚未修改。</p>}
       </>}
@@ -64,7 +75,16 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
       <label className="field">工具调用上限<input type="number" min={1} max={24} required value={maxToolCalls} onChange={e=>setMaxToolCalls(Number(e.target.value))}/></label>
       <label className="field">校验尝试上限（含首次）<input type="number" min={1} max={3} required value={maxCorrectionAttempts} onChange={e=>setMaxCorrectionAttempts(Number(e.target.value))}/></label>
       <label className="field">流式回答<select value={String(stream)} onChange={e=>setStream(e.target.value==="true")}><option value="true">优先流式（探测失败后使用非流式）</option><option value="false">非流式</option></select></label>
-      <button className="primary" disabled={busy||catalogBusy||vault.locked!==false||((service==="openai"||!manual)&&!available)} type="submit">{busy?"保存中…":"保存模型"}</button>{current&&<button type="button" disabled={busy} onClick={()=>{invalidate();setCurrent(null);setModel("");setKey("");setName("");}}>取消修改</button>}
+      {saveBlock && <div className="banner" id="model-save-block">
+        <p>{saveBlock}</p>
+        {vault.locked === true && <button type="button" onClick={onUnlockVault}>
+          {vault.initialized === false ? "去设置凭据库口令" : "去解锁凭据库"}
+        </button>}
+        {vault.locked === false && !manualModel && !available && (catalog
+          ? <button type="button" onClick={()=>modelPicker.current?.focus()}>去选择模型</button>
+          : canRefresh && <button type="button" onClick={()=>void refreshModels()}>去刷新模型目录</button>)}
+      </div>}
+      <button className="primary" disabled={!!saveBlock} aria-describedby={saveBlock ? "model-save-block" : undefined} type="submit">{busy?"保存中…":"保存模型"}</button>{current&&<button type="button" disabled={busy} onClick={()=>{invalidate();setCurrent(null);setModel("");setKey("");setName("");}}>取消修改</button>}
     </form><div className="panel"><h2>已配置模型</h2><p>探测结果是上次测试的历史记录；当前能否使用还取决于凭据库是否解锁。</p>{!profiles.length?<p>尚未配置。可继续使用无 Key 功能。</p>:profiles.map(p=><article key={p.id} className="v2-model-card"><h3>{p.name}</h3><p>{(p.serviceId??modelServiceId(p.baseUrl))==="openai"?"OpenAI（ChatGPT）":"自定义兼容服务"} · {p.providerKind} · {p.model} · {p.keyConfigured?"Key 已配置":"未配置 Key"} · 请求超时 {p.timeoutMs} ms · 最近探测 {p.lastTestAt??"未测试"}</p><div className="actions">
       <button disabled={busy} onClick={()=>edit(p)}>编辑模型</button>
       <button disabled={busy||catalogBusy||vault.locked!==false} onClick={()=>{setBusy(true);setError("");void api("/api/v2/model-profiles/"+p.id+"/test","POST",{}).then(result=>{if(live.current)setProbe(result);}).then(load).catch(e=>{if(live.current)setError(explain(e));}).finally(()=>{if(live.current)setBusy(false);});}}>测试文本 / 工具 / 流式</button>

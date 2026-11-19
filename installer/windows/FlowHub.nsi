@@ -98,6 +98,7 @@ Section "MCP FlowHub (offline)" SEC_MAIN
   SetOutPath "$PLUGINSDIR\helper"
   File /oname=node.exe "${FLOWHUB_BUNDLE}\runtime\node.exe"
   File /oname=install-helper.mjs "${FLOWHUB_HELPER}"
+  File /oname=autostart.mjs "${FLOWHUB_AUTOSTART}"
   File /oname=payload-manifest.json "${FLOWHUB_MANIFEST}"
   nsExec::ExecToStack /TIMEOUT=90000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
   !insertmacro CheckHelper
@@ -109,6 +110,7 @@ Section "MCP FlowHub (offline)" SEC_MAIN
   ClearErrors
   File /oname=flowhub.cmd "${FLOWHUB_LAUNCHER}"
   File /oname=installer-helper.mjs "${FLOWHUB_HELPER}"
+  File /oname=autostart.mjs "${FLOWHUB_AUTOSTART}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   File /oname=NSIS-COPYING.txt "${FLOWHUB_NSIS_LICENSE}"
   File /oname=NSIS-NOTICE.txt "${FLOWHUB_NSIS_NOTICE}"
@@ -138,6 +140,7 @@ Section "Uninstall"
   ClearErrors
   CopyFiles /SILENT "$INSTDIR\app\runtime\node.exe" "$PLUGINSDIR\helper\node.exe"
   CopyFiles /SILENT "$INSTDIR\installer-helper.mjs" "$PLUGINSDIR\helper\install-helper.mjs"
+  CopyFiles /SILENT "$INSTDIR\autostart.mjs" "$PLUGINSDIR\helper\autostart.mjs"
   ${If} ${Errors}
     MessageBox MB_OK|MB_ICONSTOP "FlowHub uninstall helper is missing. Repair using the reviewed installer, then retry. User data was retained." /SD IDOK
     SetErrorLevel 21

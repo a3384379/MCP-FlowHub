@@ -1128,3 +1128,20 @@ footer small {
 .vault-notice span { flex: 1 1 180px; }
 .vault-notice button { flex-shrink: 0; }
 .assistant-composer .vault-notice { margin: 0 0 8px; padding: 6px 8px; }
+
+.execution-requirements small,
+.run-business-outcome small {
+  display: block;
+}
+
+.run-business-outcome {
+  margin-top: 6px;
+}
+
+.business-rule-guide {
+  margin: 12px 0;
+}
+
+.release-evidence {
+  margin-block: 10px;
+}

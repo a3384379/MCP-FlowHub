@@ -2,6 +2,8 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import assert from "node:assert/strict";
 
+const pluginSkills = ["flowhub-setup", "flowhub-author", "flowhub-test-report", "flowhub-run"];
+
 export function pluginServer(platform, compatibility = false) {
   assert.ok(["win32", "darwin", "linux"].includes(platform));
   return {
@@ -56,6 +58,7 @@ export async function stagePlugin(bundle, source, platform = process.platform) {
     join(source, "scripts", "flowhub-plugin.mjs"),
     join(bundle, "scripts", "flowhub-plugin.mjs"),
   );
+  await cp(join(source, "installer", "windows", "autostart.mjs"), join(bundle, "scripts", "windows-autostart.mjs"));
   await writeFile(
     join(bundle, "flowhub-plugin"),
     '#!/bin/sh\nFLOWHUB_PLUGIN_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$FLOWHUB_PLUGIN_DIR/runtime/node" "$FLOWHUB_PLUGIN_DIR/scripts/flowhub-plugin.mjs" "$@"\n',
@@ -85,9 +88,7 @@ export async function verifyPlugin(bundle, platform, version) {
       "plugin.json",
       ".codex-plugin/plugin.json",
       "assets/logo.svg",
-      "skills/flowhub-setup/SKILL.md",
-      "skills/flowhub-author/SKILL.md",
-      "skills/flowhub-test-report/SKILL.md",
+      ...pluginSkills.map(name => "skills/" + name + "/SKILL.md"),
     ]) {
       assert.deepEqual(
         await readFile(join(bundle, file)),
@@ -98,6 +99,10 @@ export async function verifyPlugin(bundle, platform, version) {
     assert.deepEqual(
       await readFile(join(bundle, "scripts/flowhub-plugin.mjs")),
       await readFile(join(bundle, "source/scripts/flowhub-plugin.mjs")),
+    );
+    assert.deepEqual(
+      await readFile(join(bundle, "scripts/windows-autostart.mjs")),
+      await readFile(join(bundle, "source/installer/windows/autostart.mjs")),
     );
     assert.deepEqual(
       await load(".agents/plugins/marketplace.json"),
@@ -118,11 +123,7 @@ export async function verifyPlugin(bundle, platform, version) {
     marketplace.plugins.map((plugin) => [plugin.name, plugin.source.path]),
     [["flowhub", "./"]],
   );
-  for (const name of [
-    "flowhub-setup",
-    "flowhub-author",
-    "flowhub-test-report",
-  ]) {
+  for (const name of pluginSkills) {
     const text = await readFile(
       join(bundle, "skills", name, "SKILL.md"),
       "utf8",

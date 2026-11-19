@@ -83,7 +83,7 @@ addEventListener("message", async event => {
   if (method === "tools/call") send({ id, result: await window.flowhubTool(params) });
   if (method === "ui/open-link") {
     document.querySelector("#opened").textContent = params.url;
-    send({ id, result: {} });
+    send({ id, result: window.rejectManagement ? { isError: true } : {} });
   }
 });
 </script>`,
@@ -124,6 +124,12 @@ addEventListener("message", async event => {
     await expect.poll(() => calls.some(call => call.name === "project_help_search")).toBe(true);
     await sidebar.getByRole("link", { name: /打开完整管理页/ }).click();
     await expect(page.locator("#opened")).toHaveText(origin + "/");
+    await expect(sidebar.getByText(/已请求打开管理页/)).toBeVisible();
+    await page.evaluate(() => { Object.assign(window, { rejectManagement: true }); });
+    await sidebar.getByRole("link", { name: /打开完整管理页/ }).click();
+    await expect(sidebar.getByText(/Codex 未打开管理页/)).toBeVisible();
+    await expect(sidebar.getByLabel("本机地址", { exact: true })).toHaveValue(origin + "/");
+    await expect(sidebar.getByRole("button", { name: "复制本机地址" })).toBeVisible();
     await expect(sidebar.locator("iframe")).toHaveCount(0);
     expect(browserNetwork).toEqual([host + "/app", host + "/resource"]);
     expect(pageErrors).toEqual([]);

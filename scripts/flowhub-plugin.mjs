@@ -10,6 +10,50 @@ import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 
+function ensureWindowsAutostart() {
+  if (process.platform !== "win32")
+    throw new Error("PLUGIN_AUTOSTART_PLATFORM: this command uses the Windows Task Scheduler.");
+}
+
+async function probePlugin(root, dataDir, tokenFile) {
+  const load = path => import(pathToFileURL(join(root, path)));
+  const [{ locateCodex }, { readLocalOrigin }, { inspectMcpConnection }, { windowsAutostart }] = await Promise.all([
+    load("dist/packages/host-discovery/src/index.js"), load("dist/apps/daemon/src/local-config.js"),
+    load("dist/apps/daemon/src/cli.js"), load("scripts/windows-autostart.mjs"),
+  ]);
+  const [plugin, daemon, autostart, mcp] = await Promise.all([
+    (async () => {
+      const codexPath = await locateCodex();
+      if (!codexPath) return { state: "codex_not_found" };
+      try {
+        const { stdout } = await exec(codexPath, ["-c", "features.remote_plugin=false", "plugin", "list"],
+          { timeout: 8000, windowsHide: true });
+        return { state: stdout.includes("flowhub@flowhub-local") ? "registered" : "not_listed", codexPath };
+      } catch (error) {
+        return { state: "unverified", codexPath, error: error.code };
+      }
+    })(),
+    (async () => {
+      try {
+        const origin = await readLocalOrigin(dataDir);
+        const response = await fetch(new URL("api/v1/health", origin), {
+          redirect: "error", signal: AbortSignal.timeout(3000),
+        });
+        if (!response.ok || (await response.json()).status !== "ok") return { state: "unhealthy" };
+        return { state: "healthy", origin: origin.href };
+      } catch {
+        return { state: "unavailable" };
+      }
+    })(),
+    windowsAutostart("status", { programDir: root, dataDir })
+      .catch(error => ({ state: "unverified", error: error.message })),
+    inspectMcpConnection(dataDir, tokenFile)
+      .then(info => ({ state: "connected", identity: tokenFile ? "restricted" : "personal", ...info }))
+      .catch(error => ({ state: "unverified", code: String(error.code ?? "MCP_UNAVAILABLE") })),
+  ]);
+  return { plugin, daemon, autostart, mcp };
+}
+
 async function openDashboard(url) {
   const command = {
     darwin: ["/usr/bin/open", [url]],
@@ -146,18 +190,20 @@ export async function main(args = process.argv.slice(2)) {
     },
   });
   const command = positionals[0];
+  const taskAction = command === "autostart" ? positionals[1] : undefined;
   if (values.help || !command) {
     console.log(
-      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin open\n  flowhub-plugin url\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\n先在独立终端 start，再由 Codex 连接。安装方法见 docs/PLUGIN_PACKAGE.md。",
+      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin status\n  flowhub-plugin autostart enable|disable|status [--data-dir PATH] [--port 18473]\n  flowhub-plugin open\n  flowhub-plugin url\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\n可在独立终端 start，再由 Codex 连接。Windows 登录自启由当前用户显式启用。安装方法见 docs/PLUGIN_PACKAGE.md。",
     );
     return;
   }
   if (
-    positionals.length !== 1 ||
-    !["start", "doctor", "configure", "mcp", "open", "url"].includes(command) ||
+    positionals.length !== (command === "autostart" ? 2 : 1) ||
+    !["start", "doctor", "status", "autostart", "configure", "mcp", "open", "url"].includes(command) ||
+    (command === "autostart" && !["enable", "disable", "status"].includes(taskAction)) ||
     (command !== "configure" &&
-      (values["data-dir"] || values["token-file"] || values.personal)) ||
-    (command !== "start" && values.port)
+      (values["token-file"] || values.personal || command !== "autostart" && values["data-dir"])) ||
+    (command !== "start" && taskAction !== "enable" && values.port)
   ) {
     throw new Error("PLUGIN_INPUT_INVALID: use a documented plugin command.");
   }
@@ -179,6 +225,18 @@ export async function main(args = process.argv.slice(2)) {
   );
   const file = connectionFile(),
     connection = await readConnection(file, defaultDataDir());
+  if (command === "status") {
+    console.log(JSON.stringify(await probePlugin(root, connection.dataDir, connection.tokenFile), null, 2));
+    return;
+  }
+  if (command === "autostart") {
+    ensureWindowsAutostart();
+    const { windowsAutostart } = await import("./windows-autostart.mjs");
+    console.log(JSON.stringify(await windowsAutostart(taskAction, {
+      programDir: root, dataDir: values["data-dir"] ?? connection.dataDir, port: values.port,
+    }), null, 2));
+    return;
+  }
   if (command === "url" || command === "open") {
     const origin = await readLocalOrigin(connection.dataDir);
     try {

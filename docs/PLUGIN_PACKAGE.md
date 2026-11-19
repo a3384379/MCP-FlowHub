@@ -1,6 +1,6 @@
 # FlowHub 本地 Codex 插件
 
-插件包含 FlowHub 程序、管理页面、本平台 Node 运行时、一个 MCP 入口和三个中文 Skill。无需登记官方目录；通过本地 marketplace 安装。业务数据与本机连接引用保存在包外，插件升级或移除不会删除它们。
+插件包含 FlowHub 程序、管理页面、本平台 Node 运行时、一个 MCP 入口和四个中文 Skill。无需登记官方目录；通过本地 marketplace 安装。业务数据与本机连接引用保存在包外，插件升级或移除不会删除它们。
 
 ## 构建与安装
 
@@ -41,6 +41,10 @@ alpha.4 起管理页打开后直接进入工作区。添加或调用受保护凭
 
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
+Windows 登录自启默认关闭。在稳定的包目录执行 `.\flowhub-plugin.cmd autostart enable`，可用 `--data-dir` 和 `--port` 明确指定实例。用 `autostart status` 查看计划任务，用 `autostart disable` 取消后续登录启动。通过安装器安装时，命令位于程序目录的 `app` 下。移动便携目录前从原路径取消自启，迁移后重新登记。PowerShell 或计划任务被企业策略拒绝时，可继续用前台 `start`。
+
+`flowhub-plugin status` 分别显示 Codex 插件登记、所选 CLI 位置、daemon 健康、登录计划任务和实际 MCP 握手与工具列表。MCP 握手采用本机连接配置，桌面 Codex 的当前聊天加载情况仍以客户端为准。
+
 也可在支持本地目录的 Codex 插件设置中添加这个目录内的 marketplace。正式目录上架不是本机安装的前置条件。若当前 Codex 还保留手工添加的旧 FlowHub MCP 入口，请自行选择一个入口使用，避免重复显示；安装命令不会删除现有配置。
 
 ## 本机连接与身份
@@ -63,19 +67,20 @@ Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-p
 
 个人身份有 21 个工具；受限身份保持原有 7 个执行工具。`doctor` 和插件连接使用同一身份。重复配置目录会保留已选身份；更换实例时必须指定新令牌，或显式 `--personal` 使用该实例的个人身份。失效的令牌或损坏配置会报错，不切换为个人身份。
 
-MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库。个人模式由原 `project_help_search` 工具的空参数分支提供侧栏入口，带查询的帮助检索保持原行为。受限身份和普通 STDIO 不登记管理页面。插件安装不运行 hooks，不安装其他插件。仅 `start` 显式启动后台，使用现有锁和端口检查；停止终端中的服务可按 Ctrl+C。
+MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库。个人模式由原 `project_help_search` 工具的空参数分支提供侧栏入口，带查询的帮助检索保持原行为。受限身份和普通 STDIO 不登记管理页面。插件安装不运行 hooks，不安装其他插件。前台 `start` 和显式登记的 Windows 登录任务使用现有锁和端口检查。停止终端中的服务可按 Ctrl+C。
 
-## 三个技能
+## 四个技能
 
 | Skill | 用途 |
 | --- | --- |
 | `flowhub-setup` | 安装、检查连接、配置数据路径和身份、迁移说明 |
 | `flowhub-author` | 发现可用能力，创建/修改/校验真实工作流草稿 |
+| `flowhub-run` | 启动已发布流程，按原 runId 接力并读取报告 |
 | `flowhub-test-report` | 生成用例、运行隔离自测、读取报告并说明证据范围 |
 
 例如请求 Codex：“使用 FlowHub 创建一个测试环境的工作流，先发现可用能力，生成确定性用例并运行 Mock 自测，列出实际证据和未验证项。”发布版本或启动真实运行依照用户任务范围进行。Skill 是操作指引，真实操作仍通过同一个 FlowHub MCP 和后台校验完成。
 
-本轮实测的 Codex 0.169.0-alpha.11.1 将它们显示为 `flowhub:flowhub-setup`、`flowhub:flowhub-author`、`flowhub:flowhub-test-report`。可以用这些名称明确选择技能。
+可以用 `flowhub:flowhub-setup`、`flowhub:flowhub-author`、`flowhub:flowhub-run` 或 `flowhub:flowhub-test-report` 明确选择技能。运行等待宿主时，从运行详情复制「Codex 续跑指令」并粘贴到具备原运行权限的 Codex 会话。
 
 无需模型 Key 即可通过 Codex 编排和运行确定性 Mock。FlowHub 的 `ai_assisted` 使用原有 Vault 模型配置；插件不会复制 Codex 登录态或 OAuth。
 

@@ -6,6 +6,21 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { defaultDataDir, readEndpoint } from "./local-config.js";
 
+export async function inspectMcpConnection(dataDir: string, tokenFile?: string) {
+  const { url, token } = await readEndpoint(dataDir, tokenFile);
+  const { createClient, localHttpTransport, protocolEvidence } = await import(
+    "../../../packages/mcp-connectors/src/index.js"
+  );
+  const client = createClient("modern", "flowhub-doctor");
+  try {
+    await client.connect(localHttpTransport(new URL(url), token), { timeout: 5000 });
+    const { tools } = await client.listTools();
+    return { ...protocolEvidence(client, "http"), tools: tools.map(tool => tool.name), phase: RELEASE_PHASE };
+  } finally {
+    await client.close();
+  }
+}
+
 export async function main(args = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({
     args,
@@ -92,30 +107,7 @@ export async function main(args = process.argv.slice(2)) {
     return;
   }
   if (command === "doctor") {
-    const { url, token } = await readEndpoint(dataDir, values["token-file"]);
-    const { createClient, localHttpTransport, protocolEvidence } = await import(
-      "../../../packages/mcp-connectors/src/index.js"
-    );
-    const client = createClient("modern", "flowhub-doctor");
-    try {
-      await client.connect(localHttpTransport(new URL(url), token), {
-        timeout: 5000,
-      });
-      const { tools } = await client.listTools();
-      console.log(
-        JSON.stringify(
-          {
-            ...protocolEvidence(client, "http"),
-            tools: tools.map((t) => t.name),
-            phase: RELEASE_PHASE,
-          },
-          null,
-          2,
-        ),
-      );
-    } finally {
-      await client.close();
-    }
+    console.log(JSON.stringify(await inspectMcpConnection(dataDir, values["token-file"]), null, 2));
     return;
   }
   throw new Error("CLI_INPUT_INVALID: unknown command; use --help.");

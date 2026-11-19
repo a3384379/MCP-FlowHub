@@ -33,6 +33,9 @@ import { queryScopes } from "./query-scope.js";
 import { schemaAt } from "./mapping-schema.js";
 import { MCP_RAW_RESULT } from "../../mcp-connectors/src/results.js";
 import { validateReportEvidence } from "./report-verification.js";
+import { businessSummary, classifyBusinessOutput } from "./business-verification.js";
+import { businessStateLabel } from "../../contracts/src/business-verification.js";
+import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
 const terminal = new Set([
   "SUCCEEDED",
   "FAILED",
@@ -278,6 +281,7 @@ export class Engine {
     expectedRevision?: number,
     changeNote = "",
     expectedBindingRevisions?: Record<string, number>,
+    reviewedTests?: Json,
   ) {
     return this.repo.tx(() => {
       const wf = this.repo.get("workflows", workflowId);
@@ -322,6 +326,7 @@ export class Engine {
         policyVersion: 1,
         ...(this.simulationOnly ? { simulationOnly: true } : {}),
         reportContract: REPORT_HEADINGS,
+        ...(reviewedTests ? { validationEvidence: { draftRevision: wf.revision, structure: "SUCCEEDED", ...reviewedTests } } : {}),
       };
       const version = {
         id: workflowId + "@" + wf.draft.version,
@@ -666,6 +671,7 @@ export class Engine {
     return {
       runId: r.id,
       workflowId: r.workflowId,
+      workflowName: r.snapshot?.workflow?.name,
       version: r.version,
       environment: r.environment,
       snapshotHash: r.snapshotHash,
@@ -676,6 +682,12 @@ export class Engine {
       checkpoint,
       events: this.repo.events(r.id, after, limit),
       artifacts,
+      businessVerification: businessSummary(r),
+      reportArchived: r.reportArchived === true || artifacts.some(a => a.verification?.formatValidated === true),
+      validationEvidence: r.snapshot?.validationEvidence,
+      hostResultReceived: Object.values(r.nodeExecutors ?? {}).includes("codex_host") || Object.keys(r.hostReported ?? {}).length > 0,
+      syntheticExecution: r.snapshot?.simulationOnly === true ||
+        r.snapshot?.bindings?.some((binding: Json) => binding.simulationOnly === true) === true,
       waitingReason: r.errorCode ?? null,
       vaultLocked: this.vault.locked,
       createdAt: r.createdAt,
@@ -685,10 +697,17 @@ export class Engine {
       nodeDetails: (r.snapshot?.workflow?.nodes ?? []).map((node: Node) => {
         const attempts = this.repo.all("attempts").filter(a => a.runId === r.id && a.nodeId === node.id);
         let arguments_;
-        if (!r.resultsExpiredAt && node.type === "mcp_tool" && r.steps[node.id] !== "PENDING" && r.steps[node.id] !== "SKIPPED") {
+        if (!r.resultsExpiredAt && node.type === "mcp_tool" && r.steps?.[node.id] !== "PENDING" && r.steps?.[node.id] !== "SKIPPED") {
           try { arguments_ = this.resolveArguments(r, node); } catch { /* Historical raw data may need vault unlock. */ }
         }
-        return { nodeId: node.id, title: node.title, toolName: node.config.toolName, arguments: arguments_,
+        const binding = node.type === "mcp_tool" && r.snapshot.bindings?.find(
+          (item: Json) => item.id === r.snapshot.workflow.bindings[node.config.bindingKey],
+        );
+        return { nodeId: node.id, title: node.title, toolName: node.config.toolName,
+          executor: r.nodeExecutors?.[node.id] ?? (node.type === "mcp_tool" ? "hub_direct" : undefined),
+          source: binding ? { name: binding.name, synthetic: binding.simulationOnly === true }
+            : r.hostReported?.[node.id] ?? undefined,
+          arguments: arguments_,
           durationMs: attempts.reduce((sum, a) => sum + (a.finishedAt ? Math.max(0, Date.parse(a.finishedAt) - Date.parse(a.createdAt)) : 0), 0),
           errorCode: attempts.at(-1)?.errorCode };
       }),
@@ -756,6 +775,10 @@ export class Engine {
         }
         this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
+        this.recordBusinessOutput(r, n, payload);
+        r.nodeExecutors ??= {};
+        r.nodeExecutors[n.id] = submission.type === "host_skill_unavailable" ? "hub_template"
+          : claimId ? "assistant_local" : "codex_host";
         if(n.config.kind==="host_tool") {
           const verification=r.snapshot.simulationOnly?"synthetic_fixture":"host_reported";
           r.hostReported??={};r.hostReported[n.id]={executor:"codex_host",verification,capabilityRef:n.config.capabilityRef};
@@ -1002,6 +1025,12 @@ export class Engine {
       outputs[nodeId] = JSON.parse(this.vault.decrypt(envelope, r.id + ":output:" + nodeId));
     return outputs;
   }
+  private recordBusinessOutput(run: Json, node: Node, value: Json) {
+    const rule = node.config.businessVerification;
+    if (!rule) return;
+    run.businessResults ??= {};
+    run.businessResults[node.id] = classifyBusinessOutput(rule, value);
+  }
   private validateQueryScope(r: Json, n: Node, submitted: Json) {
     const payload = clone(submitted);
     for (const scope of queryScopes(r.snapshot.workflow, r.snapshot.bindings).filter((scope) => scope.nodeId === n.id)) {
@@ -1040,6 +1069,7 @@ export class Engine {
         evidenceReferencesValidated: true,
         skillExecution,
         factualReview: "not_performed",
+        businessVerification: businessSummary(r),
       };
     const evidence = this.repo.all("artifacts").filter((artifact) =>
       artifact.runId === r.id && artifact.expiresAt > Date.now());
@@ -1065,6 +1095,7 @@ export class Engine {
       ...verification,
       sourceMarkdownArtifact: markdown.id,
     });
+    r.reportArchived = true;
   }
   private renderReport(r: Json, n: Node) {
     const input = mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
@@ -1102,6 +1133,9 @@ export class Engine {
         )
         .flatMap(succeededEvidence),
       databaseEvidence = databaseNodes.flatMap(succeededEvidence);
+    const verification = businessSummary(r);
+    const verifiedDatabaseNodes = verification.nodes.filter(result =>
+      databaseNodes.some(node => node.id === result.nodeId));
     const sections: Record<string, string> = {
       问题摘要:
         [input.question, analysis.summary].filter(Boolean).join("\n\n") ||
@@ -1124,7 +1158,13 @@ export class Engine {
       日志证据:
         logEvidence.map((a) => "- " + a.id + " / " + a.sha256).join("\n") ||
         "未取得日志证据。",
-      数据库核对: databaseEvidence.length
+      数据库核对: verifiedDatabaseNodes.length && verifiedDatabaseNodes.length === databaseNodes.length
+        ? verifiedDatabaseNodes.map(result =>
+          "- 节点 " + result.nodeId.replaceAll("art_", "art\\_") + "：" + businessStateLabel(result) +
+          (result.branch ? "（条件走 " + result.branch.selectedPort + " 分支）" : "") +
+          databaseEvidence.filter(artifact => artifact.nodeId === result.nodeId).map(artifact => "；证据 " + artifact.id).join(""),
+        ).join("\n")
+        : databaseEvidence.length
         ? "已执行数据库核对；空结果不表示排除问题。\n" +
           databaseEvidence
             .map(
@@ -1176,6 +1216,11 @@ export class Engine {
         r.snapshotHash +
         "\nrunId: " +
         r.id +
+        "\n业务核验：" + businessStateLabel(verification) +
+        verification.nodes.map(result =>
+          "\n- " + result.nodeId.replaceAll("art_", "art\\_") + "：" + businessStateLabel(result) +
+          (result.branch ? "（条件走 " + result.branch.selectedPort + " 分支）" : "")
+        ).join("") +
         "\n未使用宿主 Skill（显式声明模板）；人工事实审查未执行。",
     };
     return (
@@ -1382,9 +1427,17 @@ export class Engine {
           );
           for (const rejected of reachable(
             this.next(r, n.id, selected ? "false" : "true"),
-          ))
-            if (!chosen.has(rejected) && r.steps[rejected] === "PENDING")
+          )) {
+            if (!chosen.has(rejected) && r.steps[rejected] === "PENDING") {
               r.steps[rejected] = "SKIPPED";
+              if (w.nodes.find(node => node.id === rejected)?.config.businessVerification) {
+                r.businessResults ??= {};
+                r.businessResults[rejected] = {
+                  state: "skipped", branch: { conditionNodeId: n.id, selectedPort: selected ? "true" : "false" },
+                };
+              }
+            }
+          }
           this.storeOutput(r, n.id, selected);
           r.steps[n.id] = "SUCCEEDED";
           r.current = this.next(r, n.id, selected ? "true" : "false");
@@ -1513,6 +1566,7 @@ export class Engine {
           }
           this.repo.tx(() => {
             this.storeOutput(r, n.id, value);
+            this.recordBusinessOutput(r, n, value);
             if(value[MCP_RAW_RESULT])this.storeArtifact(r,n.id,JSON.stringify(value[MCP_RAW_RESULT]),"application/mcp+json",{contentStored:true,synthetic:binding.simulationOnly});
             this.storeArtifact(
               r,
@@ -1549,7 +1603,13 @@ export class Engine {
           this.repo.tx(() => {
             this.storeOutput(r, n.id, payload);
             this.storeReport(r, n, payload, "not_used");
+            r.nodeExecutors ??= {};
+            r.nodeExecutors[n.id] = "hub_template";
+            r.steps[n.id] = "SUCCEEDED";
+            r.current = this.next(r, n.id);
+            this.save(r, "NODE_SUCCEEDED", n.id);
           });
+          continue;
         }
         r.steps[n.id] = "SUCCEEDED";
         if (n.type === "end") {
@@ -1681,6 +1741,8 @@ export class Engine {
         environment: w.environment,
         mode: w.mode,
         inputSchema: w.inputSchema,
+        executionRequirements: workflowRequirements(w),
+        validationEvidence: v.snapshot.validationEvidence,
         nodes: w.nodes.map((n: Node) => ({
           id: n.id,
           title: n.title,

@@ -1,6 +1,6 @@
 {
   "name": "flowhub",
-  "version": "2.0.0-alpha.7",
+  "version": "2.0.0-alpha.8",
   "description": "本机 MCP 工作流编排与自测。",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",

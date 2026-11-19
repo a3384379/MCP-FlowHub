@@ -10,11 +10,12 @@ import {
   realpath,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 
 // Exercise the installed package through real Codex and public management APIs.
 // The user's plugin registration, connection reference and business DB are untouched.
@@ -22,6 +23,7 @@ const exec = promisify(execFile);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const repo = resolve(".");
+const runtimeName = process.platform === "win32" ? "node.exe" : "node";
 const userHome = process.env.CODEX_HOME || join(homedir(), ".codex");
 const { locateCodex } = await import(
   "../dist/packages/host-discovery/src/index.js"
@@ -244,7 +246,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         "plugins = true",
         "remote_plugin = false",
         "[mcp_servers.order_lab]",
-        "command = " + JSON.stringify(join(installed, "runtime/node")),
+        "command = " + JSON.stringify(join(installed, "runtime", runtimeName)),
         "args = [" + JSON.stringify(fixture) + "]",
       ].join("\n"),
     );
@@ -267,11 +269,11 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       "scripts/flowhub-plugin.mjs",
       "dist/apps/daemon/src/cli.js",
       "contracts/mcp-v2-tool-inputs.schema.json",
-      "runtime/node",
+      "runtime/" + runtimeName,
     ])
       assert.equal(sha(await readFile(join(isolated, file))), manifest[file]);
     await exec(
-      join(installed, "runtime/node"),
+      join(installed, "runtime", runtimeName),
       [
         join(installed, "scripts/flowhub-plugin.mjs"),
         "configure",
@@ -281,7 +283,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       { env, cwd },
     );
     const daemon = spawn(
-      join(installed, "runtime/node"),
+      join(installed, "runtime", runtimeName),
       [join(installed, "scripts/flowhub-plugin.mjs"), "start", "--port", "0"],
       { env, cwd, stdio: ["ignore", "ignore", "pipe"] },
     );
@@ -301,7 +303,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
     }
     assert.ok(base, "Isolated daemon ready");
     const shortcut = await exec(
-      join(isolated, "runtime/node"),
+      join(isolated, "runtime", runtimeName),
       [join(isolated, "scripts/flowhub-plugin.mjs"), "url"],
       { env, cwd },
     );
@@ -412,7 +414,9 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       .filter((item) => item.name.startsWith("flowhub:"))
       .map((item) => item.name)
       .sort();
-    assert.equal(skills.length, 3);
+    assert.deepEqual(skills, [
+      "flowhub:flowhub-author", "flowhub:flowhub-run", "flowhub:flowhub-setup", "flowhub:flowhub-test-report",
+    ]);
     const { plugin } = await rpc("plugin/read", {
       marketplacePath: join(installed, ".agents/plugins/marketplace.json"),
       pluginName: "flowhub",
@@ -420,6 +424,14 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
     assert.ok(
       plugin.summary.interface.defaultPrompt.includes("打开 FlowHub 管理页面"),
     );
+    const diagnostics = JSON.parse((await exec(
+      join(isolated, "runtime", runtimeName), [join(isolated, "scripts/flowhub-plugin.mjs"), "status"],
+      { env: { ...env, PATH: [dirname(codex), env.PATH].join(delimiter) }, cwd },
+    )).stdout);
+    assert.equal(diagnostics.plugin.state, "registered");
+    assert.equal(diagnostics.daemon.state, "healthy");
+    assert.equal(diagnostics.mcp.identity, "personal");
+    assert.equal(diagnostics.mcp.tools.length, 21);
     return {
       packageVersion: JSON.parse(await readFile(join(installed, "plugin.json")))
         .version,
@@ -432,6 +444,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       emptyArgumentLaunch: true,
       dashboardPrompt: "打开 FlowHub 管理页面",
       isolatedDashboardUrl: shortcut.stdout.trim(),
+      diagnostics: { plugin: diagnostics.plugin.state, daemon: diagnostics.daemon.state, toolCount: diagnostics.mcp.tools.length },
     };
   });
 
@@ -658,6 +671,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         config: {
           bindingKey: "lookup",
           argumentsMappings: { "/orderNo": ref("input", "/orderNo") },
+          ...(nodeId === "detail" ? { businessVerification: { pointer: "/synthetic", verified: [true] } } : {}),
         },
       })),
       {
@@ -670,9 +684,17 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
           instructions:
             "Summarize only the supplied synthetic lookup. Preserve original business fields.",
           inputMappings: { "/lookup": ref("node", "", "lookup") },
+          businessVerification: {
+            pointer: "/state", verified: ["ok"], unavailable: ["unavailable"],
+            rowCountPointer: "/rowCount",
+          },
           outputSchema: {
             type: "object",
-            properties: { summary: { type: "string", minLength: 1 } },
+            properties: {
+              summary: { type: "string", minLength: 1 },
+              state: { type: "string", enum: ["ok", "unavailable"] },
+              rowCount: { type: "integer", minimum: 0 },
+            },
             required: ["summary"],
             additionalProperties: false,
           },
@@ -997,7 +1019,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       binding = (await api("/api/v1/bindings")).find(
         (item) => item.id === imported.bindingId,
       );
-      await tool("workflow_draft_publish", {
+      const published = await tool("workflow_draft_publish", {
         workflowId,
         expectedRevision: revision,
         version: "1.0.0",
@@ -1005,14 +1027,23 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         expectedCapabilityRevisions: { [cap.id]: cap.revision },
         idempotencyKey: "publish-isolated",
       });
+      assert.equal(published.snapshot.validationEvidence.draftRevision, revision);
+      assert.equal(published.snapshot.validationEvidence.mock.status, "SUCCEEDED");
+      const definition = await tool("workflow_get", { workflowId, version: "1.0.0" });
+      assert.equal(definition.executionRequirements.requiresCodex, true);
+      assert.deepEqual(definition.executionRequirements.executors, ["hub_direct", "codex_host"]);
       const runs = [];
-      for (const needDetails of [true, false]) {
+      for (const { label, needDetails, businessState, reportLabel } of [
+        { label: "permission-unavailable", needDetails: true, businessState: "unavailable", reportLabel: "未核验" },
+        { label: "zero-rows", needDetails: true, businessState: "ok", reportLabel: "查询成功 · 0 行" },
+        { label: "skipped", needDetails: false, businessState: "ok", reportLabel: "按流程跳过" },
+      ]) {
         const started = await tool("workflow_start", {
           workflowId,
           version: "1.0.0",
           mode: "guided",
           inputs: { orderNo: "DEMO-PLUGIN-01", needDetails },
-          idempotencyKey: "run-" + needDetails,
+          idempotencyKey: "run-" + label,
         });
         const waiting = await poll(
           "workflow_status",
@@ -1021,7 +1052,32 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
           "state",
         );
         assert.equal(waiting.state, "WAITING_AGENT");
-        await tool("workflow_advance", {
+        if (label === "permission-unavailable") {
+          const other = await api("/api/v1/clients", {
+            label: "Synthetic other run owner", workflowAllowlist: [workflowId],
+          });
+          const otherToken = (await readFile(other.absoluteTokenFile, "utf8")).trim();
+          const otherHost = new Client({ name: "synthetic-other-flowhub-owner", version: "1" });
+          try {
+            await otherHost.connect(new StreamableHTTPClientTransport(new URL("/mcp", base), {
+              requestInit: { headers: { Authorization: "Bearer " + otherToken }, redirect: "error" },
+            }));
+            const result = await otherHost.callTool({ name: "workflow_status", arguments: { runId: started.runId } });
+            assert.equal(result.isError, true);
+            assert.match(JSON.stringify(result.content), /WORKFLOW_NOT_AVAILABLE/);
+          } finally {
+            await otherHost.close();
+          }
+          await api("/api/v1/vault/lock", {});
+          const locked = await tool("workflow_status", { runId: started.runId });
+          assert.equal(locked.vaultLocked, true);
+          assert.equal(locked.checkpoint.token, undefined);
+          await api("/api/v1/vault/unlock", { password: "Synthetic-plugin-e2e-vault" });
+          const restored = await tool("workflow_status", { runId: started.runId });
+          assert.equal(restored.checkpoint.id, waiting.checkpoint.id);
+          assert.equal(restored.revision, waiting.revision);
+        }
+        const request = {
           runId: started.runId,
           checkpointId: waiting.checkpoint.id,
           checkpointToken: waiting.checkpoint.token,
@@ -1031,10 +1087,18 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
             payload: {
               summary:
                 "插件完整验收：" + (needDetails ? "需要补充核对" : "无需补查"),
+              state: businessState,
+              ...(businessState === "ok" ? { rowCount: 0 } : {}),
             },
           },
-          idempotencyKey: "advance-" + needDetails,
-        });
+          idempotencyKey: "advance-" + label,
+        };
+        const alternate = { ...request, idempotencyKey: "competing-" + label };
+        const receipts = await Promise.allSettled([request, alternate].map(value => tool("workflow_advance", value)));
+        assert.equal(receipts.filter(receipt => receipt.status === "fulfilled").length, 1);
+        const winner = receipts.findIndex(receipt => receipt.status === "fulfilled");
+        assert.match(receipts[1 - winner].reason.message, /REVISION_CONFLICT/);
+        assert.deepEqual(await tool("workflow_advance", [request, alternate][winner]), receipts[winner].value);
         const result = await poll(
           "workflow_status",
           { runId: started.runId },
@@ -1042,6 +1106,14 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
           "state",
         );
         assert.equal(result.state, "SUCCEEDED");
+        assert.equal(result.reportArchived, true);
+        assert.equal(result.businessVerification.state, businessState === "unavailable" ? "unavailable" : "verified");
+        const analysis = result.businessVerification.nodes.find(node => node.nodeId === "analysis");
+        if (businessState === "ok") assert.equal(analysis.rowCount, 0);
+        const detail = result.businessVerification.nodes.find(node => node.nodeId === "detail");
+        if (!needDetails) assert.deepEqual(detail.branch, { conditionNodeId: "branch", selectedPort: "false" });
+        const list = await api("/api/v1/runs?workflowId=" + workflowId);
+        assert.deepEqual(list.find(run => run.id === started.runId).businessVerification, result.businessVerification);
         const artifact = result.artifacts.find(
           (a) => a.mimeType === "text/markdown",
         );
@@ -1055,18 +1127,19 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
         assert.ok(content.content.includes("证据索引"));
         assert.ok(content.content.includes("插件完整验收"));
         assert.ok(content.content.includes("订单：DEMO-PLUGIN-01"));
+        assert.ok(content.content.includes(reportLabel));
+        assert.deepEqual(content.verification.businessVerification, result.businessVerification);
         await writeFile(
           join(
             out,
-            needDetails
-              ? "report-with-details.md"
-              : "report-without-details.md",
+            "report-" + label + ".md",
           ),
           content.content,
         );
         runs.push({
           runId: started.runId,
           needDetails,
+          businessState,
           state: result.state,
           artifactId: artifact.id,
           reportBytes: artifact.byteLength,
@@ -1074,14 +1147,14 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
       }
       assert.equal(
         (await fixtureCalls()).length,
-        4,
-        "One explicit verification probe plus two real MCP calls on true branch and one on false branch",
+        6,
+        "One explicit verification probe and five fixture calls across the three branches",
       );
       return {
         workflowId,
         version: "1.0.0",
         runs,
-        syntheticProtocolFixtureBusinessCalls: 4,
+        syntheticProtocolFixtureBusinessCalls: 6,
         modelQualityAcceptance: "UNVERIFIED",
       };
     },

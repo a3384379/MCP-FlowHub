@@ -90,8 +90,15 @@ test("passwordless workspace, six pages, real flow canvas, save/validate, start 
   await expect(
     page.getByRole("button", { name: "复制 runId", exact: true }),
   ).toBeVisible();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "复制 Codex 续跑指令" }).click();
+  const instruction = await page.evaluate(() => navigator.clipboard.readText());
+  expect(instruction).toContain("flowhub-run");
+  expect(instruction).toContain("固定环境 \"staging\"");
+  expect(instruction).not.toMatch(/checkpointToken|cp_[0-9a-f-]+|[0-9a-f]{64}/);
   const runPath = new URL(page.url()).pathname;
   const runId = runPath.split("/").at(-1)!;
+  expect(instruction).toContain(runId);
   await page.getByRole("button", { name: "返回运行记录" }).click();
   await page.getByRole("row").filter({ hasText: runId.slice(0, 24) })
     .getByRole("button", { name: "查看详情 →" }).click();

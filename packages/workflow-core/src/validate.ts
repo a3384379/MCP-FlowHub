@@ -19,6 +19,7 @@ import { schemaAt, assertAssignable, validateMappedLiteral } from "./mapping-sch
 import { protectDiagnostic } from "../../security/src/diagnostics.js";
 import { queryScopes } from "./query-scope.js";
 import { mcpOutputSchema } from "../../contracts/src/mcp-output-schema.js";
+import { validateBusinessRule } from "./business-verification.js";
 const overlap = pointersOverlap;
 const encodePointer = (key: string) => key.replaceAll("~", "~0").replaceAll("/", "~1");
 type WorkflowIssue = { code: string; message: string; nodeId: string; path: string };
@@ -63,6 +64,10 @@ export function validateWorkflowDocument(w: Workflow) {
   if(w?.schemaVersion==="flowhub.workflow/v2"&&Array.isArray(w.nodes))for(const node of w.nodes)
     if(node?.type==="agent_task"&&node.config?.kind==="host_tool")assertSafeNativeObjectSchema(node.config.outputSchema);
   validate(workflowSchema,w);
+  for (const node of w.nodes)
+    if (node.config.businessVerification)
+      validateBusinessRule(node.config.businessVerification,
+        node.type === "agent_task" ? node.config.outputSchema : undefined);
 }
 export function validateWorkflow(
   w: Workflow,
@@ -263,6 +268,10 @@ export function validateWorkflow(
         "SCHEMA_INVALID",
         "Unknown output registry schema at " + n.id,
       );
+      if (n.config.businessVerification) {
+        issuePath = nodePath + "/businessVerification";
+        validateBusinessRule(n.config.businessVerification, outputSchema(n.id));
+      }
       const b = bindings.find((b) => b.id === w.bindings[n.config.bindingKey]),
         c = connections.find((c) => c.id === b?.connectionId);
       issuePath = nodePath + "/bindingKey";

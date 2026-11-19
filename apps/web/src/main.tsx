@@ -29,6 +29,9 @@ import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
+import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
+import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
+import { workflowRequirements } from "../../../packages/contracts/src/workflow-requirements";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
 import { subscribeEvents } from "./shared/v2";
@@ -1240,6 +1243,21 @@ function App() {
   const startVersion = modal?.type === "start" ? modal.published : null;
   const startWorkflow = startVersion?.snapshot.workflow;
   const node = draft?.draft.nodes.find((n: J) => n.id === selected);
+  const hostCapabilityId = node?.config.kind === "host_tool" ? node.config.capabilityRef?.capabilityId : undefined;
+  const hostCapabilityRevision = hostCapabilityId ? node.config.capabilityRef.revision : undefined;
+  const [hostContract, setHostContract] = useState<J>(null);
+  useEffect(() => {
+    if (!hostCapabilityId) return;
+    const controller = new AbortController();
+    const key = hostCapabilityId + "@" + hostCapabilityRevision;
+    void api("/api/v2/capabilities/" + encodeURIComponent(hostCapabilityId) +
+      "?includeSchemas=true&revision=" + hostCapabilityRevision, "GET", undefined, undefined, controller.signal)
+      .then(value => { if (!controller.signal.aborted) setHostContract({ key, value }); })
+      .catch(() => { if (!controller.signal.aborted) setHostContract({ key, value: null }); });
+    return () => controller.abort();
+  }, [hostCapabilityId, hostCapabilityRevision]);
+  const currentHostContract = hostContract?.key === hostCapabilityId + "@" + hostCapabilityRevision
+    ? hostContract : null;
   const selectedBinding =
     node?.type === "mcp_tool"
       ? bindings.find(
@@ -1822,6 +1840,7 @@ function App() {
                             : "未发布"}
                         </Badge>
                       </div>
+                      <ExecutionRequirements requirements={w.publishedRequirements} />
                       <div className="card-actions">
                         <button className="danger workflow-delete" disabled={busy || deletionPending} onClick={()=>setModal({
                           type:"delete-workflow",title:"删除工作流",workflow:w,idempotencyKey:uid(),
@@ -1867,7 +1886,7 @@ function App() {
               )}
               <div className="info">
                 ✧
-                内置生产与试运行流程均为纯合成演示。真实绑定必须通过独立验证；环境不明时，请明确选择方案。
+                内置流程使用合成数据。Codex 接力和 Mock 自测可直接使用，网页助手按需配置模型。
               </div>
             </>
           )}
@@ -2221,7 +2240,7 @@ function App() {
               >
                 <aside className="palette">
                   <h3>节点与工具</h3>
-                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} />}
+                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} knownBindings={bindings} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
                     <button key={type} onClick={() => addNode(type)}>
@@ -2549,6 +2568,12 @@ function App() {
                             </div>
                           </>
                         )}
+                        {hostCapabilityId && (
+                          <p>
+                            Codex 具名工具 · r{hostCapabilityRevision} ·{" "}
+                            {currentHostContract ? currentHostContract.value?.name ?? "契约暂不可读" : "正在读取冻结契约…"}
+                          </p>
+                        )}
                         {(node.type === "mcp_tool" ||
                           node.type === "agent_task") && (
                           <MappingFields
@@ -2561,7 +2586,7 @@ function App() {
                             nodeId={node.id}
                             inputSchema={draft.draft.inputSchema}
                             sourceNodes={sourceNodes}
-                            targetSchema={selectedTool?.inputSchema}
+                            targetSchema={selectedTool?.inputSchema ?? currentHostContract?.value?.inputSchema}
                             lockedArguments={
                               selectedBinding?.lockedArguments ?? {}
                             }
@@ -2593,6 +2618,28 @@ function App() {
                               })
                             }
                           />
+                        )}
+                        {(node.type === "mcp_tool" ||
+                          (node.type === "agent_task" && node.config.kind !== "host_skill")) && (
+                          <details className="business-rule-guide">
+                            <summary>业务核验规则</summary>
+                            <p>在节点配置中声明用来判断业务核验结果的输出字段和对应值。</p>
+                            {draft.draft.schemaVersion !== "flowhub.workflow/v2" ? (
+                              <button onClick={() => {
+                                rememberEdit();
+                                setDraft((old: J) => ({
+                                  ...old, draft: { ...old.draft, schemaVersion: "flowhub.workflow/v2" },
+                                }));
+                                setDirty(true);
+                              }}>升级当前草稿以配置核验规则</button>
+                            ) : (
+                              <pre>{pretty({ businessVerification: {
+                                pointer: "/state", verified: ["ok"], unavailable: ["unavailable"],
+                                failed: ["failed"], rowCountPointer: "/rowCount",
+                              } })}</pre>
+                            )}
+                            {node.config.businessVerification && <small>已声明核验字段 {node.config.businessVerification.pointer || "/"}</small>}
+                          </details>
                         )}
                         <JsonEditor
                           key={draft.id + "/nodes/" + node.id}
@@ -3105,6 +3152,8 @@ function App() {
                           >
                             {statusLabels[r.state] ?? r.state ?? "状态未记录"}
                           </Badge>
+                          <RunBusinessOutcome summary={r.businessVerification} archived={r.reportArchived} />
+                          {r.syntheticExecution && <small>合成运行</small>}
                         </td>
                         <td>
                           {new Date(r.createdAt).toLocaleString("zh-CN", {
@@ -3180,6 +3229,7 @@ function App() {
                     {statusLabels[run.state] ?? run.state ?? "状态未记录"}
                   </Badge>
                   <span>revision {run.revision}</span>
+                  {run.syntheticExecution && <Badge>合成运行</Badge>}
                   {typeof run.snapshotHash === "string" && run.snapshotHash
                     ? <code>{run.snapshotHash.slice(0, 28)}…</code>
                     : <span>快照哈希未记录</span>}
@@ -3187,13 +3237,26 @@ function App() {
                     <span className="error">{run.waitingReason}</span>
                   )}
                 </div>
-                <section className="panel"><button onClick={openAssistant}>使用助手解释当前运行</button><p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p></section>
+                <section className="panel">
+                  <RunBusinessOutcome summary={run.businessVerification} archived={run.reportArchived} detail />
+                  <ExecutionEvidence evidence={run.validationEvidence} hostResult={run.hostResultReceived} synthetic={run.syntheticExecution} />
+                  <button onClick={openAssistant}>使用助手解释当前运行</button>
+                  <p>聊天会附带当前运行，工具结果与来源可按轮次展开查看。</p>
+                </section>
                 <div className="run-grid">
                   <section className="panel">
                     <h2>执行步骤</h2>
                     <p>当前节点：{run.currentNode}</p>
                     {Array.isArray(run.nodeDetails) && run.nodeDetails.map((node: J) => <details key={node.nodeId}>
                       <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
+                      {node.executor && <p>执行者 {({
+                        codex_host: "Codex 宿主", assistant_local: "内置助手",
+                        hub_direct: "FlowHub", hub_template: "FlowHub 模板",
+                      } as Record<string, string>)[node.executor] ?? node.executor}
+                        {node.source?.name && " · " + node.source.name}
+                        {(node.source?.synthetic || node.source?.verification === "synthetic_fixture") && " · 合成"}
+                        {node.source?.verification === "host_reported" && " · 由宿主回传"}
+                      </p>}
                       {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
                       {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
                       {node.errorCode && <p className="error">{node.errorCode}</p>}
@@ -3237,6 +3300,7 @@ function App() {
                         <Badge>WAITING_AGENT · {run.checkpoint.kind}</Badge>
                         <h2>{run.checkpoint.nodeId} · 宿主待办</h2>
                         <p>{run.checkpoint.instruction}</p>
+                        <RunContinuation key={run.runId} run={run} />
                         <RunAnalysisControl api={api} run={run}/>
                         <small>
                           等待已连接的 Codex 通过 workflow_status
@@ -3621,6 +3685,8 @@ function App() {
                   后端校验：{modal.validation.ok ? "通过" : "未通过"} ·{" "}
                   {modal.validation.nodeCount} 个节点
                 </p>
+                <ExecutionRequirements requirements={workflowRequirements(modal.workflow)} />
+                <ExecutionEvidence evidence={modal.validation.validationEvidence} />
                 <DefinitionDiff
                   before={modal.previous}
                   after={modal.workflow}

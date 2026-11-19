@@ -13,8 +13,39 @@ export type {DiscoveryRuntime} from "./runtime.js";
 const exec=promisify(execFile);
 export const executionLocation=process.platform==="win32"?"windows_native":process.platform==="darwin"?"macos":process.env.WSL_DISTRO_NAME?"wsl":"linux";
 export async function locateCodex() {
-  for(const root of (process.env.PATH??"").split(delimiter)) for(const file of process.platform==="win32"?["codex.exe","codex.cmd"]:["codex"])
-    try {const path=await realpath(join(root,file));if((await stat(path)).isFile()&&!/\.cmd$/i.test(path))return path;}catch{}
+  const windows = process.platform === "win32";
+  const roots = (process.env.PATH ?? "").split(delimiter).filter(isAbsolute);
+  const file = windows ? "codex.exe" : "codex";
+  async function firstExisting(paths: string[]) {
+    for (const candidate of paths) {
+      try {
+        const path = await realpath(candidate);
+        if ((await stat(path)).isFile()) return path;
+      } catch { /* Continue through installed executable candidates. */ }
+    }
+    return null;
+  }
+  const onPath = await firstExisting(roots.map(root => join(root, file)));
+  if (onPath || !windows) return onPath;
+
+  const applicationRoots = [
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Programs", "Codex"),
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "OpenAI", "Codex"),
+    process.env.ProgramFiles && join(process.env.ProgramFiles, "OpenAI", "Codex"),
+  ].filter((path): path is string => !!path && isAbsolute(path));
+  const desktopBinaries = (directory: string) =>
+    ["resources/codex.exe", "app/resources/codex.exe", "resources/bin/codex.exe", "app/resources/bin/codex.exe"]
+      .map(path => join(directory, path));
+  const desktop = await firstExisting(applicationRoots.flatMap(desktopBinaries));
+  if (desktop) return desktop;
+  try {
+    const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    const result = exec(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+      "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-AppxPackage -Name 'OpenAI.*' | Where-Object { $_.Name -match 'Codex|ChatGPT' } | Select-Object -First 8 -ExpandProperty InstallLocation"],
+      { windowsHide: true, timeout: 5000, maxBuffer: 32768 });
+    result.child.stdin?.end();
+    return await firstExisting((await result).stdout.split(/\r?\n/).filter(isAbsolute).flatMap(desktopBinaries));
+  } catch { /* Package discovery may be unavailable on managed Windows. */ }
   return null;
 }
 export type DiscoveryControl = { signal?: AbortSignal; deadline?: number };
