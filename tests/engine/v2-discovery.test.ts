@@ -220,7 +220,7 @@ test("App Server effective disabled Skill corrects an already indexed path",asyn
   assert.ok(upgraded.components.some((entry:any)=>entry.kind==="skill"&&entry.hostReported&&entry.enabled===false));
   await writeFile(cli,oldBinary.replace("0.164.0-alpha.11.1","9.0.0"));
   const unsupported = await scanHost(context);
-  assert.ok(unsupported.issues.some((issue:any)=>issue.code==="APP_SERVER_PARTIAL"));
+  assert.ok(unsupported.issues.some((issue:any)=>issue.code==="HOST_VERSION_UNSUPPORTED"));
   assert.ok(!unsupported.components.some((entry:any)=>entry.hostReported));
 });
 

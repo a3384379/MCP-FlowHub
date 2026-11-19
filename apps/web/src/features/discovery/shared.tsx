@@ -23,6 +23,8 @@ export const issueLabels: Record<string, string> = {
   STATIC_RESOLUTION_PARTIAL: "当前使用静态配置，生效范围尚未完全确认",
   STATIC_PROFILE_PARTIAL: "Profile 的生效配置尚未完全确认",
   APP_SERVER_PARTIAL: "宿主目录读取不完整",
+  CODEX_AUTH_REQUIRED: "Codex 授权需恢复",
+  HOST_VERSION_UNSUPPORTED: "当前设置无法读取 Codex 工具目录",
   HOST_CATALOG_PARTIAL: "宿主工具目录不完整",
   HOST_SOURCE_AMBIGUOUS: "宿主服务存在多个同名来源",
   SKILL_METADATA_INVALID: "技能介绍格式无法解析",
@@ -54,7 +56,10 @@ export function entityStatus(e: Entity) {
     return { text: e.marketplaceConflict ? "市场来源冲突 · 未安装" : e.availability === "unavailable" ? "市场策略不可用 · 未安装" : "可用，尚未安装", tone: e.marketplaceConflict ? "amber" : "gray" };
   if (e.entityKind === "plugin" && e.marketplaceConflict)
     return { text: e.enabled === false ? "已安装 · 已停用 · 市场来源冲突" : "已安装 · 市场来源冲突", tone: "amber" };
+  if (e.ambiguousSource || e.availability === "ambiguous") return { text: "来源待确认", tone: "amber" };
   if (!e.enabled) return { text: "已停用", tone: "gray" };
+  if (e.hostAuthRequired) return { text: "Codex 授权需恢复", tone: "amber" };
+  if (e.hostCatalogReady) return { text: "由 Codex 执行", tone: "purple" };
   if (e.importState)
     return {
       text: e.importState.verified
@@ -65,14 +70,14 @@ export function entityStatus(e: Entity) {
       tone: e.importState.verified ? "green" : "blue",
     };
   if (e.entityKind === "plugin") return { text: "已安装", tone: "green" };
+  if (e.entityKind === "mcp_server" && !e.preparedConnectionId && ["credentials_required", "unsupported", "not_checked"].includes(e.availability))
+    return { text: "Codex 目录待同步", tone: "gray" };
   if (e.availability === "credentials_required")
     return { text: "需要连接配置", tone: "amber" };
   if (e.availability === "unsupported")
     return { text: "需手动登记连接", tone: "amber" };
   if (e.availability === "unreachable")
     return { text: "连接暂不可达", tone: "amber" };
-  if (e.availability === "ambiguous")
-    return { text: "来源待确认", tone: "amber" };
   if (
     e.availability === "host_only" ||
     (e.executor === "codex_host" && e.entityKind === "skill")

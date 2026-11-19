@@ -38,11 +38,13 @@ export function issueAction(issue: Issue) {
       label: "连接配置",
       help: "在当前抽屉填写配置、选择已有项或就地新增，并解锁本地库。保存后可检测连接和读取本服务工具目录。",
     };
-  if (code === "CATALOG_NOT_SYNCED" && issue.executor !== "codex_host")
+  if (code === "CODEX_AUTH_REQUIRED")
+    return { type: "guide", label: "恢复 Codex 授权", help: "在当前 Codex 项目恢复该 MCP 的授权，然后回到发现页同步目录。" };
+  if (code === "CATALOG_NOT_SYNCED")
     return {
       type: "sync",
-      label: "同步工具目录",
-      help: "连接当前上下文的服务，读取工具定义；不会调用业务工具。同步完成后自动更新本列表。",
+      label: "同步 Codex 工具目录",
+      help: "读取当前 Codex 上下文中已配置的工具定义，然后更新目录。",
     };
   if (["unreachable", "CONNECTION_FAILED"].includes(code))
     return {
@@ -64,6 +66,7 @@ export function issueAction(issue: Issue) {
       "STATIC_PROFILE_PARTIAL",
       "STATIC_RESOLUTION_PARTIAL",
       "APP_SERVER_PARTIAL",
+      "HOST_VERSION_UNSUPPORTED",
       "HOST_CATALOG_PARTIAL",
       "EXECUTION_LOCATION_UNSUPPORTED",
     ].includes(code)

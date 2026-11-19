@@ -4,7 +4,6 @@ import {
   displaySummary,
   Icon,
   kinds,
-  presentationLabels,
   Status,
   type Api,
   type Entity,
@@ -70,7 +69,7 @@ export function DiscoveryList({
                   : "未声明 MCP 依赖"}
               </small>
             )}
-            <small>{presentationLabels[entity.presentation.state]}</small>
+            {entity.hostCatalogReady && <small>目录已同步</small>}
           </div>
           <span className="d-tool-count">
             {entity.entityKind === "mcp_server"

@@ -262,8 +262,8 @@ test("Esc, rescan and reopen preserve the edit baseline; cancel and a fresh edit
 });
 
 test("description and credential fields remain locked while their save HTTP requests are pending", async ({ page }) => {
-  const f = await realDiscovery(page), description = deferred(), credentials = deferred(), catalog = deferred(), autoSecrets = deferred(), manualSecrets = deferred();
-  let descriptionWaiting = false, credentialsWaiting = false, catalogWaiting = false, secretRequests = 0;
+  const f = await realDiscovery(page), description = deferred(), credentials = deferred();
+  let descriptionWaiting = false, credentialsWaiting = false;
   try {
     await page.route("**/api/v2/discovery/descriptions", async route => { descriptionWaiting = true; await description.promise; await route.continue(); });
     await f.open(); let dialog = page.getByRole("dialog");
@@ -277,35 +277,21 @@ test("description and credential fields remain locked while their save HTTP requ
     await f.api("/api/v1/vault/unlock", "POST", { password: "Synthetic-browser-password-041" });
     const secret = await f.api("/api/v1/secrets", "POST", { label: "Synthetic pending credential", value: "only-synthetic" });
     const source = (await f.api("/api/v2/discovery/catalog?contextId=" + f.context.id + "&kind=mcp_server")).items[0];
-    await page.route("**/api/v1/secrets", async route => {
-      const request = secretRequests++;
-      if (request === 0) await autoSecrets.promise;
-      else if (request === 1) await manualSecrets.promise;
-      await route.continue();
-    });
-    await page.route("**/api/v2/discovery/catalog?*", async route => {
-      if (new URL(route.request().url()).searchParams.get("kind") === "mcp_server") { catalogWaiting = true; await catalog.promise; }
-      await route.continue();
-    });
-    await page.getByRole("tab", { name: /需处理/ }).click();
-    await expect.poll(() => catalogWaiting).toBe(true);
-    await page.getByRole("button", { name: "连接配置", exact: true }).click(); dialog = page.getByRole("dialog");
-    await expect.poll(() => secretRequests).toBe(1);
-    // A later explicit activation may complete before the initial automatic Vault list.
-    await dialog.getByRole("button", { name: "连接配置", exact: true }).click();
-    await expect.poll(() => secretRequests).toBe(2); manualSecrets.release();
+    await page.getByRole("tab", { name: /MCP 服务/ }).click();
+    const server = page.locator(".d-cap-row").filter({ hasText: source.name });
+    await expect(server).toHaveCount(1);
+    await f.pendingScan();
+    await server.getByRole("button").click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "启用 FlowHub 直连", exact: true }).click();
     await dialog.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption(secret.id);
-    const autoFinished = page.waitForEvent("requestfinished", request => new URL(request.url()).pathname === "/api/v1/secrets");
-    autoSecrets.release(); await autoFinished;
-    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
     await page.route("**/api/v2/capability-sources/*/credentials", async route => { credentialsWaiting = true; await credentials.promise; await route.continue(); });
     await dialog.getByRole("button", { name: "保存配置", exact: true }).click(); await expect.poll(() => credentialsWaiting).toBe(true);
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toBeDisabled();
     await expect(dialog.getByRole("checkbox", { name: "使用来源已有配置（加密保存）" })).toBeDisabled();
-    // The delayed issue-list snapshot must not reset this same entity's form or pending action.
-    const reloaded = page.waitForResponse(r => r.url().endsWith("/api/v2/discovery/entities/" + source.id));
-    catalog.release(); await reloaded;
+    // Refresh the source snapshot while the connection save is still in flight.
+    await f.release();
+    await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toBeDisabled();
     const savedResponse = page.waitForResponse(r => /\/api\/v2\/capability-sources\/[^/]+\/credentials$/.test(new URL(r.url()).pathname) && r.request().method() === "POST");
@@ -317,7 +303,7 @@ test("description and credential fields remain locked while their save HTTP requ
     expect(connection).toMatchObject({ id: receipt.connectionId, secretRef: secret.id });
     await expect(dialog.getByText("连接配置已保存。可检测连接并读取工具目录，资源绑定仍需独立验证。")).toBeVisible();
     await expect(dialog.getByLabel("SYNTHETIC_AUTH", { exact: true })).toHaveValue(secret.id);
-  } finally { description.release(); credentials.release(); catalog.release(); autoSecrets.release(); manualSecrets.release(); await f.close(); }
+  } finally { description.release(); credentials.release(); await f.close(); }
 });
 
 test("a credential draft keeps its original configuration revision through a source-changing snapshot refresh", async ({ page }) => {
@@ -329,7 +315,7 @@ test("a credential draft keeps its original configuration revision through a sou
       connections = (await f.api("/api/v1/connections")).map((c: any) => c.id);
     await page.getByRole("tab", { name: /需处理/ }).click(); await f.pendingScan();
     await page.getByRole("button", { name: "查看详情", exact: true }).click(); const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: "连接配置", exact: true }).click();
+    await dialog.getByRole("button", { name: "启用 FlowHub 直连", exact: true }).click();
     await dialog.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption(secret.id);
     await writeFile(f.servers, (await readFile(f.servers, "utf8")).replace("https://synthetic.invalid/mcp", "https://changed-synthetic.invalid/mcp"));
     await f.release(); await expect(dialog.getByText(/当前填写保留读取时的版本/)).toBeVisible();

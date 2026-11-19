@@ -241,7 +241,7 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
     }
   }
   await addLocalMarketplaces(context,components,report);
-  if(context.useAppServer&&context.codexPath&&context.discoveryMode!=="config_only")try{
+  if(context.executionLocation===executionLocation&&(context.useAppServer||depth==="host_catalog")&&context.codexPath&&context.discoveryMode!=="config_only")try{
     // A registered context can survive a Codex update.
     ensure(!untrustedProject&&(!context.profile||effective),"HOST_VERSION_UNSUPPORTED","App Server scan cannot establish the selected project/profile.");
     const host={...context,codexVersion:(await output(context,["--version"],control,runtime)).trim()};
@@ -252,18 +252,20 @@ export async function scanHost(context:Json,depth="metadata",control:DiscoveryCo
       if(existing){existing.enabled=existing.enabled!==false&&skill.enabled!==false;existing.hostReported=true;}
       else components.push({sourceKey:skill.path,name:skill.name,description:skill.description,kind:"skill",path:skill.path,enabled:skill.enabled!==false,executor:"codex_host",contentHash:hash([skill.name,skill.description]),hostOnly:true});
     }
-    if(depth==="catalog") {
+    if(depth==="catalog"||depth==="host_catalog") {
       const catalog=await readAppServer(host,"mcpServerStatus/list",{detail:"toolsAndAuthOnly",limit:100},control,runtime);
       for(const server of catalog.data??[]) {
         const matches=sources.filter(s=>s.name===server.name),source=matches.length===1?matches[0]:undefined;
         if(matches.some(s=>selfSource(s,identity))||selfSource(server,identity))continue;
         if(matches.length>1)report(server.name,"HOST_SOURCE_AMBIGUOUS");
         if(server.toolsError)report(server.name,"HOST_CATALOG_PARTIAL");
+        if(server.authStatus==="notLoggedIn")report(source?.sourceKey??server.name,"CODEX_AUTH_REQUIRED");
         for(const tool of Object.values(server.tools??{}) as Json[])components.push({sourceKey:"app-server:"+server.name+"#"+tool.name,name:tool.name,description:tool.description??"",kind:"host_tool",tool,serverName:server.name,serverSourceKey:source?.sourceKey??null,ambiguousSource:matches.length>1,executor:"codex_host",enabled:matches.length>1?false:source?source.enabled&&toolEnabled(source.config,tool.name):true});
       }
       if(catalog.nextCursor)report(context.id,"HOST_CATALOG_PARTIAL");
     }
-  }catch{report(context.id,"APP_SERVER_PARTIAL");}
+  }catch(error){report(context.id,error instanceof HubError&&error.code==="HOST_VERSION_UNSUPPORTED"?"HOST_VERSION_UNSUPPORTED":"APP_SERVER_PARTIAL");}
+  else if(depth==="host_catalog")report(context.id,"HOST_VERSION_UNSUPPORTED");
   if(!effective)issues.push({source:context.id,code:"STATIC_RESOLUTION_PARTIAL"});
   if(control.signal?.aborted)throw new HubError("DISCOVERY_CANCELLED","Discovery cancelled.");
   return {sources,components,issues,resolutionQuality:quality,coverage:issues.length?"partial":"complete"};

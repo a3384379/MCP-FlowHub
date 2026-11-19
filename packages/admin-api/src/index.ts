@@ -798,7 +798,7 @@ export async function registerAdmin(
   app.get("/api/v1/workflows/:id/draft", async (req) => {
     const w = repo.get("workflows", param(req));
     ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
-    return data(w);
+    return data(w.draft.schemaVersion === "flowhub.workflow/v2" ? { ...w, issues: authoring.issues(w.draft) } : w);
   });
   app.put("/api/v1/workflows/:id/draft", async (req) => {
     const b = body(req, ["workflow", "layout"], ["expectedLayoutRevision"]);
@@ -815,7 +815,8 @@ export async function registerAdmin(
     );
     ensure(b.expectedLayoutRevision===undefined || Number.isSafeInteger(b.expectedLayoutRevision) && b.expectedLayoutRevision>0,
       "INPUT_INVALID","Expected layout revision must be a positive integer.");
-    return data(authoring.saveRaw(b.workflow, revision(req), b.layout, b.expectedLayoutRevision));
+    const saved = authoring.saveRaw(b.workflow, revision(req), b.layout, b.expectedLayoutRevision);
+    return data(saved.draft.schemaVersion === "flowhub.workflow/v2" ? { ...saved, issues: authoring.issues(saved.draft) } : saved);
   });
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));

@@ -286,6 +286,8 @@ export class DiscoveryCatalog {
         server.discovery === "schema_discovered" || children.length
           ? children.length
           : null;
+      server.hostCatalogReady = children.some((tool) => tool.executor === "codex_host" && tool.enabled && tool.hasToolContract);
+      server.hostAuthRequired = (job.issues ?? []).some((issue: Json) => issue.code === "CODEX_AUTH_REQUIRED" && [server.sourceKey, server.name].includes(issue.source));
       server.catalogFingerprint = hash(
         children.map((e) => [e.id, e.capabilityFingerprint]).sort(),
       );
@@ -363,6 +365,7 @@ export class DiscoveryCatalog {
           e.enabled &&
           !e.self &&
           !e.stale &&
+          !e.hostCatalogReady &&
           [
             "credentials_required",
             "unreachable",
@@ -380,9 +383,9 @@ export class DiscoveryCatalog {
     const problems = [
       ...actionable.map((e) => ({
         code:
-          e.availability === "not_checked"
+          job.depth !== "catalog" && !e.preparedConnectionId && e.availability !== "ambiguous"
             ? "CATALOG_NOT_SYNCED"
-            : e.availability,
+            : e.availability === "not_checked" ? "CATALOG_NOT_SYNCED" : e.availability,
         entityId: e.id,
         name: e.name,
         displayName: this.present(e).displayName,

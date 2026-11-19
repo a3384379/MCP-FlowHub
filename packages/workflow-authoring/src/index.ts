@@ -42,6 +42,51 @@ export class AuthoringService {
       ORDER BY json_extract(body, '$.updatedAt') DESC, id LIMIT ?`).all(limit + 1);
     return { items: rows.slice(0, limit), hasMore: rows.length > limit };
   }
+  private switchToolExecutor(workflow: Workflow, node: Json, op: Json) {
+    const ref = node.config.capabilityRef;
+    const previous = ref && this.repo.get("capability_revisions", ref.capabilityId + "@" + ref.revision);
+    const next = this.repo.get("capabilities", op.capabilityId);
+    ensure(next && next.revision === op.revision && !next.stale && next.enabled === "enabled",
+      "CAPABILITY_STALE", "The replacement tool has changed.", 409);
+    const toCodex = next.executor === "codex_host";
+    const host = toCodex ? next : previous;
+    const direct = toCodex ? previous : next;
+    ensure(host?.executor === "codex_host" && direct?.executor === "hub_direct" &&
+      host.kind === "mcp_tool" && direct.kind === "mcp_tool" && host.outputSchema &&
+      host.contextId === direct.contextId && host.provenance?.serverSourceId &&
+      host.provenance.serverSourceId === direct.sourceRefs?.[0]?.sourceId &&
+      !!host.provenance.serverSourceFingerprint && host.provenance.serverSourceFingerprint === direct.provenance?.serverSourceFingerprint &&
+      host.name === direct.name &&
+      hash(host.inputSchema) === hash(direct.inputSchema) && hash(host.outputSchema) === hash(direct.outputSchema),
+      "HOST_CONTRACT_MISMATCH", "Switching requires the same source, tool and input/output contracts.", 409);
+    const capabilityRef = { capabilityId: op.capabilityId, revision: op.revision };
+    const businessVerification = node.config.businessVerification;
+    if (toCodex) {
+      const oldKey = node.config.bindingKey;
+      const oldBinding = this.repo.get("bindings", workflow.bindings[oldKey] ?? "");
+      ensure(node.type === "mcp_tool" && !op.bindingKey && oldBinding &&
+        !Object.keys(oldBinding.lockedArguments ?? {}).length && !oldBinding.allowedQueryTemplates?.length &&
+        !node.config.rowLimitArgument && !node.config.outputSchemaRef && !node.config.resultAdapterRef,
+        "ENVIRONMENT_OVERRIDE_DENIED", "Reauthor a node with locked bindings or execution-specific constraints before switching.");
+      node.type = "agent_task";
+      node.config = { kind: "host_tool", executorRef: "codex_host", requireHostReceipt: true,
+        instructions: "Call the frozen Codex tool and submit its structured result.",
+        inputMappings: node.config.argumentsMappings, outputSchema: next.outputSchema, capabilityRef, businessVerification };
+      workflow.mode = "guided";
+      if (!workflow.nodes.some(n => n.type === "mcp_tool" && n.config.bindingKey === oldKey))
+        delete workflow.bindings[oldKey];
+    } else {
+      const binding = this.repo.get("bindings", workflow.bindings[op.bindingKey] ?? "");
+      ensure(node.config.kind === "host_tool" && !Object.keys(node.config.receiptScopeMappings ?? {}).length &&
+        next.tool && binding && !binding.revoked && binding.environment === workflow.environment &&
+        binding.sourceCapabilityId === next.id && binding.sourceCapabilityRevision === next.revision,
+        "ENVIRONMENT_OVERRIDE_DENIED", "Select a matching direct binding and review tool-specific receipt scope rules.");
+      node.type = "mcp_tool";
+      node.config = { bindingKey: op.bindingKey, argumentsMappings: node.config.inputMappings,
+        toolName: next.name, toolSchemaHash: next.tool.schemaHash, capabilityRef, businessVerification };
+    }
+    if (!businessVerification) delete node.config.businessVerification;
+  }
   issues(w: Workflow) {
     const issues:Json[]=[];
     try { this.engine.validateDraft(w); }
@@ -178,7 +223,7 @@ export class AuthoringService {
       const changed=new Set<string>();
       for (const op of a.operations) {
         const node=w.nodes.find(n=>n.id===op.nodeId);
-        if (["remove_node","update_node","set_mapping","set_output_schema","set_condition"].includes(op.op))
+        if (["remove_node","update_node","set_mapping","set_output_schema","set_condition","switch_tool_executor"].includes(op.op))
           ensure(node,"NOT_FOUND","Node does not exist: "+op.nodeId,404);
         switch(op.op) {
           case "add_node": {
@@ -208,6 +253,7 @@ export class AuthoringService {
             w.nodes=w.nodes.filter(n=>!remove.has(n.id)); w.edges=w.edges.filter(e=>!remove.has(e.source)&&!remove.has(e.target));
             for(const key of remove){delete layout[key];changed.add(key);} break;
           }
+          case "switch_tool_executor": this.switchToolExecutor(w, node!, op); changed.add(node!.id); break;
           case "update_node": Object.assign(node!,clone(op.changes)); changed.add(node!.id); break;
           case "connect": ensure(w.nodes.some(n=>n.id===op.source)&&w.nodes.some(n=>n.id===op.target),"GRAPH_INVALID","Unknown edge endpoint.");
             ensure(!w.edges.some(e=>e.source===op.source&&e.target===op.target&&e.port===op.port),"GRAPH_INVALID","Duplicate edge.");

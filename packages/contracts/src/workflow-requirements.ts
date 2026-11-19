@@ -1,4 +1,6 @@
 type RequirementNode = {
+  id: string;
+  title: string;
   type: string;
   config: {
     executorRef?: string;
@@ -13,14 +15,13 @@ export function workflowRequirements(workflow: { nodes: RequirementNode[] }) {
   const executors = new Set<string>();
   if (workflow.nodes.some((node) => node.type === "mcp_tool"))
     executors.add("hub_direct");
+  const hostNodes = [];
   for (const node of tasks) {
     // Host tools and Skills always need a host even if legacy metadata disagrees.
-    executors.add(
-      node.config.kind === "analysis" &&
-        node.config.executorRef === "assistant_local"
-        ? "assistant_local"
-        : "codex_host",
-    );
+    const executor = node.config.kind === "analysis" && node.config.executorRef === "assistant_local"
+      ? "assistant_local" : "codex_host";
+    executors.add(executor);
+    if (executor === "codex_host") hostNodes.push({ id: node.id, title: node.title });
   }
   return {
     requiresCodex: executors.has("codex_host"),
@@ -28,6 +29,7 @@ export function workflowRequirements(workflow: { nodes: RequirementNode[] }) {
     capabilityRefs: workflow.nodes.flatMap((node) =>
       node.config.capabilityRef ? [node.config.capabilityRef] : [],
     ),
+    hostNodes,
     hostSkills: [
       ...new Set<string>(
         tasks

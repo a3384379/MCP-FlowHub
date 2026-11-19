@@ -16,6 +16,7 @@ export function ExecutionRequirements({
   return (
     <p className="execution-requirements">
       {labels.join(" · ") || "FlowHub 直接执行"}
+      {!!requirements.hostNodes?.length && <small>接力节点 {requirements.hostNodes.map((node) => node.title).join("、")}</small>}
       {requirements.hostSkills.length > 0 && (
         <small>宿主 Skill {requirements.hostSkills.join("、")}</small>
       )}

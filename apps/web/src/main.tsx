@@ -1210,7 +1210,8 @@ function App() {
     }));
     setDirty(true);
   };
-  const chooseWorkflow = (w: J) => navigate("/workflows/" + w.id + "/editor");
+  const chooseWorkflowById = (id: string) => navigate("/workflows/" + encodeURIComponent(id) + "/editor");
+  const chooseWorkflow = (w: J) => chooseWorkflowById(w.id);
   const openStart = (w: J) =>
     act(async () => {
       const sourcePath = pathRef.current;
@@ -1710,7 +1711,7 @@ function App() {
               {notice}
             </div>
           )}
-          {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} />}
+          {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} onOpenWorkflow={chooseWorkflowById} />}
           {page === "models" && <ModelsPage api={api} onUnlockVault={openVault} />}
           {page === "workflows" && (
             <>
@@ -2158,22 +2159,22 @@ function App() {
                   </div>
                 </section>
               )}
-              {failure && (
+              {(failure || (!dirty && draft.issues?.length > 0)) && (
                 <section
                   className="panel validation-panel"
                   aria-label="校验结果"
                 >
-                  <h2>阻断错误</h2>
+                  <h2>{failure ? "阻断错误" : "发布前需修正"}</h2>
                   {(
-                    failure.details?.issues ?? [
+                    failure ? (failure.details?.issues ?? [
                       {
                         code: failure.code ?? "VALIDATION_FAILED",
                         message: failure.message,
                       },
-                    ]
+                    ]) : draft.issues
                   ).map((issue: J, index: number) => (
                     <div className="validation-issue" key={index}>
-                      <code>{issue.code ?? failure.code}</code>
+                      <code>{issue.code ?? failure?.code}</code>
                       <span>{issue.message}</span>
                       {(issue.pointer || issue.path) && (
                         <code>{issue.pointer ?? issue.path}</code>
@@ -2199,7 +2200,7 @@ function App() {
                         )}
                     </div>
                   ))}
-                  {failure.details && !failure.details.issues && (
+                  {failure?.details && !failure.details.issues && (
                     <pre>{pretty(failure.details)}</pre>
                   )}
                 </section>
@@ -2240,7 +2241,7 @@ function App() {
               >
                 <aside className="palette">
                   <h3>节点与工具</h3>
-                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} knownBindings={bindings} />}
+                  {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} knownBindings={bindings} dirty={dirty} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
                     <button key={type} onClick={() => addNode(type)}>
@@ -2573,6 +2574,13 @@ function App() {
                             Codex 具名工具 · r{hostCapabilityRevision} ·{" "}
                             {currentHostContract ? currentHostContract.value?.name ?? "契约暂不可读" : "正在读取冻结契约…"}
                           </p>
+                        )}
+                        {node.config.kind === "host_tool" && node.config.requireHostReceipt && (
+                          <details>
+                            <summary>回执范围字段</summary>
+                            <p>如果工具结果会返回订单号、资源或时间范围，在节点配置中把输出字段映射到调用参数。回执中的值必须和派发参数一致。</p>
+                            <pre>{pretty({ receiptScopeMappings: node.config.receiptScopeMappings ?? { "/orderNo": "/orderNo" } })}</pre>
+                          </details>
                         )}
                         {(node.type === "mcp_tool" ||
                           node.type === "agent_task") && (
@@ -3247,6 +3255,8 @@ function App() {
                   <section className="panel">
                     <h2>执行步骤</h2>
                     <p>当前节点：{run.currentNode}</p>
+                    {run.nodeDetails?.some((node: J) => node.nodeId === run.currentNode && node.executor === "codex_host") &&
+                      hostReceiptHint(run.waitingReason) && <p className="error">{hostReceiptHint(run.waitingReason)}</p>}
                     {Array.isArray(run.nodeDetails) && run.nodeDetails.map((node: J) => <details key={node.nodeId}>
                       <summary>{node.title} · {run.steps?.[node.nodeId] ?? "未记录"}{node.toolName ? " · " + node.toolName : ""} · {node.durationMs} ms</summary>
                       {node.executor && <p>执行者 {({
@@ -3255,11 +3265,14 @@ function App() {
                       } as Record<string, string>)[node.executor] ?? node.executor}
                         {node.source?.name && " · " + node.source.name}
                         {(node.source?.synthetic || node.source?.verification === "synthetic_fixture") && " · 合成"}
-                        {node.source?.verification === "host_reported" && " · 由宿主回传"}
+                        {node.source?.checkpointId && " · Codex 回报"}
+                        {node.executor === "hub_direct" && run.steps?.[node.nodeId] === "SUCCEEDED" && " · FlowHub 已记录调用"}
                       </p>}
+                      {node.source?.argumentsHash && <p>回执参数摘要 <code>{node.source.argumentsHash}</code></p>}
+                      {node.source?.toolCallId && <p>宿主调用 ID <code>{node.source.toolCallId}</code></p>}
                       {node.arguments !== undefined && <><strong>调用参数</strong><pre>{pretty(node.arguments)}</pre></>}
                       {run.outputs?.[node.nodeId] !== undefined && <><strong>执行结果</strong><pre>{pretty(run.outputs[node.nodeId])}</pre></>}
-                      {node.errorCode && <p className="error">{node.errorCode}</p>}
+                      {node.errorCode && <p className="error">{(node.executor === "codex_host" && hostReceiptHint(node.errorCode)) || node.errorCode}</p>}
                     </details>)}
                     <div className="timeline">
                       {Object.entries(run.steps ?? {}).map(([id, state]) => (
@@ -4396,6 +4409,28 @@ function LiteralField({
     </label>
   );
 }
+function hostReceiptHint(code: string) {
+  return ({
+    AUTH_REQUIRED: "等待恢复 Codex 授权。恢复后可继续当前运行。",
+    HOST_CAPABILITY_UNAVAILABLE: "等待恢复 Codex 工具。确认当前会话可调用该工具后继续。",
+    HOST_CONTRACT_MISMATCH: "工具契约已变化。请同步 Codex 目录，更新草稿并重新发布。",
+    HOST_RECEIPT_SCHEMA_INVALID: "回执与发布契约不符。请使用已取得的原始结果修正回执。",
+    OUTCOME_UNKNOWN: "调用结果未知。请对照工具或服务端记录确认结果。",
+  } as Record<string, string>)[code];
+}
+
+function exampleAt(schema: J, pointer: string, field?: SchemaField) {
+  if (field?.schema.examples?.length) return field.schema.examples[0];
+  let example = schema?.examples?.[0];
+  const parts = pointer ? pointer.slice(1).split("/") : [];
+  for (const part of parts) {
+    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
+    if (!example || typeof example !== "object" || !Object.hasOwn(example, key)) return undefined;
+    example = example[key];
+  }
+  return example;
+}
+
 type SourceNode = { id: string; title: string; schema: J };
 function ReferenceFields({
   value,
@@ -4416,6 +4451,7 @@ function ReferenceFields({
       : sourceNodes.find((node) => node.id === value.nodeId)?.schema;
   const fields = schemaFields(sourceSchema);
   const selectedField = fields.find((field) => field.pointer === value.pointer);
+  const example = exampleAt(sourceSchema, value.pointer, selectedField);
   return (
     <>
       {value.source === "node" && (
@@ -4465,10 +4501,7 @@ function ReferenceFields({
           {selectedField.required
             ? "契约声明必填"
             : "字段可能缺失，请检查下游必填约束"}{" "}
-          · 敏感级别未声明
-          {selectedField.schema.examples?.length
-            ? " · 示例：" + JSON.stringify(selectedField.schema.examples[0])
-            : ""}
+          {example !== undefined && " · 样例值 " + JSON.stringify(example)}
         </small>
       )}
     </>
@@ -4507,6 +4540,9 @@ function MappingFields({
           locked.startsWith(field.pointer + "/"),
       ),
   );
+  const fieldsByPointer = new Map(fields.map((field) => [field.pointer, field]));
+  const missing = fields.filter((field) => field.required &&
+    !Object.keys(value).some((path) => field.pointer === path || field.pointer.startsWith(path + "/") || path.startsWith(field.pointer + "/")));
   const patch = (key: string, expression: J) =>
     onChange({ ...value, [key]: expression });
   return (
@@ -4515,20 +4551,15 @@ function MappingFields({
       <small>
         来源只列工作流输入与必经前序节点；绑定锁定参数不能添加映射。
       </small>
-      {fields.some(
-        (field) =>
-          field.required &&
-          !Object.hasOwn(value, field.pointer) &&
-          field.type !== "object",
-      ) && (
-        <p className="error">
-          仍有必填工具参数未映射，请按实际 Schema 补全后校验。
-        </p>
+      {missing.length > 0 && (
+        <p className="error">仍有必填工具参数未映射：{missing.map((field) => field.pointer).join("、")}</p>
       )}
       {Object.entries(value).map(([key, expression]: [string, J]) => (
         <div className="mapping-row" key={nodeId + ":" + key}>
           <div className="row">
             <code>{key}</code>
+            {fieldsByPointer.get(key) && <small>{fieldsByPointer.get(key)?.type}
+              {" · "}{fieldsByPointer.get(key)?.required ? "必填" : "可选"}</small>}
             <button
               aria-label={"移除映射 " + key}
               onClick={() => {
@@ -4566,6 +4597,7 @@ function MappingFields({
               前序节点输出
             </option>
           </select>
+          <small>{expression.ref ? "值由运行时输入或前序结果解析" : "样例值 " + JSON.stringify(expression.value)}</small>
           {expression.ref ? (
             <ReferenceFields
               value={expression.ref}
@@ -4587,7 +4619,7 @@ function MappingFields({
       ))}
       <label className="field">
         目标参数
-        {targetSchema ? (
+        {targetSchema && fields.length ? (
           <select
             aria-label="目标参数"
             value={target}

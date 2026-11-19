@@ -182,7 +182,7 @@ export class CapabilityRegistry {
         ensure(hash(this.repo.get("capability_sources",sourceId))===hash(source)&&hash(this.repo.get("connections",connection.id))===hash(connection),"CAPABILITY_STALE","Connection changed during detection.",409);
         const seen=new Set<string>();
         for(const tool of result.tools) {
-          const enabled=toolEnabled(config,tool.name),cap=this.putCapability({id:"cap_"+hash([context.id,source.sourceKey,tool.name]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:"mcp_tool",name:tool.name,description:tool.description??"",executor:"hub_direct",availability:enabled?"ready":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",inputSchema:tool.inputSchema,outputSchema:tool.outputSchema??null,tool,sourceRefs:[{sourceId,revision:source.revision}],provenance:{synthetic:false,discovered:true}});seen.add(cap.id);
+          const enabled=toolEnabled(config,tool.name),cap=this.putCapability({id:"cap_"+hash([context.id,source.sourceKey,tool.name]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:"mcp_tool",name:tool.name,description:tool.description??"",executor:"hub_direct",availability:enabled?"ready":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",inputSchema:tool.inputSchema,outputSchema:tool.outputSchema??null,tool,sourceRefs:[{sourceId,revision:source.revision}],provenance:{synthetic:false,discovered:true,serverSourceFingerprint:source.sourceFingerprint}});seen.add(cap.id);
         }
         for(const cap of this.contextCapabilities(context.id))if(cap.sourceRefs?.some((r:Json)=>r.sourceId===sourceId)&&!seen.has(cap.id))this.putCapability({...cap,stale:true});
         this.repo.put("capability_sources",sourceId,{...source,discovery:"schema_discovered",availability:"ready",lastCatalogAt:now(),lastObservation:{...source.lastObservation,connectionChecked:true,at:now()}});
@@ -252,7 +252,7 @@ export class CapabilityRegistry {
           self,executor:self?"informational":direct?"hub_direct":"codex_host",discovery:"metadata_only",installation:"installed",
           availability:!source.enabled?"disabled":policy.credentialArgs||policy.embeddedUrl?"credentials_required":policy.unsupported?"unsupported":policy.requiresCredentials?"credentials_required":"not_checked",credentialPolicyVersion:3,unsupportedReason:policy.unsupportedArgs?"LAUNCHER_ARGUMENTS_UNSUPPORTED":policy.unsupported?"SOURCE_CONFIGURATION_UNSUPPORTED":null,credentialVariables:policy.credentialVariables,configurationFields:configurationFields(source.config,source.name),discoveredAt:now(),stale:false};
         const sameSource=prior?.sourceFingerprint===sourceFingerprint&&prior?.contextRevision===context.revision&&!prior?.stale;
-        if(depth==="metadata"&&sameSource) {
+        if(depth!=="catalog"&&sameSource) {
           value.discovery=prior.discovery;value.availability=prior.availability;value.self=prior.self;value.executor=prior.executor;
           value.lastCatalogAt=prior.lastCatalogAt??(prior.discovery==="schema_discovered"?prior.discoveredAt:null);
         }
@@ -271,7 +271,7 @@ export class CapabilityRegistry {
             const enabled=toolEnabled(source.config,tool.name);
             const cap=this.putCapability({id:"cap_"+hash([context.id,source.sourceKey,tool.name]).slice(0,24),contextId:context.id,contextRevision:context.revision,kind:"mcp_tool",name:tool.name,description:tool.description??"",
               executor:"hub_direct",availability:enabled?"ready":"disabled",enabled:enabled?"enabled":"disabled",installation:"installed",inputSchema:tool.inputSchema,outputSchema:tool.outputSchema??null,tool,
-              sourceRefs:[{sourceId,revision:value.revision}],provenance:{synthetic:false,discovered:true}});capIds.add(cap.id);
+              sourceRefs:[{sourceId,revision:value.revision}],provenance:{synthetic:false,discovered:true,serverSourceFingerprint:sourceFingerprint}});capIds.add(cap.id);
           }
         }catch(e){check();value.discovery="failed";value.availability=e instanceof HubError&&e.code==="SELF_REFERENCE_DENIED"?"unsupported":"unreachable";if(e instanceof HubError&&e.code==="SELF_REFERENCE_DENIED"){value.self=true;value.executor="informational";}scan.issues.push({sourceId,code:e instanceof HubError?e.code:"CONNECTION_FAILED"});}
         check();this.repo.put("capability_sources",sourceId,value);
@@ -296,7 +296,7 @@ export class CapabilityRegistry {
           ...(skill?{contentHash:component.contentHash,skillContent:component.content??null,...(component.dependencyHash?{dependencyHash:component.dependencyHash}:{})}:{inputSchema:component.tool.inputSchema,outputSchema:component.tool.outputSchema??null,tool:component.tool,serverName:component.serverName}),
           sourceRefs:[{sourceId,revision:componentSource.revision}],provenance:{hostReported:component.hostReported??!skill,path:component.path,freshAppServerSession:!skill,...parentIdentity}});capIds.add(cap.id);
       }
-      if(depth==="metadata")for(const cap of this.contextCapabilities(context.id))if(cap.kind==="mcp_tool"&&cap.executor==="codex_host"&&cap.provenance?.serverSourceId&&!capIds.has(cap.id)) {
+      if(depth!=="catalog")for(const cap of this.contextCapabilities(context.id))if(cap.kind==="mcp_tool"&&cap.executor==="codex_host"&&cap.provenance?.serverSourceId&&!capIds.has(cap.id)) {
         const parent=this.repo.get("capability_sources",cap.provenance.serverSourceId);
         if(!parent||parent.stale||!parent.enabled||parent.sourceFingerprint!==cap.provenance.serverSourceFingerprint)this.putCapability({...cap,stale:true,...(!parent?.enabled?{enabled:"disabled",availability:"disabled"}:{})});
       }
@@ -304,7 +304,7 @@ export class CapabilityRegistry {
         if(scan.issues.length===0) {
           for(const old of this.contextSources(context.id))if(!sourceIds.has(old.id)&&!(depth==="metadata"&&old.kind==="host_tool"&&old.contextRevision===context.revision)){this.repo.put("capability_sources",old.id,{...old,stale:true});changes.push({sourceId:old.id,name:old.name,change:"removed"});}
           for(const old of this.contextCapabilities(context.id))if(!capIds.has(old.id)&&
-            (old.kind==="skill"||(old.executor==="codex_host"&&depth==="catalog")||(!sourceIds.has(old.sourceRefs[0]?.sourceId)&&!(depth==="metadata"&&old.executor==="codex_host"&&old.contextRevision===context.revision))||(depth==="catalog"&&this.repo.get("capability_sources",old.sourceRefs[0]?.sourceId)?.discovery==="schema_discovered")))this.putCapability({...old,stale:true});
+            (old.kind==="skill"||(old.executor==="codex_host"&&(depth==="catalog"||depth==="host_catalog"))||(!sourceIds.has(old.sourceRefs[0]?.sourceId)&&!(depth==="metadata"&&old.executor==="codex_host"&&old.contextRevision===context.revision))||(depth==="catalog"&&this.repo.get("capability_sources",old.sourceRefs[0]?.sourceId)?.discovery==="schema_discovered")))this.putCapability({...old,stale:true});
         }
         update({status:scan.issues.length?"PARTIAL":"SUCCEEDED",coverage:scan.issues.length?"partial":"complete",issues:scan.issues,completedAt:now(),sources:this.contextSources(context.id),components:safeComponents,changes});
         this.catalog.replace(context,this.repo.get("discovery_jobs",scanId),this.contextSources(context.id),this.contextCapabilities(context.id));
@@ -373,7 +373,7 @@ export class CapabilityRegistry {
     const cap=this.repo.get("capabilities",a.capabilityId);ensure(cap&&!cap.stale&&cap.enabled==="enabled","CAPABILITY_STALE","Capability missing, disabled or stale.",409);
     ensure(cap.revision===a.expectedSourceRevision,"CAPABILITY_STALE","Review the current capability revision.",409);
     const context=this.repo.get("host_contexts",cap.contextId);ensure(context&&(!cap.contextRevision||context.revision===cap.contextRevision),"CAPABILITY_STALE","Context changed; rescan before importing.",409);
-    if(a.target==="codex_host") {ensure(cap.executor!=="informational"&&["host_only","ready"].includes(cap.availability),"HOST_ONLY","Capability is unavailable to Codex.");return this.repo.command(owner,"capability.import",a.idempotencyKey,a,()=>({status:"host_reference",hostReference:{capabilityId:cap.id,revision:cap.revision,executor:"codex_host"}}));}
+    if(a.target==="codex_host") {ensure(cap.executor==="codex_host"&&cap.availability==="host_only","HOST_ONLY","Capability is unavailable to Codex.");return this.repo.command(owner,"capability.import",a.idempotencyKey,a,()=>({status:"host_reference",hostReference:{capabilityId:cap.id,revision:cap.revision,executor:"codex_host"}}));}
     ensure(cap.executor==="hub_direct","HOST_ONLY","Capability requires Codex.");
     const source=this.repo.get("capability_sources",cap.sourceRefs[0].sourceId);
     ensure(source&&!source.self,"SELF_REFERENCE_DENIED","FlowHub cannot be its own downstream.");
