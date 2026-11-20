@@ -705,6 +705,16 @@ dd {
   flex-wrap: wrap;
   gap: 6px;
 }
+.report-preview {
+  display: block;
+  width: 100%;
+  height: min(72vh, 740px);
+  min-height: 300px;
+  margin: 12px 0;
+  border: 1px solid #d6e0ec;
+  border-radius: 10px;
+  background: #eef3f8;
+}
 .event {
   display: flex;
   gap: 15px;

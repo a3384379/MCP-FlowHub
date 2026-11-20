@@ -22,9 +22,11 @@ const tabs = [
 export function DiscoveryPage({
   api,
   onManage,
+  onOpenWorkflow,
 }: {
   api: Api;
   onManage: (destination: DiscoveryDestination) => void;
+  onOpenWorkflow: (id: string) => void;
 }) {
   const d = useDiscovery(api),
     [english, setEnglish] = useState(false),
@@ -55,7 +57,7 @@ export function DiscoveryPage({
       onManage({ type: "connection", name: issue.name });
     else if (action.type === "credentials")
       detail(issue.entityId, "credentials");
-    else if (action.type === "sync") void d.refresh("catalog");
+    else if (action.type === "sync") void d.refresh("host_catalog");
     else if (action.type === "rescan") void d.refresh();
     else if (action.type === "settings") settings();
     else setGuide(issue);
@@ -120,10 +122,10 @@ export function DiscoveryPage({
           <button
             className="primary"
             disabled={d.busy || !d.contextId}
-            onClick={() => void d.refresh("catalog")}
+            onClick={() => void d.refresh("host_catalog")}
           >
             <Icon name="download" />
-            同步工具目录
+            同步 Codex 工具目录
           </button>
           {d.busy && (
             <button disabled={!d.scan?.id} onClick={() => void d.cancel()}>
@@ -409,6 +411,7 @@ export function DiscoveryPage({
           api={api}
           english={english}
           initialMode={detailMode}
+          onOpenWorkflow={onOpenWorkflow}
           onManage={(destination) => {
             setDetailId("");
             onManage(destination);
@@ -416,7 +419,7 @@ export function DiscoveryPage({
           close={() => setDetailId("")}
           onNavigate={setDetailId}
           onChanged={() => d.load()}
-          onSync={() => void d.refresh("catalog")}
+          onSync={() => void d.refresh("host_catalog")}
           snapshot={d.catalog?.snapshot ?? ""}
           drafts={drafts}
           setDraft={changeDraft}

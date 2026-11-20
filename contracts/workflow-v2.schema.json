@@ -1233,6 +1233,17 @@
             "assistant_local"
           ]
         },
+        "requireHostReceipt": {
+          "type": "boolean",
+          "description": "Require an exclusive dispatch claim and a structured Codex receipt."
+        },
+        "receiptScopeMappings": {
+          "type": "object",
+          "maxProperties": 16,
+          "propertyNames": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?:/(?:[^~/]|~[01])*)+$"},
+          "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?:/(?:[^~/]|~[01])*)+$"},
+          "description": "Map a required result field to a required frozen tool argument and compare their values when accepting the receipt."
+        },
         "businessVerification": {
           "$ref": "#/$defs/businessVerification"
         }

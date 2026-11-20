@@ -414,6 +414,16 @@ try {
   for (const tool of expectedTools) positive(tool + ': input structure', () => structure(call(tool), toolSchema));
   positive('workflow_start: dynamic workflow input', () => validateStart(call('workflow_start'), production));
   positive('workflow_advance: dynamic plan output', () => validateAgent(call('workflow_advance'), plan));
+  const structuredReceipt = { claimId: 'claim-demo', capabilityId: 'cap-demo', capabilityRevision: 1, argumentsHash: 'a'.repeat(64), evidenceRefs: ['art-demo'] };
+  positive('workflow_advance: structured host result separates payload and evidence', () => structure({
+    tool: 'workflow_advance', arguments: { ...baseAdvance, submission: { ...structuredReceipt, type: 'host_tool_result', payload: { evidenceRefs: 'business field' } } },
+  }, toolSchema));
+  positive('workflow_advance: structured host failure accepts a diagnostic', () => structure({
+    tool: 'workflow_advance', arguments: { ...baseAdvance, submission: { ...structuredReceipt, type: 'host_tool_failure', code: 'OUTCOME_UNKNOWN', errorMessage: 'Synthetic timeout.' } },
+  }, toolSchema));
+  negative('structured host failure rejects duplicate evidence IDs', () => structure({
+    tool: 'workflow_advance', arguments: { ...baseAdvance, submission: { ...structuredReceipt, type: 'host_tool_failure', code: 'OUTCOME_UNKNOWN', evidenceRefs: ['art-demo', 'art-demo'] } },
+  }, toolSchema), 'STRUCTURE');
   for (const useDeclaredFallback of [true, false]) {
     positive('host skill unavailable: fallback=' + useDeclaredFallback, () => {
       const request = { tool: 'workflow_advance', arguments: { ...baseAdvance, submission: { type: 'host_skill_unavailable', useDeclaredFallback } } };

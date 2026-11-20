@@ -23,11 +23,15 @@ export const issueLabels: Record<string, string> = {
   STATIC_RESOLUTION_PARTIAL: "当前使用静态配置，生效范围尚未完全确认",
   STATIC_PROFILE_PARTIAL: "Profile 的生效配置尚未完全确认",
   APP_SERVER_PARTIAL: "宿主目录读取不完整",
+  HOST_SKILLS_PARTIAL: "Codex 技能目录读取不完整",
+  CODEX_AUTH_REQUIRED: "Codex 授权需恢复",
+  HOST_VERSION_UNSUPPORTED: "当前设置无法读取 Codex 工具目录",
   HOST_CATALOG_PARTIAL: "宿主工具目录不完整",
   HOST_SOURCE_AMBIGUOUS: "宿主服务存在多个同名来源",
   SKILL_METADATA_INVALID: "技能介绍格式无法解析",
   SKILL_DEPENDENCY_INVALID: "技能依赖声明无法解析",
   CATALOG_NOT_SYNCED: "尚未同步工具目录",
+  DIRECT_CATALOG_NOT_SYNCED: "FlowHub 直连目录待检测",
   CREDENTIALS_REQUIRED: "需要连接配置",
   credentials_required: "需要连接配置",
   unreachable: "连接暂不可达",
@@ -47,14 +51,32 @@ export const presentationLabels: Record<string, string> = {
   stale: "中文说明待更新",
   original: "原始中文介绍",
 };
+export function hostCatalogReason(entity: Entity) {
+  if (entity.hostAuthRequired || entity.hostCatalogStatus === "auth_required")
+    return "Codex 授权需恢复";
+  if (entity.hostCatalogStatus === "ambiguous" || entity.ambiguousSource)
+    return "Codex 服务来源无法唯一对应";
+  if (entity.hostCatalogStatus === "partial")
+    return "Codex 工具目录读取不完整";
+  if (entity.hostCatalogStatus === "unavailable")
+    return "当前 Codex 目录未列出此服务";
+  return "";
+}
 export function entityStatus(e: Entity) {
+  const hostReason = hostCatalogReason(e);
+  if (e.enabled && hostReason && (e.entityKind === "mcp_tool" || e.hostAuthRequired || !e.preparedConnectionId))
+    return { text: hostReason, tone: "amber" };
   if (e.stale) return { text: "来源已失效 / 待同步", tone: "gray" };
   if (e.self) return { text: "FlowHub 自身 · 禁止导入", tone: "gray" };
   if (e.installation === "available_only")
     return { text: e.marketplaceConflict ? "市场来源冲突 · 未安装" : e.availability === "unavailable" ? "市场策略不可用 · 未安装" : "可用，尚未安装", tone: e.marketplaceConflict ? "amber" : "gray" };
   if (e.entityKind === "plugin" && e.marketplaceConflict)
     return { text: e.enabled === false ? "已安装 · 已停用 · 市场来源冲突" : "已安装 · 市场来源冲突", tone: "amber" };
+  if (e.ambiguousSource || e.availability === "ambiguous") return { text: "来源待确认", tone: "amber" };
   if (!e.enabled) return { text: "已停用", tone: "gray" };
+  if (e.hostCatalogReady) return { text: "由 Codex 执行", tone: "purple" };
+  if (e.entityKind === "mcp_server" && e.hostCatalogStatus === "ready")
+    return { text: "Codex 目录已同步", tone: "purple" };
   if (e.importState)
     return {
       text: e.importState.verified
@@ -65,14 +87,14 @@ export function entityStatus(e: Entity) {
       tone: e.importState.verified ? "green" : "blue",
     };
   if (e.entityKind === "plugin") return { text: "已安装", tone: "green" };
+  if (e.entityKind === "mcp_server" && !e.preparedConnectionId && ["credentials_required", "unsupported", "not_checked"].includes(e.availability))
+    return { text: "Codex 目录待同步", tone: "gray" };
   if (e.availability === "credentials_required")
     return { text: "需要连接配置", tone: "amber" };
   if (e.availability === "unsupported")
     return { text: "需手动登记连接", tone: "amber" };
   if (e.availability === "unreachable")
     return { text: "连接暂不可达", tone: "amber" };
-  if (e.availability === "ambiguous")
-    return { text: "来源待确认", tone: "amber" };
   if (
     e.availability === "host_only" ||
     (e.executor === "codex_host" && e.entityKind === "skill")

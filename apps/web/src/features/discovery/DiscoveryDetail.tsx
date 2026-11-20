@@ -1,10 +1,12 @@
 import { capabilityUsage } from "./capability-usage";
 import { useEffect, useRef, useState } from "react";
+import { addCapabilityToDraft, canAddCapability, directBindings } from "../workflows/CapabilityPicker";
 import { ConnectionSetup } from "./ConnectionSetup";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
 import {
   displayName,
   displaySummary,
+  hostCatalogReason,
   Icon,
   kinds,
   presentationLabels,
@@ -63,6 +65,7 @@ export function DiscoveryDetail({
   setDraft,
   initialMode,
   onManage,
+  onOpenWorkflow,
 }: {
   id: string;
   api: Api;
@@ -76,6 +79,7 @@ export function DiscoveryDetail({
   setDraft: (id: string, value: Form | null) => void;
   initialMode: "details" | "credentials";
   onManage: (destination: DiscoveryDestination) => void;
+  onOpenWorkflow: (id: string) => void;
 }) {
   const [entity, setEntity] = useState<Entity | null>(null),
     [tab, setTab] = useState("tools"),
@@ -86,8 +90,11 @@ export function DiscoveryDetail({
     [working, setWorking] = useState(false),
     [editing, setEditing] = useState(false),
     [importTarget, setImportTarget] = useState<Entity | null>(null);
-  const [environment, setEnvironment] = useState("test"),
-    [lockedArguments, setLockedArguments] = useState("{}"),
+  const [workflows, setWorkflows] = useState<Entity[]>([]),
+    [workflow, setWorkflow] = useState<Entity | null>(null),
+    [anchor, setAnchor] = useState(""),
+    [bindingOptions, setBindingOptions] = useState<Entity[]>([]),
+    [bindingId, setBindingId] = useState(""),
     [credentials, setCredentials] = useState(false),
     [secrets, setSecrets] = useState<Entity[]>([]),
     [credentialTarget, setCredentialTarget] = useState<{ sourceId: string; revision: number } | null>(null);
@@ -120,6 +127,7 @@ export function DiscoveryDetail({
       kind: "mcp_tool",
       parentId: e.id,
       limit: "20",
+      status: "all",
       ...(next ? { cursor: next } : {}),
     });
     const token = readGeneration.current,
@@ -166,7 +174,7 @@ export function DiscoveryDetail({
         if (
           activateCredentials.current &&
           !value.stale &&
-          value.connectionSetup !== "manual" &&
+          value.connectionSetup === "references" &&
           value.executor === "hub_direct"
         ) {
           activateCredentials.current = false;
@@ -237,45 +245,45 @@ export function DiscoveryDetail({
       setEntity(updated);
       await onChanged();
     });
-  const importCapability = () =>
-    run(async (current) => {
-      const target = importTarget!;
-      const result = await v2(
-        "/capabilities/" + encodeURIComponent(target.capabilityId) + "/import",
-        "POST",
-        {
-          expectedSourceRevision: target.capabilityRevision,
-          target:
-            target.executor === "hub_direct" ? "hub_direct" : "codex_host",
-          environment,
-          lockedArguments: JSON.parse(lockedArguments),
-          idempotencyKey: crypto.randomUUID(),
-        },
-      );
-      if (!current()) return;
-      setImportTarget(null);
-      setNotice(
-        result.hostReference
-          ? "Codex 宿主能力引用已登记。执行仍由 Codex 完成，可在编排画布中选择此技能。"
-          : result.connectionId
-            ? "连接与环境绑定已导入，资源绑定尚未验证。请前往 MCP 服务和环境与资源完成验证。"
-            : "仍需要连接配置：" + (result.missing ?? []).join("、"),
-      );
-    });
+  const forPicker = (e: Entity) => ({
+    ...e, id: e.capabilityId, revision: e.capabilityRevision,
+    enabled: e.enabled ? "enabled" : "disabled", kind: e.entityKind,
+  });
+  const canImport = (e: Entity) => !!e.capabilityId && canAddCapability(forPicker(e));
   const beginCredentials = () =>
     run((current) => activateCredentialForm(entity!, current));
-  const canImport = (e: Entity) =>
-    !!e.capabilityId &&
-    e.enabled &&
-    !e.stale &&
-    !(e.entityKind === "mcp_tool" && e.executor === "codex_host" && e.hasToolContract === false) &&
-    ["ready", "host_only"].includes(e.availability);
-  const beginImport = (e: Entity) => {
-    setImportTarget(e);
-    setEnvironment("test");
-    setLockedArguments("{}");
+  const beginImport = (e: Entity) => run(async (current) => {
+    const drafts = await api("/workflows");
+    if (!current()) return;
     setNotice("");
-  };
+    setWorkflows(drafts.filter((item: Entity) => item.draft.schemaVersion === "flowhub.workflow/v2"));
+    setWorkflow(null);
+    setAnchor("");
+    setBindingOptions([]);
+    setBindingId("");
+    setImportTarget(e);
+  });
+  const chooseDraft = (id: string) => run(async (current) => {
+    setWorkflow(null);
+    setAnchor("");
+    if (!id) return;
+    const [draft, bindings, connections] = await Promise.all([
+      v2("/workflows/" + encodeURIComponent(id) + "/draft"),
+      importTarget?.executor === "hub_direct" ? api("/bindings") : Promise.resolve([]),
+      importTarget?.executor === "hub_direct" ? api("/connections") : Promise.resolve([]),
+    ]);
+    if (!current()) return;
+    setBindingOptions(importTarget?.executor === "hub_direct" ? directBindings(forPicker(importTarget), bindings, draft.draft.environment, connections) : []);
+    setBindingId("");
+    setWorkflow(draft);
+    const input = draft.draft.nodes.find((node: Entity) => node.type === "input");
+    if (draft.draft.edges.some((edge: Entity) => edge.source === input?.id && edge.port === "next"))
+      setAnchor(input.id);
+  });
+  const importCapability = () => run(async (current) => {
+    await addCapabilityToDraft(api, forPicker(importTarget!), workflow, anchor, bindingId || undefined);
+    if (current()) onOpenWorkflow(workflow!.id);
+  });
   const footer = entity && (
     <>
       <span className="d-muted">
@@ -283,7 +291,13 @@ export function DiscoveryDetail({
           ? "执行原始技能；中文仅用于阅读。"
           : "工具目录读取成功不等于执行验证。"}
       </span>
-      {!editing && !credentials && !importTarget && !entity.stale && !entity.self && entity.entityKind === "mcp_server" && entity.executor === "hub_direct" && entity.connectionSetup !== "manual" && entity.availability !== "credentials_required" && <button disabled={working} onClick={() => void beginCredentials()}>连接配置</button>}
+      {!editing && !credentials && !importTarget && !entity.stale && !entity.self &&
+        entity.entityKind === "mcp_server" && entity.enabled && entity.sourceId && (
+          <button disabled={working} onClick={() => {
+            if (entity.executor === "hub_direct" && entity.connectionSetup === "references") void beginCredentials();
+            else onManage({ type: "connection", name: entity.name });
+          }}>{entity.preparedConnectionId ? "管理 FlowHub 直连" : "启用 FlowHub 直连"}</button>
+        )}
       {editing ? (
         <div className="d-actions">
           <button
@@ -309,55 +323,17 @@ export function DiscoveryDetail({
           <button className="primary" disabled={working} type="submit" form={"connection-setup-" + entity.id} name="action" value="detect">{working ? "处理中…" : "保存并检测连接"}</button>
         </div>
       ) : importTarget ? (
-        <button
-          className="primary"
-          disabled={working}
-          onClick={() => void importCapability()}
-        >
-          {working
-            ? "正在导入…"
-            : importTarget.executor === "hub_direct"
-              ? "导入连接与绑定"
-              : "登记宿主能力引用"}
+        <button className="primary" disabled={working || !workflow || !anchor || (bindingOptions.length > 1 && !bindingId)} onClick={() => void importCapability()}>
+          {working ? "正在处理…" : "添加并打开编排"}
         </button>
       ) : canImport(entity) ? (
-        <button className="primary" onClick={() => beginImport(entity)}>
-          {entity.executor === "hub_direct"
-            ? "导入到 FlowHub"
-            : "用于 Codex 流程"}
+        <button className="primary" disabled={working} onClick={() => void beginImport(entity)}>
+          {entity.executor === "hub_direct" ? "用直连添加到流程" : "用 Codex 添加到流程"}
           <Icon name="chevron" />
         </button>
-      ) : !entity.stale &&
-        (entity.connectionSetup === "manual" ||
-          entity.availability === "unsupported") &&
-        !entity.self ? (
-        <button
-          className="primary"
-          onClick={() => onManage({ type: "connection", name: entity.name })}
-        >
-          手动连接
-        </button>
-      ) : !entity.stale &&
-        entity.availability === "credentials_required" &&
-        entity.executor === "hub_direct" ? (
-        <button
-          className="primary"
-          disabled={working}
-          onClick={() => void beginCredentials()}
-        >
-          连接配置
-        </button>
-      ) : entity.entityKind === "mcp_server" &&
-        !entity.self &&
-        entity.enabled ? (
-        <button
-          className="primary"
-          onClick={() => {
-            close();
-            onSync();
-          }}
-        >
-          同步工具目录
+      ) : entity.entityKind === "mcp_server" && !entity.self && entity.enabled && !entity.hostCatalogReady ? (
+        <button className="primary" onClick={() => { close(); onSync(); }}>
+          同步 Codex 工具目录
         </button>
       ) : (
         <button onClick={close}>关闭详情</button>
@@ -462,32 +438,32 @@ export function DiscoveryDetail({
               onManage={() => onManage({ type: "library" })} />
           ) : importTarget ? (
             <div className="d-edit-form">
-              <h3>导入：{displayName(importTarget, english)}</h3>
-              <label>
-                导入固定环境
-                <select
-                  disabled={working}
-                  aria-label="导入固定环境"
-                  value={environment}
-                  onChange={(e) => setEnvironment(e.target.value)}
-                >
-                  <option value="test">测试</option>
-                  <option value="staging">试运行</option>
-                  <option value="production">生产</option>
-                </select>
-              </label>
-              <details>
-                <summary>高级：锁定参数</summary>
-                <label>
-                  锁定参数 JSON
-                  <textarea
-                    disabled={working}
-                    value={lockedArguments}
-                    onChange={(e) => setLockedArguments(e.target.value)}
-                  />
-                </label>
-              </details>
-              <p>导入保存连接和绑定，不执行工具。资源/环境绑定仍需独立验证。</p>
+              <h3>添加到流程</h3>
+              <p>{displayName(importTarget, english)} · {importTarget.executor === "hub_direct" ? "FlowHub 直连" : "由 Codex 执行"}</p>
+              {workflows.length ? (
+                <>
+                  <label>工作流草稿
+                    <select disabled={working} value={workflow?.id ?? ""} onChange={(e) => void chooseDraft(e.target.value)}>
+                      <option value="">选择草稿</option>
+                      {workflows.map((item) => <option key={item.id} value={item.id}>{item.draft.name} · {item.draft.environment}</option>)}
+                    </select>
+                  </label>
+                  {workflow && <label>插入位置
+                    <select disabled={working} value={anchor} onChange={(e) => setAnchor(e.target.value)}>
+                      <option value="">选择有下一步的串行节点</option>
+                      {workflow.draft.nodes.filter((node: Entity) => workflow.draft.edges.some(
+                        (edge: Entity) => edge.source === node.id && edge.port === "next",
+                      )).map((node: Entity) => <option key={node.id} value={node.id}>{node.title}之后</option>)}
+                    </select>
+                  </label>}
+                  {bindingOptions.length > 1 && <label>直连绑定
+                    <select disabled={working} value={bindingId} onChange={(e) => setBindingId(e.target.value)}>
+                      <option value="">选择连接和身份</option>
+                      {bindingOptions.map(binding => <option key={binding.id} value={binding.id}>{binding.name} · {binding.connectionId}</option>)}
+                    </select>
+                  </label>}
+                </>
+              ) : <p>请先在工作流库新建一个 v2 草稿。</p>}
               <button disabled={working} onClick={() => setImportTarget(null)}>返回详情</button>
             </div>
           ) : (
@@ -510,7 +486,13 @@ export function DiscoveryDetail({
                 </div>
                 <div>
                   <small>使用位置</small>
-                  {capabilityUsage({ ...entity, kind: entity.entityKind })}
+                  {entity.entityKind !== "mcp_server"
+                    ? capabilityUsage({ ...entity, kind: entity.entityKind })
+                    : entity.hostCatalogReady
+                      ? "由 Codex 执行 · 目录已同步"
+                      : hostCatalogReason(entity) || (entity.hostCatalogStatus === "ready"
+                        ? "Codex 目录已同步"
+                        : "Codex 工具目录待同步")}
                 </div>
                 <div>
                   <small>
@@ -555,25 +537,26 @@ export function DiscoveryDetail({
                         )}
                       </h3>
                       {tools.length ? (
-                        tools.map((tool) => (
+                        [...tools].sort((a, b) => Number(a.stale) - Number(b.stale) ||
+                          Number(b.executor === "codex_host") - Number(a.executor === "codex_host")).map((tool) => (
                           <article className="d-tool-card" key={tool.id}>
                             <strong>{displayName(tool, english)}</strong>
                             {tool.displayName !== tool.name && (
                               <span className="d-mono">{tool.name}</span>
                             )}
                             <p>{displaySummary(tool, english)}</p>
-                            <small>{capabilityUsage({ ...tool, kind: "mcp_tool" })}</small>
+                            <small>{tool.stale ? hostCatalogReason(tool) || "保留的旧目录" : capabilityUsage({ ...tool, kind: "mcp_tool" })}</small>
                             <div className="d-actions">
                               <button onClick={() => onNavigate(tool.id)}>
                                 参数与结果
                               </button>
                               <button
-                                disabled={!canImport(tool)}
-                                onClick={() => beginImport(tool)}
+                                disabled={working || !canImport(tool)}
+                                onClick={() => void beginImport(tool)}
                               >
                                 {tool.executor === "hub_direct"
-                                  ? "导入工具"
-                                  : "用于 Codex 流程"}
+                                  ? "用直连添加到流程"
+                                  : "用 Codex 添加到流程"}
                               </button>
                             </div>
                           </article>
@@ -582,7 +565,7 @@ export function DiscoveryDetail({
                         <p>
                           {entity.toolCount === 0
                             ? "此服务的实际目录没有工具。"
-                            : "工具目录尚不可用，请配置连接或同步目录。"}
+                            : hostCatalogReason(entity) || "请同步 Codex 工具目录。"}
                         </p>
                       )}
                       {cursor && (

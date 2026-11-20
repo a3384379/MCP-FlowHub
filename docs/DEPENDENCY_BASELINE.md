@@ -64,3 +64,7 @@ smol-toml 1.4.2（BSD-3-Clause），真实 TOML 解析及静态配置回退；�
 ## 2026-11-19 全屏 MCP App
 
 - `@modelcontextprotocol/ext-apps 2.0.4`（MIT），固定为构建依赖。由 Vite 打入全屏 MCP App 的本地脚本，用于 UI 握手与宿主工具调用。相关依赖由 lockfile 锁定，构建生成第三方许可清单。服务端及 STDIO 继续使用原 SDK 版本。
+
+## 运行报告排版
+
+- [`markdown-it 15.0.3`](https://github.com/markdown-it/markdown-it)（MIT），固定为运行时依赖。用于从 Markdown 生成包含目录和正文样式的离线 HTML。关闭源文档中的原生 HTML 和自动链接，引用和图片说明以文字显示。

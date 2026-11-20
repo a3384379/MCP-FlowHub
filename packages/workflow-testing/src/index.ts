@@ -128,7 +128,7 @@ export class WorkflowTesting {
         const node=nodes.get(assertion.nodeId);
         ensure(node,"INPUT_INVALID","Assertion must target an existing node: "+assertion.nodeId);
         if(["tool_called","tool_not_called","tool_call_count","argument_equals"].includes(assertion.kind))
-          ensure(node.type==="mcp_tool","INPUT_INVALID","Tool assertions must target an MCP node: "+assertion.nodeId);
+          ensure(node.type==="mcp_tool"||node.config.kind==="host_tool","INPUT_INVALID","Tool assertions must target an MCP node: "+assertion.nodeId);
         if(assertion.kind==="artifact_contains")ensure(["mcp_tool","report_template","agent_task"].includes(node.type),"INPUT_INVALID","Artifact assertions must target an artifact-producing node: "+assertion.nodeId);
       }
     }
@@ -382,7 +382,21 @@ export class WorkflowTesting {
             caseGaps.push({nodeId:node.id,code:"AGENT_EXECUTION_UNVERIFIED",provenance:"provided_agent_fixture"});
           }
           if(!submission){errorCode="FIXTURE_MISSING";break;}
-          engine.advance({runId:run.id,checkpointId:run.checkpoint.id,checkpointToken:status.checkpoint.token,expectedRevision:run.revision,idempotencyKey:"advance-"+run.checkpoint.nodeId,submission:{type:"agent_result",payload:submission.payload}});
+          const checkpoint = status.checkpoint;
+          const handoff = { runId: run.id, checkpointId: checkpoint.id, checkpointToken: checkpoint.token, expectedRevision: run.revision };
+          let result: Json = { type: "agent_result", payload: submission.payload };
+          if (checkpoint.requireHostReceipt) {
+            const claim = engine.advance({ ...handoff, idempotencyKey: "claim-" + checkpoint.id, submission: { type: "host_tool_claim" } });
+            handoff.expectedRevision = claim.acceptedRevision;
+            result = { type: "host_tool_result", claimId: claim.claimId, argumentsHash: checkpoint.argumentsHash,
+              capabilityId: checkpoint.capabilityRef.capabilityId, capabilityRevision: checkpoint.capabilityRef.revision,
+              payload: submission.payload };
+          }
+          if (checkpoint.kind === "host_tool") {
+            trace.push({ nodeId: checkpoint.nodeId, arguments: clone(checkpoint.resolvedArguments),
+              provenance: "synthetic_host_fixture" });
+          }
+          engine.advance({ ...handoff, idempotencyKey: "advance-" + checkpoint.id, submission: result });
         }
         await new Promise(r=>setTimeout(r,2));
       }

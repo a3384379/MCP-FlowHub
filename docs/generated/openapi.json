@@ -2935,6 +2935,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "const": "html"
+            },
+            "description": "Request an offline HTML rendition of a Markdown or FlowHub report. Omit for original content."
           }
         ],
         "responses": {
@@ -2954,6 +2963,9 @@
           "403": {
             "description": "Origin, scope or CSRF denied"
           },
+          "404": {
+            "description": "Run or artifact missing, expired, or outside the selected run"
+          },
           "409": {
             "description": "Revision/idempotency/version conflict"
           },
@@ -2968,7 +2980,7 @@
     },
     "/api/v1/runs/{id}/artifacts/{artifactId}/download": {
       "get": {
-        "summary": "Download the complete original run artifact",
+        "summary": "Download the complete original artifact or its requested HTML rendition",
         "security": [
           {
             "adminSession": []
@@ -2990,11 +3002,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "const": "html"
+            },
+            "description": "Request an offline HTML rendition of a Markdown or FlowHub report. Omit for original content."
           }
         ],
         "responses": {
           "200": {
-            "description": "Original artifact bytes with Content-Disposition attachment",
+            "description": "Original or rendered HTML bytes with Content-Disposition attachment",
             "content": {
               "application/octet-stream": {
                 "schema": {

@@ -17,6 +17,7 @@ import { Repository } from "../../packages/persistence/src/repository.js";
 import { Vault } from "../../packages/security/src/index.js";
 import { Engine } from "../../packages/workflow-core/src/engine.js";
 import type { Json } from "../../packages/contracts/src/domain.js";
+import { sourceConnectionRouteHash } from "../../packages/contracts/src/source-connection.js";
 
 test("connection PATCH clears the catalog baseline while live schema drift still invalidates the first verification", async (t) => {
   const db = new Database(":memory:"),
@@ -151,6 +152,16 @@ test("connection PATCH clears the catalog baseline while live schema drift still
   assert.equal(before.catalogSafetyVersion, 1);
   assert.ok(before.discovery);
   assert.ok(before.history.length);
+  const discoveredLink = {
+    sourceId: "synthetic-source",
+    sourceFingerprint: "synthetic-fingerprint",
+    sourceRouteHash: sourceConnectionRouteHash(before),
+    catalogFingerprint: "synthetic-catalog",
+  };
+  repo.put("connections", before.id, { ...before, ...discoveredLink }, before.revision);
+  const oldBinding = repo.get("bindings", binding.data.id);
+  repo.put("bindings", oldBinding.id, { ...oldBinding, sourceCapabilityId: "synthetic-read", sourceCapabilityRevision: 1 },
+    oldBinding.revision);
   const disabled = await api(
     "/connections/" + connection.data.id,
     { disabled: true },
@@ -166,6 +177,8 @@ test("connection PATCH clears the catalog baseline while live schema drift still
   ])
     assert.equal(Object.hasOwn(disabled.data, field), false, field);
   assert.deepEqual(disabled.data.tools, []);
+  for (const [key, value] of Object.entries(discoveredLink)) assert.equal(disabled.data[key], value);
+  assert.equal(repo.get("bindings", oldBinding.id).sourceCapabilityId, "synthetic-read");
   const restored = await api(
     "/connections/" + connection.data.id,
     { disabled: false },
@@ -196,4 +209,18 @@ test("connection PATCH clears the catalog baseline while live schema drift still
     ),
     false,
   );
+  const changedRoute = await api(
+    "/connections/" + connection.data.id,
+    { endpoint: "http://127.0.0.1:2/mcp" },
+    "PATCH",
+    repo.get("connections", connection.data.id).revision,
+  );
+  assert.equal(changedRoute.status, 200);
+  for (const key of Object.keys(discoveredLink)) assert.equal(Object.hasOwn(changedRoute.data, key), false, key);
+  const invalidated = repo.get("bindings", oldBinding.id);
+  assert.equal(invalidated.connectionId, before.id);
+  assert.equal(invalidated.validationStatus, "UNVERIFIED");
+  assert.equal(invalidated.verification, null);
+  assert.equal(Object.hasOwn(invalidated, "sourceCapabilityId"), false);
+  assert.deepEqual(repo.get("connections", before.id).tools, []);
 });

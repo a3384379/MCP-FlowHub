@@ -96,6 +96,18 @@
           {
             "type": "object",
             "properties": {
+              "op": {"const": "switch_tool_executor"},
+              "nodeId": {"type": "string", "minLength": 1},
+              "capabilityId": {"type": "string", "minLength": 1},
+              "revision": {"type": "integer", "minimum": 1},
+              "bindingKey": {"type": "string", "minLength": 1}
+            },
+            "required": ["op", "nodeId", "capabilityId", "revision"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
               "op": {
                 "const": "update_node"
               },
@@ -380,6 +392,7 @@
                   "description": {
                     "type": "string"
                   },
+                  "mode": {"enum": ["guided", "auto"]},
                   "tags": {
                     "type": "array",
                     "items": {

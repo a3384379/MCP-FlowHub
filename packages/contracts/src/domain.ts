@@ -89,7 +89,7 @@ ajv.addSchema(
   ),
 );
 const cache = new Map<string, ReturnType<typeof ajv.compile>>();
-export function validate(schema: Json, value: Json) {
+export function validate(schema: Json, value: Json, errorCode?: string) {
   const key = hash(schema);
   let fn = cache.get(key);
   if (!fn) {
@@ -108,7 +108,28 @@ export function validate(schema: Json, value: Json) {
     fn = registered ?? ajv.compile(schema);
     cache.set(key, fn);
   }
-  ensure(fn(value), "INPUT_INVALID", ajv.errorsText(fn.errors));
+  if (fn(value)) return;
+  if (!errorCode) throw new HubError("INPUT_INVALID", ajv.errorsText(fn.errors));
+  const errors = (fn.errors ?? []).slice(0, 20);
+  const issues = errors.map((error) => {
+    const field = error.keyword === "required" ? error.params.missingProperty
+      : error.keyword === "additionalProperties" ? error.params.additionalProperty : undefined;
+    const path = typeof field === "string"
+      ? error.instancePath + "/" + field.replaceAll("~", "~0").replaceAll("/", "~1")
+      : error.instancePath;
+    const actual = path.split("/").slice(1).reduce<Json>((current, encoded) => {
+      const key = encoded.replaceAll("~1", "/").replaceAll("~0", "~");
+      return current && typeof current === "object" && Object.hasOwn(current, key)
+        ? current[key] : undefined;
+    }, value);
+    return {
+      path: path.slice(0, 512),
+      keyword: error.keyword,
+      actualType: actual === undefined ? "missing" : actual === null ? "null" : Array.isArray(actual) ? "array" : typeof actual,
+      ...(error.keyword === "type" ? { expectedType: error.params.type } : {}),
+    };
+  });
+  throw new HubError(errorCode, ajv.errorsText(errors).slice(0, 4096), 422, { issues });
 }
 export const REPORT_HEADINGS = [
   "问题摘要",

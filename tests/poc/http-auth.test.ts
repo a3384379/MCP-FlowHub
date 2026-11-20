@@ -13,6 +13,7 @@ import {
 import { startDaemon } from "../../apps/daemon/src/index.js";
 import { createLocalHttp } from "../../apps/daemon/src/http.js";
 import type { Json } from "../../packages/contracts/src/domain.js";
+import { legacyReportHtml } from "../../packages/workflow-core/src/report-html.js";
 import {
   createClient,
   localHttpTransport,
@@ -247,6 +248,71 @@ test("artifact download returns the complete file and enforces session, run and 
     assert.equal(expired.status, 404);
     assert.equal(expired.json.error.code, "ARTIFACT_NOT_AVAILABLE");
   }
+});
+
+test("formatted reports preserve legacy archive bytes and provide a shared offline presentation", async (t) => {
+  const { daemon, call, api, adminHeaders } = await fixture(t);
+  const start = (idempotencyKey: string) => api("/runs", {
+    workflowId: "incident-staging", version: "1.0.0", mode: "guided", inputs, idempotencyKey,
+  });
+  const run = await start("report-preview-first");
+  const otherRun = await start("report-preview-second");
+  const markdown = [
+    "# 合成排查",
+    "## 证据列表",
+    "- **已经归档**",
+    "- `合成代码`",
+    "",
+    "| 项目 | 结果 |",
+    "| --- | --- |",
+    "| 账单 | 需核对 |",
+    "",
+    '原样显示 `&lt;hello&gt;` 和 <span>文本</span>',
+    "![截图说明](https://example.invalid/figure.png)",
+    "[参考说明](https://example.invalid/source)",
+  ].join("\r\n");
+  const stored = (id: string, mimeType: string, content: string) => {
+    const value = {
+      id, runId: run.runId, nodeId: "report", mimeType, content,
+      byteLength: Buffer.byteLength(content),
+      sha256: createHash("sha256").update(content).digest("hex"),
+      expiresAt: Date.now() + 60000,
+    };
+    daemon.engine.repo.put("artifacts", id, value);
+    return value;
+  };
+  const source = stored("preserved-markdown", "text/markdown", markdown);
+  const oldHtml = stored("legacy-html", "text/html", legacyReportHtml(markdown));
+  const path = (id: string) => "/api/v1/runs/" + run.runId + "/artifacts/" + id;
+  const previewUrl = path(oldHtml.id) + "?format=html";
+  const styled = await call(previewUrl, undefined, adminHeaders);
+  assert.equal(styled.status, 200);
+  assert.equal(styled.json.data.rendered, true);
+  assert.equal(styled.json.data.reformatted, true);
+  assert.equal(styled.json.data.sha256, oldHtml.sha256);
+  const html = styled.json.data.content;
+  assert.match(html, /<h1>合成排查<\/h1>/);
+  assert.match(html, /<a href="#section-1">证据列表<\/a>/);
+  assert.match(html, /<li><strong>已经归档<\/strong><\/li>/);
+  assert.match(html, /<td>需核对<\/td>/);
+  assert.match(html, /<code>&amp;lt;hello&amp;gt;<\/code>/);
+  assert.match(html, /&lt;span&gt;文本&lt;\/span&gt;/);
+  assert.match(html, /截图说明/);
+  assert.doesNotMatch(html, /<img\b|href="https:\/\//);
+  for (const artifact of [source, oldHtml]) {
+    const preview = await call(path(artifact.id) + "?format=html", undefined, adminHeaders);
+    assert.equal(preview.json.data.content, html);
+    const download = await call(path(artifact.id) + "/download?format=html", undefined, adminHeaders);
+    assert.equal(download.text, html);
+    assert.equal(download.headers["content-disposition"], `attachment; filename="flowhub-${artifact.id}.html"`);
+    const archive = await call(path(artifact.id) + "/download", undefined, adminHeaders);
+    assert.equal(archive.text, artifact.content);
+    assert.equal(daemon.engine.repo.get("artifacts", artifact.id).sha256, artifact.sha256);
+  }
+  assert.equal((await call(previewUrl)).status, 401);
+  assert.equal((await call(previewUrl.replace(run.runId, otherRun.runId), undefined, adminHeaders)).status, 404);
+  daemon.engine.repo.put("artifacts", oldHtml.id, { ...oldHtml, expiresAt: Date.now() - 1 });
+  assert.equal((await call(path(oldHtml.id) + "/download?format=html", undefined, adminHeaders)).status, 404);
 });
 
 test("SEC-11/12: matched admin routes require session and CSRF for canonical, absolute and encoded targets", async (t) => {

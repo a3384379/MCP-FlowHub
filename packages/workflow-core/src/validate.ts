@@ -64,15 +64,27 @@ export function validateWorkflowDocument(w: Workflow) {
   if(w?.schemaVersion==="flowhub.workflow/v2"&&Array.isArray(w.nodes))for(const node of w.nodes)
     if(node?.type==="agent_task"&&node.config?.kind==="host_tool")assertSafeNativeObjectSchema(node.config.outputSchema);
   validate(workflowSchema,w);
-  for (const node of w.nodes)
+  for (const [index, node] of w.nodes.entries()) {
+    if (node.config.kind === "host_tool" && Object.keys(node.config.receiptScopeMappings ?? {}).length &&
+        node.config.requireHostReceipt !== true) {
+      const issue = {
+        code: "HOST_RECEIPT_REQUIRED",
+        message: "Receipt scope mappings require structured host receipts.",
+        nodeId: node.id,
+        path: "/nodes/" + index + "/config/receiptScopeMappings",
+      };
+      throw new HubError(issue.code, issue.message, 422, { issues: [issue] });
+    }
     if (node.config.businessVerification)
       validateBusinessRule(node.config.businessVerification,
         node.type === "agent_task" ? node.config.outputSchema : undefined);
+  }
 }
 export function validateWorkflow(
   w: Workflow,
   bindings: Json[],
   connections: Json[],
+  hostInputs: ReadonlyMap<string, Json> = new Map(),
 ) {
   ensure(
     Buffer.byteLength(JSON.stringify(w)) <= 524288,
@@ -216,23 +228,23 @@ export function validateWorkflow(
       assertObjectPayloadSchema(w.inputSchema);
       issuePath = nodePath;
     }
-    for (const map of [
-      n.config.argumentsMappings,
-      n.config.inputMappings,
-    ].filter(Boolean)) {
+    for (const field of ["argumentsMappings", "inputMappings"]) {
+      const map = n.config[field];
+      if (!map) continue;
       const keys = Object.keys(map);
       for (const key of keys) {
-        issuePath = nodePath + (map === n.config.argumentsMappings ? "/argumentsMappings/" : "/inputMappings/") + encodePointer(key);
+        issuePath = nodePath + "/" + field + "/" + encodePointer(key);
         parts(key);
         ensure(
           !keys.some((other) => other !== key && overlap(key, other)),
           "MAPPING_INVALID",
           "Overlapping destination paths.",
         );
+        references(map[key], n.id);
       }
     }
-    // Traverse expressions and mappings only: schemas/const data are inert.
-    for (const key of ["argumentsMappings", "inputMappings", "expression", "resultRef"])
+    // Traverse expressions only. Schemas and literal values are inert.
+    for (const key of ["expression", "resultRef"])
       if (n.config[key]) {
         issuePath = nodePath + "/" + key;
         references(n.config[key], n.id);
@@ -257,6 +269,81 @@ export function validateWorkflow(
         "TEMPLATE_INVALID",
         "Unknown report contract/fallback.",
       );
+    function validateInputs(targetSchema: Json, map: Json, field: string, lockedArguments: Json = {}, extra: string[] = []) {
+      // Check source/target types and mandatory downstream parameters.
+      const supplied = [...Object.keys(map), ...Object.keys(lockedArguments), ...extra];
+      for (const [key, expr] of Object.entries(map) as [
+        string,
+        Json,
+      ][]) {
+        issuePath = nodePath + "/" + field + "/" + encodePointer(key);
+        const target = schemaAt(targetSchema, key);
+        if (expr.ref) {
+          const sourceRoot = expr.ref.source === "input" ? w.inputSchema : outputSchema(expr.ref.nodeId);
+          assertAssignable(schemaAt(sourceRoot, expr.ref.pointer, true), sourceRoot,
+            target, targetSchema, n.id + key);
+        } else validateMappedLiteral(targetSchema, key, expr.value);
+      }
+      for (const [key, value] of Object.entries(lockedArguments)) {
+        issuePath = nodePath + "/bindingKey";
+        validateMappedLiteral(targetSchema, key, value);
+      }
+      const arrayPaths = new Set<string>();
+      for (const path of supplied) {
+        const keys = parts(path);
+        for (let index = 1; index < keys.length; index++) {
+          const parent = "/" + keys.slice(0, index).map((key) => key.replaceAll("~", "~0").replaceAll("/", "~1")).join("/");
+          const type = schemaAt(targetSchema, parent).type;
+          if (type === "array" || (Array.isArray(type) && type.includes("array"))) arrayPaths.add(parent);
+        }
+      }
+      for (const parent of arrayPaths) {
+        if (supplied.some((path) => path === parent || parent.startsWith(path + "/"))) continue;
+        const depth = parts(parent).length;
+        const indices = [...new Set(supplied.filter((path) => path.startsWith(parent + "/"))
+          .map((path) => Number(parts(path)[depth])))].sort((a, b) => a - b);
+        const target = schemaAt(targetSchema, parent);
+        issuePath = nodePath + "/" + field + "/" + encodePointer(parent);
+        ensure(indices.every((value, index) => value === index) &&
+          indices.length >= (target.minItems ?? 0) && indices.length <= (target.maxItems ?? 10000),
+          "MAPPING_INVALID", "Array mappings must provide contiguous items within schema bounds at " + n.id + parent);
+      }
+      function required(pointer: string) {
+        if (supplied.some((key) => key === pointer || pointer.startsWith(key + "/"))) return;
+        const s = schemaAt(targetSchema, pointer);
+        for (const key of s.required ?? []) {
+          const child = pointer + "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
+          issuePath = nodePath + "/" + field + "/" + encodePointer(child);
+          ensure(supplied.some((path) => path === child || path.startsWith(child + "/")),
+            "MAPPING_INVALID", "Required tool parameter missing: " + n.id + child);
+          required(child);
+        }
+        for (const key of Object.keys(s.properties ?? {})) {
+          const child = pointer + "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
+          if (!(s.required ?? []).includes(key) && supplied.some((path) => path.startsWith(child + "/"))) required(child);
+        }
+        if (s.type === "array" || (Array.isArray(s.type) && s.type.includes("array"))) {
+          const depth = parts(pointer).length;
+          const indices = new Set(supplied.filter((path) => path.startsWith(pointer + "/"))
+            .map((path) => parts(path)[depth]!));
+          for (const index of indices) required(pointer + "/" + index);
+        }
+      }
+      required("");
+    }
+    const hostInput = hostInputs.get(n.id);
+    if (hostInput) {
+      issuePath = nodePath + "/inputMappings";
+      ensure(n.config.executorRef === "codex_host", "HOST_CAPABILITY_UNAVAILABLE",
+        "A structured host receipt requires the Codex executor.");
+      assertSafeNativeObjectSchema(hostInput);
+      validateInputs(hostInput, n.config.inputMappings, "inputMappings");
+      for (const [outputPointer, inputPointer] of Object.entries(n.config.receiptScopeMappings ?? {})) {
+        issuePath = nodePath + "/receiptScopeMappings/" + encodePointer(outputPointer);
+        assertAssignable(schemaAt(hostInput, String(inputPointer), true), hostInput,
+          schemaAt(n.config.outputSchema, outputPointer, true), n.config.outputSchema, n.id + outputPointer);
+      }
+    }
     if (n.type === "mcp_tool") {
       issuePath = nodePath + "/outputSchemaRef";
       ensure(
@@ -344,63 +431,8 @@ export function validateWorkflow(
         const definition = schemaAt(tool.inputSchema, n.config.rowLimitArgument);
         ensure(["integer", "number"].includes(definition.type), "LIMIT_UNSUPPORTED", "The declared native row-limit argument is not numeric.");
       }
-      // Check source/target types and mandatory downstream parameters.
-      const supplied = [...Object.keys(n.config.argumentsMappings), ...Object.keys(b.lockedArguments), ...(n.config.rowLimitArgument ? [n.config.rowLimitArgument] : [])];
-      for (const [key, expr] of Object.entries(n.config.argumentsMappings) as [
-        string,
-        Json,
-      ][]) {
-        issuePath = nodePath + "/argumentsMappings/" + encodePointer(key);
-        const target = schemaAt(tool.inputSchema, key);
-        if (expr.ref) {
-          const sourceRoot = expr.ref.source === "input" ? w.inputSchema : outputSchema(expr.ref.nodeId);
-          assertAssignable(schemaAt(sourceRoot, expr.ref.pointer, true), sourceRoot,
-            target, tool.inputSchema, n.id + key);
-        } else validateMappedLiteral(tool.inputSchema, key, expr.value);
-      }
-      for (const [key, value] of Object.entries(b.lockedArguments))
-        validateMappedLiteral(tool.inputSchema, key, value);
-      const arrayPaths = new Set<string>();
-      for (const path of supplied) {
-        const keys = parts(path);
-        for (let index = 1; index < keys.length; index++) {
-          const parent = "/" + keys.slice(0, index).map((key) => key.replaceAll("~", "~0").replaceAll("/", "~1")).join("/");
-          const type = schemaAt(tool.inputSchema, parent).type;
-          if (type === "array" || (Array.isArray(type) && type.includes("array"))) arrayPaths.add(parent);
-        }
-      }
-      for (const parent of arrayPaths) {
-        if (supplied.some((path) => path === parent || parent.startsWith(path + "/"))) continue;
-        const depth = parts(parent).length;
-        const indices = [...new Set(supplied.filter((path) => path.startsWith(parent + "/"))
-          .map((path) => Number(parts(path)[depth])))].sort((a, b) => a - b);
-        const target = schemaAt(tool.inputSchema, parent);
-        ensure(indices.every((value, index) => value === index) &&
-          indices.length >= (target.minItems ?? 0) && indices.length <= (target.maxItems ?? 10000),
-          "MAPPING_INVALID", "Array mappings must provide contiguous items within schema bounds at " + n.id + parent);
-      }
-      function required(pointer: string) {
-        if (supplied.some((key) => key === pointer || pointer.startsWith(key + "/"))) return;
-        const s = schemaAt(tool.inputSchema, pointer);
-        for (const key of s.required ?? []) {
-          const child = pointer + "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
-          issuePath = nodePath + "/argumentsMappings/" + encodePointer(child);
-          ensure(supplied.some((path) => path === child || path.startsWith(child + "/")),
-            "MAPPING_INVALID", "Required tool parameter missing: " + n.id + child);
-          required(child);
-        }
-        for (const key of Object.keys(s.properties ?? {})) {
-          const child = pointer + "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
-          if (!(s.required ?? []).includes(key) && supplied.some((path) => path.startsWith(child + "/"))) required(child);
-        }
-        if (s.type === "array" || (Array.isArray(s.type) && s.type.includes("array"))) {
-          const depth = parts(pointer).length;
-          const indices = new Set(supplied.filter((path) => path.startsWith(pointer + "/"))
-            .map((path) => parts(path)[depth]!));
-          for (const index of indices) required(pointer + "/" + index);
-        }
-      }
-      required("");
+      validateInputs(tool.inputSchema, n.config.argumentsMappings, "argumentsMappings", b.lockedArguments,
+        n.config.rowLimitArgument ? [n.config.rowLimitArgument] : []);
       if (b.allowedQueryTemplates.length) {
         issuePath = nodePath + "/argumentsMappings/~1templateId";
         const literal = n.config.argumentsMappings["/templateId"];

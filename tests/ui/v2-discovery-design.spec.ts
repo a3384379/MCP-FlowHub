@@ -106,11 +106,13 @@ async function setup(page: Page) {
   await page.goto("/discovery");
   await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
   const scan = async () => {
-    await page
-      .getByRole("button", { name: "同步工具目录", exact: true })
-      .click();
-    await expect(page.locator(".d-scan-status")).toContainText("正在扫描");
-    await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
+    const accepted = await api("/api/v2/host-scans", "POST", {
+      contextId: context.id, depth: "catalog", idempotencyKey: randomUUID(),
+    });
+    await expect.poll(async () => (await api("/api/v2/host-scans/" + accepted.scanId)).status)
+      .toMatch(/SUCCEEDED|PARTIAL/);
+    await page.reload();
+    await expect(page.locator(".d-scan-status")).toContainText(/扫描完成|部分完成/);
   };
   const catalog = (kind?: string) =>
     api(
@@ -289,13 +291,10 @@ test("issue actions open the matching manual connection and credential forms and
   try {
     const issue = await f.addIssues(),
       original = await readFile(issue.path, "utf8");
-    const row = (name: string) =>
-      page
-        .locator(".d-issue")
-        .filter({ has: page.getByRole("heading", { name, exact: true }) });
-    await row(issue.manual)
-      .getByRole("button", { name: "手动连接", exact: true })
-      .click();
+    const row = (name: string) => page.locator(".d-cap-row").filter({ hasText: name });
+    await page.getByRole("tab", { name: /MCP 服务/ }).click();
+    await row(issue.manual).getByRole("button").click();
+    await page.getByRole("dialog").getByRole("button", { name: "启用 FlowHub 直连", exact: true }).click();
     await expect(page).toHaveURL(/\/connections$/);
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByLabel("连接名称", { exact: true })).toHaveValue(
@@ -352,9 +351,10 @@ test("issue actions open the matching manual connection and credential forms and
     const profile = await f.api("/api/v2/model-profiles", "POST", { name: "model-only-" + issue.credential, providerKind: "openai_compatible_chat", baseUrl: "https://synthetic.invalid/v1", model: "synthetic", apiKey: "MODEL_ONLY_SYNTHETIC_KEY", stream: false });
     await f.api("/api/v1/vault/lock", "POST", {});
     await page.goto("/discovery");
-    await page.getByRole("tab", { name: /需处理/ }).click();
-    await row(issue.credential).getByRole("button", { name: "连接配置", exact: true }).click();
+    await page.getByRole("tab", { name: /MCP 服务/ }).click();
+    await row(issue.credential).getByRole("button").click();
     const setup = page.getByRole("dialog");
+    await setup.getByRole("button", { name: "启用 FlowHub 直连", exact: true }).click();
     await expect(setup.getByRole("heading", { name: "连接配置", exact: true })).toBeVisible();
     await setup.getByLabel("凭据库口令", { exact: true }).fill("Synthetic-browser-password-041");
     await setup.getByRole("button", { name: "解锁凭据库", exact: true }).click();
@@ -375,7 +375,7 @@ test("issue actions open the matching manual connection and credential forms and
     expect(await page.locator("body").innerText()).not.toContain("SYNTHETIC_SECRET_DO_NOT_DISPLAY");
     await page.keyboard.press("Escape");
     await page
-      .getByRole("button", { name: "同步工具目录", exact: true })
+      .getByRole("button", { name: "同步 Codex 工具目录", exact: true })
       .first()
       .click();
     await expect
@@ -386,7 +386,8 @@ test("issue actions open the matching manual connection and credential forms and
           )?.availability,
       )
       .toBe("ready");
-    await expect(row(issue.credential)).toHaveCount(0);
+    await page.getByRole("tab", { name: /需处理/ }).click();
+    await expect(page.locator(".d-issue").filter({ hasText: issue.credential })).toHaveCount(0);
     expect(await readFile(issue.path, "utf8")).toBe(original);
     expect(await page.locator("body").innerText()).not.toContain(
       "SYNTHETIC_SECRET_DO_NOT_DISPLAY",
@@ -512,8 +513,8 @@ test("manual Chinese edits persist, Esc keeps pending input and source updates f
     await page.getByRole("button", { name: "重新扫描", exact: true }).click();
     await expect(page.locator(".d-scan-status")).toContainText("扫描完成");
     const row = page.locator(".d-cap-row").filter({ hasText: f.skillName });
-    await expect(row).toContainText("中文说明待更新");
     await row.getByRole("button").click();
+    await expect(page.getByRole("dialog")).toContainText("中文说明待更新");
     await page
       .getByRole("dialog")
       .getByText("查看保留的旧中文说明", { exact: true })
@@ -532,39 +533,24 @@ test("MCP detail imports a real discovered tool into a fixed test binding withou
     await f.scan();
     await f.seedChinese();
     const beforeBindings = (await f.api("/api/v1/bindings")).length;
+    const workflowId = "ui-direct-" + randomUUID().slice(0,8);
+    await f.api("/api/v2/workflows", "POST", { workflowId, name: "连接并添加直连工具",
+      environment: "test", mode: "auto", template: "blank", idempotencyKey: randomUUID() });
     await page.getByRole("button", { name: "查看合成订单服务详情" }).click();
     const dialog = page.getByRole("dialog");
-    await dialog
-      .locator(".d-tool-card")
-      .filter({ hasText: "读取订单" })
-      .getByRole("button", { name: "导入工具", exact: true })
-      .click();
-    await expect(
-      dialog.getByLabel("导入固定环境", { exact: true }),
-    ).toHaveValue("test");
-    const accepted = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/v2/capabilities/") &&
-        r.url().endsWith("/import") &&
-        r.request().method() === "POST",
-    );
-    await dialog
-      .getByRole("button", { name: "导入连接与绑定", exact: true })
-      .click();
-    const receipt = (await (await accepted).json()).data;
-    await expect(dialog.getByRole("status")).toContainText("资源绑定尚未验证");
+    await dialog.locator(".d-tool-card").filter({ hasText: "读取订单" })
+      .getByRole("button", { name: "用直连添加到流程", exact: true }).click();
+    await dialog.getByLabel("工作流草稿").selectOption(workflowId);
+    await dialog.getByRole("button", { name: "添加并打开编排", exact: true }).click();
+    await expect(page).toHaveURL("/workflows/" + workflowId + "/editor");
+    const saved = await f.api("/api/v2/workflows/" + workflowId + "/draft");
     const bindings = await f.api("/api/v1/bindings");
     expect(bindings.length).toBe(beforeBindings + 1);
-    const binding = bindings.find((b: any) => b.id === receipt.bindingId);
-    expect(binding.validationStatus).toBe("UNVERIFIED");
+    const binding = bindings.find((b: any) => Object.values(saved.draft.bindings).includes(b.id));
+    expect(binding).toMatchObject({validationStatus:"UNVERIFIED", environment:"test"});
     const tools = (await f.catalog("mcp_tool")).items;
-    expect(
-      tools.find((e: any) => e.capabilityId === binding.sourceCapabilityId)
-        .importState,
-    ).toMatchObject({ verified: false });
-    await expect(dialog.getByText("绑定已验证", { exact: true })).toHaveCount(
-      0,
-    );
+    expect(tools.find((e: any) => e.capabilityId === binding.sourceCapabilityId).importState)
+      .toMatchObject({ verified: false });
   } finally {
     await f.close();
   }

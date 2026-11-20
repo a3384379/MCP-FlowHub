@@ -70,7 +70,7 @@ export function businessSummary(run: Json): BusinessSummary {
           ? "skipped"
           : step === "FAILED"
             ? "failed"
-            : step === "OUTCOME_UNKNOWN"
+            : step === "OUTCOME_UNKNOWN" || (step === "BLOCKED" && run.hostReported?.[node.id]?.errorCode)
               ? "unavailable"
               : step === "SUCCEEDED"
                 ? (saved?.state ?? "not_evaluated")

@@ -370,7 +370,7 @@
     },
     "workflow_advance": {
       "title": "workflow_advance inputSchema",
-      "description": "向当前 WAITING_AGENT 检查点提交 Agent 结果，或报告当前 host_skill 不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
+      "description": "认领具名宿主工具，向当前 WAITING_AGENT 检查点提交结构化结果，或报告宿主不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
       "type": "object",
       "properties": {
         "runId": {
@@ -399,7 +399,7 @@
           "maxLength": 128
         },
         "submission": {
-          "description": "只支持下述两个互斥提交类型。当前节点/检查点是否接受某类型由运行时判定。",
+          "description": "支持以下互斥提交类型。当前节点/检查点是否接受某类型由运行时判定。",
           "oneOf": [
             {
               "title": "AgentResultSubmission",
@@ -419,6 +419,45 @@
                 "type",
                 "payload"
               ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_claim"}
+              },
+              "required": ["type"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_result"},
+                "claimId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityRevision": {"type": "integer", "minimum": 1},
+                "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+                "payload": {"type": "object"}
+              },
+              "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "payload"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_failure"},
+                "claimId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityRevision": {"type": "integer", "minimum": 1},
+                "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+                "errorMessage": {"type": "string", "minLength": 1, "maxLength": 2000},
+                "code": {"enum": ["AUTH_REQUIRED", "HOST_CAPABILITY_UNAVAILABLE", "HOST_CONTRACT_MISMATCH", "OUTCOME_UNKNOWN"]}
+              },
+              "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "code"],
               "additionalProperties": false
             },
             {
@@ -462,6 +501,10 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "view": {
+          "enum": ["full", "checkpoint"],
+          "description": "检查点视图仅返回当前宿主交接与证据元数据。"
         },
         "afterEventSeq": {
           "type": "integer",
@@ -561,6 +604,7 @@
         "depth": {
           "enum": [
             "metadata",
+            "host_catalog",
             "catalog"
           ]
         },
@@ -1047,6 +1091,18 @@
               {
                 "type": "object",
                 "properties": {
+                  "op": {"const": "switch_tool_executor"},
+                  "nodeId": {"type": "string", "minLength": 1},
+                  "capabilityId": {"type": "string", "minLength": 1},
+                  "revision": {"type": "integer", "minimum": 1},
+                  "bindingKey": {"type": "string", "minLength": 1}
+                },
+                "required": ["op", "nodeId", "capabilityId", "revision"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
                   "op": {
                     "const": "update_node"
                   },
@@ -1331,6 +1387,7 @@
                       "description": {
                         "type": "string"
                       },
+                      "mode": {"enum": ["guided", "auto"]},
                       "tags": {
                         "type": "array",
                         "items": {

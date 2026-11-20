@@ -24,3 +24,9 @@
 `contentStored` 仍仅表示实际报告字节已存储；`formatValidated` 表示章节格式通过；`evidenceReferencesValidated` 表示当前运行证据、完整索引与声明的摘要和可选字节数通过校验。`skillExecution=host_reported` 仅是宿主声明，`factualReview=not_performed` 不会因引用或哈希匹配而改变。校验不证明 Skill 实际执行，也不证明报告结论属实。
 
 引擎调用纯校验 helper 时必须只传入当前运行已授权且未过期的产物。摘要比较不能取代该运行和授权过滤。
+
+## 查看和下载
+
+运行详情中的 Markdown 和 FlowHub HTML 报告使用同一套排版，支持目录、标题、列表、表格和代码块。下载 HTML 可离线阅读。下载 MD 保留 Markdown 原始字节，可用支持 Markdown 的编辑器预览。
+
+旧版 FlowHub HTML 的排版在查看和下载时生成。归档正文、字节数和校验值继续对应原始附件。「下载归档原件」可取回旧版 HTML 的原始字节。管理 API 在附件读取或下载路径增加可选的 `format=html` 参数，默认仍读原件。MCP 的 `artifact_read` 继续分页返回归档字节。

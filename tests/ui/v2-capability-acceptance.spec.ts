@@ -21,9 +21,11 @@ async function authenticate(page:Page):Promise<Api> {
 async function discoveryFixture(withCapabilities=true) {
   const root=await realpath(await mkdtemp(join(process.env.FLOWHUB_UI_DATA_DIR!,"capability-acceptance-")));
   const home=join(root,"codex-home"),cwd=join(root,"project"),cli=join(root,"synthetic-codex.mjs"),servers=join(home,"servers.json"),delay=join(root,"delay-ms"),calls=join(root,"cli-calls.jsonl"),mcpStarted=join(root,"mcp-started"),skillExecuted=join(root,"skill-executed");
+  const hostAuthStatus=join(root,"host-auth-status");
   const skillName="ui-synthetic-report-"+randomUUID().slice(0,8),sourceName="ui-synthetic-mcp-"+randomUUID().slice(0,8),mcp=join(root,"synthetic-mcp.mjs");
   await mkdir(home);await mkdir(cwd);await writeFile(join(home,"config.toml"),"");await writeFile(delay,"700");
-  await writeFile(cli,`import fs from 'node:fs';const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(calls)},JSON.stringify(args)+'\\n');if(args.includes('--version'))console.log('codex-cli synthetic-ui-capability');else if(args.includes('--help'))console.log('--json');else if(args.includes('--json')){await new Promise(r=>setTimeout(r,Number(fs.readFileSync(${JSON.stringify(delay)},'utf8'))));console.log(fs.readFileSync(${JSON.stringify(servers)},'utf8'));}else process.exit(2);`);
+  await writeFile(hostAuthStatus,"unsupported");
+  await writeFile(cli,`import fs from 'node:fs';import readline from 'node:readline';const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(calls)},JSON.stringify(args)+'\\n');if(args.includes('--version'))console.log('codex-cli 0.169.0-alpha.11.1');else if(args.includes('--help'))console.log('--json');else if(args.includes('app-server'))readline.createInterface({input:process.stdin}).on('line',line=>{const m=JSON.parse(line);if(!m.id)return;const tool={name:'read_browser_host',inputSchema:{type:'object',properties:{resource:{type:'string'}},required:['resource'],additionalProperties:false},outputSchema:{type:'object',properties:{summary:{type:'string'}},required:['summary'],additionalProperties:false}};const data=m.method==='mcpServerStatus/list'&&${JSON.stringify(withCapabilities)}?[{name:${JSON.stringify(sourceName)},tools:{read_browser_host:tool},authStatus:fs.readFileSync(${JSON.stringify(hostAuthStatus)},'utf8')}]:[];console.log(JSON.stringify({id:m.id,result:m.method==='initialize'?{}:{data}}));});else if(args.includes('--json')){await new Promise(r=>setTimeout(r,Number(fs.readFileSync(${JSON.stringify(delay)},'utf8'))));console.log(fs.readFileSync(${JSON.stringify(servers)},'utf8'));}else process.exit(2);`);
   // The wrapper launches the real SDK mock server, not a mocked browser route.
   await writeFile(mcp,`import fs from 'node:fs';fs.appendFileSync(${JSON.stringify(mcpStarted)},'started\\n');const {serveStdio}=await import(${JSON.stringify(import.meta.resolve("@modelcontextprotocol/server/stdio"))});const {createMockServer}=await import(${JSON.stringify(pathToFileURL(resolve("dist/packages/mock-mcps/src/index.js")).href)});serveStdio(createMockServer,{legacy:'serve'});`);
   await writeFile(servers,JSON.stringify(withCapabilities?[{name:sourceName,enabled:true,transport:{type:"stdio",command:process.execPath,args:[mcp]}}]:[]));
@@ -32,7 +34,7 @@ async function discoveryFixture(withCapabilities=true) {
     await writeFile(join(skill,"script.mjs"),`import fs from 'node:fs';fs.writeFileSync(${JSON.stringify(skillExecuted)},'must not execute during discovery or insertion');`);
     await writeFile(join(skill,"SKILL.md"),`---\nname: ${skillName}\ndescription: Synthetic browser acceptance report Skill requiring Codex host execution.\n---\nThis indexed fixture is not evidence of actual Codex host execution. script.mjs must never run while discovering or inserting this capability.\n`);
   }
-  return {root,home,cwd,cli,servers,delay,calls,mcpStarted,skillExecuted,skillName,sourceName};
+  return {root,home,cwd,cli,servers,delay,calls,mcpStarted,skillExecuted,skillName,sourceName,hostAuthStatus};
 }
 async function openDiscovery(page:Page,api:Api,fixture:Awaited<ReturnType<typeof discoveryFixture>>) {
   const context=await api("/api/v2/host-contexts","POST",{codexHome:fixture.home,cwd:fixture.cwd,codexPath:fixture.cli,discoveryMode:"auto"});
@@ -53,7 +55,37 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
     const context=await openDiscovery(page,api,fixture),status=page.locator(".v2-discovery [role=status]");
     await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
     await page.getByRole("tab",{name:/Skills 技能/}).click(); await expect(page.locator(".d-cap-row").filter({hasText:fixture.skillName})).toContainText("仅 Codex 调用"); await page.getByRole("tab",{name:/MCP 服务/}).click();
-    await page.getByRole("button",{name:"同步工具目录",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
+    await page.getByRole("button",{name:"同步 Codex 工具目录",exact:true}).click();await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
+    await expect(readFile(fixture.mcpStarted,"utf8")).rejects.toMatchObject({code:"ENOENT"});
+    const hostWorkflowId=await createBlank(api,"从发现页添加具名宿主工具");
+    const server=page.locator(".d-cap-row").filter({hasText:fixture.sourceName});
+    await expect(server).toContainText("由 Codex 执行");
+    await server.getByRole("button").click();
+    const hostDrawer=page.getByRole("dialog");
+    await hostDrawer.locator(".d-tool-card").filter({hasText:"read_browser_host"}).getByRole("button",{name:"用 Codex 添加到流程",exact:true}).click();
+    await hostDrawer.getByLabel("工作流草稿").selectOption(hostWorkflowId);
+    await expect(hostDrawer.getByLabel("插入位置")).toHaveValue("input");
+    await hostDrawer.getByRole("button",{name:"添加并打开编排",exact:true}).click();
+    await expect(page).toHaveURL("/workflows/"+hostWorkflowId+"/editor");
+    const hostDraft=await api("/api/v2/workflows/"+hostWorkflowId+"/draft");
+    expect(hostDraft.draft.nodes.find((node:any)=>node.config.kind==="host_tool").config.requireHostReceipt).toBe(true);
+    expect(hostDraft.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:"MAPPING_INVALID",path:expect.stringContaining("resource")})]));
+    expect(hostDraft.draft.bindings).toEqual({});
+    await page.locator(".react-flow__node").filter({hasText:"read_browser_host"}).click();
+    await page.getByRole("combobox",{name:"目标参数",exact:true}).selectOption("/resource");
+    await page.getByRole("button",{name:/添加参数映射/}).click();
+    await page.getByLabel("/resource 来源",{exact:true}).selectOption("literal");
+    await page.getByLabel("/resource 常量",{exact:true}).fill('"synthetic-browser"');
+    await page.getByRole("button",{name:"保存草稿",exact:true}).click();
+    await expect.poll(async()=>(await api("/api/v2/workflows/"+hostWorkflowId+"/draft")).issues).toEqual([]);
+
+    await page.goto("/discovery");
+    await server.getByRole("button").click();
+    await hostDrawer.getByRole("button",{name:"启用 FlowHub 直连",exact:true}).click();
+    await expect(hostDrawer.getByRole("heading",{name:"连接配置",exact:true})).toBeVisible();
+    await hostDrawer.getByRole("button",{name:"保存并检测连接",exact:true}).click();
+    await expect(hostDrawer.getByText(/本服务连接及目录检测通过/)).toBeVisible();
+    await page.keyboard.press("Escape");
     const catalog=await api("/api/v2/capabilities?contextId="+context.id),direct=catalog.items.find((cap:any)=>cap.name==="synthetic_order_lookup"),skill=catalog.items.find((cap:any)=>cap.name===fixture.skillName);
     expect(direct).toMatchObject({executor:"hub_direct",availability:"ready",kind:"mcp_tool"});expect(skill).toMatchObject({executor:"codex_host",availability:"host_only",kind:"skill"});
     await page.locator(".d-cap-row").filter({hasText:fixture.sourceName}).getByRole("button").click();
@@ -68,6 +100,7 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
 
     const workflowId=await createBlank(api,"真实能力插入与持久化");await page.goto("/workflows/"+workflowId+"/editor");await expect(page.locator(".react-flow__node")).toHaveCount(2);
     const picker=page.locator(".v2-capability-picker");
+    await picker.getByLabel("调用位置").selectOption("hub_direct");
     await picker.getByLabel("能力来源").selectOption(direct.sourceRefs[0].sourceId);await picker.getByLabel("查找工具",{exact:true}).fill(direct.name);await picker.getByRole("button",{name:"搜索能力",exact:true}).click();
     await expect(picker.getByRole("button",{name:/^synthetic_order_lookup/})).toContainText("FlowHub 直连");
     const imported=page.waitForResponse(response=>response.url().endsWith("/api/v2/capabilities/"+direct.id+"/import")&&response.request().method()==="POST");
@@ -97,6 +130,45 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
     expect(persisted.issues.some((issue:any)=>["SCHEMA_INVALID","TEMPLATE_INVALID"].includes(issue.code))).toBe(false);
     await page.reload();await expect(page.locator(".react-flow__node")).toHaveCount(4);await expect(page.locator(".react-flow__node").filter({hasText:skill.name})).toHaveCount(1);await expect(picker.getByRole("alert")).toHaveCount(0);
     await expect(readFile(fixture.skillExecuted,"utf8")).rejects.toMatchObject({code:"ENOENT"});expect(errors).toEqual([]);
+  } finally {await rm(fixture.root,{recursive:true,force:true});}
+});
+
+test("known Codex authorization loss blocks cached tool insertion and preserves the original catalog for inspection",async({page})=>{
+  const api=await authenticate(page),fixture=await discoveryFixture();
+  try {
+    const context=await openDiscovery(page,api,fixture);
+    const scanStatus=page.locator(".d-scan-status");
+    await expect(scanStatus).toContainText("扫描完成");
+    await page.getByRole("button",{name:"同步 Codex 工具目录",exact:true}).click();
+    const row=page.locator(".d-cap-row").filter({hasText:fixture.sourceName});
+    await expect(row).toContainText("由 Codex 执行");
+    const catalog=await api("/api/v2/discovery/catalog?contextId="+context.id+"&kind=mcp_server");
+    const sourceId=catalog.items.find((entity:any)=>entity.name===fixture.sourceName).id;
+    const workflowId=await createBlank(api,"检查 Codex 目录授权状态");
+    await page.goto("/workflows/"+workflowId+"/editor");
+    const picker=page.locator(".v2-capability-picker");
+    await picker.getByLabel("能力来源").selectOption(sourceId);
+    await expect(picker.getByRole("button",{name:/^read_browser_host/})).toBeEnabled();
+    await writeFile(fixture.hostAuthStatus,"notLoggedIn");
+    await page.goto("/discovery");
+    await page.getByRole("button",{name:"同步 Codex 工具目录",exact:true}).click();
+    await expect(row).toContainText("Codex 授权需恢复");
+    await row.getByRole("button").click();
+    const tool=page.getByRole("dialog").locator(".d-tool-card").filter({hasText:"read_browser_host"});
+    await expect(tool).toContainText("Codex 授权需恢复");
+    await expect(tool.getByRole("button",{name:"用 Codex 添加到流程",exact:true})).toBeDisabled();
+    await tool.getByRole("button",{name:"参数与结果",exact:true}).click();
+    await expect(page.getByRole("dialog").getByRole("heading",{name:"read_browser_host",exact:true})).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button",{name:"重新扫描",exact:true}).click();
+    await expect(scanStatus).toContainText("扫描完成");
+    await expect(row).toContainText("Codex 授权需恢复");
+    await page.goto("/workflows/"+workflowId+"/editor");
+    await picker.getByLabel("能力来源").selectOption(sourceId);
+    const unavailable=picker.getByRole("button",{name:/^read_browser_host/});
+    await expect(unavailable).toBeDisabled();
+    await expect(unavailable).toContainText("Codex 授权需恢复");
+    await expect(readFile(fixture.mcpStarted,"utf8")).rejects.toMatchObject({code:"ENOENT"});
   } finally {await rm(fixture.root,{recursive:true,force:true});}
 });
 

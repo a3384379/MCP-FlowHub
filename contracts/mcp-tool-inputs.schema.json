@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:flowhub:contracts:mcp-tool-inputs:1.0",
   "title": "MCP FlowHub 1.0 固定七工具输入设计契约",
-  "description": "验证应用层工具调用描述 {tool, arguments}，不是完整 MCP JSON-RPC 线协议，也不替代身份授权、运行状态、不可变快照和动态节点 Schema 校验。七个工具的 arguments Schema 可分别通过 $defs 取出交给锁定版本的 MCP SDK。所有固定结构拒绝额外字段；inputs 与 agent_result.payload 是仅有的动态数据容器，必须在运行时使用已发布版本或当前检查点声明的严格 Schema 再次验证。",
+  "description": "验证应用层工具调用描述 {tool, arguments}，不是完整 MCP JSON-RPC 线协议，也不替代身份授权、运行状态、不可变快照和动态节点 Schema 校验。七个工具的 arguments Schema 可分别通过 $defs 取出交给锁定版本的 MCP SDK。所有固定结构拒绝额外字段；inputs 与结果回执的 payload 是仅有的动态数据容器，必须在运行时使用已发布版本或当前检查点声明的严格 Schema 再次验证。",
   "$comment": "设计基线：2026-10-29。MCP 初始化、协议版本协商、JSON-RPC id、元数据、传输和结果封装由官方 SDK 处理。此契约不增加 approve、任意 Tool 调用、Shell 或环境覆盖接口。Schema 校验本身不构成权限或环境隔离措施。",
   "type": "object",
   "properties": {
@@ -168,7 +168,7 @@
     },
     "workflow_advance": {
       "title": "workflow_advance inputSchema",
-      "description": "向当前 WAITING_AGENT 检查点提交 Agent 结果，或报告当前 host_skill 不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
+      "description": "认领具名宿主工具，向当前 WAITING_AGENT 检查点提交结构化结果，或报告宿主不可用。不是人工批准接口。必须事务性验证主体、幂等键、状态、revision、检查点 token、动态输出 Schema 与证据归属后才能推进。",
       "type": "object",
       "properties": {
         "runId": {
@@ -197,7 +197,7 @@
           "maxLength": 128
         },
         "submission": {
-          "description": "只支持下述两个互斥提交类型。当前节点/检查点是否接受某类型由运行时判定。",
+          "description": "当前节点和检查点决定可接受的提交类型。",
           "oneOf": [
             {
               "title": "AgentResultSubmission",
@@ -214,6 +214,45 @@
                 }
               },
               "required": ["type", "payload"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_claim"}
+              },
+              "required": ["type"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_result"},
+                "claimId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityRevision": {"type": "integer", "minimum": 1},
+                "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+                "payload": {"type": "object"}
+              },
+              "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "payload"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {"const": "host_tool_failure"},
+                "claimId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityId": {"type": "string", "minLength": 1, "maxLength": 128},
+                "capabilityRevision": {"type": "integer", "minimum": 1},
+                "argumentsHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "toolCallId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_.:-]+$"},
+                "evidenceRefs": {"type": "array", "maxItems": 200, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+                "errorMessage": {"type": "string", "minLength": 1, "maxLength": 2000},
+                "code": {"enum": ["AUTH_REQUIRED", "HOST_CAPABILITY_UNAVAILABLE", "HOST_CONTRACT_MISMATCH", "OUTCOME_UNKNOWN"]}
+              },
+              "required": ["type", "claimId", "capabilityId", "capabilityRevision", "argumentsHash", "code"],
               "additionalProperties": false
             },
             {
@@ -247,6 +286,10 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "view": {
+          "enum": ["full", "checkpoint"],
+          "description": "Compact handoff view containing the current checkpoint and evidence metadata."
         },
         "afterEventSeq": {
           "type": "integer",

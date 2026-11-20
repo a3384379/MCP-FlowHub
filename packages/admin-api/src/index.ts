@@ -24,7 +24,9 @@ import {
 } from "../../contracts/src/domain.js";
 import { withoutLegacyNodes } from "../../workflow-core/src/legacy-migration.js";
 import { validateWorkflowDocument } from "../../workflow-core/src/validate.js";
+import { formattedReport } from "../../workflow-core/src/report-html.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
+import { hasVerifiedSourceConnectionRoute, sourceConnectionRouteHash } from "../../contracts/src/source-connection.js";
 import { VERSION, TOOL_NAMES, projectRoot } from "../../contracts/src/index.js";
 import type { Engine } from "../../workflow-core/src/engine.js";
 import { AdminAuth, DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD } from "../../security/src/index.js";
@@ -535,17 +537,33 @@ export async function registerAdmin(
       verifiedSdk: null,
       tools: [],
     };
+    const routeChanged = sourceConnectionRouteHash(c) !== sourceConnectionRouteHash(next);
+    if (routeChanged) {
+      delete next.sourceId;
+      delete next.sourceFingerprint;
+      delete next.sourceRouteHash;
+      delete next.catalogFingerprint;
+    } else if (hasVerifiedSourceConnectionRoute(c)) {
+      next.sourceRouteHash = sourceConnectionRouteHash(c);
+    }
     assertMcpCredentialPurpose(next);
-    repo.put("connections", c.id, next, expected);
-    for (const binding of repo
-      .all("bindings")
-      .filter((b) => b.connectionId === c.id))
-      repo.put("bindings", binding.id, {
-        ...binding,
-        validationStatus: "UNVERIFIED",
-        revision: binding.revision + 1,
-      });
-    repo.audit("admin", "connection:update", c.id);
+    repo.tx(() => {
+      repo.put("connections", c.id, next, expected);
+      for (const binding of repo.all("bindings").filter(b => b.connectionId === c.id)) {
+        const invalidated = {
+          ...binding,
+          validationStatus: binding.revoked || binding.validationStatus === "REVOKED" ? "REVOKED" : "UNVERIFIED",
+          verification: null,
+          revision: binding.revision + 1,
+        };
+        if (routeChanged) {
+          delete invalidated.sourceCapabilityId;
+          delete invalidated.sourceCapabilityRevision;
+        }
+        repo.put("bindings", binding.id, invalidated, binding.revision);
+      }
+      repo.audit("admin", "connection:update", c.id);
+    });
     return data(next);
   });
   app.post("/api/v1/connections/:id/test", async (req) =>
@@ -797,7 +815,7 @@ export async function registerAdmin(
   app.get("/api/v1/workflows/:id/draft", async (req) => {
     const w = repo.get("workflows", param(req));
     ensure(w && !w.deletedAt, "NOT_FOUND", "Workflow missing or deleted.", 404);
-    return data(w);
+    return data(w.draft.schemaVersion === "flowhub.workflow/v2" ? { ...w, issues: authoring.issues(w.draft) } : w);
   });
   app.put("/api/v1/workflows/:id/draft", async (req) => {
     const b = body(req, ["workflow", "layout"], ["expectedLayoutRevision"]);
@@ -814,7 +832,8 @@ export async function registerAdmin(
     );
     ensure(b.expectedLayoutRevision===undefined || Number.isSafeInteger(b.expectedLayoutRevision) && b.expectedLayoutRevision>0,
       "INPUT_INVALID","Expected layout revision must be a positive integer.");
-    return data(authoring.saveRaw(b.workflow, revision(req), b.layout, b.expectedLayoutRevision));
+    const saved = authoring.saveRaw(b.workflow, revision(req), b.layout, b.expectedLayoutRevision);
+    return data(saved.draft.schemaVersion === "flowhub.workflow/v2" ? { ...saved, issues: authoring.issues(saved.draft) } : saved);
   });
   app.post("/api/v1/workflows/:id/validate", async (req) => {
     const w = repo.get("workflows", param(req));
@@ -1044,6 +1063,9 @@ export async function registerAdmin(
   );
   app.get("/api/v1/runs/:id/artifacts/:artifactId", async (req) => {
     const q = req.query as Json,
+      runId = param(req),
+      artifactId = param(req, "artifactId"),
+      runOwner = owner(runId),
       offset = Number(q.offset ?? 0),
       maxBytes = Number(q.maxBytes ?? 65536);
     ensure(
@@ -1055,21 +1077,27 @@ export async function registerAdmin(
       "INPUT_INVALID",
       "Invalid chunk bounds.",
     );
+    if (q.format === "html" && offset === 0) {
+      const artifact = engine.artifactContent(runId, artifactId, runOwner);
+      const html = formattedReport(artifact);
+      if (html !== undefined) {
+        const byteLength = Buffer.byteLength(artifact.content);
+        return data({
+          artifactId, runId, mimeType: "text/html", content: html,
+          sha256: artifact.sha256, byteLength, offset, nextOffset: byteLength,
+          eof: true, verification: artifact.verification,
+          rendered: true, reformatted: html !== artifact.content,
+        });
+      }
+    }
     return data(
-      engine.readArtifact(
-        {
-          runId: param(req),
-          artifactId: param(req, "artifactId"),
-          offset,
-          maxBytes,
-        },
-        owner(param(req)),
-      ),
+      engine.readArtifact({ runId, artifactId, offset, maxBytes }, runOwner),
     );
   });
   app.get("/api/v1/runs/:id/artifacts/:artifactId/download", async (req, reply) => {
     const runId = param(req);
     const artifact = engine.artifactContent(runId, param(req, "artifactId"), owner(runId));
+    const html = (req.query as Json).format === "html" ? formattedReport(artifact) : undefined;
     const extensions: Record<string, string> = {
       "text/markdown": "md",
       "text/html": "html",
@@ -1077,13 +1105,14 @@ export async function registerAdmin(
       "application/mcp+json": "json",
     };
     const safeId = String(artifact.id).replace(/[^a-zA-Z0-9_-]/g, "_");
-    const extension = Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
+    const extension = html !== undefined ? "html"
+      : Object.hasOwn(extensions, artifact.mimeType) ? extensions[artifact.mimeType] : "txt";
     const filename = "flowhub-" + safeId + "." + extension;
     return reply
       .type("application/octet-stream")
       .header("Content-Disposition", `attachment; filename="${filename}"`)
       .header("Cache-Control", "no-store")
-      .send(Buffer.from(artifact.content, "utf8"));
+      .send(Buffer.from(html ?? artifact.content, "utf8"));
   });
   app.post("/api/v1/support-bundles/preview", async () =>
     data(supportPreview()),

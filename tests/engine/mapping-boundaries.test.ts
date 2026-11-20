@@ -83,6 +83,35 @@ test("whole object literals/references, nullable targets and local definitions r
   }
 });
 
+test("mapped literals enforce a decoded local reference and its sibling constraints", async t => {
+  const f = fixture();
+  t.after(f.close);
+  f.tool({ value: { $ref: "#/$defs/Trace%20Id", minLength: 1 } }, {
+    $defs: { "Trace Id": { type: "string", minLength: 5, maxLength: 10 } },
+  });
+  const node = f.workflow.nodes[1]!;
+  node.config.argumentsMappings = { "/value": { value: "X" } };
+  assert.throws(() => f.engine.validateDraft(f.workflow), (error: Json) =>
+    error.code === "INPUT_INVALID" && error.details.issues[0].path === "/nodes/1/config/argumentsMappings/~1value" &&
+    error.message.includes("fewer than 5 characters"));
+  node.config.argumentsMappings["/value"].value = "DEMO-0042";
+  assert.equal(f.engine.validateDraft(f.workflow).ok, true);
+  assert.equal((await settled(f.engine, f.start().runId)).state, "SUCCEEDED");
+});
+
+test("unevaluated properties beside a local reference use properties evaluated by that reference", async t => {
+  const f = fixture();
+  t.after(f.close);
+  f.tool({ value: { $ref: "#/$defs/Scope", unevaluatedProperties: false } }, {
+    $defs: { Scope: { type: "object", properties: { orderNo: { type: "string" } }, required: ["orderNo"] } },
+  });
+  const mapping = { value: { orderNo: "DEMO-0042" } };
+  f.workflow.nodes[1]!.config.argumentsMappings = { "/value": mapping };
+  assert.equal(f.engine.validateDraft(f.workflow).ok, true);
+  f.workflow.nodes[1]!.config.argumentsMappings["/value"].value = { ...mapping.value, extra: true };
+  assert.throws(() => f.engine.validateDraft(f.workflow), { code: "INPUT_INVALID" });
+});
+
 test("array item mappings create arrays and dispatch valid parameters", async () => {
   let args: Json;
   const f = fixture(async (_b, _n, input, _t, dispatch) => { dispatch(); args = input; return {}; });
