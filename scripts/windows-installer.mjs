@@ -111,9 +111,8 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
     const { stdout: compilerVersion } = await exec(compiler, ["/VERSION"], { windowsHide: true });
     assert.equal(compilerVersion.trim(), `v${pin.version}`);
     const manifest = JSON.parse(await readFile(join(bundle, "manifest.sha256.json"), "utf8"));
-    manifest["manifest.sha256.json"] = hash(await readFile(join(bundle, "manifest.sha256.json")));
-    const manifestPath = join(temporary, "payload-manifest.json");
-    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+    const payloadFiles = join(temporary, "payload-files.json");
+    await writeFile(payloadFiles, JSON.stringify([...Object.keys(manifest), "manifest.sha256.json"].sort()));
     // Generic setup/install/update names trigger unsafe Windows compatibility
     // shims and NSIS warning 9000. Keep /WX and use a product/version name.
     const stagedOutput = join(temporary, `flowhub-${pkg.version}-candidate.exe`);
@@ -125,7 +124,7 @@ export async function buildWindowsInstaller({ bundle, archive, outputDir = join(
       FLOWHUB_BUNDLE: resolve(bundle),
       FLOWHUB_HELPER: join(sourceRoot, "installer/windows/install-helper.mjs"),
       FLOWHUB_AUTOSTART: join(sourceRoot, "installer/windows/autostart.mjs"),
-      FLOWHUB_MANIFEST: manifestPath,
+      FLOWHUB_PAYLOAD_FILES: payloadFiles,
       FLOWHUB_LAUNCHER: join(sourceRoot, "installer/windows/flowhub.cmd"),
       FLOWHUB_NSIS_LICENSE: join(nsisDir, "COPYING"),
       FLOWHUB_NSIS_NOTICE: join(sourceRoot, "installer/windows/NSIS-NOTICE.txt"),

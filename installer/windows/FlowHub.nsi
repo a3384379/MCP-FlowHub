@@ -16,6 +16,7 @@ InstallDirRegKey HKCU "Software\MCP-FlowHub" "InstallLocation"
 RequestExecutionLevel user
 ManifestDPIAware true
 SetCompressor /SOLID lzma
+CRCCheck force
 BrandingText "MCP FlowHub — offline release candidate"
 ShowInstDetails show
 ShowUninstDetails show
@@ -38,6 +39,9 @@ Var HelperLog
 Function ${PREFIX}.onInit
   SetShellVarContext current
   ReadEnvStr $HelperLog "FLOWHUB_INSTALLER_DIAGNOSTICS"
+  ${If} $HelperLog == ""
+    StrCpy $HelperLog "$LOCALAPPDATA\MCP-FlowHub-Installer.log"
+  ${EndIf}
   ${IfNot} ${RunningX64}
     MessageBox MB_OK|MB_ICONSTOP "FlowHub requires native Windows x64." /SD IDOK
     SetErrorLevel 21
@@ -66,17 +70,30 @@ FunctionEnd
 !insertmacro InstallerInit ""
 !insertmacro InstallerInit "un"
 
-!macro CheckHelper
+!macro CheckHelper STAGE
   Pop $HelperResult
-  Pop $HelperOutput
-  DetailPrint "$HelperOutput"
-  ${If} $HelperLog != ""
-    FileOpen $9 "$HelperLog" a
-    FileWrite $9 "$HelperResult: $HelperOutput$\r$\n"
+  StrCpy $HelperOutput ""
+  ClearErrors
+  FileOpen $9 "$PLUGINSDIR\helper\status.txt" r
+  ${IfNot} ${Errors}
+    FileRead $9 $HelperOutput
     FileClose $9
   ${EndIf}
   ${If} $HelperResult != 0
-    MessageBox MB_OK|MB_ICONSTOP "$HelperOutput$\r$\nInstallation stopped. Stop FlowHub before retrying; user data is retained." /SD IDOK
+    ${If} $HelperResult == "timeout"
+      StrCpy $8 "No progress was reported for the allowed time."
+    ${ElseIf} $HelperResult == "error"
+      StrCpy $8 "Windows could not start the installation helper."
+    ${Else}
+      StrCpy $8 "The helper stopped with exit code $HelperResult."
+    ${EndIf}
+    ClearErrors
+    FileOpen $9 "$HelperLog" a
+    ${IfNot} ${Errors}
+      FileWrite $9 "${STAGE}: $8 $HelperOutput$\r$\n"
+      FileClose $9
+    ${EndIf}
+    MessageBox MB_OK|MB_ICONSTOP "${STAGE}: $8$\r$\n$HelperOutput$\r$\nUser data was retained.$\r$\nLog: $HelperLog" /SD IDOK
     ${If} $HelperResult == 20
       SetErrorLevel 20
     ${Else}
@@ -99,13 +116,27 @@ Section "MCP FlowHub (offline)" SEC_MAIN
   File /oname=node.exe "${FLOWHUB_BUNDLE}\runtime\node.exe"
   File /oname=install-helper.mjs "${FLOWHUB_HELPER}"
   File /oname=autostart.mjs "${FLOWHUB_AUTOSTART}"
-  File /oname=payload-manifest.json "${FLOWHUB_MANIFEST}"
-  nsExec::ExecToStack /TIMEOUT=90000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
-  !insertmacro CheckHelper
+  File /oname=payload-files.json "${FLOWHUB_PAYLOAD_FILES}"
+  DetailPrint "Checking the program directory and running FlowHub processes..."
+  nsExec::ExecToLog /TIMEOUT=90000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" preflight --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub" --status-file "$PLUGINSDIR\helper\status.txt" --log-file "$HelperLog"'
+  !insertmacro CheckHelper "Preflight"
+  DetailPrint "Extracting the offline application..."
+  SetDetailsPrint none
+  ClearErrors
   SetOutPath "$PLUGINSDIR\payload"
   File /r "${FLOWHUB_BUNDLE}\*"
-  nsExec::ExecToStack /TIMEOUT=600000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" install --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub" --payload-dir "$PLUGINSDIR\payload" --payload-manifest "$PLUGINSDIR\helper\payload-manifest.json" --version "${FLOWHUB_VERSION}"'
-  !insertmacro CheckHelper
+  SetDetailsPrint both
+  ${If} ${Errors}
+    MessageBox MB_OK|MB_ICONSTOP "The offline application could not be extracted. Check free space and permissions on the temporary drive. User data was retained." /SD IDOK
+    SetErrorLevel 21
+    Quit
+  ${EndIf}
+  Delete "$PLUGINSDIR\helper\status.txt"
+  SetOutPath "$PLUGINSDIR\helper"
+  DetailPrint "Writing program files to $INSTDIR\app..."
+  nsExec::ExecToLog /TIMEOUT=600000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" install --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub" --payload-dir "$PLUGINSDIR\payload" --payload-files "$PLUGINSDIR\helper\payload-files.json" --version "${FLOWHUB_VERSION}" --status-file "$PLUGINSDIR\helper\status.txt" --log-file "$HelperLog"'
+  !insertmacro CheckHelper "Installing program files"
+  DetailPrint "Registering the app and Start Menu shortcuts..."
   SetOutPath "$INSTDIR"
   ClearErrors
   File /oname=flowhub.cmd "${FLOWHUB_LAUNCHER}"
@@ -146,8 +177,8 @@ Section "Uninstall"
     SetErrorLevel 21
     Quit
   ${EndIf}
-  nsExec::ExecToStack /TIMEOUT=600000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" uninstall --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub"'
-  !insertmacro CheckHelper
+  nsExec::ExecToLog /TIMEOUT=600000 '"$PLUGINSDIR\helper\node.exe" "$PLUGINSDIR\helper\install-helper.mjs" uninstall --install-dir "$INSTDIR" --data-dir "$LOCALAPPDATA\MCP-FlowHub" --status-file "$PLUGINSDIR\helper\status.txt" --log-file "$HelperLog"'
+  !insertmacro CheckHelper "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   ReadRegStr $0 HKCU "Software\MCP-FlowHub" "InstallLocation"

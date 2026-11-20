@@ -1,8 +1,8 @@
-import assert from "node:assert/strict";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
-import { appendFile, lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { appendFile, copyFile, lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 import { windowsAutostart } from "./autostart.mjs";
@@ -19,7 +19,6 @@ const product = "MCP-FlowHub";
 const markerName = ".flowhub-install.json";
 const ownedRootFiles = ["flowhub.cmd", "installer-helper.mjs", "NSIS-COPYING.txt", "NSIS-NOTICE.txt"];
 const autostartPayload = "scripts/windows-autostart.mjs";
-const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const normalize = (path) => resolve(path).toLowerCase();
 const contains = (parent, child) => {
   const value = relative(normalize(parent), normalize(child));
@@ -58,12 +57,14 @@ async function stat(path) {
 async function noLinks(path) {
   const full = resolve(path);
   let current = parse(full).root;
+  let info = null;
   for (const part of full.slice(current.length).split(sep).filter(Boolean)) {
     current = join(current, part);
-    const info = await stat(current);
-    if (!info) break;
+    info = await stat(current);
+    if (!info) return null;
     if (info.isSymbolicLink()) fail("INSTALL_PATH_UNSAFE", "Junctions and symbolic links are not supported in managed program paths.");
   }
+  return info;
 }
 async function stateAt(installDir) {
   const path = join(installDir, markerName);
@@ -147,20 +148,35 @@ export async function preflight({ installDir, dataDir, processInspector = inspec
   return state;
 }
 
-async function inventory(root) {
-  const files = {};
+async function checkPayloadFiles(root, fileList, progress) {
+  if (!Array.isArray(fileList) || !fileList.length || fileList.some(name => !safeRelative(name)))
+    fail("INSTALL_PAYLOAD_INVALID", "The embedded file list is invalid.");
+  const expected = new Set(fileList);
+  if (new Set(fileList.map(name => name.toLowerCase())).size !== fileList.length)
+    fail("INSTALL_PAYLOAD_INVALID", "The embedded file list contains duplicate paths.");
+  await noLinks(root);
+  let checked = 0;
+  const emptyDirectories = [];
+  await progress?.("Checking extracted files", checked, fileList.length);
   async function walk(path) {
+    const start = checked;
     for (const entry of await readdir(path, { withFileTypes: true })) {
       const target = join(path, entry.name);
       const name = relative(root, target).replaceAll("\\", "/");
       if (!safeRelative(name) || entry.isSymbolicLink()) fail("INSTALL_PAYLOAD_INVALID", "Unsafe payload path.");
       if (entry.isDirectory()) await walk(target);
-      else if (entry.isFile()) files[name] = hash(await readFile(target));
-      else fail("INSTALL_PAYLOAD_INVALID", "Payload contains a non-regular file.");
+      else {
+        if (!entry.isFile() || !expected.delete(name))
+          fail("INSTALL_PAYLOAD_INVALID", "An unexpected entry was found in the extracted files.");
+        checked += 1;
+        await progress?.("Checking extracted files", checked, fileList.length);
+      }
     }
+    if (checked === start && path !== root) emptyDirectories.push(path);
   }
   await walk(root);
-  return files;
+  if (expected.size) fail("INSTALL_PAYLOAD_INVALID", "Some embedded files could not be extracted.");
+  return emptyDirectories;
 }
 async function atomicWrite(path, bytes) {
   await noLinks(path);
@@ -169,6 +185,24 @@ async function atomicWrite(path, bytes) {
   try {
     await writeFile(temporary, bytes, { flag: "wx" });
     await rename(temporary, path);
+  } finally {
+    try { await unlink(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
+}
+async function installFile(source, target, consumePayload) {
+  const parent = dirname(target);
+  if (!await noLinks(parent)) await mkdir(parent, { recursive: true });
+  const destination = await stat(target);
+  if (destination && !destination.isFile())
+    fail("INSTALL_PATH_UNSAFE", "A program file destination is no longer a regular file.");
+  if (consumePayload) {
+    try { await rename(source, target); return; }
+    catch (error) { if (!["EXDEV", "EPERM", "EACCES"].includes(error.code)) throw error; }
+  }
+  const temporary = `${target}.flowhub-${randomBytes(8).toString("hex")}.tmp`;
+  try {
+    await copyFile(source, temporary, constants.COPYFILE_EXCL);
+    await rename(temporary, target);
   } finally {
     try { await unlink(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
   }
@@ -199,28 +233,79 @@ async function pruneEmptyDirectories(root, names) {
 }
 
 export async function installApplication(options) {
-  const { installDir, dataDir, payloadDir, payloadManifest, version } = options;
+  const { installDir, dataDir, payloadDir, payloadFiles, version, consumePayload, progress } = options;
+  if (contains(payloadDir, installDir) || contains(payloadDir, dataDir) ||
+      contains(installDir, payloadDir) || contains(dataDir, payloadDir))
+    fail("INSTALL_PATH_UNSAFE", "The extracted files must be separate from program and user data directories.");
+  await progress?.("Checking FlowHub processes and directories");
   const previous = await preflight(options);
-  const actual = await inventory(payloadDir);
-  try { assert.deepEqual(Object.entries(actual).sort(), Object.entries(payloadManifest).sort()); }
-  catch { fail("INSTALL_PAYLOAD_INVALID", "Embedded offline payload failed its complete SHA-256 inventory check. No application files were replaced."); }
+  const emptyDirectories = await checkPayloadFiles(payloadDir, payloadFiles, progress);
   const appDir = join(installDir, "app");
-  const oldFiles = previous?.payloadFiles ?? [];
-  const newFiles = Object.keys(actual).sort();
-  for (const name of newFiles) {
-    await noLinks(join(appDir, ...name.split("/")));
-    if (!oldFiles.includes(name) && await stat(join(appDir, ...name.split("/"))))
-      fail("INSTALL_FILE_COLLISION", "An extra file conflicts with this release. Preserve it outside the program directory and retry.");
+  const oldFiles = new Set(previous?.payloadFiles ?? []);
+  const newFiles = [...payloadFiles].sort();
+  const newFileSet = new Set(newFiles);
+  const obsolete = [...oldFiles].filter(name => !newFileSet.has(name));
+  const canMoveTree = consumePayload && !await stat(appDir);
+  if (!canMoveTree) {
+    const checkedDirectories = new Set();
+    let checked = 0;
+    await progress?.("Checking program file destinations", checked, newFiles.length);
+    for (const name of newFiles) {
+      const path = join(appDir, ...name.split("/"));
+      const parent = dirname(path);
+      if (!checkedDirectories.has(parent)) {
+        await noLinks(parent);
+        checkedDirectories.add(parent);
+      }
+      const current = await stat(path);
+      if (current?.isSymbolicLink())
+        fail("INSTALL_PATH_UNSAFE", "Junctions and symbolic links are not supported in managed program paths.");
+      if (current && (!oldFiles.has(name) || !current.isFile()))
+        fail("INSTALL_FILE_COLLISION", "An extra file conflicts with this release. Preserve it outside the program directory and retry.");
+      checked += 1;
+      await progress?.("Checking program file destinations", checked, newFiles.length);
+    }
   }
   // Record ownership before copying, so an interrupted installation can be
   // repaired or removed without broad recursive deletion. User data is untouched.
   const state = { formatVersion: 1, product, version, installDir: resolve(installDir), dataDir: resolve(dataDir),
     phase: "installing", payloadFiles: [...new Set([...oldFiles, ...newFiles])].sort() };
   await atomicWrite(join(installDir, markerName), JSON.stringify(state, null, 2));
-  for (const name of newFiles)
-    await atomicWrite(join(appDir, ...name.split("/")), await readFile(join(payloadDir, ...name.split("/"))));
-  for (const name of oldFiles) if (!Object.hasOwn(actual, name)) await removeOwnedFile(appDir, name);
-  await pruneEmptyDirectories(appDir, oldFiles.filter((name) => !Object.hasOwn(actual, name)));
+  let movedTree = false;
+  await progress?.("Writing program files", 0, newFiles.length);
+  if (canMoveTree) {
+    await noLinks(appDir);
+    if (await stat(appDir)) fail("INSTALL_FILE_COLLISION", "The program destination appeared during installation.");
+    for (const dir of emptyDirectories) await rmdir(dir);
+    try { await rename(payloadDir, appDir); movedTree = true; }
+    catch (error) { if (!["EXDEV", "EPERM", "EACCES"].includes(error.code)) throw error; }
+  }
+  if (movedTree) await progress?.("Writing program files", newFiles.length, newFiles.length);
+  else {
+    // A bounded group overlaps filesystem waits. Always wait for every file in
+    // the group before reporting failure, so cleanup cannot race pending writes.
+    const batchSize = 8;
+    for (let start = 0; start < newFiles.length; start += batchSize) {
+      const batch = newFiles.slice(start, start + batchSize);
+      const results = await Promise.allSettled(batch.map(name => {
+        const parts = name.split("/");
+        return installFile(join(payloadDir, ...parts), join(appDir, ...parts), consumePayload && !canMoveTree);
+      }));
+      const written = start + results.filter(result => result.status === "fulfilled").length;
+      const failed = results.find(result => result.status === "rejected");
+      await progress?.("Writing program files", written, newFiles.length);
+      if (failed) throw failed.reason;
+    }
+  }
+  await progress?.("Removing obsolete program files", 0, obsolete.length);
+  let removed = 0;
+  for (const name of obsolete) {
+    await removeOwnedFile(appDir, name);
+    removed += 1;
+    await progress?.("Removing obsolete program files", removed, obsolete.length);
+  }
+  if (obsolete.length) await pruneEmptyDirectories(appDir, obsolete);
+  await progress?.("Recording completed installation");
   state.phase = "installed";
   state.payloadFiles = newFiles;
   await atomicWrite(join(installDir, markerName), JSON.stringify(state, null, 2));
@@ -260,25 +345,60 @@ async function main(args) {
   if (process.platform !== "win32") fail("WINDOWS_INSTALL_REQUIRED", "This helper only installs native Windows payloads on Windows.");
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: {
     "install-dir": { type: "string" }, "data-dir": { type: "string" }, "payload-dir": { type: "string" },
-    "payload-manifest": { type: "string" }, version: { type: "string" },
+    "payload-files": { type: "string" }, "status-file": { type: "string" }, "log-file": { type: "string" },
+    version: { type: "string" },
   } });
-  await diagnostic("operation-start", { operation: ["preflight", "install", "uninstall"].includes(positionals[0]) ? positionals[0] : "invalid" });
-  if (positionals.length !== 1 || !values["install-dir"] || !values["data-dir"])
-    fail("INSTALL_INPUT_INVALID", "Expected one installer operation and explicit program/data directories.");
-  const options = { installDir: values["install-dir"], dataDir: values["data-dir"] };
-  let result;
-  if (positionals[0] === "preflight") result = await preflight(options);
-  else if (positionals[0] === "uninstall") result = await uninstallApplication(options);
-  else if (positionals[0] === "install" && values["payload-dir"] && values["payload-manifest"] && values.version)
-    result = await installApplication({ ...options, payloadDir: values["payload-dir"],
-      payloadManifest: JSON.parse(await readFile(values["payload-manifest"], "utf8")), version: values.version });
-  else fail("INSTALL_INPUT_INVALID", "Unsupported or incomplete installer operation.");
-  console.log(JSON.stringify({ ok: true, operation: positionals[0], dataRetained: true, version: result?.version }));
+  const operation = positionals[0];
+  let previousPhase, previousLabel, lastOutput = 0;
+  const report = async (message) => {
+    console.log(message);
+    if (values["status-file"]) await writeFile(values["status-file"], message + "\r\n").catch(() => {});
+    if (values["log-file"]) await appendFile(values["log-file"], `${new Date().toISOString()} [${operation}] ${message}\r\n`).catch(() => {});
+  };
+  const progress = async (phase, completed, total) => {
+    const time = Date.now();
+    if (phase === previousPhase && completed !== total && time - lastOutput < 3000) return;
+    previousPhase = phase;
+    lastOutput = time;
+    previousLabel = total === undefined ? phase : `${phase} (${completed}/${total})`;
+    await report(previousLabel);
+  };
+  try {
+    await diagnostic("operation-start", { operation: ["preflight", "install", "uninstall"].includes(operation) ? operation : "invalid" });
+    if (positionals.length !== 1 || !values["install-dir"] || !values["data-dir"])
+      fail("INSTALL_INPUT_INVALID", "Expected one installer operation and explicit program/data directories.");
+    const options = { installDir: values["install-dir"], dataDir: values["data-dir"] };
+    if (operation === "preflight") {
+      await progress("Checking FlowHub processes and directories");
+      await preflight(options);
+    } else if (operation === "uninstall") {
+      await progress("Checking FlowHub and removing managed program files");
+      await uninstallApplication(options);
+    } else if (operation === "install" && values["payload-dir"] && values["payload-files"] && values.version) {
+      const payloadFiles = JSON.parse(await readFile(values["payload-files"], "utf8"));
+      await installApplication({ ...options, payloadDir: values["payload-dir"], payloadFiles,
+        version: values.version, consumePayload: true, progress });
+    } else fail("INSTALL_INPUT_INVALID", "Unsupported or incomplete installer operation.");
+    await report("Completed.");
+  } catch (error) {
+    await diagnostic("operation-failed", { code: /^(INSTALL|WINDOWS)_[A-Z_]+:/.exec(error.message ?? "")?.[0].slice(0, -1) ?? "INSTALL_FAILED" });
+    const details = {
+      ENOSPC: "INSTALL_DISK_FULL: Free some space on the program or temporary drive, then retry.",
+      EACCES: "INSTALL_ACCESS_DENIED: Windows denied access to a program file or directory.",
+      EPERM: "INSTALL_ACCESS_DENIED: Windows denied access to a program file or directory.",
+      EBUSY: "INSTALL_FILE_IN_USE: Windows reports that a program file is in use.",
+      ENOENT: "INSTALL_FILE_MISSING: Windows could no longer find a staged file or destination.",
+      EIO: "INSTALL_DISK_IO_FAILED: Windows reported a disk read or write error.",
+    };
+    const reason = /^(INSTALL|WINDOWS)_[A-Z_]+:/.test(error.message) ? error.message
+      : details[error.code] ?? "INSTALL_FAILED: Windows could not complete this phase.";
+    await report(previousLabel ? `${previousLabel} - ${reason}` : reason);
+    process.exitCode = /^INSTALL_(?:BUSY|DAEMON_LOCKED):/.test(reason) ? 20 : 21;
+  }
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url)
-  main(process.argv.slice(2)).catch(async (error) => {
-    await diagnostic("operation-failed", { code: /^(INSTALL|WINDOWS)_[A-Z_]+:/.exec(error.message ?? "")?.[0].slice(0, -1) ?? "INSTALL_FAILED" });
-    console.error(error.message?.startsWith("INSTALL_") || error.message?.startsWith("WINDOWS_") ? error.message : "INSTALL_FAILED: Preserve the program/data directories and retry a reviewed installer; no daemon was terminated.");
-    process.exitCode = /INSTALL_(?:BUSY|DAEMON_LOCKED)/.test(error.message) ? 20 : 21;
+  main(process.argv.slice(2)).catch(() => {
+    console.error("INSTALL_INPUT_INVALID: The installation helper could not be started with these arguments.");
+    process.exitCode = 21;
   });

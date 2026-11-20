@@ -1,6 +1,5 @@
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdir, mkdtemp, realpath, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
@@ -8,14 +7,12 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const { installApplication, uninstallApplication, preflight, validateWindowsPaths, assertProcessesStopped, execWithoutInput } =
+const { installApplication, uninstallApplication, validateWindowsPaths, assertProcessesStopped, execWithoutInput } =
   await import(pathToFileURL(resolve("installer/windows/install-helper.mjs")).href);
 const { verifyPinnedToolchain, peMachine, verifyLoadedNativeModules } =
   await import(pathToFileURL(resolve("scripts/windows-installer.mjs")).href);
 const { windowsTestEnvironment } = await import(pathToFileURL(resolve("scripts/windows-test-environment.mjs")).href);
 const { taskDefinition, windowsAutostart } = await import(pathToFileURL(resolve("installer/windows/autostart.mjs")).href);
-const hash = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
-
 test("offline Windows processes retain OS identity without global tools, credentials or Node injection", () => {
   const environment = windowsTestEnvironment("C:\\isolated\\runtime", {
     SYSTEMROOT: "C:\\Windows", SYSTEMDRIVE: "C:", ComSpec: "C:\\Windows\\System32\\cmd.exe", USERNAME: "synthetic",
@@ -74,11 +71,11 @@ async function fixture(t: TestContext) {
   const installDir = join(root, "程序 files");
   const dataDir = join(root, "用户 data");
   const payloadDir = join(root, "payload");
-  const payloadManifest = { "runtime/node.exe": hash("native fixture"), "obsolete.txt": hash("old release") };
+  const payloadFiles = ["runtime/node.exe", "obsolete.txt"];
   await put(payloadDir, "runtime/node.exe", "native fixture");
   await put(payloadDir, "obsolete.txt", "old release");
   await put(dataDir, "audit.json", "SYNTHETIC_RETAIN_SENTINEL");
-  return { root, installDir, dataDir, payloadDir, payloadManifest, version: "fixture-1", processInspector: async () => [] };
+  return { root, installDir, dataDir, payloadDir, payloadFiles, version: "fixture-1", processInspector: async () => [] };
 }
 
 test("installer ownership preserves data and extra files across upgrade and uninstall", async (t) => {
@@ -88,8 +85,7 @@ test("installer ownership preserves data and extra files across upgrade and unin
   await put(options.installDir, "personal.txt", "EXTRA_ROOT_SENTINEL");
   await rm(join(options.payloadDir, "obsolete.txt"));
   await put(options.payloadDir, "runtime/node.exe", "new native fixture");
-  const payloadManifest = { "runtime/node.exe": hash("new native fixture") };
-  await installApplication({ ...options, version: "fixture-2", payloadManifest });
+  await installApplication({ ...options, version: "fixture-2", payloadFiles: ["runtime/node.exe"], consumePayload: true });
   assert.equal(await readFile(join(options.installDir, "app/runtime/node.exe"), "utf8"), "new native fixture");
   await assert.rejects(readFile(join(options.installDir, "app/obsolete.txt")), { code: "ENOENT" });
   await uninstallApplication(options);
@@ -99,21 +95,74 @@ test("installer ownership preserves data and extra files across upgrade and unin
   await assert.rejects(readFile(join(options.installDir, "app/runtime/node.exe")), { code: "ENOENT" });
 });
 
-test("install refuses unrelated directories, changed payloads, and extra-file collisions before replacing files", async (t) => {
+test("install refuses unrelated directories, incomplete payloads, and extra-file collisions before replacing files", async (t) => {
   const options = await fixture(t);
   await put(options.installDir, "unrelated.txt", "DO_NOT_TOUCH");
   await assert.rejects(installApplication(options), /INSTALL_DIRECTORY_NOT_EMPTY/);
   assert.equal(await readFile(join(options.installDir, "unrelated.txt"), "utf8"), "DO_NOT_TOUCH");
   await rm(options.installDir, { recursive: true });
-  await put(options.payloadDir, "runtime/node.exe", "TAMPERED");
+  await rm(join(options.payloadDir, "runtime/node.exe"));
   await assert.rejects(installApplication(options), /INSTALL_PAYLOAD_INVALID/);
   await assert.rejects(readdir(options.installDir), { code: "ENOENT" });
   await put(options.payloadDir, "runtime/node.exe", "native fixture");
+  await put(options.payloadDir, "unexpected.txt", "NOT_LISTED");
+  await assert.rejects(installApplication(options), /INSTALL_PAYLOAD_INVALID/);
+  await rm(join(options.payloadDir, "unexpected.txt"));
   await installApplication(options);
   await put(options.installDir, "app/new.txt", "USER_FILE");
   await put(options.payloadDir, "new.txt", "NEW_RELEASE_FILE");
-  await assert.rejects(installApplication({ ...options, payloadManifest: { ...options.payloadManifest, "new.txt": hash("NEW_RELEASE_FILE") } }), /INSTALL_FILE_COLLISION/);
+  await assert.rejects(installApplication({ ...options, payloadFiles: [...options.payloadFiles, "new.txt"] }), /INSTALL_FILE_COLLISION/);
   assert.equal(await readFile(join(options.installDir, "app/new.txt"), "utf8"), "USER_FILE");
+});
+
+test("fresh installation moves the staged application as a directory and reports actual write milestones", async (t) => {
+  const options = await fixture(t);
+  const progress: unknown[][] = [];
+  await mkdir(join(options.payloadDir, "empty", "nested"), { recursive: true });
+  await installApplication({ ...options, consumePayload: true, progress: (...args: unknown[]) => progress.push(args) });
+  await assert.rejects(readdir(options.payloadDir), { code: "ENOENT" });
+  assert.deepEqual(progress.filter(([phase]) => phase === "Writing program files"), [
+    ["Writing program files", 0, 2],
+    ["Writing program files", 2, 2],
+  ]);
+  assert.equal(JSON.parse(await readFile(join(options.installDir, ".flowhub-install.json"), "utf8")).phase, "installed");
+  await assert.rejects(readdir(join(options.installDir, "app", "empty")), { code: "ENOENT" });
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
+});
+
+test("directory transfer works without a progress listener", async (t) => {
+  const options = await fixture(t);
+  await installApplication({ ...options, consumePayload: true });
+  assert.equal(await readFile(join(options.installDir, "app/runtime/node.exe"), "utf8"), "native fixture");
+  await assert.rejects(readdir(options.payloadDir), { code: "ENOENT" });
+});
+
+test("staging and destination path aliases are refused before writing program files", async (t) => {
+  const options = await fixture(t);
+  const nestedPayload = join(options.installDir, "temporary");
+  await mkdir(nestedPayload, { recursive: true });
+  await assert.rejects(installApplication({ ...options, payloadDir: nestedPayload, consumePayload: true }), /INSTALL_PATH_UNSAFE/);
+  await assert.rejects(readFile(join(options.installDir, ".flowhub-install.json")), { code: "ENOENT" });
+  await rm(nestedPayload, { recursive: true });
+  await symlink(options.dataDir, join(options.payloadDir, "linked"), process.platform === "win32" ? "junction" : "dir");
+  await assert.rejects(installApplication({ ...options, consumePayload: true }), /INSTALL_PAYLOAD_INVALID/);
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
+});
+
+test("a failed write settles its batch and leaves a repairable ownership marker", async (t) => {
+  const options = await fixture(t);
+  const marker = join(options.installDir, ".flowhub-install.json");
+  await assert.rejects(installApplication({ ...options, progress: async (phase: string, completed: number) => {
+    if (phase === "Writing program files" && completed === 0)
+      await rm(join(options.payloadDir, "obsolete.txt"));
+  } }), { code: "ENOENT" });
+  assert.equal(JSON.parse(await readFile(marker, "utf8")).phase, "installing");
+  assert.equal(await readFile(join(options.installDir, "app/runtime/node.exe"), "utf8"), "native fixture");
+  await put(options.payloadDir, "obsolete.txt", "restored staged file");
+  await installApplication(options);
+  assert.equal(JSON.parse(await readFile(marker, "utf8")).phase, "installed");
+  assert.equal(await readFile(join(options.installDir, "app/obsolete.txt"), "utf8"), "restored staged file");
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
 });
 
 test("daemon locks and process-inspection failures block every destructive installer operation", async (t) => {

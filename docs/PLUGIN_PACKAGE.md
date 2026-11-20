@@ -41,6 +41,8 @@ alpha.4 起管理页打开后直接进入工作区。添加或调用受保护凭
 
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
+Windows EXE 安装器在详情中显示解压、写入文件数量和快捷方式登记，失败信息包含当前阶段。安装日志保存在 `%LOCALAPPDATA%\MCP-FlowHub-Installer.log`。构建时校验离线包的 SHA-256，安装时校验 EXE 和解压后的文件清单。同盘首次安装移动整个程序目录，升级会保留程序目录中的额外文件和独立数据目录。
+
 Windows 登录自启默认关闭。在稳定的包目录执行 `.\flowhub-plugin.cmd autostart enable`，可用 `--data-dir` 和 `--port` 明确指定实例。用 `autostart status` 查看计划任务，用 `autostart disable` 取消后续登录启动。通过安装器安装时，命令位于程序目录的 `app` 下。移动便携目录前从原路径取消自启，迁移后重新登记。PowerShell 或计划任务被企业策略拒绝时，可继续用前台 `start`。
 
 `flowhub-plugin status` 分别显示 Codex 插件登记、所选 CLI 位置、daemon 健康、登录计划任务和实际 MCP 握手与工具列表。MCP 握手采用本机连接配置，桌面 Codex 的当前聊天加载情况仍以客户端为准。

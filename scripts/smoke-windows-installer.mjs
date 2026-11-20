@@ -35,6 +35,7 @@ const extraRoot = join(installDir, "personal.txt");
 const extraApp = join(installDir, "app/user-note.txt");
 const sentinel = "FLOWHUB_SYNTHETIC_INSTALLER_SMOKE_DATA";
 const checks = [];
+const installationTimes = {};
 const children = new Set();
 let success = false;
 let installed = false;
@@ -54,11 +55,13 @@ async function within(promise, timeout, description) {
   } finally { clearTimeout(timer); }
 }
 async function runExe(executable, args, expected = 0) {
+  const startedAt = Date.now();
   let result;
   try { await exec(executable, args, { env, windowsHide: true, windowsVerbatimArguments: true, timeout: 600_000 }); result = 0; }
   catch (error) { result = error.code; }
   const detail = result === expected ? "" : (await Promise.all([helperDiagnostics, `${helperDiagnostics}.node.log`, `${helperDiagnostics}.powershell.log`].map(path => readFile(path,"utf8").catch(()=>"No helper diagnostics were produced.")))).join("\n");
   assert.equal(result, expected, `${executable} returned ${result}; expected ${expected}\n${detail.slice(-16000)}`);
+  return Date.now() - startedAt;
 }
 async function runSetup(directory, expected = 0) {
   // NSIS /D= consumes the unquoted remainder of the native command line and
@@ -121,13 +124,15 @@ try {
   assert.equal(await readFile(join(unrelated, "user.txt"), "utf8"), sentinel);
   checks.push("refuses unrelated nonempty program directory");
 
-  await runSetup(installDir);
+  installationTimes.freshMs = await runSetup(installDir);
   installed = true;
   const appDir = join(installDir, "app");
   await verifyBundle(appDir);
   const state = JSON.parse(await readFile(join(installDir, ".flowhub-install.json"), "utf8"));
   assert.equal(state.phase, "installed");
   assert.equal(state.installDir.toLowerCase(), installDir.toLowerCase());
+  const writeProgress = new RegExp("Writing program files \\(" + state.payloadFiles.length + "/" + state.payloadFiles.length + "\\)");
+  assert.match(await readFile(helperDiagnostics, "utf8"), writeProgress);
   const runtime = join(appDir, "runtime/node.exe");
   const entry = join(appDir, "dist/apps/daemon/src/cli.js");
   const help = await exec(runtime, [entry, "--help"], { env, windowsHide: true });
@@ -208,7 +213,8 @@ try {
   checks.push("Unicode-path bridge alone blocks upgrade/uninstall without a default-data lock");
 
   await runSetup(join(temporary, "second installation"), 21);
-  await runSetup(installDir);
+  installationTimes.reinstallMs = await runSetup(installDir);
+  assert.equal((await readFile(helperDiagnostics, "utf8")).split("\n").filter(line => writeProgress.test(line)).length, 2);
   assert.equal((await taskCommand("status")).taskName, loginTask.taskName);
   assert.equal(await readFile(join(dataDir, "installer-smoke-sentinel.txt"), "utf8"), sentinel);
   assert.equal(await readFile(extraApp, "utf8"), "USER_APP_FILE");
@@ -243,7 +249,7 @@ try {
   checks.push("synchronous silent uninstall removes managed files and retains all data and extra files");
   const evidence = { formatVersion: 1, os: "win32", arch: "x64", node: process.versions.node,
     installerSha256: metadata.installerSha256, nativeWindowsInstallerSmoke: "PASS", companyValidated: false,
-    signed: false, testedAt: new Date().toISOString(), checks };
+    signed: false, testedAt: new Date().toISOString(), installationTimes, checks };
   await writeFile(join(root, "artifacts/windows-installer-smoke.json"), JSON.stringify(evidence, null, 2));
   console.log(JSON.stringify(evidence, null, 2));
   success = true;
