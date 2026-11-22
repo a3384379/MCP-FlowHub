@@ -6,6 +6,7 @@ import {
   open,
   unlink,
   chmod,
+  lstat,
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -27,22 +28,87 @@ export async function prepareDataDir(dir: string): Promise<string> {
   return root;
 }
 
+function locked(): Error {
+  return new Error(
+    "DAEMON_ALREADY_RUNNING: data directory is locked by a live or unverifiable owner.",
+  );
+}
+
+async function readLock(path: string) {
+  const info = await lstat(path);
+  if (!info.isFile() || info.nlink !== 1 || info.size > 1024) throw locked();
+  const contents = await readFile(path, "utf8");
+  let pid: unknown, createdAt: unknown;
+  try {
+    ({ pid, createdAt } = JSON.parse(contents));
+  } catch {
+    throw locked();
+  }
+  if (typeof pid !== "number" || !Number.isSafeInteger(pid) || pid <= 0 || pid > 0x7fffffff ||
+      typeof createdAt !== "string" || !Number.isFinite(Date.parse(createdAt))) throw locked();
+  return { info, contents, pid };
+}
+
+function requireExited(pid: number): void {
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") return;
+    throw locked();
+  }
+  throw locked();
+}
+
+async function openDaemonLock(path: string) {
+  try {
+    return await open(path, "wx", 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  const observed = await readLock(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return undefined;
+    throw error;
+  });
+  if (observed) requireExited(observed.pid);
+  // Use a claim specific to this lock record. Even if a contender crashes
+  // here, the claim can never interfere with a different lock generation.
+  const claim = observed && path + ".reclaim-" +
+    createHash("sha256").update(observed.contents).digest("hex").slice(0, 24);
+  const recovery = claim ? await open(claim, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "EEXIST") throw locked();
+    throw error;
+  }) : undefined;
+  try {
+    if (observed) {
+      const current = await readLock(path).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      });
+      if (current) {
+        if (current.info.dev !== observed.info.dev || current.info.ino !== observed.info.ino ||
+            current.contents !== observed.contents) throw locked();
+        requireExited(current.pid);
+        await unlink(path);
+      }
+    }
+    return await open(path, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "EEXIST") throw locked();
+      throw error;
+    });
+  } finally {
+    if (recovery && claim) {
+      await recovery.close().catch(() => {});
+      await unlink(claim).catch(() => {});
+    }
+  }
+}
+
 export async function acquireLock(dir: string): Promise<() => Promise<void>> {
   const path = join(dir, "daemon.lock");
-  let lock;
-  try {
-    lock = await open(path, "wx", 0o600);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
-      throw new Error(
-        "DAEMON_ALREADY_RUNNING: data directory is locked. After a crash, verify the recorded PID has exited before removing daemon.lock.",
-      );
-    }
-    throw error;
-  }
+  const lock = await openDaemonLock(path);
   try {
     await lock.writeFile(
-      JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }),
+      JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString(), id: randomBytes(16).toString("hex") }),
     );
   } catch (error) {
     await lock.close();

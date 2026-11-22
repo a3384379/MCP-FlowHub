@@ -197,13 +197,25 @@ async function codexPluginSmoke(codex, bundle, env, toolCount) {
           : { query: "incident" },
     });
     assert.notEqual(call.isError, true, JSON.stringify(call.structuredContent));
-    if (toolCount === 21) assert.equal(call.structuredContent.revision, 1);
+    let sidebarResource;
+    if (toolCount === 21) {
+      assert.equal(call.structuredContent.revision, 1);
+      const uri = entry.tools.project_help_search._meta?.ui?.resourceUri;
+      assert.match(uri, /^ui:\/\/flowhub\/management-/);
+      const resource = await rpc("mcpServer/resource/read", {
+        threadId, server: entry.name, uri,
+      });
+      assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");
+      assert.match(resource.contents[0].text, /校验与自测/);
+      sidebarResource = uri;
+    }
     result = {
       status: "PASS",
       userAgent: initialized.userAgent ?? null,
       tools: Object.keys(entry.tools).length,
       skills: names,
       actualMcpCall: tool,
+      ...(sidebarResource ? { sidebarResource } : {}),
       modelTurns: 0,
     };
   } finally {
@@ -278,6 +290,14 @@ export async function smokePlugin(bundle, codex) {
           code: "ENOENT",
         });
         await assert.rejects(readdir(dataDir), { code: "ENOENT" });
+        const restricted = join(root, "offline-restricted.token");
+        await writeFile(restricted, "a".repeat(64), { mode: 0o600 });
+        await run(["configure", "--token-file", restricted]);
+        await assert.rejects(run(["codex-mcp"]), error =>
+          /DAEMON_UNAVAILABLE/.test(error.stderr),
+        );
+        await assert.rejects(readdir(dataDir), { code: "ENOENT" });
+        await run(["configure", "--personal"]);
       },
     );
     daemon = spawn(runtime, [entry, "start", "--port", "0"], {
@@ -310,7 +330,7 @@ export async function smokePlugin(bundle, codex) {
       clients.push(client);
       const wire = new StdioClientTransport({
         command: runtime,
-        args: [entry, "mcp"],
+        args: [entry, "codex-mcp"],
         cwd: root,
         env,
         stderr: "pipe",

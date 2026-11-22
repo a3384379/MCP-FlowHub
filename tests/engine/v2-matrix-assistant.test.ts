@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import Database from "better-sqlite3";
 import { createServer, type ServerResponse } from "node:http";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -257,10 +257,9 @@ test("ASST-06 matrix: hard daemon termination after a committed patch preserves 
   const before = await api("/api/v2/assistant/tasks/" + accepted.taskId), draft = await api("/api/v2/workflows/" + workflowId + "/draft");
   assert.equal(before.status, "GENERATING"); assert.equal(before.tools.length, 1); assert.equal(before.tools[0].status, "COMPLETED"); assert.equal(draft.revision, 2); assert.equal(draft.draft.name, "Persisted before hard restart");
   const exited = new Promise<void>(resolve => first.child.once("exit", () => resolve())); first.child.kill("SIGKILL"); await within(exited, "Hard-terminated daemon did not exit");
-  // The documented crash-recovery step requires verifying this exact PID before
-  // removing its stale lock. This is the test's own disposable daemon only.
+  // Restart must recover the lock left by this disposable daemon.
   assert.equal(JSON.parse(await readFile(join(root, "daemon.lock"), "utf8")).pid, first.child.pid);
-  assert.throws(() => process.kill(first.child.pid!, 0), { code: "ESRCH" }); await unlink(join(root, "daemon.lock"));
+  assert.throws(() => process.kill(first.child.pid!, 0), { code: "ESRCH" });
   const second = await start(), recoveredApi = await login(second.origin, false), recovered = await recoveredApi("/api/v2/assistant/tasks/" + accepted.taskId);
   assert.equal(recovered.status, "INTERRUPTED"); assert.equal(recovered.errorCode, "TASK_INTERRUPTED"); assert.deepEqual(recovered.tools, before.tools);
   assert.deepEqual(await recoveredApi("/api/v2/workflows/" + workflowId + "/draft"), draft);
