@@ -21,7 +21,7 @@ Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/s
 
 ## Codex 插件包
 
-`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装；在独立终端用包内 `flowhub-plugin start` 启动后台。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
+`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装。Codex 连接个人插件时按需启动后台，也可用包内 `flowhub-plugin start` 手动启动。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
 
 复制程序无需修改 manifest 中的本机路径。业务数据和身份引用保存在包外；跨系统需使用目标平台原生包。安装、数据迁移、更新和卸载见 [插件包指南](docs/PLUGIN_PACKAGE.md)。
 

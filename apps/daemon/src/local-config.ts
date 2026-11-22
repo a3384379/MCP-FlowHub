@@ -7,9 +7,12 @@ import {
   unlink,
   chmod,
   lstat,
+  mkdtemp,
+  rename,
+  rm,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 
 export function defaultDataDir(): string {
@@ -49,6 +52,21 @@ async function readLock(path: string) {
   return { info, contents, pid };
 }
 
+function readLockIfPresent(path: string) {
+  return readLock(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return undefined;
+    throw error;
+  });
+}
+
+function lockRecord(): string {
+  return JSON.stringify({
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+    id: randomBytes(16).toString("hex"),
+  });
+}
+
 function requireExited(pid: number): void {
   try {
     process.kill(pid, 0);
@@ -59,47 +77,78 @@ function requireExited(pid: number): void {
   throw locked();
 }
 
+async function claimRecovery(path: string, contents: string) {
+  const hash = createHash("sha256").update(contents).digest("hex").slice(0, 24);
+  const root = path + ".reclaim-" + hash;
+  const staging = await mkdtemp(join(dirname(path), ".reclaim-"));
+  let claim = root;
+  try {
+    // Rename publishes the complete owner record. A nonempty directory
+    // cannot replace another nonempty claim on Unix or Windows.
+    await writeFile(join(staging, "owner.json"), lockRecord(), { mode: 0o600 });
+    for (;;) {
+      try {
+        await rename(staging, claim);
+        break;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (!["EEXIST", "ENOTEMPTY", "EPERM", "EACCES"].includes(code ?? "")) throw error;
+        const info = await lstat(claim).catch((statError: NodeJS.ErrnoException) => {
+          if (statError.code === "ENOENT") throw locked();
+          throw statError;
+        });
+        if (!info.isDirectory()) throw locked();
+        const owner = await readLockIfPresent(join(claim, "owner.json"));
+        if (!owner) throw locked();
+        requireExited(owner.pid);
+        // Leave the departed owner's claim in place so observers of this
+        // generation all contend for the same next slot.
+        claim = join(claim, "next");
+      }
+    }
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
+  return async (retireGeneration: boolean) => {
+    // Hide the claim atomically before deleting its contents. After the old
+    // daemon lock is gone, all claims for its generation can be retired.
+    try {
+      await rename(retireGeneration ? root : claim, staging);
+    } catch {
+      return;
+    }
+    await rm(staging, { recursive: true, force: true }).catch(() => {});
+  };
+}
+
 async function openDaemonLock(path: string) {
   try {
     return await open(path, "wx", 0o600);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
-  const observed = await readLock(path).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === "ENOENT") return undefined;
-    throw error;
-  });
+  const observed = await readLockIfPresent(path);
   if (observed) requireExited(observed.pid);
-  // Use a claim specific to this lock record. Even if a contender crashes
-  // here, the claim can never interfere with a different lock generation.
-  const claim = observed && path + ".reclaim-" +
-    createHash("sha256").update(observed.contents).digest("hex").slice(0, 24);
-  const recovery = claim ? await open(claim, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === "EEXIST") throw locked();
-    throw error;
-  }) : undefined;
+  const release = observed && await claimRecovery(path, observed.contents);
+  let retired = false;
   try {
     if (observed) {
-      const current = await readLock(path).catch((error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") return undefined;
-        throw error;
-      });
+      const current = await readLockIfPresent(path);
       if (current) {
         if (current.info.dev !== observed.info.dev || current.info.ino !== observed.info.ino ||
             current.contents !== observed.contents) throw locked();
         requireExited(current.pid);
         await unlink(path);
       }
+      retired = true;
     }
     return await open(path, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "EEXIST") throw locked();
       throw error;
     });
   } finally {
-    if (recovery && claim) {
-      await recovery.close().catch(() => {});
-      await unlink(claim).catch(() => {});
-    }
+    await release?.(retired);
   }
 }
 
@@ -107,9 +156,7 @@ export async function acquireLock(dir: string): Promise<() => Promise<void>> {
   const path = join(dir, "daemon.lock");
   const lock = await openDaemonLock(path);
   try {
-    await lock.writeFile(
-      JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString(), id: randomBytes(16).toString("hex") }),
-    );
+    await lock.writeFile(lockRecord());
   } catch (error) {
     await lock.close();
     await unlink(path);
