@@ -2,7 +2,7 @@
 
 面向 Codex 等 AI Harness 的轻量级、可视化 MCP 能力编排与管理工具，优先服务个人开发者。配置一次工作流，之后由 Codex 选择并执行。
 
-当前版本 **2.0.0-alpha.8**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
+当前版本 **2.0.0-alpha.9**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
 
 ## 启动
 
@@ -21,7 +21,7 @@ Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/s
 
 ## Codex 插件包
 
-`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装；在独立终端用包内 `flowhub-plugin start` 启动后台。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
+`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装。Codex 连接个人插件时按需启动后台，也可用包内 `flowhub-plugin start` 手动启动。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
 
 复制程序无需修改 manifest 中的本机路径。业务数据和身份引用保存在包外；跨系统需使用目标平台原生包。安装、数据迁移、更新和卸载见 [插件包指南](docs/PLUGIN_PACKAGE.md)。
 

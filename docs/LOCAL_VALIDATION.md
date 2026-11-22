@@ -32,7 +32,7 @@
 
 - DAEMON_UNAVAILABLE：先启动 serve，两端 --data-dir 相同。
 - PORT_IN_USE：选明确空闲 --port，不杀其他程序或改绑公网。
-- DAEMON_ALREADY_RUNNING：不能并发启动。崩溃遗留 daemon.lock 时，读记录 PID，在本机确认进程已退出且无其他 daemon 使用该目录，再手动移除**该锁文件**。不自动抢锁/杀进程，不删数据库/token；PID 复用无法判断则由管理员处理。
+- DAEMON_ALREADY_RUNNING 表示数据目录已被占用，或锁的所有者暂时无法确认。启动时只自动回收系统明确报告原 PID 已退出的有效锁。遇到损坏的锁记录、PID 被复用或其他无法确认的情况，先确认没有服务使用数据目录，再按本机运维流程保留并移走对应锁文件。
 - RESTORE_INCOMPLETE：恢复中断的 `restore-pending.json` 会阻止普通启动，包括当前库缺失或标记损坏时。保留标记、`replaced-*.sqlite` 和 `backups/`，不要删标记后启动空库。确认 daemon 已停止并按上条处理失效锁后，显式重跑 `flowhub restore --data-dir <目录> --backup <已验证备份>`；恢复成功才清标记，旧标记归档到备份目录。一致性 `pre-restore-*.sqlite` 包含恢复前已提交的 WAL 数据，应优先用于回退。
 - RC token 是本机随机执行身份，无企业凭据；不要分享数据目录。可在接入设置创建独立宿主身份并即时撤销。
 - 仅回传版本/错误码/合成复现/无业务内容的结论，不回传企业凭据、日志、路径、表结构或诊断全文。

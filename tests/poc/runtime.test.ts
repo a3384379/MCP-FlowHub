@@ -1,14 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, readFile, stat, access, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, readFile, stat, access, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { request as httpRequest } from "node:http";
 import Database from "better-sqlite3";
 import { startDaemon } from "../../apps/daemon/src/index.js";
-import { readEndpoint } from "../../apps/daemon/src/local-config.js";
+import { acquireLock, readEndpoint } from "../../apps/daemon/src/local-config.js";
 import { localHttpTransport } from "../../packages/mcp-connectors/src/index.js";
 
 test("ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate daemon rejected", async (t) => {
@@ -42,6 +44,61 @@ test("ENV-02/07: WAL persists across restart in Chinese/space paths; duplicate d
   }
   await assert.rejects(access(join(dataDir, "endpoint.json")));
   await assert.rejects(access(join(dataDir, "daemon.lock")));
+});
+
+test("stale daemon lock admits only one contender and leaves unverifiable locks intact", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "flowhub crash lock "));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, "daemon.lock");
+  await writeFile(path, '{"pid":null}');
+  await assert.rejects(acquireLock(dir), /DAEMON_ALREADY_RUNNING/);
+  assert.equal(await readFile(path, "utf8"), '{"pid":null}');
+
+  const departed = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
+  assert.deepEqual(await once(departed, "exit"), [0, null]);
+  assert.throws(() => process.kill(departed.pid!, 0), { code: "ESRCH" });
+  await writeFile(path, JSON.stringify({ pid: departed.pid, createdAt: new Date().toISOString() }));
+  const attempts = await Promise.allSettled(Array.from({ length: 8 }, () => acquireLock(dir)));
+  const winners = attempts.filter(attempt => attempt.status === "fulfilled");
+  try {
+    assert.equal(winners.length, 1);
+    for (const attempt of attempts)
+      if (attempt.status === "rejected") assert.match(String(attempt.reason), /DAEMON_ALREADY_RUNNING/);
+    assert.equal(JSON.parse(await readFile(path, "utf8")).pid, process.pid);
+  } finally {
+    await Promise.all(winners.map(winner => winner.value()));
+  }
+  await assert.rejects(access(path), { code: "ENOENT" });
+});
+
+test("recovery survives a departed recovery owner and respects a live successor", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "flowhub interrupted recovery "));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const departed = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
+  assert.deepEqual(await once(departed, "exit"), [0, null]);
+  assert.throws(() => process.kill(departed.pid!, 0), { code: "ESRCH" });
+  const record = (pid: number) => JSON.stringify({ pid, createdAt: new Date().toISOString() });
+  const contents = record(departed.pid!);
+  const path = join(dir, "daemon.lock");
+  await writeFile(path, contents);
+  const claim = path + ".reclaim-" + createHash("sha256").update(contents).digest("hex").slice(0, 24);
+  const next = join(claim, "next");
+  await mkdir(next, { recursive: true });
+  await writeFile(join(claim, "owner.json"), contents);
+  await writeFile(join(next, "owner.json"), record(process.pid));
+
+  await assert.rejects(acquireLock(dir), /DAEMON_ALREADY_RUNNING/);
+  assert.equal(await readFile(path, "utf8"), contents);
+  assert.equal(JSON.parse(await readFile(join(next, "owner.json"), "utf8")).pid, process.pid);
+
+  await writeFile(join(next, "owner.json"), contents);
+  const release = await acquireLock(dir);
+  try {
+    assert.equal(JSON.parse(await readFile(path, "utf8")).pid, process.pid);
+    assert.deepEqual(await readdir(dir), ["daemon.lock"]);
+  } finally {
+    await release();
+  }
 });
 
 test("ENV-03/04: port conflict is actionable; failed startup releases its lock; loopback only", async (t) => {

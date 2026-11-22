@@ -9,7 +9,7 @@ export function pluginServer(platform, compatibility = false) {
   return {
     type: "stdio",
     command: "./runtime/" + (platform === "win32" ? "node.exe" : "node"),
-    args: ["${PLUGIN_ROOT}/scripts/flowhub-plugin.mjs", "mcp"],
+    args: ["${PLUGIN_ROOT}/scripts/flowhub-plugin.mjs", "codex-mcp"],
     cwd: "${PLUGIN_ROOT}",
     ...(compatibility
       ? { env_vars: ["CODEX_HOME", "XDG_DATA_HOME", "LOCALAPPDATA"] }

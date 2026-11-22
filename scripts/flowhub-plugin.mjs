@@ -5,10 +5,70 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { execFile, fork } from "node:child_process";
 import { promisify } from "node:util";
+import { setTimeout as delay } from "node:timers/promises";
 
 const exec = promisify(execFile);
+
+async function readyDaemon(dataDir) {
+  try {
+    const { pid, port } = JSON.parse(await readFile(join(dataDir, "endpoint.json"), "utf8"));
+    const lock = JSON.parse(await readFile(join(dataDir, "daemon.lock"), "utf8"));
+    if (pid !== lock.pid || !Number.isInteger(pid) || pid <= 0 || pid > 0x7fffffff ||
+        !Number.isInteger(port) || port < 1 || port > 65535) return;
+    process.kill(pid, 0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/v1/health`, {
+      redirect: "error", signal: AbortSignal.timeout(400),
+    });
+    if (!response.ok) return;
+    const health = await response.json();
+    if (health.status === "ok" && ["ALPHA", "RC"].includes(health.phase))
+      return { version: health.version, generation: `${pid}:${port}` };
+  } catch {
+    // The endpoint may be stale or not yet published by a concurrent startup.
+  }
+}
+
+async function ensurePluginDaemon(cli, dataDir, version) {
+  const checkVersion = health => {
+    if (health.version !== version)
+      throw new Error("DAEMON_VERSION_MISMATCH: stop the older or newer FlowHub service before opening this plugin.");
+    return health.generation;
+  };
+  const running = await readyDaemon(dataDir);
+  if (running) return checkVersion(running);
+
+  // The launcher owns startup. The MCP bridge that follows still only forwards.
+  const child = fork(cli, ["serve", "--data-dir", dataDir], {
+    detached: true,
+    execArgv: [],
+    stdio: ["ignore", "ignore", "ignore", "ipc"],
+    windowsHide: true,
+  });
+  let startupError;
+  child.on("message", message => {
+    if (typeof message?.startupError === "string") startupError = message.startupError;
+  });
+  child.on("error", () => { startupError ??= "STARTUP_FAILED"; });
+  child.on("exit", () => { startupError ??= "STARTUP_FAILED"; });
+  child.unref();
+  const deadline = performance.now() + 7500;
+  try {
+    do {
+      const ready = await readyDaemon(dataDir);
+      if (ready) return checkVersion(ready);
+      // Another launcher may already own the data directory and still be booting.
+      if (startupError && !startupError.startsWith("DAEMON_ALREADY_RUNNING:"))
+        throw new Error(startupError);
+      await delay(100);
+    } while (performance.now() < deadline);
+    throw new Error(startupError ??
+      "DAEMON_STARTUP_TIMEOUT: FlowHub did not become ready. Check the service with flowhub-plugin status.");
+  } finally {
+    if (child.connected) child.disconnect();
+  }
+}
 
 function ensureWindowsAutostart() {
   if (process.platform !== "win32")
@@ -193,13 +253,13 @@ export async function main(args = process.argv.slice(2)) {
   const taskAction = command === "autostart" ? positionals[1] : undefined;
   if (values.help || !command) {
     console.log(
-      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin status\n  flowhub-plugin autostart enable|disable|status [--data-dir PATH] [--port 18473]\n  flowhub-plugin open\n  flowhub-plugin url\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\n可在独立终端 start，再由 Codex 连接。Windows 登录自启由当前用户显式启用。安装方法见 docs/PLUGIN_PACKAGE.md。",
+      "FlowHub Codex 插件\n  flowhub-plugin start [--port 18473]\n  flowhub-plugin doctor\n  flowhub-plugin status\n  flowhub-plugin autostart enable|disable|status [--data-dir PATH] [--port 18473]\n  flowhub-plugin open\n  flowhub-plugin url\n  flowhub-plugin configure --data-dir PATH [--token-file PATH | --personal]\n  flowhub-plugin mcp\n\nCodex 连接个人插件时按需启动后台，也可在独立终端 start。Windows 登录自启由当前用户显式启用。安装方法见 docs/PLUGIN_PACKAGE.md。",
     );
     return;
   }
   if (
     positionals.length !== (command === "autostart" ? 2 : 1) ||
-    !["start", "doctor", "status", "autostart", "configure", "mcp", "open", "url"].includes(command) ||
+    !["start", "doctor", "status", "autostart", "configure", "mcp", "codex-mcp", "open", "url"].includes(command) ||
     (command === "autostart" && !["enable", "disable", "status"].includes(taskAction)) ||
     (command !== "configure" &&
       (values["token-file"] || values.personal || command !== "autostart" && values["data-dir"])) ||
@@ -273,19 +333,23 @@ export async function main(args = process.argv.slice(2)) {
     );
     return;
   }
-  const { main: flowhub } = await import(
-    pathToFileURL(join(root, "dist/apps/daemon/src/cli.js"))
-  );
+  const cli = join(root, "dist/apps/daemon/src/cli.js");
+  const prepareSidebar = () => ensurePluginDaemon(cli, connection.dataDir, build.version);
+  const lifecycle = command === "codex-mcp" && !connection.tokenFile
+    ? { generation: await prepareSidebar(), prepareSidebar }
+    : undefined;
+  const { main: flowhub } = await import(pathToFileURL(cli));
+  const bridge = command === "mcp" || command === "codex-mcp";
   const forwarded = [
-    command === "start" ? "serve" : command,
+    command === "start" ? "serve" : bridge ? "mcp" : command,
     "--data-dir",
     connection.dataDir,
   ];
-  if (command === "mcp") forwarded.push("--stdio", "--codex-sidebar");
+  if (bridge) forwarded.push("--stdio", "--codex-sidebar");
   if (command === "start" && values.port) forwarded.push("--port", values.port);
   if (command !== "start" && connection.tokenFile)
     forwarded.push("--token-file", connection.tokenFile);
-  await flowhub(forwarded);
+  await flowhub(forwarded, lifecycle);
 }
 
 if (
@@ -295,7 +359,7 @@ if (
   main().catch((error) => {
     const message = String(error.message);
     console.error(
-      /^(PLUGIN_|DAEMON_|TOKEN_|PORT_|CLI_)/.test(message)
+      /^(PLUGIN_|DAEMON_|TOKEN_|PORT_|CLI_|STARTUP_FAILED)/.test(message)
         ? message
         : "PLUGIN_STARTUP_FAILED: check the package, connection settings and local service.",
     );

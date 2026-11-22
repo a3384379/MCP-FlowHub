@@ -22,10 +22,9 @@ npm run test:plugin
 ```sh
 codex plugin marketplace add "/完整路径/解压后的FlowHub目录"
 codex plugin add flowhub@flowhub-local
-./flowhub-plugin start
 ```
 
-`start` 在前台运行后台服务，在独立终端保留它。已经启动了同一数据目录的 FlowHub 时直接复用，不重复启动。另开终端检查：
+从 alpha.9 起，Codex 首次连接个人 FlowHub 插件时按需启动后台。打开侧栏即可使用，Codex 也可能在侧栏打开前预加载 MCP。启动器优先复用同一数据目录中健康的同版本后台。新进程使用默认环回端口 18473，关闭侧栏后继续运行。其他本机入口仍可在独立终端用 `./flowhub-plugin start` 前台运行。连接后检查：
 
 ```sh
 ./flowhub-plugin doctor
@@ -69,7 +68,7 @@ Windows 登录自启默认关闭。在稳定的包目录执行 `.\flowhub-plugin
 
 个人身份有 21 个工具；受限身份保持原有 7 个执行工具。`doctor` 和插件连接使用同一身份。重复配置目录会保留已选身份；更换实例时必须指定新令牌，或显式 `--personal` 使用该实例的个人身份。失效的令牌或损坏配置会报错，不切换为个人身份。
 
-MCP 连接仅转发到已经运行的后台，不启动服务、不写数据库。个人模式由原 `project_help_search` 工具的空参数分支提供侧栏入口，带查询的帮助检索保持原行为。受限身份和普通 STDIO 不登记管理页面。插件安装不运行 hooks，不安装其他插件。前台 `start` 和显式登记的 Windows 登录任务使用现有锁和端口检查。停止终端中的服务可按 Ctrl+C。
+STDIO 薄桥继续只转发，个人 Codex 插件清单使用单独的启动入口。受限身份和普通 STDIO 连接既有后台。个人模式由原 `project_help_search` 工具的空参数分支提供侧栏入口，带查询的帮助检索保持原行为。插件安装不运行 hooks，不安装其他插件。所有后台启动方式都使用同一份数据目录锁。系统确认旧锁记录的 PID 已退出时，启动器会通过 daemon 自动回收旧锁。看到版本冲突时，先退出运行中的旧版后台，再重开 FlowHub。停止终端中的服务可按 Ctrl+C。
 
 ## 四个技能
 

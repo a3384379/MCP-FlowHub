@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { defaultDataDir, readEndpoint } from "./local-config.js";
+import type { SidebarLifecycle } from "../../mcp-bridge/src/index.js";
 
 export async function inspectMcpConnection(dataDir: string, tokenFile?: string) {
   const { url, token } = await readEndpoint(dataDir, tokenFile);
@@ -21,7 +22,7 @@ export async function inspectMcpConnection(dataDir: string, tokenFile?: string) 
   }
 }
 
-export async function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2), lifecycle?: SidebarLifecycle) {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -73,7 +74,7 @@ export async function main(args = process.argv.slice(2)) {
     if (!values.stdio)
       throw new Error("CLI_INPUT_INVALID: use flowhub mcp --stdio.");
     const { startBridge } = await import("../../mcp-bridge/src/index.js");
-    const bridge = await startBridge(dataDir, values["token-file"], values["codex-sidebar"]);
+    const bridge = await startBridge(dataDir, values["token-file"], values["codex-sidebar"], lifecycle);
     process.once("SIGINT", () => {
       void bridge.close();
     });
@@ -125,6 +126,9 @@ if (
         ? error.message
         : "STARTUP_FAILED: check runtime version, data-directory permissions and the local service.";
     console.error(message);
+    // Only the detached plugin launcher provides this IPC channel. Keep stdout
+    // reserved for the bridge and forward only the existing sanitized error.
+    if (process.connected) process.send?.({ startupError: message }, undefined, undefined, () => {});
     process.exitCode = 1;
   });
 }
