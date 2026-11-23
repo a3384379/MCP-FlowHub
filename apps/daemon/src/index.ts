@@ -71,6 +71,7 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     const instanceId = store.instanceId,
       repo = new Repository(store.db),
       vault = new Vault(repo);
+    vault.openLocal();
     engine = new Engine(repo, vault, new Connectors(repo, vault));
     await engine.seed();
     if (repo.all("runs").some(r => !["SUCCEEDED", "FAILED", "REJECTED", "CANCELLED", "OUTCOME_UNKNOWN"].includes(r.state) &&

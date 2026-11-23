@@ -1,5 +1,5 @@
 export type DiscoveryDestination = {
-  type: "connection" | "vault" | "unlock" | "library";
+  type: "connection";
   name?: string;
 };
 export type Issue = Record<string, any>;
@@ -36,7 +36,7 @@ export function issueAction(issue: Issue) {
     return {
       type: "credentials",
       label: "连接配置",
-      help: "在当前抽屉填写配置、选择已有项或就地新增，并解锁本地库。保存后可检测连接和读取本服务工具目录。",
+      help: "在当前表单填写连接配置或选择已保存的值。保存后可检测连接和读取工具目录。",
     };
   if (code === "CODEX_AUTH_REQUIRED")
     return { type: "guide", label: "恢复 Codex 授权", help: "在当前 Codex 项目恢复该 MCP 的授权，然后回到发现页同步目录。" };

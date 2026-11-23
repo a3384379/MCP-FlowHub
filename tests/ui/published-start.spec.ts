@@ -62,7 +62,7 @@ test("unpublished environment, mode and input changes cannot alter a published s
 }) => {
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   expect((await api("/auth/state")).vaultLocked).toBe(false);
   const source = (await api("/workflows/incident-production/versions"))[0];
   const workflow = structuredClone(source.snapshot.workflow);
@@ -138,7 +138,7 @@ test("rollback preview and submission stay bound to the selected immutable versi
 }) => {
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   expect((await api("/auth/state")).vaultLocked).toBe(false);
   const source = (await api("/workflows/incident-production/versions"))[0];
   const workflow = structuredClone(source.snapshot.workflow);

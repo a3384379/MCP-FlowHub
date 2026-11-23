@@ -253,7 +253,7 @@ export function ConversationView({
                 </p>
               )}
               {task?.errorCode === "CREDENTIAL_LOCKED" && <p className="assistant-muted">
-                {vaultLocked === true ? "请先解锁凭据库；已保存的模型 Key 和本轮问题仍保留。" : "这轮因凭据库锁定未完成。解锁后可重新提问，已有工具回执保持原样。"}
+                {vaultLocked === true ? "请先迁移旧版凭据，已保存的 Key 和问题仍保留。" : "这轮未完成，可重新提问或继续回复。"}
               </p>}
               {task &&
                 ["FAILED", "CANCELLED", "INTERRUPTED"].includes(task.status) &&

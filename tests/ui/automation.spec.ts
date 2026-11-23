@@ -67,7 +67,7 @@ test("automatic incident run has no approval controls and a restricted host comp
 }) => {
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   const source = (await api("/workflows/incident-staging/versions"))[0];
   const workflow = structuredClone(source.snapshot.workflow);
   workflow.workflowId = "ui-automatic-" + randomUUID();
@@ -237,7 +237,7 @@ test("run details distinguish failure and cancellation without obsolete action b
 }) => {
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   const source = (await api("/workflows/incident-staging/versions"))[0].snapshot
     .workflow;
   const failed = structuredClone(source);

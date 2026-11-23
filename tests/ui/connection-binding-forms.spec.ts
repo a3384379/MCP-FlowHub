@@ -41,7 +41,7 @@ test("labelled STDIO registration, discovery, explicit environment binding and a
   page.on("pageerror", (error) => errors.push(error.message));
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   expect((await api("/auth/state")).vaultLocked).toBe(false);
   const settings = await api("/settings");
   const connectionName = "合成表单连接 " + randomUUID();
@@ -66,6 +66,12 @@ test("labelled STDIO registration, discovery, explicit environment binding and a
       .getByLabel(`命令参数 ${index + 1}`, { exact: true })
       .fill(arg);
   }
+  await connectionDialog.getByLabel("新增环境变量名称", { exact: true }).fill("FLOWHUB_TEST_TOKEN");
+  const token = connectionDialog.getByLabel("新增环境变量值", { exact: true });
+  await expect(token).toHaveAttribute("type", "password");
+  await token.fill("synthetic-stdio-form-token");
+  await connectionDialog.getByRole("button", { name: "添加环境变量", exact: true }).click();
+  await expect(connectionDialog).not.toContainText("synthetic-stdio-form-token");
   await expect(
     connectionDialog.getByRole("button", { name: "确认", exact: true }),
   ).toBeDisabled();
@@ -84,6 +90,8 @@ test("labelled STDIO registration, discovery, explicit environment binding and a
     command: settings.runtimePath,
     args: [settings.cliPath, "mock", "--stdio"],
   });
+  expect(connection.envRefs.FLOWHUB_TEST_TOKEN).toMatch(/^secret_/);
+  expect(connection.envValues).toBeUndefined();
   expect(connection.endpoint).toBeUndefined();
   expect(connection.mode).toBeUndefined();
   const card = page.locator(".connection-grid > section").filter({
@@ -209,12 +217,12 @@ test("labelled STDIO registration, discovery, explicit environment binding and a
   expect(errors).toEqual([]);
 });
 
-test("HTTP registration accepts only registered credential references and keeps protocol separate from transport", async ({
+test("HTTP connection keeps legacy references and accepts a replacement Bearer token directly", async ({
   page,
 }) => {
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
-    await api("/vault/unlock", "POST", { password });
+    await api("/credentials/migrate", "POST", { password });
   expect((await api("/auth/state")).vaultLocked).toBe(false);
   const secret = await api("/secrets", "POST", {
     label: "表单合成凭据 " + randomUUID(),
@@ -244,7 +252,6 @@ test("HTTP registration accepts only registered credential references and keeps 
   await expect(dialog).not.toContainText(
     "Synthetic-only-form-token-never-rendered-041",
   );
-  expect(await dialog.locator('input[type="password"]').count()).toBe(0);
   await dialog.getByRole("button", { name: "确认", exact: true }).click();
   const connection = (await api("/connections")).find(
     (entry: any) => entry.name === name,
@@ -268,11 +275,16 @@ test("HTTP registration accepts only registered credential references and keeps 
   const edit = page.getByRole("dialog", { name: "修改连接（使验证失效）" });
   await expect(edit.getByLabel("传输方式", { exact: true })).toBeDisabled();
   await edit.getByLabel("协议代际", { exact: true }).selectOption("auto");
+  const nextToken = edit.getByLabel("HTTP Bearer 令牌（可选）", { exact: true });
+  await expect(nextToken).toHaveAttribute("type", "password");
+  await nextToken.fill("synthetic-replacement-bearer-token");
   await edit.getByRole("button", { name: "确认", exact: true }).click();
   const updated = (await api("/connections")).find(
     (entry: any) => entry.id === connection.id,
   );
   expect(updated.transport).toBe("streamable_http");
   expect(updated.protocolEra).toBe("auto");
-  expect(updated.secretRef).toBe(secret.id);
+  expect(updated.secretRef).toMatch(/^secret_/);
+  expect(updated.secretRef).not.toBe(secret.id);
+  expect(updated.secretValue).toBeUndefined();
 });

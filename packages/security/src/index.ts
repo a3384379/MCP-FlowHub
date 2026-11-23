@@ -53,6 +53,70 @@ export class Vault {
   get locked() {
     return !this.key;
   }
+  get migrationRequired() {
+    return this.locked && this.repo.get("settings", "vault")?.version === 1;
+  }
+  private hasProtectedRecords() {
+    return !!this.repo.db.prepare(`
+      SELECT 1 WHERE EXISTS (SELECT 1 FROM secrets)
+        OR EXISTS (SELECT 1 FROM runs WHERE
+          json_type(body, '$.checkpoint.delivery') = 'object' OR
+          json_type(body, '$.checkpoint.argumentsDelivery') = 'object' OR
+          json_type(body, '$.checkpoint.hostClaim.delivery') = 'object' OR
+          EXISTS (SELECT 1 FROM json_each(runs.body, '$.operationalOutputs')))
+        OR EXISTS (SELECT 1 FROM assistant_tasks WHERE json_type(body, '$.providerContinuation') = 'object')
+        OR EXISTS (SELECT 1 FROM assistant_tool_calls WHERE json_type(body, '$.result.checkpoint.tokenDelivery') = 'object')
+    `).get();
+  }
+  private saveLocalKey(key: Buffer) {
+    this.key = key;
+    try {
+      this.repo.put("settings", "vault", {
+        version: 2,
+        localKey: key.toString("hex"),
+        verifier: this.encrypt("flowhub-vault-v1", "verifier"),
+      });
+      this.generation++;
+    } catch (error) {
+      this.lock();
+      throw error;
+    }
+  }
+  openLocal() {
+    const meta = this.repo.get("settings", "vault");
+    if (meta?.version === 2) {
+      ensure(typeof meta.localKey === "string" && /^[a-f0-9]{64}$/.test(meta.localKey),
+        "CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
+      this.key = Buffer.from(meta.localKey, "hex");
+      try {
+        ensure(this.decrypt(meta.verifier, "verifier") === "flowhub-vault-v1",
+          "CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
+      } catch {
+        this.lock();
+        throw new HubError("CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
+      }
+      this.generation++;
+      return;
+    }
+    ensure(!meta || meta.version === 1, "CREDENTIAL_STORE_INVALID",
+      "The credential data has an unsupported format.", 500);
+    const protectedRecords = this.hasProtectedRecords();
+    ensure(meta || !protectedRecords, "CREDENTIAL_STORE_INVALID",
+      "Credential metadata is missing from this database.", 500);
+    if (!protectedRecords) this.saveLocalKey(randomBytes(32));
+  }
+  migrateToLocal(password: string) {
+    ensure(this.migrationRequired, "CREDENTIAL_MIGRATION_NOT_REQUIRED",
+      "The workspace already opens credentials automatically.", 409);
+    try {
+      this.unlock(password);
+    } catch (error) {
+      if (!(error instanceof HubError) || error.code !== "AUTH_REQUIRED") throw error;
+      throw new HubError("CREDENTIAL_PASSWORD_INVALID", "旧版凭据口令不正确。", 422);
+    }
+    // Existing references and ciphertext remain valid under the original key.
+    this.saveLocalKey(this.key!);
+  }
   initialize(password: string, allowDefaultAdmin = false) {
     ensure(
       !this.initialized,
@@ -73,6 +137,8 @@ export class Vault {
   unlock(password: string) {
     const meta = this.repo.get("settings", "vault");
     ensure(meta, "VAULT_UNINITIALIZED", "Initialize vault first.", 409);
+    ensure(meta.version === 1, "CREDENTIAL_MIGRATION_NOT_REQUIRED",
+      "The workspace already opens credentials automatically.", 409);
     ensure(
       typeof password === "string" && password.length <= 256,
       "AUTH_REQUIRED",
@@ -99,7 +165,7 @@ export class Vault {
     this.key = undefined;
   }
   encrypt(value: string, aad: string) {
-    ensure(this.key, "CREDENTIAL_LOCKED", "Unlock the vault first.", 423);
+    ensure(this.key, "CREDENTIAL_LOCKED", "Migrate saved credentials using the previous password.", 423);
     const iv = randomBytes(12),
       cipher = createCipheriv("aes-256-gcm", this.key, iv);
     cipher.setAAD(Buffer.from(aad));
@@ -111,7 +177,7 @@ export class Vault {
     };
   }
   decrypt(record: Json, aad: string): string {
-    ensure(this.key, "CREDENTIAL_LOCKED", "Unlock the vault first.", 423);
+    ensure(this.key, "CREDENTIAL_LOCKED", "Migrate saved credentials using the previous password.", 423);
     const cipher = createDecipheriv(
       "aes-256-gcm",
       this.key,

@@ -323,7 +323,7 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
     assert.equal(session.status, 200);
     csrf = (await session.json()).data.csrf;
     cookie = session.headers.get("set-cookie").split(";")[0];
-    await api("/api/v1/vault/initialize", { password: "Synthetic-plugin-e2e-vault" });
+    assert.equal((await api("/api/v1/auth/state")).vaultLocked, false);
     const child = spawn(codex, ["app-server", "--stdio"], {
       env,
       cwd,
@@ -1068,12 +1068,8 @@ serveStdio(()=>{const server=new McpServer({name:'order-plugin-e2e-lab',version:
           } finally {
             await otherHost.close();
           }
-          await api("/api/v1/vault/lock", {});
-          const locked = await tool("workflow_status", { runId: started.runId });
-          assert.equal(locked.vaultLocked, true);
-          assert.equal(locked.checkpoint.token, undefined);
-          await api("/api/v1/vault/unlock", { password: "Synthetic-plugin-e2e-vault" });
           const restored = await tool("workflow_status", { runId: started.runId });
+          assert.equal(restored.checkpoint.token, waiting.checkpoint.token);
           assert.equal(restored.checkpoint.id, waiting.checkpoint.id);
           assert.equal(restored.revision, waiting.revision);
         }

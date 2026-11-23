@@ -126,7 +126,6 @@ test("startup listener failure closes Application workers before SQLite and rele
 test("shutdown hook failure still erases the Vault key and releases SQLite and its lock",async t=>{
   const directory=await mkdtemp(join(tmpdir(),"flowhub-v2-close-failure-"));t.after(()=>rm(directory,{recursive:true,force:true}));
   const daemon=await startDaemon({dataDir:directory,port:0});
-  daemon.engine.vault.initialize("Synthetic-close-failure-password");
   daemon.engine.vault.addSecret("fixture","SYNTHETIC_CLOSE_SECRET");
   const original=daemon.application.close.bind(daemon.application);
   daemon.application.close=async()=>{await original();throw new Error("synthetic-close-failure");};

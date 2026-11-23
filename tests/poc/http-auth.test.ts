@@ -127,14 +127,14 @@ test("loopback workspace sessions are passwordless, origin-bound and independent
   assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie })).status, 200);
   assert.equal((await raw(daemon.port, "/mcp", {}, { Cookie })).status, 401);
   const state = async () => (await raw(daemon.port, "/api/v1/auth/state")).json.data;
-  assert.deepEqual([ (await state()).initialized, (await state()).vaultInitialized ], [false, false]);
-  const initPath = "/api/v1/vault/initialize";
-  assert.equal((await raw(daemon.port, initPath, { password }, { Cookie })).status, 403);
+  assert.equal((await state()).vaultLocked, false);
+  assert.equal((await state()).credentialMigrationRequired, false);
+  const secretPath = "/api/v1/secrets";
+  const secret = { label: "synthetic secret", value: "synthetic-local-session-key" };
+  assert.equal((await raw(daemon.port, secretPath, secret, { Cookie })).status, 403);
   const session = { Cookie, "X-CSRF-Token": csrf };
-  assert.equal((await raw(daemon.port, initPath, { password }, session)).status, 200);
-  assert.equal((await raw(daemon.port, initPath, { password }, session)).status, 409);
-  assert.equal((await raw(daemon.port, "/api/v1/vault/lock", {}, session)).status, 200);
-  assert.equal((await raw(daemon.port, "/api/v1/vault/unlock", { password }, session)).status, 200);
+  assert.equal((await raw(daemon.port, secretPath, secret, session)).status, 200);
+  assert.equal((await raw(daemon.port, "/api/v1/vault/lock", {}, session)).status, 404);
   assert.equal((await state()).initialized, false);
 
   const transient = await raw(daemon.port, path, {}, local);
@@ -148,8 +148,9 @@ test("loopback workspace sessions are passwordless, origin-bound and independent
   assert.equal((await raw(daemon.port, "/api/v1/workflows", undefined, { Cookie })).status, 200);
 });
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, prepare?: (dataDir: string) => Promise<unknown>) {
   const dataDir = await mkdtemp(join(tmpdir(), "flowhub-http-auth-"));
+  await prepare?.(dataDir);
   const daemon = await startDaemon({ dataDir, port: 0 });
   t.after(async () => {
     await daemon.close();
@@ -178,34 +179,94 @@ async function fixture(t: TestContext) {
   return { daemon, call, api, dataDir, cookie, adminHeaders, token };
 }
 
-test("successful vault verification clears attempts while consecutive wrong passwords remain limited", async (t) => {
-  const { call, api, adminHeaders } = await fixture(t);
-  const unlock = (value: string) =>
-    call("/api/v1/vault/unlock", { password: value }, adminHeaders);
-  for (let attempt = 0; attempt < 7; attempt++) {
-    await api("/vault/lock", {});
-    const response = await unlock(password);
-    assert.equal(response.status, 200, JSON.stringify(response.json));
-    assert.equal(response.json.data.locked, false);
+async function legacyCredentials(dataDir: string, value?: string) {
+  const daemon = await startDaemon({ dataDir, port: 0 });
+  try {
+    const { repo, vault } = daemon.engine;
+    vault.lock();
+    repo.remove("settings", "vault");
+    vault.initialize(password);
+    return value ? vault.addSecret("Legacy synthetic token", value).id : undefined;
+  } finally {
+    await daemon.close();
   }
-  const wrongAttempts = async (count: number) => {
-    for (let attempt = 0; attempt < count; attempt++) {
-      const response = await unlock("synthetic-wrong-vault-password");
-      assert.equal(response.status, 401);
-      assert.equal(response.json.error.code, "AUTH_REQUIRED");
-    }
-  };
-  await wrongAttempts(4);
-  assert.equal((await unlock(password)).status, 200);
-  await wrongAttempts(4);
-  const nextPassword = "Synthetic-new-vault-password-429";
-  await api("/vault/password", { oldPassword: password, newPassword: nextPassword });
-  await api("/vault/lock", {});
-  assert.equal((await unlock(nextPassword)).status, 200);
-  await wrongAttempts(5);
-  const limited = await unlock(nextPassword);
+}
+
+test("a protected legacy workspace migrates once and reopens the same credentials after restart", async t => {
+  const value = "synthetic-migration-key";
+  let ref: string;
+  const { daemon, call, dataDir, adminHeaders } = await fixture(t, async directory => {
+    ref = (await legacyCredentials(directory, value))!;
+  });
+  const path = "/api/v1/credentials/migrate";
+  const state = async () => (await call("/api/v1/auth/state")).json.data;
+  assert.equal((await state()).credentialMigrationRequired, true);
+  const before = daemon.engine.repo.all("secrets");
+  assert.equal((await call(path, { password })).status, 401);
+  assert.equal((await call(path, { password }, { Cookie: adminHeaders.Cookie })).status, 403);
+  assert.equal((await call(path, { password: "synthetic-incorrect-password" }, adminHeaders)).status, 422);
+  assert.deepEqual(daemon.engine.repo.all("secrets"), before);
+  assert.equal((await call(path, { password }, adminHeaders)).status, 200);
+  assert.equal((await state()).credentialMigrationRequired, false);
+  assert.equal((await call(path, { password }, adminHeaders)).status, 409);
+  assert.deepEqual(daemon.engine.repo.all("secrets"), before);
+  await daemon.close();
+  const restarted = await startDaemon({ dataDir, port: 0 });
+  try {
+    assert.equal(restarted.engine.vault.locked, false);
+    assert.equal(restarted.engine.vault.secret(ref!), value);
+    assert.deepEqual(restarted.engine.repo.all("secrets"), before);
+  } finally {
+    await restarted.close();
+  }
+});
+
+test("migration rate limits consecutive wrong passwords and empty legacy workspaces need no password", async t => {
+  const locked = await fixture(t, directory => legacyCredentials(directory, "synthetic-token"));
+  const path = "/api/v1/credentials/migrate";
+  for (let i = 0; i < 5; i++) {
+    const wrong = await locked.call(path, { password: "wrong-legacy-password" }, locked.adminHeaders);
+    assert.equal(wrong.json.error.code, "CREDENTIAL_PASSWORD_INVALID");
+  }
+  const limited = await locked.call(path, { password }, locked.adminHeaders);
   assert.equal(limited.status, 429);
   assert.equal(limited.json.error.code, "RATE_LIMITED");
+  const empty = await fixture(t, directory => legacyCredentials(directory));
+  assert.equal(empty.daemon.engine.vault.locked, false);
+  assert.equal(empty.daemon.engine.vault.migrationRequired, false);
+});
+
+test("connection forms persist values with the connection and roll back failed edits", async t => {
+  const { daemon, call, api, adminHeaders } = await fixture(t);
+  const bearer = "synthetic-bearer-form-value";
+  const http = await api("/connections", {
+    name: "Synthetic HTTP connection", transport: "streamable_http", protocolEra: "modern",
+    endpoint: "http://127.0.0.1:1/mcp", allowedHosts: ["127.0.0.1"], secretValue: bearer,
+  });
+  assert.equal(http.secretValue, undefined);
+  assert.equal(daemon.engine.vault.secret(http.secretRef), bearer);
+  const stdio = {
+    name: "Synthetic STDIO connection", transport: "stdio", protocolEra: "modern",
+    command: process.execPath, args: [], commandApproved: true,
+  };
+  const before = await api("/secrets");
+  const rejected = await call("/api/v1/connections",
+    { ...stdio, envValues: { SYNTHETIC_TOKEN: "valid value", PATH: "denied" } }, adminHeaders);
+  assert.equal(rejected.status, 400);
+  assert.deepEqual(await api("/secrets"), before);
+  const saved = await api("/connections", { ...stdio, envValues: { SYNTHETIC_TOKEN: "valid value" } });
+  assert.equal(saved.envValues, undefined);
+  assert.equal(daemon.engine.vault.secret(saved.envRefs.SYNTHETIC_TOKEN), "valid value");
+  const snapshot = await api("/secrets");
+  const stale = await call("/api/v1/connections/" + saved.id, { envValues: { SYNTHETIC_TOKEN: "new value" } },
+    { ...adminHeaders, "If-Match": "2" }, "PATCH");
+  assert.equal(stale.status, 409);
+  assert.deepEqual(await api("/secrets"), snapshot);
+  const response = await call("/api/v1/connections/" + saved.id, { envValues: { SYNTHETIC_TOKEN: "new value" } },
+    { ...adminHeaders, "If-Match": "1" }, "PATCH");
+  assert.equal(response.status, 200);
+  assert.ok(!response.text.includes("new value"));
+  assert.equal(daemon.engine.vault.secret(response.json.data.envRefs.SYNTHETIC_TOKEN), "new value");
 });
 
 test("artifact download returns the complete file and enforces session, run and retention boundaries", async (t) => {

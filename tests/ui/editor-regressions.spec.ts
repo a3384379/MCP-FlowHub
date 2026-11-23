@@ -848,20 +848,12 @@ test("session expiry reconnects in place and retains focused JSON text", async (
     await expect(page.getByLabel("节点配置（映射 / Schema）")).toHaveValue(raw);
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "系统设置", exact: true }).click();
-    await page.getByRole("button", { name: "解锁", exact: true }).click();
-    const unlock = page.getByRole("dialog", { name: "解锁凭据库" });
-    await unlock.getByLabel("凭据库口令").fill("Wrong-synthetic-password");
-    await unlock.getByRole("button", { name: "确认", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("AUTH_REQUIRED");
     await expect(
       page.getByRole("heading", { name: "系统设置", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "登录管理中心", exact: true }),
     ).toHaveCount(0);
-    await unlock.getByLabel("凭据库口令").fill(password);
-    await unlock.getByRole("button", { name: "确认", exact: true }).click();
-    await expect(unlock).toHaveCount(0);
   } finally {
     release.resolve();
   }

@@ -24,7 +24,6 @@ import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
 import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
-import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
@@ -554,16 +553,6 @@ function App() {
   const historyIndex = useRef(0),
     restoringHistory = useRef(false);
   const routeGeneration = useRef(0);
-  const credentialLibraryRequested = useRef(false);
-  useEffect(() => {
-    if (path !== "/settings" || !credentialLibraryRequested.current) return;
-    const library = document.getElementById("credential-library");
-    if (library) {
-      credentialLibraryRequested.current = false;
-      library.scrollIntoView({ block: "start" });
-      library.focus({ preventScroll: true });
-    }
-  }, [path]);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
@@ -688,11 +677,9 @@ function App() {
     if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
   }, []);
   const openVault = () => {
-    const initialize = auth?.vaultInitialized === false;
     setModal({
       type: "unlock",
-      title: initialize ? "设置凭据库口令" : "解锁凭据库",
-      initialize,
+      title: "迁移旧版凭据",
       password: "",
     });
   };
@@ -755,20 +742,11 @@ function App() {
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
     const name = destination.name || "新连接";
-    if (destination.type === "connection") {
-      navigate("/connections");
-      setModal({ type: "connection", title: "手动连接 · " + name,
-        sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
-        payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
-      });
-    } else if (destination.type === "library") {
-      credentialLibraryRequested.current = true;
-      navigate("/settings");
-    } else {
-      navigate("/settings");
-      if (destination.type === "unlock") openVault();
-      else setModal({ type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
-    }
+    navigate("/connections");
+    setModal({ type: "connection", title: "手动连接 · " + name,
+      sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
+      payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
+    });
   };
   useEffect(() => {
     history.replaceState({ ...history.state, flowhubIndex: 0 }, "");
@@ -1486,7 +1464,7 @@ function App() {
         setModal((current:J)=>current===m?null:current);
         return true;
       }
-      assertJsonValid();
+      if (m.type !== "unlock") assertJsonValid();
       if (m.type === "condition-port") {
         if (
           pathRef.current !== "/workflows/" + m.workflowId + "/editor" ||
@@ -1657,16 +1635,9 @@ function App() {
         showJson("宿主身份已创建（仅保存令牌文件）", result);
         return;
       }
-      if (m.type === "rotate") {
-        await api("/vault/password", "POST", m.payload);
-      }
-      if (m.type === "secret") {
-        const created = await api("/secrets", "POST", { label: m.label, value: m.value, purpose: m.purpose ?? "unspecified", ...(m.idempotencyKey ? { idempotencyKey: m.idempotencyKey } : {}) });
-        window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
-      }
       if (m.type === "unlock") {
-        await api(m.initialize ? "/vault/initialize" : "/vault/unlock", "POST", { password: m.password });
-        setAuth({ ...auth, vaultInitialized: true, vaultLocked: false });
+        await api("/credentials/migrate", "POST", { password: m.password });
+        setAuth({ ...auth, vaultLocked: false, credentialMigrationRequired: false });
         window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
@@ -1754,7 +1725,7 @@ function App() {
           </div>
         </header>
         <div className="workspace">
-          {error && !(modal?.type === "unlock" && failure?.path?.startsWith("/vault/")) && (
+          {error && !(modal?.type === "unlock" && failure?.path === "/credentials/migrate") && (
             <div className="banner error" role="alert">
               {error}
               <button onClick={() => setError("")}>×</button>
@@ -1763,6 +1734,12 @@ function App() {
           {notice && (
             <div className="toast" role="status">
               {notice}
+            </div>
+          )}
+          {auth?.credentialMigrationRequired && ["settings", "connections"].includes(page) && (
+            <div className="vault-notice">
+              <span>此工作区有旧版凭据。输入原口令迁移一次，之后即可直接使用。</span>
+              <button onClick={openVault}>迁移旧版凭据</button>
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} onOpenWorkflow={chooseWorkflowById} />}
@@ -3388,11 +3365,11 @@ function App() {
                   <div>
                     {run.vaultLocked && (
                       <div className="banner">
-                        凭据库已锁定，解锁后才能交付或推进检查点。
+                        此运行使用旧版凭据，迁移后可继续检查点。
                         <button
                           onClick={openVault}
                         >
-                          解锁
+                          迁移旧版凭据
                         </button>
                       </div>
                     )}
@@ -3507,7 +3484,7 @@ function App() {
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
                 title={navigationLabel("settings")}
-                text="管理 MCP 宿主身份、本机凭据和数据备份。"
+                text="管理 MCP 宿主身份和数据备份。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3536,11 +3513,6 @@ function App() {
                     预览清理范围
                   </button>
                 </section>
-                <CredentialLibrary api={api}
-                  onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
-                  onUnlock={openVault}
-                  onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
-                  onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
                   <h2>诊断导出（仅元数据）</h2>
                   <p>
@@ -3830,31 +3802,6 @@ function App() {
                   </div>
                 ))}
               </>
-            ) : modal.type === "rotate" ? (
-              <>
-                <Field
-                  type="password"
-                  label="当前凭据库口令"
-                  value={modal.payload.oldPassword}
-                  onChange={(oldPassword) =>
-                    setModal({
-                      ...modal,
-                      payload: { ...modal.payload, oldPassword },
-                    })
-                  }
-                />
-                <Field
-                  type="password"
-                  label="新凭据库口令"
-                  value={modal.payload.newPassword}
-                  onChange={(newPassword) =>
-                    setModal({
-                      ...modal,
-                      payload: { ...modal.payload, newPassword },
-                    })
-                  }
-                />
-              </>
             ) : modal.type === "retention" ? (
               <>
                 <p>
@@ -4009,8 +3956,7 @@ function App() {
                   </select>
                 </label>
                 <p>
-                  输入严格按已发布 Schema 校验。不得覆盖环境、连接或模板；包含
-                  Agent 的流程需要先解锁凭据库。
+                  输入严格按已发布 Schema 校验，环境、连接和模板沿用发布版本。
                 </p>
                 <details>
                   <summary>已发布输入契约</summary>
@@ -4030,25 +3976,16 @@ function App() {
               </>
             ) : modal.type === "unlock" ? (
               <>
-                {modal.initialize && <p>请设置 12–256 个字符的口令，用于加密保存的 MCP 凭据和模型 Key。</p>}
+                <p>用原口令迁移保存的模型 Key、MCP 凭据和可继续的运行记录。迁移完成后会自动读取。</p>
                 <Field
-                  label="凭据库口令"
+                  label="旧版凭据口令"
                   type="password"
                   value={modal.password}
                   onChange={(password) => setModal({ ...modal, password })}
                 />
-                {error && failure?.path?.startsWith("/vault/") && (
+                {error && failure?.path === "/credentials/migrate" && (
                   <p role="alert" className="error">{error}</p>
                 )}
-              </>
-            ) : modal.type === "secret" ? (
-              <>
-                <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
-                <label>用途<select aria-label="用途" value={modal.purpose ?? "unspecified"} onChange={event => setModal({ ...modal, purpose: event.target.value })}>
-                  <option value="mcp_auth">MCP 认证凭据</option><option value="mcp_config">MCP 普通配置</option><option value="unspecified">用途待确认</option>
-                </select></label>
-                <Field label="保存值" type={modal.purpose === "mcp_config" ? "text" : "password"} value={modal.value} onChange={(value) => setModal({ ...modal, value })} />
-                <p>值在本机加密保存。模型 API Key 请在模型设置中配置。</p>
               </>
             ) : ["connection", "edit-connection"].includes(modal.type) ? (
               <ConnectionForm
@@ -4177,7 +4114,8 @@ function App() {
                   disabled={
                     busy ||
                     deletionPending ||
-                    (jsonInvalid && modal.type!=="delete-workflow") ||
+                    (jsonInvalid && !["delete-workflow", "unlock"].includes(modal.type)) ||
+                    (modal.type === "unlock" && !modal.password) ||
                     (modal.type === "retention" &&
                       !retentionScopeKeys.some(
                         (key) => modal.value[key]?.length,

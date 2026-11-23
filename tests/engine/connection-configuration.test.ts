@@ -481,7 +481,7 @@ test("HTTP library creates typed entries once, returns metadata only, and preser
   await daemon.close();
   daemon = await startDaemon({ dataDir: dir, port: 0 });
   await api("/auth/session", "POST", { username: "admin", password: "admin" });
-  assert.equal(daemon.engine.vault.locked, true);
+  assert.equal(daemon.engine.vault.secret(first.data.id), request.value);
   assert.deepEqual(daemon.engine.repo.get("secrets", first.data.id), original);
   assert.equal((await api("/secrets")).data[0].id, first.data.id);
 });

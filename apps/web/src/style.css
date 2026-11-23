@@ -8,31 +8,6 @@
   --muted: #71839b;
   --line: #dce6f3;
 }
-.credential-library-head {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-.credential-library-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 16px 0;
-}
-.credential-library-list article {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  overflow-wrap: anywhere;
-}
-.credential-library-list small {
-  display: block;
-  color: var(--muted);
-  margin-top: 6px;
-}
 * {
   box-sizing: border-box;
 }

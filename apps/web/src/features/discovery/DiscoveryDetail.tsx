@@ -435,7 +435,7 @@ export function DiscoveryDetail({
           ) : credentials ? (
             <ConnectionSetup key={entity.id + ":" + credentialTarget?.revision} api={api} entity={entity} initialSecrets={secrets}
               formId={"connection-setup-" + entity.id} onBusy={setWorking} onChanged={onChanged}
-              onManage={() => onManage({ type: "library" })} />
+              />
           ) : importTarget ? (
             <div className="d-edit-form">
               <h3>添加到流程</h3>

@@ -274,7 +274,7 @@ test("description and credential fields remain locked while their save HTTP requ
     description.release(); await expect(dialog.getByRole("button", { name: "编辑中文说明", exact: true })).toBeVisible();
     expect((await f.api("/api/v2/discovery/entities/" + f.entity.id)).presentation.summary).toBe("待保存的明确输入");
     await page.keyboard.press("Escape");
-    await f.api("/api/v1/vault/unlock", "POST", { password: "Synthetic-browser-password-041" });
+    await f.api("/api/v1/credentials/migrate", "POST", { password: "Synthetic-browser-password-041" });
     const secret = await f.api("/api/v1/secrets", "POST", { label: "Synthetic pending credential", value: "only-synthetic" });
     const source = (await f.api("/api/v2/discovery/catalog?contextId=" + f.context.id + "&kind=mcp_server")).items[0];
     await page.getByRole("tab", { name: /MCP 服务/ }).click();
@@ -309,7 +309,7 @@ test("description and credential fields remain locked while their save HTTP requ
 test("a credential draft keeps its original configuration revision through a source-changing snapshot refresh", async ({ page }) => {
   const f = await realDiscovery(page);
   try {
-    await f.api("/api/v1/vault/unlock", "POST", { password: "Synthetic-browser-password-041" });
+    await f.api("/api/v1/credentials/migrate", "POST", { password: "Synthetic-browser-password-041" });
     const secret = await f.api("/api/v1/secrets", "POST", { label: "Synthetic credential baseline", value: "only-synthetic" }),
       source = (await f.api("/api/v2/discovery/catalog?contextId=" + f.context.id + "&kind=mcp_server")).items[0],
       connections = (await f.api("/api/v1/connections")).map((c: any) => c.id);

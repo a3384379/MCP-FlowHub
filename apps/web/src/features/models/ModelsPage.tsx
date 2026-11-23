@@ -26,10 +26,9 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
   const selected=catalog?.models.find(item=>item.id===model);
   const available=!!selected&&(!selected.shutdownDate||selected.shutdownDate>new Date().toISOString().slice(0,10));
   const manualModel = service === "custom" && manual;
-  const canRefresh = !busy && !catalogBusy && !!baseUrl && (!!key || !!current?.keyConfigured && vault.locked === false);
+  const canRefresh = !busy && !catalogBusy && !!baseUrl && (!!key || !!current?.keyConfigured && vault.locked !== true);
   const saveBlock = busy ? "保存进行中。" : catalogBusy ? "正在读取模型目录。"
-    : vault.locked === null ? "等待读取本机凭据库状态。"
-    : vault.locked ? (vault.initialized === false ? "先设置本机凭据库口令。" : "先解锁本机凭据库。")
+    : vault.locked ? "请先迁移旧版凭据。"
     : !baseUrl.trim() || !name.trim() ? "填写配置名称和 Base URL。"
     : !manualModel && !catalog
       ? (key || current?.keyConfigured ? "刷新可用模型目录后再保存。" : "填写 API Key，再刷新可用模型目录。")
@@ -47,7 +46,7 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
   },[service,model,available]);
   const visibleModels=catalog?.models.filter(item=>item.id.toLowerCase().includes(filter.toLowerCase()))??[];
   const diagnostic=(value:any)=>typeof value==="object"&&value?Object.entries(value).map(([type,result]:[string,any])=><div key={type}><strong>{{text:"文本",tools:"工具调用",stream:"流式"}[type]??type}：{result?.status??"未知"}</strong>{result?.errorCode&&<p>{result.errorCode} · {modelErrorHint(result.errorCode)}{result.httpStatus?"（HTTP "+result.httpStatus+"）":""}</p>}</div>):null;
-  return <section className="v2-page"><h1>模型设置</h1><p>选择模型服务后查询可用模型。API Key 保存在本机凭据库；Codex、画布和 Mock 不依赖此配置。</p>
+  return <section className="v2-page"><h1>模型设置</h1><p>选择模型服务后查询可用模型。API Key 在这里直接配置并保存在本机。</p>
     <VaultNotice vault={vault} unlock={onUnlockVault} />
     {error&&<p className="banner error" role="alert">{error}</p>}
     <div className="v2-two-columns"><form className="panel" onSubmit={e=>{e.preventDefault();if(!saveBlock)void save();}}>
@@ -77,17 +76,14 @@ export function ModelsPage({api,onUnlockVault}:{api:Api;onUnlockVault:()=>void})
       <label className="field">流式回答<select value={String(stream)} onChange={e=>setStream(e.target.value==="true")}><option value="true">优先流式（探测失败后使用非流式）</option><option value="false">非流式</option></select></label>
       {saveBlock && <div className="banner" id="model-save-block">
         <p>{saveBlock}</p>
-        {vault.locked === true && <button type="button" onClick={onUnlockVault}>
-          {vault.initialized === false ? "去设置凭据库口令" : "去解锁凭据库"}
-        </button>}
-        {vault.locked === false && !manualModel && !available && (catalog
+        {vault.locked !== true && !manualModel && !available && (catalog
           ? <button type="button" onClick={()=>modelPicker.current?.focus()}>去选择模型</button>
           : canRefresh && <button type="button" onClick={()=>void refreshModels()}>去刷新模型目录</button>)}
       </div>}
       <button className="primary" disabled={!!saveBlock} aria-describedby={saveBlock ? "model-save-block" : undefined} type="submit">{busy?"保存中…":"保存模型"}</button>{current&&<button type="button" disabled={busy} onClick={()=>{invalidate();setCurrent(null);setModel("");setKey("");setName("");}}>取消修改</button>}
-    </form><div className="panel"><h2>已配置模型</h2><p>探测结果是上次测试的历史记录；当前能否使用还取决于凭据库是否解锁。</p>{!profiles.length?<p>尚未配置。可继续使用无 Key 功能。</p>:profiles.map(p=><article key={p.id} className="v2-model-card"><h3>{p.name}</h3><p>{(p.serviceId??modelServiceId(p.baseUrl))==="openai"?"OpenAI（ChatGPT）":"自定义兼容服务"} · {p.providerKind} · {p.model} · {p.keyConfigured?"Key 已配置":"未配置 Key"} · 请求超时 {p.timeoutMs} ms · 最近探测 {p.lastTestAt??"未测试"}</p><div className="actions">
+    </form><div className="panel"><h2>已配置模型</h2><p>探测结果来自最近一次连接测试。</p>{!profiles.length?<p>尚未配置。可继续使用无 Key 功能。</p>:profiles.map(p=><article key={p.id} className="v2-model-card"><h3>{p.name}</h3><p>{(p.serviceId??modelServiceId(p.baseUrl))==="openai"?"OpenAI（ChatGPT）":"自定义兼容服务"} · {p.providerKind} · {p.model} · {p.keyConfigured?"Key 已配置":"未配置 Key"} · 请求超时 {p.timeoutMs} ms · 最近探测 {p.lastTestAt??"未测试"}</p><div className="actions">
       <button disabled={busy} onClick={()=>edit(p)}>编辑模型</button>
-      <button disabled={busy||catalogBusy||vault.locked!==false} onClick={()=>{setBusy(true);setError("");void api("/api/v2/model-profiles/"+p.id+"/test","POST",{}).then(result=>{if(live.current)setProbe(result);}).then(load).catch(e=>{if(live.current)setError(explain(e));}).finally(()=>{if(live.current)setBusy(false);});}}>测试文本 / 工具 / 流式</button>
+      <button disabled={busy||catalogBusy||vault.locked===true} onClick={()=>{setBusy(true);setError("");void api("/api/v2/model-profiles/"+p.id+"/test","POST",{}).then(result=>{if(live.current)setProbe(result);}).then(load).catch(e=>{if(live.current)setError(explain(e));}).finally(()=>{if(live.current)setBusy(false);});}}>测试文本 / 工具 / 流式</button>
       <button disabled={busy} onClick={()=>void api("/api/v2/model-profiles/"+p.id,"DELETE").then(load).catch(e=>setError(explain(e)))}>删除模型</button></div>
       {diagnostic(p.capabilities)}</article>)}{probe&&<div role="status"><h3>最近探测结果（历史记录）</h3>{diagnostic(probe)}</div>}</div></div>
   </section>;

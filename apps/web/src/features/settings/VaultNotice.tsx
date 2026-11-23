@@ -7,26 +7,11 @@ export function VaultNotice({
   vault: ReturnType<typeof useVaultState>;
   unlock: () => void;
 }) {
-  if (vault.locked === false || (vault.locked === null && !vault.error))
-    return null;
+  if (!vault.locked) return null;
   return (
     <div className="vault-notice" role="status">
-      <span>
-        {vault.initialized === false
-          ? "设置凭据库口令后，即可保存模型 Key 或 MCP 凭据。"
-          : vault.locked === true
-          ? "凭据库已锁定，已保存的 Key 仍保留。服务重启后需先解锁。"
-          : "暂时无法确认凭据库状态，请重新读取。"}
-      </span>
-      {vault.locked === true ? (
-        <button type="button" onClick={unlock}>
-          {vault.initialized === false ? "设置凭据库口令" : "解锁凭据库"}
-        </button>
-      ) : (
-        <button type="button" onClick={() => void vault.refresh()}>
-          重新读取凭据状态
-        </button>
-      )}
+      <span>此工作区有旧版凭据。用原口令迁移一次，即可继续使用已保存的 Key。</span>
+      <button type="button" onClick={unlock}>迁移旧版凭据</button>
     </div>
   );
 }

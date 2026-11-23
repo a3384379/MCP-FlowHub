@@ -88,7 +88,7 @@ export function FloatingAssistant({
   const selected = chat.profiles.find((p) => p.id === chat.profileId),
     running = Object.values(chat.entry.tasks).some(activeTask);
   const hasModel = !!selected?.keyConfigured;
-  const ready = hasModel && vault.locked === false;
+  const ready = hasModel && vault.locked !== true;
   const observedLockedTasks = useRef(new Set<string>());
   useEffect(() => {
     if (!opened) return;

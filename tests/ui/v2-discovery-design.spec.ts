@@ -349,16 +349,13 @@ test("issue actions open the matching manual connection and credential forms and
       ).tools.length,
     ).toBeGreaterThan(0);
     const profile = await f.api("/api/v2/model-profiles", "POST", { name: "model-only-" + issue.credential, providerKind: "openai_compatible_chat", baseUrl: "https://synthetic.invalid/v1", model: "synthetic", apiKey: "MODEL_ONLY_SYNTHETIC_KEY", stream: false });
-    await f.api("/api/v1/vault/lock", "POST", {});
     await page.goto("/discovery");
     await page.getByRole("tab", { name: /MCP 服务/ }).click();
     await row(issue.credential).getByRole("button").click();
     const setup = page.getByRole("dialog");
     await setup.getByRole("button", { name: "启用 FlowHub 直连", exact: true }).click();
     await expect(setup.getByRole("heading", { name: "连接配置", exact: true })).toBeVisible();
-    await setup.getByLabel("凭据库口令", { exact: true }).fill("Synthetic-browser-password-041");
-    await setup.getByRole("button", { name: "解锁凭据库", exact: true }).click();
-    await expect(setup.getByText("本地库已解锁，填写内容已保留。", { exact: true })).toBeVisible();
+    await expect(setup.getByLabel("旧版凭据口令", { exact: true })).toHaveCount(0);
     await expect(setup.getByLabel("SYNTHETIC_AUTH", { exact: true }).locator("option[value='" + profile.secretRef + "']")).toHaveCount(0);
     await setup.getByLabel("SYNTHETIC_AUTH", { exact: true }).selectOption("");
     await setup.getByRole("button", { name: "新增并用于此项", exact: true }).click();

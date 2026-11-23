@@ -172,6 +172,7 @@ export async function registerAdmin(
       initialized: auth.initialized,
       vaultInitialized: vault.initialized,
       vaultLocked: vault.locked,
+      credentialMigrationRequired: vault.migrationRequired,
       version: VERSION,
     }),
   );
@@ -225,10 +226,7 @@ export async function registerAdmin(
       "Invalid local setup token.",
       401,
     );
-    repo.tx(() => {
-      auth.setup(b.password);
-      if (!vault.initialized) vault.initialize(b.password);
-    });
+    auth.setup(b.password);
     await unlink(setupPath);
     const session = auth.session();
     setSessionCookie(reply, session);
@@ -239,14 +237,9 @@ export async function registerAdmin(
     if (!auth.initialized) {
       auth.throttle("default-bootstrap");
       ensure((b.username === undefined || b.username === DEFAULT_ADMIN_USERNAME) &&
-        b.password === DEFAULT_ADMIN_PASSWORD && !vault.initialized,
+        b.password === DEFAULT_ADMIN_PASSWORD && !vault.migrationRequired,
         "AUTH_REQUIRED", "Invalid administrator account or password.", 401);
-      try {
-        repo.tx(() => {
-          auth.setup(DEFAULT_ADMIN_PASSWORD, true);
-          vault.initialize(DEFAULT_ADMIN_PASSWORD, true);
-        });
-      } catch (error) { vault.lock(); throw error; }
+      auth.setup(DEFAULT_ADMIN_PASSWORD, true);
       await unlink(setupPath).catch(error => {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       });
@@ -267,39 +260,12 @@ export async function registerAdmin(
     );
     return data({ loggedOut: true });
   });
-  app.post("/api/v1/vault/initialize", async (req) => {
+  app.post("/api/v1/credentials/migrate", async (req) => {
+    auth.throttle("credential-migration");
     const b = body(req, ["password"]);
-    ensure(!vault.initialized, "VAULT_EXISTS", "Vault already initialized.", 409);
-    try {
-      repo.tx(() => {
-        vault.initialize(b.password);
-        repo.audit("admin", "vault:initialize", "vault");
-      });
-    } catch (error) {
-      vault.lock();
-      throw error;
-    }
-    auth.resetThrottle("vault");
-    return data({ initialized: true, locked: false });
-  });
-  app.post("/api/v1/vault/unlock", async (req) => {
-    auth.throttle("vault");
-    const b = body(req, ["password"]);
-    vault.unlock(b.password);
-    auth.resetThrottle("vault");
-    return data({ locked: vault.locked });
-  });
-  app.post("/api/v1/vault/lock", async () => {
-    vault.lock();
-    return data({ locked: true });
-  });
-  app.post("/api/v1/vault/password", async (req) => {
-    auth.throttle("vault");
-    const b = body(req, ["oldPassword", "newPassword"]);
-    vault.changePassword(b.oldPassword, b.newPassword);
-    auth.resetThrottle("vault");
-    repo.audit("admin", "vault:change-password", "vault");
-    return data({ changed: true });
+    vault.migrateToLocal(b.password);
+    auth.resetThrottle("credential-migration");
+    return data({ migrated: true });
   });
   app.post("/api/v1/secrets", async (req) => {
     const b = body(req, ["label", "value"], ["purpose", "idempotencyKey"]);
@@ -420,8 +386,35 @@ export async function registerAdmin(
     const refs = [configuration.secretRef, ...Object.values(configuration.envRefs ?? {})];
     ensure(!credentialInventory(repo).some(item => item.modelCredential && refs.includes(item.id)), "CREDENTIAL_PURPOSE_MISMATCH", "模型专用 Key 不能用于 MCP 连接，请配置对应的连接凭据。", 409);
   };
+  const applyConnectionValues = (connection: Json, values: Json) => {
+    const { secretValue, envValues } = values;
+    if (secretValue !== undefined) {
+      ensure(connection.transport === "streamable_http" && typeof secretValue === "string" &&
+        secretValue.length > 0 && secretValue.length < 16384,
+      "INPUT_INVALID", "HTTP Bearer token must be a nonempty string.");
+      connection.secretRef = vault.addSecret((connection.name + " · HTTP Bearer").slice(0, 128),
+        secretValue, { purpose: "mcp_auth" }).id;
+    }
+    if (envValues === undefined) return;
+    ensure(connection.transport === "stdio" && envValues && typeof envValues === "object" &&
+      !Array.isArray(envValues), "INPUT_INVALID", "Expected environment values for a STDIO connection.");
+    const entries = Object.entries(envValues);
+    const refs = { ...connection.envRefs };
+    ensure(new Set([...Object.keys(refs), ...entries.map(([name]) => name)]).size <= 20,
+      "INPUT_INVALID", "At most 20 environment variables can be configured.");
+    for (const [name, value] of entries) {
+      ensure(/^[A-Z_][A-Z0-9_]*$/.test(name) &&
+        !/^(NODE_|LD_|DYLD_|PATH$|HOME$|SHELL$|COMSPEC$|PYTHON)/i.test(name),
+      "ENVIRONMENT_OVERRIDE_DENIED", "Unsafe process environment key.");
+      ensure(typeof value === "string" && value.length > 0 && value.length < 16384,
+        "INPUT_INVALID", "STDIO credential values must be nonempty strings.");
+      refs[name] = vault.addSecret((connection.name + " · " + name).slice(0, 128),
+        value, { purpose: "mcp_auth" }).id;
+    }
+    connection.envRefs = refs;
+  };
   app.post("/api/v1/connections", async (req) => {
-    const b = body(
+    const { secretValue, envValues, ...b } = body(
       req,
       ["name", "transport", "protocolEra"],
       [
@@ -432,6 +425,8 @@ export async function registerAdmin(
         "args",
         "commandApproved",
         "envRefs",
+        "secretValue",
+        "envValues",
       ],
     );
     validate(
@@ -490,9 +485,12 @@ export async function registerAdmin(
       tools: [],
       createdAt: now(),
     };
-    assertMcpCredentialPurpose(c);
-    repo.insert("connections", c.id, c);
-    repo.audit("admin", "connection:create", c.id);
+    repo.tx(() => {
+      applyConnectionValues(c, { secretValue, envValues });
+      assertMcpCredentialPurpose(c);
+      repo.insert("connections", c.id, c);
+      repo.audit("admin", "connection:create", c.id);
+    });
     return data(c);
   });
   app.patch("/api/v1/connections/:id", async (req) => {
@@ -503,7 +501,7 @@ export async function registerAdmin(
       "Real connection missing or synthetic configuration fixed.",
       404,
     );
-    const b = body(
+    const { secretValue, envValues, ...b } = body(
       req,
       [],
       [
@@ -517,6 +515,8 @@ export async function registerAdmin(
         "envRefs",
         "protocolEra",
         "disabled",
+        "secretValue",
+        "envValues",
       ],
     );
     const expected = revision(req);
@@ -537,17 +537,18 @@ export async function registerAdmin(
       verifiedSdk: null,
       tools: [],
     };
-    const routeChanged = sourceConnectionRouteHash(c) !== sourceConnectionRouteHash(next);
-    if (routeChanged) {
-      delete next.sourceId;
-      delete next.sourceFingerprint;
-      delete next.sourceRouteHash;
-      delete next.catalogFingerprint;
-    } else if (hasVerifiedSourceConnectionRoute(c)) {
-      next.sourceRouteHash = sourceConnectionRouteHash(c);
-    }
-    assertMcpCredentialPurpose(next);
     repo.tx(() => {
+      applyConnectionValues(next, { secretValue, envValues });
+      const routeChanged = sourceConnectionRouteHash(c) !== sourceConnectionRouteHash(next);
+      if (routeChanged) {
+        delete next.sourceId;
+        delete next.sourceFingerprint;
+        delete next.sourceRouteHash;
+        delete next.catalogFingerprint;
+      } else if (hasVerifiedSourceConnectionRoute(c)) {
+        next.sourceRouteHash = sourceConnectionRouteHash(c);
+      }
+      assertMcpCredentialPurpose(next);
       repo.put("connections", c.id, next, expected);
       for (const binding of repo.all("bindings").filter(b => b.connectionId === c.id)) {
         const invalidated = {
