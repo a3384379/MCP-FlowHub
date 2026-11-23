@@ -2,7 +2,10 @@ import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
+import { syncBuiltinESMExports } from "node:module";
+import { createInterface } from "node:readline";
 import { promisify } from "node:util";
+import fs from "node:fs/promises";
 import { mkdir, mkdtemp, realpath, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -164,6 +167,96 @@ test("a failed write settles its batch and leaves a repairable ownership marker"
   assert.equal(JSON.parse(await readFile(marker, "utf8")).phase, "installed");
   assert.equal(await readFile(join(options.installDir, "app/obsolete.txt"), "utf8"), "restored staged file");
   assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
+});
+
+test("upgrade retries sharing violations and skips identical files even when their names are in use", async (t) => {
+  const options = await fixture(t);
+  await installApplication(options);
+  const changed = join(options.installDir, "app/obsolete.txt");
+  const unchanged = join(options.installDir, "app/runtime/node.exe");
+  await put(options.payloadDir, "obsolete.txt", "new release");
+  let attempts = 0;
+  const rename = fs.rename;
+  const patch = t.mock.method(fs, "rename", async (from: string, to: string) => {
+    if (to === unchanged || (to === changed && ++attempts < 3))
+      throw Object.assign(new Error("Sharing violation"), { code: "EBUSY" });
+    return rename(from, to);
+  });
+  syncBuiltinESMExports();
+  try {
+    await installApplication(options);
+    assert.equal(attempts, 3);
+    assert.equal(await readFile(changed, "utf8"), "new release");
+    assert.equal(await readFile(unchanged, "utf8"), "native fixture");
+  } finally {
+    patch.mock.restore();
+    syncBuiltinESMExports();
+  }
+});
+
+test("a persistent sharing violation reports the exact file and can resume without removing the destination", async (t) => {
+  const options = await fixture(t);
+  await installApplication(options);
+  const changed = join(options.installDir, "app/obsolete.txt");
+  const marker = join(options.installDir, ".flowhub-install.json");
+  await put(options.payloadDir, "obsolete.txt", "new release");
+  let attempts = 0;
+  const rename = fs.rename;
+  const patch = t.mock.method(fs, "rename", async (from: string, to: string) => {
+    if (to === changed) {
+      attempts++;
+      throw Object.assign(new Error("Sharing violation"), { code: "EBUSY" });
+    }
+    return rename(from, to);
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(installApplication(options), { code: "EBUSY", managedFile: "obsolete.txt" });
+    assert.equal(attempts, 6);
+    assert.equal(await readFile(changed, "utf8"), "old release");
+    assert.equal(JSON.parse(await readFile(marker, "utf8")).phase, "installing");
+  } finally {
+    patch.mock.restore();
+    syncBuiltinESMExports();
+  }
+  await installApplication(options);
+  assert.equal(await readFile(changed, "utf8"), "new release");
+  assert.equal(JSON.parse(await readFile(marker, "utf8")).phase, "installed");
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
+});
+
+test("native Windows release of a file handle lets the installer finish replacement", { skip: process.platform !== "win32" }, async (t) => {
+  const options = await fixture(t);
+  await installApplication(options);
+  const changed = join(options.installDir, "app/obsolete.txt");
+  await put(options.payloadDir, "obsolete.txt", "new release");
+  const powershell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const holder = spawn(powershell, ["-NoProfile", "-NonInteractive", "-Command",
+    "$ErrorActionPreference='Stop'; $file=[IO.File]::Open($env:FLOWHUB_TEST_FILE,'Open','Read','Read'); try { [Console]::WriteLine('ready'); [void][Console]::ReadLine() } finally { $file.Dispose() }"],
+    { env: { ...process.env, FLOWHUB_TEST_FILE: changed }, windowsHide: true, stdio: ["pipe", "pipe", "ignore"] });
+  const lines = createInterface({ input: holder.stdout });
+  const exited = once(holder, "exit");
+  try {
+    assert.deepEqual(await Promise.race([
+      once(lines, "line", { signal: AbortSignal.timeout(10_000) }),
+      exited,
+    ]), ["ready"]);
+    const probe = join(options.installDir, "app/probe.tmp");
+    await writeFile(probe, "probe");
+    await assert.rejects(fs.rename(probe, changed),
+      (error: NodeJS.ErrnoException) => ["EBUSY", "EACCES", "EPERM"].includes(error.code ?? ""));
+    await rm(probe);
+    await installApplication({ ...options, progress: (phase: string, complete: number) => {
+      if (phase === "Writing program files" && complete === 0)
+        setTimeout(() => holder.stdin.end(), 550).unref();
+    } });
+    assert.equal(await readFile(changed, "utf8"), "new release");
+  } finally {
+    holder.stdin.end();
+    lines.close();
+    const stop = setTimeout(() => holder.kill(), 5000);
+    try { await exited; } finally { clearTimeout(stop); }
+  }
 });
 
 test("daemon locks and process-inspection failures block every destructive installer operation", async (t) => {

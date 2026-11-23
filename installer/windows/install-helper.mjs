@@ -1,8 +1,9 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify, parseArgs } from "node:util";
 import { appendFile, copyFile, lstat, mkdir, readFile, readdir, rename, rmdir, unlink, writeFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { constants, createReadStream } from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 import { windowsAutostart } from "./autostart.mjs";
@@ -211,33 +212,74 @@ async function checkPayloadFiles(root, fileList, progress) {
   if (expected.size) fail("INSTALL_PAYLOAD_INVALID", "Some embedded files could not be extracted.");
   return emptyDirectories;
 }
+const fileRetryDelays = [100, 250, 500, 1000, 2000];
+async function retryFileOperation(operation) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await operation(); }
+    catch (error) {
+      if (!["EBUSY", "EPERM", "EACCES"].includes(error.code) || attempt >= fileRetryDelays.length)
+        throw error;
+      await delay(fileRetryDelays[attempt]);
+    }
+  }
+}
+
+async function removeTemporary(path) {
+  // An antivirus may still own the temporary file. Keep the original failure
+  // and never remove a program destination to make replacement succeed.
+  await unlink(path).catch(() => {});
+}
+
 async function atomicWrite(path, bytes) {
   await noLinks(path);
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.flowhub-${randomBytes(8).toString("hex")}.tmp`;
   try {
     await writeFile(temporary, bytes, { flag: "wx" });
-    await rename(temporary, path);
+    await retryFileOperation(() => rename(temporary, path));
   } finally {
-    try { await unlink(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
+    await removeTemporary(temporary);
   }
 }
-async function installFile(source, target, consumePayload) {
+
+async function digestFile(path) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+async function matchingFile(source, target, destination) {
+  if (!destination || (await lstat(source)).size !== destination.size) return false;
+  return retryFileOperation(async () => {
+    if (destination.size <= 1024 * 1024) {
+      const original = await readFile(source);
+      return original.equals(await readFile(target));
+    }
+    return await digestFile(source) === await digestFile(target);
+  });
+}
+
+async function installFile(source, target, moveFile) {
   const parent = dirname(target);
   if (!await noLinks(parent)) await mkdir(parent, { recursive: true });
   const destination = await stat(target);
   if (destination && !destination.isFile())
     fail("INSTALL_PATH_UNSAFE", "A program file destination is no longer a regular file.");
-  if (consumePayload) {
-    try { await rename(source, target); return; }
+  if (await matchingFile(source, target, destination)) return;
+  if (moveFile) {
+    try { await retryFileOperation(() => rename(source, target)); return; }
     catch (error) { if (!["EXDEV", "EPERM", "EACCES"].includes(error.code)) throw error; }
   }
-  const temporary = `${target}.flowhub-${randomBytes(8).toString("hex")}.tmp`;
+  let temporary;
   try {
-    await copyFile(source, temporary, constants.COPYFILE_EXCL);
-    await rename(temporary, target);
+    await retryFileOperation(async () => {
+      if (temporary) await removeTemporary(temporary);
+      temporary = `${target}.flowhub-${randomBytes(8).toString("hex")}.tmp`;
+      await copyFile(source, temporary, constants.COPYFILE_EXCL);
+    });
+    await retryFileOperation(() => rename(temporary, target));
   } finally {
-    try { await unlink(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
+    if (temporary) await removeTemporary(temporary);
   }
 }
 async function removeOwnedFile(root, name) {
@@ -278,7 +320,9 @@ export async function installApplication(options) {
   const newFiles = [...payloadFiles].sort();
   const newFileSet = new Set(newFiles);
   const obsolete = [...oldFiles].filter(name => !newFileSet.has(name));
-  const canMoveTree = consumePayload && !await stat(appDir);
+  const sameVolume = process.platform !== "win32" ||
+    parse(resolve(payloadDir)).root.toLowerCase() === parse(resolve(appDir)).root.toLowerCase();
+  const canMoveTree = consumePayload && sameVolume && !await stat(appDir);
   if (!canMoveTree) {
     const checkedDirectories = new Set();
     let checked = 0;
@@ -311,8 +355,8 @@ export async function installApplication(options) {
     await noLinks(appDir);
     if (await stat(appDir)) fail("INSTALL_FILE_COLLISION", "The program destination appeared during installation.");
     for (const dir of emptyDirectories) await rmdir(dir);
-    try { await rename(payloadDir, appDir); movedTree = true; }
-    catch (error) { if (!["EXDEV", "EPERM", "EACCES"].includes(error.code)) throw error; }
+    try { await retryFileOperation(() => rename(payloadDir, appDir)); movedTree = true; }
+    catch (error) { if (!["EXDEV", "EBUSY", "EPERM", "EACCES"].includes(error.code)) throw error; }
   }
   if (movedTree) await progress?.("Writing program files", newFiles.length, newFiles.length);
   else {
@@ -321,9 +365,14 @@ export async function installApplication(options) {
     const batchSize = 8;
     for (let start = 0; start < newFiles.length; start += batchSize) {
       const batch = newFiles.slice(start, start + batchSize);
-      const results = await Promise.allSettled(batch.map(name => {
+      const results = await Promise.allSettled(batch.map(async name => {
         const parts = name.split("/");
-        return installFile(join(payloadDir, ...parts), join(appDir, ...parts), consumePayload && !canMoveTree);
+        try {
+          await installFile(join(payloadDir, ...parts), join(appDir, ...parts), consumePayload && sameVolume && !canMoveTree);
+        } catch (error) {
+          error.managedFile = name;
+          throw error;
+        }
       }));
       const written = start + results.filter(result => result.status === "fulfilled").length;
       const failed = results.find(result => result.status === "rejected");
@@ -427,7 +476,8 @@ async function main(args) {
     };
     const reason = /^(INSTALL|WINDOWS)_[A-Z_]+:/.test(error.message) ? error.message
       : details[error.code] ?? "INSTALL_FAILED: Windows could not complete this phase.";
-    await report(previousLabel ? `${previousLabel} - ${reason}` : reason);
+    const file = safeRelative(error.managedFile) ? ` File: app/${error.managedFile}` : "";
+    await report((previousLabel ? `${previousLabel} - ${reason}` : reason) + file);
     process.exitCode = /^INSTALL_(?:BUSY|DAEMON_LOCKED):/.test(reason) ? 20 : 21;
   }
 }
