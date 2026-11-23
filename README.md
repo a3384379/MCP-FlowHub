@@ -4,7 +4,34 @@
 
 当前版本 **2.0.0-alpha.10**。统一管理多个 MCP Server，发现工具及参数，在画布编排执行链路，保存草稿并发布为不可变版本。对宿主始终只暴露一个 FlowHub MCP Server：个人编排入口固定21工具，原有受限 execution 身份保持七个执行工具兼容。
 
-## 启动
+## 安装 Codex 插件
+
+先准备 Codex 桌面端，以及支持 `codex plugin marketplace add` 和 `codex plugin add` 的 Codex CLI。离线包自带 FlowHub 的 Node 运行时和依赖。
+
+### 获取离线安装包
+
+- **Windows 10/11 x64**。登录 GitHub，进入 [main 分支的 Actions 构建记录](https://github.com/a3384379/MCP-FlowHub/actions/workflows/ci.yml?query=branch%3Amain)，打开一次成功的构建，在页面底部下载 **flowhub-rc-Windows**。解开 Actions 的下载压缩包，可选择里面的 `*-setup.exe` 或便携 `flowhub-*-win32-x64-*.zip`。
+- **Linux x64**。在同一个构建页下载 **flowhub-rc-Linux**，解开外层压缩包和里面的 `.tar.gz`。
+- **macOS 或其他受支持架构**。在目标平台使用 Node **24.19.0**、npm **11.9.0**，在仓库运行 `npm ci` 和 `npm run package:plugin`。输出位置见 `artifacts/latest-package.json`。Windows 如需重建便携包，在 Windows 上运行 `npm ci` 和 `npm run package:windows`。
+
+Actions 构建包保留 14 天。构建包过期或缺失时，可以按上面的命令在目标平台重新打包。下载或转交安装包时可用同包的 `.sha256` 校验。Windows EXE 的说明见 [Windows 安装包指南](docs/WINDOWS_INSTALLER.md)。
+
+### 登记到 Codex
+
+1. 完整解压便携包并保留隐藏目录。插件目录是包含 `.agents/plugins/marketplace.json` 的那一级。如果使用 Windows EXE，先运行安装器，插件目录是所选安装位置下的 `app`，默认是 `%LOCALAPPDATA%\Programs\MCP-FlowHub\app`。
+2. 在终端执行以下命令，将路径替换为该插件目录的绝对路径。带空格的路径保留双引号。
+
+   ```text
+   codex plugin marketplace add "<插件目录的绝对路径>"
+   codex plugin add flowhub@flowhub-local
+   ```
+
+3. 重开 Codex 桌面端。支持全屏 MCP App 的版本可从左侧打开 **FlowHub**，再点 **打开完整管理页** 进入工作流画布。Codex 连接个人插件时会按需启动本机后台。
+4. 在插件目录运行 `./flowhub-plugin status`（Windows PowerShell 用 `.\flowhub-plugin.cmd status`），可以查看插件登记、后台状态和 MCP 握手结果。在同一目录运行 `./flowhub-plugin open` 或 `.\flowhub-plugin.cmd open` 可以用浏览器打开管理页。
+
+升级前创建一致性备份、退出 Codex 并停止现有 FlowHub 后台。若新包换了目录，先运行 `codex plugin marketplace remove flowhub-local`，再用新目录重复登记步骤。业务数据和连接引用保存在插件目录之外。详细步骤见 [插件包指南](docs/PLUGIN_PACKAGE.md)。
+
+## 从源码启动
 
 Node **24.19.0**、npm **11.9.0**：
 
@@ -19,16 +46,11 @@ Node **24.19.0**、npm **11.9.0**：
 
 Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/share/mcp-flowhub），Windows 为 %LOCALAPPDATA%\MCP-FlowHub。程序与数据分离。
 
-## Codex 插件包
-
-`npm run package:plugin` 构建包含本平台运行时的离线插件包。解压后通过 `codex plugin marketplace add "/解压目录"` 和 `codex plugin add flowhub@flowhub-local` 安装。Codex 连接个人插件时按需启动后台，也可用包内 `flowhub-plugin start` 手动启动。插件提供一个 MCP 入口及连接设置、工作流编排、执行与续跑、自测报告四个中文 Skill。
-
-复制程序无需修改 manifest 中的本机路径。业务数据和身份引用保存在包外；跨系统需使用目标平台原生包。安装、数据迁移、更新和卸载见 [插件包指南](docs/PLUGIN_PACKAGE.md)。
-
 ## 能力
 
 - MCP 连接、工具发现、Schema 指纹、固定环境绑定、资源与工具白名单。
 - React Flow 画布，拖拽、连接、参数映射、Schema 编辑、保存、校验及不可变发布。
+- 画布适配窗口大小，支持查看全图、定位起点和预览后导出 SVG。
 - 串行与互斥分支；确定性 auto 与 Codex guided；预算、取消、幂等和明确的不确定结果。
 - Agent 分析与宿主 Skill 交接，Markdown/安全 HTML 报告，执行步骤、参数、实际输出、耗时与证据索引。
 - 业务输入、MCP 结果、Agent 输出和报告按原值保存及传递，不做业务内容自动替换。
