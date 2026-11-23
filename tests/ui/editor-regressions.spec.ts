@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile, mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 const password = "Synthetic-browser-password-041";
 
@@ -158,6 +159,84 @@ async function newWorkflow(page: Page, template: string, environment: string) {
   await expect(page).toHaveURL("/workflows/" + id + "/editor");
   return id;
 }
+
+test("the editor downloads the full current graph as a standalone SVG", async ({ page }, testInfo) => {
+  const api = await admin(page);
+  const id = await newWorkflow(page, "incident", "staging");
+  const draftPath = "/workflows/" + id + "/draft";
+  const original = await api(draftPath);
+  const name = "值班流程 / 交接";
+  await api(draftPath, "PUT", {
+    workflow: { ...original.draft, name },
+    layout: { ...original.layout, report: { x: -5400, y: -900 } },
+    expectedLayoutRevision: original.layoutRevision,
+  }, original.revision);
+  await page.reload();
+
+  const report = page.locator('.react-flow__node[data-id="report"]');
+  const zoomIn = page.locator(".react-flow__controls-zoomin");
+  await zoomIn.click();
+  await zoomIn.click();
+  await expect(report).not.toBeInViewport();
+  await page.getByText("节点列表（键盘可选择）", { exact: true }).click();
+  await page.getByRole("button", { name: /条件分支 · need_db$/ }).click();
+  const unsavedTitle = "复核 <script> & 确认";
+  await page.getByLabel("节点名称", { exact: true }).fill(unsavedTitle);
+  const before = await api(draftPath);
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "导出 SVG", exact: true }).click();
+  const file = await downloadPromise;
+  expect(file.suggestedFilename()).toBe("值班流程 _ 交接-流程图.svg");
+  const savedPath = testInfo.outputPath(file.suggestedFilename());
+  await file.saveAs(savedPath);
+  expect(await api(draftPath)).toEqual(before);
+  await expect(page.getByLabel("节点名称", { exact: true })).toHaveValue(unsavedTitle);
+
+  const offlinePage = await page.context().newPage();
+  await offlinePage.goto(pathToFileURL(savedPath).href);
+  const diagram = await offlinePage.evaluate(() => {
+    const element = document.querySelector<SVGSVGElement>("svg")!;
+    const group = element.querySelector<SVGGElement>(".workflow-nodes")!;
+    const canvas = group.closest<SVGGElement>("g[transform]")!;
+    const box = canvas.getBBox();
+    const nodeBox = group.getBBox();
+    const { e: x, f: y } = canvas.transform.baseVal.getItem(0).matrix;
+    const captions = (selector: string) =>
+      Array.from(element.querySelectorAll(selector), (node) => node.textContent);
+    return {
+      namespace: element.namespaceURI,
+      title: document.getElementById("workflow-title")?.textContent,
+      nodes: captions(".workflow-nodes > g > title"),
+      branches: captions(".workflow-branches text"),
+      arrows: element.querySelectorAll('.workflow-edges path[marker-end="url(#arrow)"]').length,
+      unwantedElements: document.querySelectorAll("parsererror,script,foreignObject,image").length,
+      left: box.x + x,
+      right: box.x + x + box.width,
+      top: box.y + y,
+      bottom: box.y + y + box.height,
+      width: element.viewBox.baseVal.width,
+      height: element.viewBox.baseVal.height,
+      outsideCards: box.x + box.width > nodeBox.x + nodeBox.width,
+    };
+  });
+  expect(diagram.namespace).toBe("http://www.w3.org/2000/svg");
+  expect(diagram.title).toBe(name);
+  expect(diagram.nodes).toEqual(
+    before.draft.nodes.map((node: { id: string; title: string }) =>
+      node.id === "need_db" ? unsavedTitle : node.title,
+    ),
+  );
+  expect(diagram.arrows).toBe(before.draft.edges.length);
+  expect(diagram.branches).toEqual(["条件满足", "条件不满足"]);
+  expect(diagram.unwantedElements).toBe(0);
+  expect(diagram.width).toBeGreaterThan(5400);
+  expect(diagram.outsideCards).toBe(true);
+  expect(diagram.left).toBeGreaterThan(0);
+  expect(diagram.top).toBeGreaterThan(0);
+  expect(diagram.right).toBeLessThan(diagram.width);
+  expect(diagram.bottom).toBeLessThan(diagram.height);
+  expect(await readFile(savedPath, "utf8")).not.toContain("order-by-number-v1");
+});
 
 async function publish(page: Page) {
   await page.getByRole("button", { name: "发布版本", exact: true }).click();

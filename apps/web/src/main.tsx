@@ -28,6 +28,10 @@ import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
+import {
+  downloadWorkflowSvg,
+  workflowNodeWidth,
+} from "./features/workflows/workflow-svg";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
 import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
 import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
@@ -915,7 +919,7 @@ function App() {
           ),
         },
         style: {
-          width: 260,
+          width: workflowNodeWidth,
           borderRadius: 12,
           borderColor: "#dce6f3",
           padding: 13,
@@ -1117,6 +1121,26 @@ function App() {
     await load();
   };
   const currentWorkflow = () => editorRef.current.draft;
+  const exportCanvas = () => {
+    const definitions: { id: string; title: string; type: string }[] =
+      draft.draft.nodes;
+    const definitionsById = new Map(definitions.map((node) => [node.id, node]));
+    const cards = nodes.flatMap(({ id, position, measured }) => {
+      const definition = definitionsById.get(id);
+      if (!definition) return [];
+      return [
+        {
+          id,
+          position,
+          measured,
+          title: definition.title,
+          kind: labels[definition.type] ?? definition.type,
+          icon: glyph[definition.type] ?? "◇",
+        },
+      ];
+    });
+    downloadWorkflowSvg(draft.draft.name, cards, edges);
+  };
   const editorSnapshot = () => structuredClone(editorRef.current);
   const rememberEdit = () => {
     const snapshot = editorSnapshot();
@@ -1903,6 +1927,9 @@ function App() {
                   onClick={() => showJson("工作流定义", currentWorkflow())}
                 >
                   查看 DSL
+                </button>
+                <button disabled={nodes.length === 0} onClick={exportCanvas}>
+                  导出 SVG
                 </button>
                 <button
                   onClick={() =>
