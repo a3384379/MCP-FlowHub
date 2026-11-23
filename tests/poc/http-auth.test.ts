@@ -252,7 +252,8 @@ test("connection forms persist values with the connection and roll back failed e
   const before = await api("/secrets");
   const rejected = await call("/api/v1/connections",
     { ...stdio, envValues: { SYNTHETIC_TOKEN: "valid value", PATH: "denied" } }, adminHeaders);
-  assert.equal(rejected.status, 400);
+  assert.equal(rejected.status, 422);
+  assert.equal(rejected.json.error.code, "ENVIRONMENT_OVERRIDE_DENIED");
   assert.deepEqual(await api("/secrets"), before);
   const saved = await api("/connections", { ...stdio, envValues: { SYNTHETIC_TOKEN: "valid value" } });
   assert.equal(saved.envValues, undefined);
