@@ -1,6 +1,7 @@
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
 import { promisify } from "node:util";
 import { mkdir, mkdtemp, realpath, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -172,9 +173,46 @@ test("daemon locks and process-inspection failures block every destructive insta
   await assert.rejects(installApplication(options), /INSTALL_DAEMON_LOCKED/);
   await assert.rejects(uninstallApplication(options), /INSTALL_DAEMON_LOCKED/);
   assert.equal(await readFile(join(options.dataDir, "daemon.lock"), "utf8"), '{"pid":99999999}');
+  const live = JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() });
+  await put(options.dataDir, "daemon.lock", live);
+  await assert.rejects(installApplication(options), /INSTALL_DAEMON_LOCKED.*still present/);
+  await assert.rejects(uninstallApplication(options), /INSTALL_DAEMON_LOCKED.*still present/);
+  assert.equal(await readFile(join(options.dataDir, "daemon.lock"), "utf8"), live);
   await rm(join(options.dataDir, "daemon.lock"));
   await assert.rejects(uninstallApplication({ ...options, processInspector: async () => { throw new Error("CIM failed"); } }), /CIM failed/);
   assert.equal(await readFile(join(options.installDir, "app/runtime/node.exe"), "utf8"), "native fixture");
+});
+
+test("installation with a proven stale lock preserves the lock and user data", async (t) => {
+  const options = await fixture(t);
+  await installApplication(options);
+  const child = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
+  assert.deepEqual(await once(child, "exit"), [0, null]);
+  const pid = child.pid!;
+  assert.throws(() => process.kill(pid, 0), { code: "ESRCH" });
+  const stale = JSON.stringify({ pid, createdAt: new Date().toISOString() });
+  const path = join(options.dataDir, "daemon.lock");
+  await writeFile(path, stale);
+  await put(options.payloadDir, "obsolete.txt", "new release");
+  await assert.rejects(installApplication({ ...options, processInspector: async () => [{ ProcessId: pid }] }), /INSTALL_DAEMON_LOCKED/);
+  await assert.rejects(installApplication({ ...options, processInspector: async () => {
+    await writeFile(path, JSON.stringify({ pid, createdAt: "1970-01-01T00:00:00.000Z" }));
+    return [];
+  } }), /INSTALL_DAEMON_LOCKED.*changed/);
+  assert.equal(await readFile(join(options.installDir, "app/obsolete.txt"), "utf8"), "old release");
+  await writeFile(path, stale);
+  await assert.rejects(installApplication({ ...options, progress: async (phase: string) => {
+    if (phase === "Checking program file destinations")
+      await writeFile(path, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }));
+  } }), /INSTALL_DAEMON_LOCKED.*still present/);
+  assert.equal(await readFile(join(options.installDir, "app/obsolete.txt"), "utf8"), "old release");
+  await writeFile(path, stale);
+  await installApplication(options);
+  assert.equal(await readFile(join(options.installDir, "app/obsolete.txt"), "utf8"), "new release");
+  assert.equal(await readFile(path, "utf8"), stale);
+  await uninstallApplication(options);
+  assert.equal(await readFile(path, "utf8"), stale);
+  assert.equal(await readFile(join(options.dataDir, "audit.json"), "utf8"), "SYNTHETIC_RETAIN_SENTINEL");
 });
 
 test("Unicode bridge paths, external Node CLI references and options before serve all block replacement", async (t) => {

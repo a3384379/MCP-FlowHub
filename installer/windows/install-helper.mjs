@@ -128,6 +128,33 @@ export function assertProcessesStopped(records, installDir, selfPid = process.pi
   }
 }
 
+async function stoppedDaemonLock(dataDir) {
+  const path = join(dataDir, "daemon.lock");
+  const info = await stat(path);
+  if (!info) return null;
+  const unknownOwner = "The daemon lock owner could not be verified. Close FlowHub and Codex, then verify the recorded process before retrying.";
+  if (!info.isFile() || info.nlink !== 1 || info.size > 1024)
+    fail("INSTALL_DAEMON_LOCKED", unknownOwner);
+  let contents, owner;
+  try {
+    contents = await readFile(path, "utf8");
+    owner = JSON.parse(contents);
+  } catch {
+    fail("INSTALL_DAEMON_LOCKED", unknownOwner);
+  }
+  const pid = owner?.pid;
+  if (!Number.isInteger(pid) || pid <= 0 || pid > 0x7fffffff ||
+      typeof owner.createdAt !== "string" || !Number.isFinite(Date.parse(owner.createdAt)))
+    fail("INSTALL_DAEMON_LOCKED", unknownOwner);
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    if (error.code === "ESRCH") return { contents, pid, info };
+    fail("INSTALL_DAEMON_LOCKED", unknownOwner);
+  }
+  fail("INSTALL_DAEMON_LOCKED", "The PID recorded in daemon.lock is still present. Close FlowHub and Codex before retrying.");
+}
+
 export async function preflight({ installDir, dataDir, processInspector = inspectWindowsProcesses, requireInstalled = false }) {
   if (process.platform === "win32") validateWindowsPaths(installDir, dataDir);
   else if (!isAbsolute(installDir) || !isAbsolute(dataDir) || contains(installDir, dataDir) || contains(dataDir, installDir))
@@ -142,9 +169,15 @@ export async function preflight({ installDir, dataDir, processInspector = inspec
     fail("INSTALL_OWNER_INVALID", "The recorded data directory differs from the expected independent data directory.");
   if (!requireInstalled && state && !state.payloadFiles.includes(autostartPayload) && await stat(join(installDir, "autostart.mjs")))
     fail("INSTALL_FILE_COLLISION", "An unmanaged file conflicts with the Windows autostart helper.");
-  if (await stat(join(dataDir, "daemon.lock")))
-    fail("INSTALL_DAEMON_LOCKED", "Stop the daemon before installing, upgrading or uninstalling. A stale daemon.lock must be checked manually; it is never removed by the installer.");
-  assertProcessesStopped(await processInspector(), installDir);
+  const observed = await stoppedDaemonLock(dataDir);
+  const records = await processInspector();
+  assertProcessesStopped(records, installDir);
+  const current = await stoppedDaemonLock(dataDir);
+  if (current && (!observed || current.contents !== observed.contents ||
+      current.info.ino !== observed.info.ino || current.info.dev !== observed.info.dev ||
+      records.some(record => record.ProcessId === current.pid)))
+    fail("INSTALL_DAEMON_LOCKED", "The daemon lock changed or its PID appeared during process inspection. Keep FlowHub and Codex closed and retry.");
+  if (current) await diagnostic("stale-daemon-lock-retained");
   return state;
 }
 
@@ -268,6 +301,7 @@ export async function installApplication(options) {
   }
   // Record ownership before copying, so an interrupted installation can be
   // repaired or removed without broad recursive deletion. User data is untouched.
+  await stoppedDaemonLock(dataDir);
   const state = { formatVersion: 1, product, version, installDir: resolve(installDir), dataDir: resolve(dataDir),
     phase: "installing", payloadFiles: [...new Set([...oldFiles, ...newFiles])].sort() };
   await atomicWrite(join(installDir, markerName), JSON.stringify(state, null, 2));
@@ -331,6 +365,7 @@ export async function uninstallApplication(options) {
     const info = await stat(target);
     if (info && !info.isFile()) fail("INSTALL_OWNER_INVALID", "A managed program file was replaced by a directory; no files were removed.");
   }
+  await stoppedDaemonLock(options.dataDir);
   if (process.platform === "win32" && hasAutostart) {
     await windowsAutostart("disable", { programDir: appDir, dataDir: options.dataDir });
   }

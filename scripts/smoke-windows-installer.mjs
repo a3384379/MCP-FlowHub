@@ -213,7 +213,14 @@ try {
   checks.push("Unicode-path bridge alone blocks upgrade/uninstall without a default-data lock");
 
   await runSetup(join(temporary, "second installation"), 21);
+  const lockPath = join(dataDir, "daemon.lock");
+  const departed = spawn(runtime, ["-e", ""], { env, stdio: "ignore", windowsHide: true });
+  assert.deepEqual(await once(departed, "exit"), [0, null]);
+  assert.throws(() => process.kill(departed.pid, 0), { code: "ESRCH" });
+  const staleLock = JSON.stringify({ pid: departed.pid, createdAt: new Date().toISOString() });
+  await writeFile(lockPath, staleLock);
   installationTimes.reinstallMs = await runSetup(installDir);
+  assert.equal(await readFile(lockPath, "utf8"), staleLock);
   assert.equal((await readFile(helperDiagnostics, "utf8")).split("\n").filter(line => writeProgress.test(line)).length, 2);
   assert.equal((await taskCommand("status")).taskName, loginTask.taskName);
   assert.equal(await readFile(join(dataDir, "installer-smoke-sentinel.txt"), "utf8"), sentinel);
@@ -223,6 +230,7 @@ try {
   assert.deepEqual(await readDatabaseIdentity(runtime, appDir), identityBeforeReinstall);
   const restarted = await startCommand(runtime, entry, ["serve", "--port", "0"]);
   const restartedEndpoint = JSON.parse(await readFile(join(dataDir, "endpoint.json"), "utf8"));
+  assert.equal(JSON.parse(await readFile(lockPath, "utf8")).pid, restarted.pid);
   assert.equal(restartedEndpoint.instanceId, endpoint.instanceId);
   const restartedDoctor = await exec(runtime, [entry, "doctor"], { env, windowsHide: true, timeout: 15_000 });
   assert.deepEqual(JSON.parse(restartedDoctor.stdout).tools.sort(), [...TOOL_NAMES].sort());
@@ -232,6 +240,7 @@ try {
   assert.equal(identityAfterRestart.instanceId, identityBeforeReinstall.instanceId);
   assert.equal(identityAfterRestart.boots, identityBeforeReinstall.boots + 1);
   checks.push("single per-user installation; same-version reinstall preserves database bytes, instance ID, token and extra files");
+  checks.push("EXE reinstall accepts and preserves a proven stale daemon lock; the installed daemon recovers it at startup");
 
   await runUninstall();
   installed = false;
