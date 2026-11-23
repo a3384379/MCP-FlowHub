@@ -160,7 +160,7 @@ async function newWorkflow(page: Page, template: string, environment: string) {
   return id;
 }
 
-test("the editor downloads the full current graph as a standalone SVG", async ({ page }, testInfo) => {
+test("the editor previews the full current graph before downloading the same SVG", async ({ page }, testInfo) => {
   const api = await admin(page);
   const id = await newWorkflow(page, "incident", "staging");
   const draftPath = "/workflows/" + id + "/draft";
@@ -183,8 +183,36 @@ test("the editor downloads the full current graph as a standalone SVG", async ({
   const unsavedTitle = "复核 <script> & 确认";
   await page.getByLabel("节点名称", { exact: true }).fill(unsavedTitle);
   const before = await api(draftPath);
+  const previewButton = page.getByRole("button", { name: "预览并导出 SVG", exact: true });
+  const preview = page.getByRole("dialog", { name: "流程图预览" });
+  const image = preview.getByRole("img", { name: "完整流程图" });
+  const actualSize = preview.getByRole("button", { name: "原始大小" });
+  const downloads: string[] = [];
+  page.on("download", (file) => downloads.push(file.suggestedFilename()));
+  await previewButton.click();
+  await expect(preview).toBeVisible();
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(5400);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => preview.evaluate((dialog) => dialog.getBoundingClientRect().right))
+    .toBeLessThanOrEqual(390);
+  const region = preview.getByRole("region", { name: "流程图预览区域" });
+  const overflows = () => region.evaluate((element) => element.scrollWidth > element.clientWidth);
+  await expect.poll(overflows).toBe(false);
+  await actualSize.click();
+  await expect(actualSize).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(overflows).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(previewButton).toBeFocused();
+  expect(downloads).toEqual([]);
+
+  await previewButton.click();
+  await expect(actualSize).toHaveAttribute("aria-pressed", "false");
+  const previewSource = (await image.getAttribute("src"))!;
+  expect(previewSource).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "导出 SVG", exact: true }).click();
+  await preview.getByRole("button", { name: "导出 SVG", exact: true }).click();
   const file = await downloadPromise;
   expect(file.suggestedFilename()).toBe("值班流程 _ 交接-流程图.svg");
   const savedPath = testInfo.outputPath(file.suggestedFilename());
@@ -235,7 +263,9 @@ test("the editor downloads the full current graph as a standalone SVG", async ({
   expect(diagram.top).toBeGreaterThan(0);
   expect(diagram.right).toBeLessThan(diagram.width);
   expect(diagram.bottom).toBeLessThan(diagram.height);
-  expect(await readFile(savedPath, "utf8")).not.toContain("order-by-number-v1");
+  const svgSource = await readFile(savedPath, "utf8");
+  expect(svgSource).toBe(decodeURIComponent(previewSource.split(",", 2)[1]!));
+  expect(svgSource).not.toContain("order-by-number-v1");
 });
 
 async function publish(page: Page) {

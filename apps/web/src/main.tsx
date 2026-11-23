@@ -29,9 +29,10 @@ import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
 import {
-  downloadWorkflowSvg,
+  buildWorkflowSvg,
   workflowNodeWidth,
 } from "./features/workflows/workflow-svg";
+import { WorkflowSvgPreview } from "./features/workflows/WorkflowSvgPreview";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
 import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
 import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
@@ -1121,7 +1122,7 @@ function App() {
     await load();
   };
   const currentWorkflow = () => editorRef.current.draft;
-  const exportCanvas = () => {
+  const previewCanvas = () => {
     const definitions: { id: string; title: string; type: string }[] =
       draft.draft.nodes;
     const definitionsById = new Map(definitions.map((node) => [node.id, node]));
@@ -1139,7 +1140,10 @@ function App() {
         },
       ];
     });
-    downloadWorkflowSvg(draft.draft.name, cards, edges);
+    const diagram = buildWorkflowSvg(draft.draft.name, cards, edges);
+    if (diagram) {
+      setModal({ type: "workflow-svg", title: "流程图预览", diagram });
+    }
   };
   const editorSnapshot = () => structuredClone(editorRef.current);
   const rememberEdit = () => {
@@ -1928,8 +1932,8 @@ function App() {
                 >
                   查看 DSL
                 </button>
-                <button disabled={nodes.length === 0} onClick={exportCanvas}>
-                  导出 SVG
+                <button disabled={nodes.length === 0} onClick={previewCanvas}>
+                  预览并导出 SVG
                 </button>
                 <button
                   onClick={() =>
@@ -3556,7 +3560,7 @@ function App() {
       />
       {modal && (
         <div
-          className="modal-backdrop"
+          className={`modal-backdrop${modal.type === "workflow-svg" ? " workflow-svg-backdrop" : ""}`}
           onMouseDown={(e) => {
             if (e.target !== e.currentTarget) return;
             if (deletionPendingRef.current) {
@@ -3570,7 +3574,13 @@ function App() {
           <section
             ref={modalRef}
             tabIndex={-1}
-            className={"modal " + (modal.type === "detail" ? "wide" : modal.type === "delete-workflow" ? "workflow-delete-dialog" : "")}
+            className={
+              "modal " + (["detail", "workflow-svg"].includes(modal.type)
+                ? "wide"
+                : modal.type === "delete-workflow"
+                  ? "workflow-delete-dialog"
+                  : "")
+            }
             role="dialog"
             aria-modal="true"
             aria-label={modal.title}
@@ -4049,6 +4059,8 @@ function App() {
               />
             ) : modal.type === "revoke-binding" ? (
               <BindingImpact value={modal.impact} />
+            ) : modal.type === "workflow-svg" ? (
+              <WorkflowSvgPreview svg={modal.diagram.svg} />
             ) : modal.type === "support" ? (
               <>
                 <pre>{pretty(modal.content)}</pre>
@@ -4098,7 +4110,16 @@ function App() {
             )}
             <div className="modal-actions">
               <button disabled={deletionPending} onClick={closeModal}>{modal.type==="delete-workflow"?"取消":"关闭"}</button>
-              {![
+              {modal.type === "workflow-svg" ? (
+                <button
+                  className="primary"
+                  onClick={() =>
+                    download(modal.diagram.filename, modal.diagram.svg, "image/svg+xml")
+                  }
+                >
+                  导出 SVG
+                </button>
+              ) : ![
                 "detail",
                 "support",
                 "clients",

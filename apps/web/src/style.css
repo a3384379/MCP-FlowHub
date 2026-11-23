@@ -870,6 +870,36 @@ footer small {
 .modal pre {
   max-height: 65vh;
 }
+.workflow-svg-backdrop {
+  grid-template-columns: minmax(0, 1fr);
+}
+.workflow-svg-preview-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0;
+}
+.workflow-svg-preview-toolbar button[aria-pressed="true"] {
+  color: var(--blue);
+  background: #ebf2ff;
+}
+.workflow-svg-preview {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f4f7fc;
+  max-height: min(58dvh, 620px);
+  overflow: auto;
+}
+.workflow-svg-preview img {
+  display: block;
+  margin-inline: auto;
+  max-width: 100%;
+  max-height: min(56dvh, 612px);
+}
+.workflow-svg-preview.actual-size img {
+  margin: 0;
+  max-width: none;
+  max-height: none;
+}
 @media (max-width: 1300px) {
   .workspace {
     padding: 22px 20px;

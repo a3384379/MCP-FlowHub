@@ -1,5 +1,4 @@
 import { getSmoothStepPath, type Edge, type Node } from "@xyflow/react";
-import { download } from "../../shared/download";
 
 export const workflowNodeWidth = 260;
 const fontFamily = "system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif";
@@ -25,7 +24,7 @@ function svgText(text: string) {
     .replaceAll(">", "&gt;");
 }
 
-export function downloadWorkflowSvg(
+export function buildWorkflowSvg(
   name: string,
   nodes: DiagramNode[],
   edges: Pick<Edge, "source" | "target" | "label">[],
@@ -176,5 +175,5 @@ export function downloadWorkflowSvg(
     .slice(0, 50)
     .join("")
     .replace(/[. ]+$/g, "");
-  download(`${filename || "工作流"}-流程图.svg`, svg, "image/svg+xml");
+  return { filename: `${filename || "工作流"}-流程图.svg`, svg };
 }
