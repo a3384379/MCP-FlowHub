@@ -251,7 +251,8 @@ export function connectionFormErrors(
     if (
       !object(value.envRefs ?? {}) || !object(value.envValues ?? {}) ||
       Object.entries(value.envRefs ?? {}).some(
-        ([key, ref]) => !validEnvName(key) || !registered(ref),
+        ([key, ref]) => !validEnvName(key) ||
+          (!validCredentialValue(value.envValues?.[key]) && !registered(ref)),
       ) || Object.entries(value.envValues ?? {}).some(
         ([key, entry]) => !validEnvName(key) || !validCredentialValue(entry),
       ) || new Set([...Object.keys(value.envRefs ?? {}), ...Object.keys(value.envValues ?? {})]).size > 20
@@ -319,6 +320,9 @@ export function ConnectionForm({
       ...(approveAgain ? { commandApproved: false } : {}),
     });
   const envNames = [...new Set([...Object.keys(value.envRefs ?? {}), ...Object.keys(value.envValues ?? {})])];
+  const hasSavedCredentials = credentials.some(credential =>
+    credential.eligibleForMcp !== false && !credential.modelCredential,
+  );
   const setEnvironmentEntry = (name: string, reference: string, text: string) => {
     const envRefs = { ...value.envRefs };
     const envValues = { ...value.envValues };
@@ -411,11 +415,17 @@ export function ConnectionForm({
                     optional={false}
                     onChange={(next) => setEnvironmentEntry(name, next, "")}
                   />
-                ) : (
-                  <Field label={`环境变量 ${name} 的值`} type="password"
-                    value={value.envValues?.[name]}
-                    onChange={(next) => change("envValues", { ...value.envValues, [name]: next }, true)} />
-                )}
+                ) : null}
+                <Field
+                  label={`环境变量 ${name} 的值`}
+                  type="password"
+                  value={value.envValues?.[name]}
+                  onChange={(next) => {
+                    const envValues = { ...value.envValues, [name]: next };
+                    if (!next && value.envRefs?.[name]) delete envValues[name];
+                    change("envValues", envValues, true);
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => setEnvironmentEntry(name, "", "")}
@@ -442,18 +452,18 @@ export function ConnectionForm({
                 setEnvError("");
               }}
             />
-            {credentials.some(credential => credential.eligibleForMcp !== false && !credential.modelCredential) && (
-            <SecretSelect
-              label="新增环境变量的凭据"
-              value={envSecret}
-              credentials={credentials}
-              optional={false}
-              onChange={(next) => {
-                setEnvSecret(next);
-                if (next) setEnvValue("");
-                setEnvError("");
-              }}
-            />
+            {hasSavedCredentials && (
+              <SecretSelect
+                label="新增环境变量的凭据"
+                value={envSecret}
+                credentials={credentials}
+                optional={false}
+                onChange={(next) => {
+                  setEnvSecret(next);
+                  if (next) setEnvValue("");
+                  setEnvError("");
+                }}
+              />
             )}
             <button
               type="button"
@@ -525,18 +535,20 @@ export function ConnectionForm({
             max={20}
             onChange={(next) => change("allowedHosts", next)}
           />
-          <SecretSelect
-            label="HTTP Bearer 凭据引用"
-            value={value.secretRef}
-            credentials={credentials}
-            onChange={(next) => change("secretRef", next)}
-          />
           <Field
             label="HTTP Bearer 令牌（可选）"
             type="password"
             value={value.secretValue}
             onChange={(next) => change("secretValue", next || undefined)}
           />
+          {(hasSavedCredentials || value.secretRef) && (
+            <SecretSelect
+              label="HTTP Bearer 凭据引用"
+              value={value.secretRef}
+              credentials={credentials}
+              onChange={(next) => onChange({ ...value, secretRef: next, secretValue: undefined })}
+            />
+          )}
           <p>
             需要认证时，可直接填写令牌或选择已保存的凭据。填写新令牌时会替换原连接凭据。
           </p>
