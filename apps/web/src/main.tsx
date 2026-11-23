@@ -33,6 +33,10 @@ import {
   workflowNodeWidth,
 } from "./features/workflows/workflow-svg";
 import { WorkflowSvgPreview } from "./features/workflows/WorkflowSvgPreview";
+import {
+  minimumWorkflowZoom,
+  WorkflowViewport,
+} from "./features/workflows/WorkflowViewport";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
 import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
 import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
@@ -57,6 +61,7 @@ import {
   bindingProbeDefaults,
 } from "./ConnectionBindingForms";
 type J = any;
+const compactEditorMedia = "(max-width: 1300px)";
 const retentionScopeKeys = ["runs", "resultRuns", "checkpoints", "artifacts", "assistantResultTasks", "assistantResultMessages", "assistantLegacyResultMessages", "assistantResultToolCalls", "assistantResultSessions", "assistantTasks", "assistantMessages", "assistantToolCalls", "assistantSessions", "workflowTestResultRuns", "workflowTestRuns", "applicationResultEvents", "applicationEvents"];
 const retentionPreview = (value: J) => ({...value, ...Object.fromEntries(retentionScopeKeys.map(key=>[key,Array.isArray(value[key])?value[key]:[]]))});
 const editorTextVersions = new WeakMap<
@@ -563,7 +568,27 @@ function App() {
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
     [redoCount, setRedoCount] = useState(0);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [compactEditor, setCompactEditor] = useState(
+    () => window.matchMedia(compactEditorMedia).matches,
+  );
+  const [editorOverlay, setEditorOverlay] = useState<"palette" | "inspector" | null>(null);
+  const [dockedPanels, setDockedPanels] = useState({ palette: true, inspector: true });
+  const paletteOpen = compactEditor ? editorOverlay === "palette" : dockedPanels.palette;
+  const inspectorOpen = compactEditor ? editorOverlay === "inspector" : dockedPanels.inspector;
+  const showEditorPanel = (panel: "palette" | "inspector", open: boolean) => {
+    if (compactEditor) setEditorOverlay(open ? panel : null);
+    else setDockedPanels((previous) => ({ ...previous, [panel]: open }));
+  };
+  useEffect(() => {
+    const media = window.matchMedia(compactEditorMedia);
+    const resize = () => {
+      setCompactEditor(media.matches);
+      setEditorOverlay(null);
+    };
+    media.addEventListener("change", resize);
+    return () => media.removeEventListener("change", resize);
+  }, []);
+  useEffect(() => setEditorOverlay(null), [draft?.id]);
   const [assistantOpenRequest,setAssistantOpenRequest]=useState(0);
   const openAssistant=()=>setAssistantOpenRequest(value=>value+1);
   useEffect(() => {
@@ -2078,8 +2103,19 @@ function App() {
                 >
                   重做
                 </button>
-                <button onClick={() => setInspectorCollapsed((old) => !old)}>
-                  {inspectorCollapsed ? "展开节点属性" : "收起节点属性"}
+                <button
+                  aria-expanded={paletteOpen}
+                  aria-controls="editor-palette"
+                  onClick={() => showEditorPanel("palette", !paletteOpen)}
+                >
+                  {paletteOpen ? "收起节点与工具" : "展开节点与工具"}
+                </button>
+                <button
+                  aria-expanded={inspectorOpen}
+                  aria-controls="editor-inspector"
+                  onClick={() => showEditorPanel("inspector", !inspectorOpen)}
+                >
+                  {inspectorOpen ? "收起节点属性" : "展开节点属性"}
                 </button>
                 <label>
                   草稿版本{" "}
@@ -2244,7 +2280,7 @@ function App() {
                     key={definition.id}
                     onClick={() => {
                       setSelected(definition.id);
-                      setInspectorCollapsed(false);
+                      showEditorPanel("inspector", true);
                     }}
                   >
                     {definition.title} · {labels[definition.type]} ·{" "}
@@ -2253,9 +2289,7 @@ function App() {
                 ))}
               </details>
               <div
-                className={
-                  "editor " + (inspectorCollapsed ? "inspector-collapsed" : "")
-                }
+                className="editor"
                 onKeyDownCapture={(event) => {
                   if (
                     !(
@@ -2271,8 +2305,15 @@ function App() {
                   }
                 }}
               >
-                <aside className="palette">
-                  <h3>节点与工具</h3>
+                <aside id="editor-palette" className="palette" aria-label="节点与工具" hidden={!paletteOpen}>
+                  <div className="editor-panel-heading">
+                    <h3>节点与工具</h3>
+                    {compactEditor && (
+                      <button onClick={() => showEditorPanel("palette", false)}>
+                        收起节点与工具
+                      </button>
+                    )}
+                  </div>
                   {draft.draft.schemaVersion==="flowhub.workflow/v2"&&<CapabilityPicker api={api} draft={draft} selected={selected} knownBindings={bindings} dirty={dirty} />}
                   <small>FLOW NODES</small>
                   {Object.entries(labels).map(([type, text]) => (
@@ -2367,6 +2408,7 @@ function App() {
                 </aside>
                 <div className="canvas">
                   <ReactFlow
+                    key={draft.id}
                     nodes={nodes}
                     edges={edges}
                     onNodesChange={(changes: NodeChange[]) => {
@@ -2407,7 +2449,7 @@ function App() {
                     }}
                     onNodeClick={(_, n) => {
                       setSelected(n.id);
-                      setInspectorCollapsed(false);
+                      showEditorPanel("inspector", true);
                     }}
                     onConnect={(c: Connection) => {
                       const source = draft.draft.nodes.find(
@@ -2451,17 +2493,17 @@ function App() {
                       );
                       setDirty(true);
                     }}
-                    fitView
-                    minZoom={0.2}
+                    minZoom={minimumWorkflowZoom}
                     maxZoom={1.5}
                     deleteKeyCode={["Backspace", "Delete"]}
                   >
                     <Background gap={22} size={1} />
-                    <Controls />
-                    <MiniMap pannable zoomable />
+                    <WorkflowViewport entryId={draft.draft.nodes.find((node: J) => node.type === "input")?.id} />
+                    <Controls showFitView={false} />
+                    <MiniMap className="workflow-minimap" pannable zoomable />
                   </ReactFlow>
                 </div>
-                <aside className="inspector">
+                <aside id="editor-inspector" className="inspector" aria-label="节点属性" hidden={!inspectorOpen}>
                   <div className="actions"><span>节点属性</span><button onClick={openAssistant}>AI 助手</button></div>
                   <>
                   <EditorTextContext.Provider
@@ -2472,7 +2514,7 @@ function App() {
                   >
                     <button
                       className="inspector-close"
-                      onClick={() => setInspectorCollapsed(true)}
+                      onClick={() => showEditorPanel("inspector", false)}
                     >
                       收起节点属性
                     </button>
@@ -2951,35 +2993,37 @@ function App() {
                 <h2>
                   已发现工具 <small>{tools.length}</small>
                 </h2>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>工具名称</th>
-                      <th>连接</th>
-                      <th>Schema 指纹</th>
-                      <th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tools.map((t, i) => (
-                      <tr key={i}>
-                        <td>
-                          <strong>{t.name}</strong>
-                          <small>{t.description}</small>
-                        </td>
-                        <td>{t.connectionName}</td>
-                        <td>
-                          <code>{t.schemaHash.slice(0, 22)}…</code>
-                        </td>
-                        <td>
-                          <button onClick={() => showJson(t.name, t)}>
-                            查看契约
-                          </button>
-                        </td>
+                <div className="table-scroll" role="region" aria-label="已发现工具列表" tabIndex={0}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>工具名称</th>
+                        <th>连接</th>
+                        <th>Schema 指纹</th>
+                        <th>操作</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {tools.map((t, i) => (
+                        <tr key={i}>
+                          <td>
+                            <strong>{t.name}</strong>
+                            <small>{t.description}</small>
+                          </td>
+                          <td>{t.connectionName}</td>
+                          <td>
+                            <code>{t.schemaHash.slice(0, 22)}…</code>
+                          </td>
+                          <td>
+                            <button onClick={() => showJson(t.name, t)}>
+                              查看契约
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             </>
           )}
@@ -3162,57 +3206,59 @@ function App() {
                     <button onClick={() => void loadRuns()}>重试读取运行记录</button>
                   </>
                 )}
-                <table>
-                  <thead>
-                    <tr>
-                      <th>运行 / 工作流</th>
-                      <th>环境</th>
-                      <th>状态</th>
-                      <th>时间</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {runs.map((r) => (
-                      <tr key={r.id}>
-                        <td>
-                          <strong>{r.workflowId}</strong>
-                          <small>
-                            {r.id.slice(0, 24)}… · v{r.version}
-                          </small>
-                        </td>
-                        <td>
-                          <Badge>{r.environment}</Badge>
-                        </td>
-                        <td>
-                          <Badge
-                            tone={
-                              r.state === "SUCCEEDED"
-                                ? "green"
-                                : typeof r.state === "string" && r.state.startsWith("WAITING")
-                                  ? "amber"
-                                  : "gray"
-                            }
-                          >
-                            {statusLabels[r.state] ?? r.state ?? "状态未记录"}
-                          </Badge>
-                          <RunBusinessOutcome summary={r.businessVerification} archived={r.reportArchived} />
-                          {r.syntheticExecution && <small>合成运行</small>}
-                        </td>
-                        <td>
-                          {new Date(r.createdAt).toLocaleString("zh-CN", {
-                            timeZone: "Asia/Shanghai",
-                          })}
-                        </td>
-                        <td>
-                          <button onClick={() => navigate("/runs/" + r.id)}>
-                            查看详情 →
-                          </button>
-                        </td>
+                <div className="table-scroll" role="region" aria-label="运行记录列表" tabIndex={0}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>运行 / 工作流</th>
+                        <th>环境</th>
+                        <th>状态</th>
+                        <th>时间</th>
+                        <th />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {runs.map((r) => (
+                        <tr key={r.id}>
+                          <td>
+                            <strong>{r.workflowId}</strong>
+                            <small>
+                              {r.id.slice(0, 24)}… · v{r.version}
+                            </small>
+                          </td>
+                          <td>
+                            <Badge>{r.environment}</Badge>
+                          </td>
+                          <td>
+                            <Badge
+                              tone={
+                                r.state === "SUCCEEDED"
+                                  ? "green"
+                                  : typeof r.state === "string" && r.state.startsWith("WAITING")
+                                    ? "amber"
+                                    : "gray"
+                              }
+                            >
+                              {statusLabels[r.state] ?? r.state ?? "状态未记录"}
+                            </Badge>
+                            <RunBusinessOutcome summary={r.businessVerification} archived={r.reportArchived} />
+                            {r.syntheticExecution && <small>合成运行</small>}
+                          </td>
+                          <td>
+                            {new Date(r.createdAt).toLocaleString("zh-CN", {
+                              timeZone: "Asia/Shanghai",
+                            })}
+                          </td>
+                          <td>
+                            <button onClick={() => navigate("/runs/" + r.id)}>
+                              查看详情 →
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {runListState === "ready" && !runs.length && (
                   <Empty text="暂无运行，从工作流启动一次合成排查" />
                 )}
@@ -3560,7 +3606,7 @@ function App() {
       />
       {modal && (
         <div
-          className={`modal-backdrop${modal.type === "workflow-svg" ? " workflow-svg-backdrop" : ""}`}
+          className="modal-backdrop"
           onMouseDown={(e) => {
             if (e.target !== e.currentTarget) return;
             if (deletionPendingRef.current) {

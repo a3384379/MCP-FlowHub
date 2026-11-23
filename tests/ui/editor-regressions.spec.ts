@@ -268,6 +268,82 @@ test("the editor previews the full current graph before downloading the same SVG
   expect(svgSource).not.toContain("order-by-number-v1");
 });
 
+test("the editor keeps a long workflow readable and gives compact layouts the full canvas", async ({ page }) => {
+  const api = await admin(page);
+  const id = await newWorkflow(page, "incident", "staging");
+  const path = "/workflows/" + id + "/draft";
+  const record = await api(path);
+  const layout = Object.fromEntries(record.draft.nodes.map(
+    (node: { id: string }, index: number) => [node.id, { x: index * 430, y: 0 }],
+  ));
+  await api(path, "PUT", {
+    workflow: record.draft,
+    layout,
+    expectedLayoutRevision: record.layoutRevision,
+  }, record.revision);
+  await page.reload();
+
+  const palette = page.locator(".palette");
+  const inspector = page.locator(".inspector");
+  const toolbar = page.locator(".editor-toolbar");
+  const canvas = page.locator(".canvas");
+  const zoom = canvas.locator(".workflow-zoom");
+  const geometry = () => canvas.evaluate((element) => {
+    const frame = element.getBoundingClientRect();
+    const cards = Array.from(element.querySelectorAll(".react-flow__node"),
+      node => node.getBoundingClientRect());
+    return {
+      width: frame.width,
+      canvasGap: element.parentElement!.getBoundingClientRect().width - frame.width,
+      startOffset: Math.abs((cards[0]!.left + cards[0]!.right - frame.left - frame.right) / 2),
+      allVisible: cards.every(card =>
+        card.left >= frame.left && card.right <= frame.right &&
+        card.top >= frame.top && card.bottom <= frame.bottom),
+      pageOverflow: document.documentElement.scrollWidth - innerWidth,
+    };
+  });
+  await expect(zoom).toHaveText("缩放 90%");
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+  await expect(palette).toBeVisible();
+  await expect(inspector).toBeVisible();
+  await toolbar.getByRole("button", { name: "收起节点与工具" }).click();
+  await expect(palette).toBeHidden();
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1024, height: 600 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(palette).toBeHidden();
+    await expect(inspector).toBeHidden();
+    await expect.poll(async () => (await geometry()).canvasGap).toBeLessThan(3);
+    await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+    await expect(zoom).toHaveText("缩放 90%");
+
+    const before = (await geometry()).width;
+    await toolbar.getByRole("button", { name: "展开节点与工具" }).click();
+    await expect(palette).toBeVisible();
+    await toolbar.getByRole("button", { name: "展开节点属性" }).click();
+    await expect(palette).toBeHidden();
+    await expect(inspector).toBeVisible();
+    expect((await geometry()).width).toBeCloseTo(before);
+    await inspector.getByRole("button", { name: "收起节点属性" }).click();
+    await expect(inspector).toBeHidden();
+
+    await page.getByRole("button", { name: "查看全图" }).click();
+    await expect.poll(async () => (await geometry()).allVisible).toBe(true);
+    await page.getByRole("button", { name: "定位起点" }).click();
+    await expect(zoom).toHaveText("缩放 90%");
+    await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+    expect((await geometry()).pageOverflow).toBeLessThanOrEqual(1);
+  }
+  expect((await api(path)).layout).toEqual(layout);
+});
+
 async function publish(page: Page) {
   await page.getByRole("button", { name: "发布版本", exact: true }).click();
   const review = page.getByRole("dialog", { name: "确认发布不可变版本" });

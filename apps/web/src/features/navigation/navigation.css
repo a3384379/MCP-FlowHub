@@ -1,7 +1,7 @@
 .app-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 228px;
+  width: var(--app-sidebar-width, 228px);
   height: 100vh;
   height: 100dvh;
   padding: 24px 14px 16px;
