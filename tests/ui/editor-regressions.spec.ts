@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile, mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 const password = "Synthetic-browser-password-041";
 
@@ -158,6 +159,190 @@ async function newWorkflow(page: Page, template: string, environment: string) {
   await expect(page).toHaveURL("/workflows/" + id + "/editor");
   return id;
 }
+
+test("the editor previews the full current graph before downloading the same SVG", async ({ page }, testInfo) => {
+  const api = await admin(page);
+  const id = await newWorkflow(page, "incident", "staging");
+  const draftPath = "/workflows/" + id + "/draft";
+  const original = await api(draftPath);
+  const name = "值班流程 / 交接";
+  await api(draftPath, "PUT", {
+    workflow: { ...original.draft, name },
+    layout: { ...original.layout, report: { x: -5400, y: -900 } },
+    expectedLayoutRevision: original.layoutRevision,
+  }, original.revision);
+  await page.reload();
+
+  const report = page.locator('.react-flow__node[data-id="report"]');
+  const zoomIn = page.locator(".react-flow__controls-zoomin");
+  await zoomIn.click();
+  await zoomIn.click();
+  await expect(report).not.toBeInViewport();
+  await page.getByText("节点列表（键盘可选择）", { exact: true }).click();
+  await page.getByRole("button", { name: /条件分支 · need_db$/ }).click();
+  const unsavedTitle = "复核 <script> & 确认";
+  await page.getByLabel("节点名称", { exact: true }).fill(unsavedTitle);
+  const before = await api(draftPath);
+  const previewButton = page.getByRole("button", { name: "预览并导出 SVG", exact: true });
+  const preview = page.getByRole("dialog", { name: "流程图预览" });
+  const image = preview.getByRole("img", { name: "完整流程图" });
+  const actualSize = preview.getByRole("button", { name: "原始大小" });
+  const downloads: string[] = [];
+  page.on("download", (file) => downloads.push(file.suggestedFilename()));
+  await previewButton.click();
+  await expect(preview).toBeVisible();
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(5400);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => preview.evaluate((dialog) => dialog.getBoundingClientRect().right))
+    .toBeLessThanOrEqual(390);
+  const region = preview.getByRole("region", { name: "流程图预览区域" });
+  const overflows = () => region.evaluate((element) => element.scrollWidth > element.clientWidth);
+  await expect.poll(overflows).toBe(false);
+  await actualSize.click();
+  await expect(actualSize).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(overflows).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(previewButton).toBeFocused();
+  expect(downloads).toEqual([]);
+
+  await previewButton.click();
+  await expect(actualSize).toHaveAttribute("aria-pressed", "false");
+  const previewSource = (await image.getAttribute("src"))!;
+  expect(previewSource).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
+  const downloadPromise = page.waitForEvent("download");
+  await preview.getByRole("button", { name: "导出 SVG", exact: true }).click();
+  const file = await downloadPromise;
+  expect(file.suggestedFilename()).toBe("值班流程 _ 交接-流程图.svg");
+  const savedPath = testInfo.outputPath(file.suggestedFilename());
+  await file.saveAs(savedPath);
+  expect(await api(draftPath)).toEqual(before);
+  await expect(page.getByLabel("节点名称", { exact: true })).toHaveValue(unsavedTitle);
+
+  const offlinePage = await page.context().newPage();
+  await offlinePage.goto(pathToFileURL(savedPath).href);
+  const diagram = await offlinePage.evaluate(() => {
+    const element = document.querySelector<SVGSVGElement>("svg")!;
+    const group = element.querySelector<SVGGElement>(".workflow-nodes")!;
+    const canvas = group.closest<SVGGElement>("g[transform]")!;
+    const box = canvas.getBBox();
+    const nodeBox = group.getBBox();
+    const { e: x, f: y } = canvas.transform.baseVal.getItem(0).matrix;
+    const captions = (selector: string) =>
+      Array.from(element.querySelectorAll(selector), (node) => node.textContent);
+    return {
+      namespace: element.namespaceURI,
+      title: document.getElementById("workflow-title")?.textContent,
+      nodes: captions(".workflow-nodes > g > title"),
+      branches: captions(".workflow-branches text"),
+      arrows: element.querySelectorAll('.workflow-edges path[marker-end="url(#arrow)"]').length,
+      unwantedElements: document.querySelectorAll("parsererror,script,foreignObject,image").length,
+      left: box.x + x,
+      right: box.x + x + box.width,
+      top: box.y + y,
+      bottom: box.y + y + box.height,
+      width: element.viewBox.baseVal.width,
+      height: element.viewBox.baseVal.height,
+      outsideCards: box.x + box.width > nodeBox.x + nodeBox.width,
+    };
+  });
+  expect(diagram.namespace).toBe("http://www.w3.org/2000/svg");
+  expect(diagram.title).toBe(name);
+  expect(diagram.nodes).toEqual(
+    before.draft.nodes.map((node: { id: string; title: string }) =>
+      node.id === "need_db" ? unsavedTitle : node.title,
+    ),
+  );
+  expect(diagram.arrows).toBe(before.draft.edges.length);
+  expect(diagram.branches).toEqual(["条件满足", "条件不满足"]);
+  expect(diagram.unwantedElements).toBe(0);
+  expect(diagram.width).toBeGreaterThan(5400);
+  expect(diagram.outsideCards).toBe(true);
+  expect(diagram.left).toBeGreaterThan(0);
+  expect(diagram.top).toBeGreaterThan(0);
+  expect(diagram.right).toBeLessThan(diagram.width);
+  expect(diagram.bottom).toBeLessThan(diagram.height);
+  const svgSource = await readFile(savedPath, "utf8");
+  expect(svgSource).toBe(decodeURIComponent(previewSource.split(",", 2)[1]!));
+  expect(svgSource).not.toContain("order-by-number-v1");
+});
+
+test("the editor keeps a long workflow readable and gives compact layouts the full canvas", async ({ page }) => {
+  const api = await admin(page);
+  const id = await newWorkflow(page, "incident", "staging");
+  const path = "/workflows/" + id + "/draft";
+  const record = await api(path);
+  const layout = Object.fromEntries(record.draft.nodes.map(
+    (node: { id: string }, index: number) => [node.id, { x: index * 430, y: 0 }],
+  ));
+  await api(path, "PUT", {
+    workflow: record.draft,
+    layout,
+    expectedLayoutRevision: record.layoutRevision,
+  }, record.revision);
+  await page.reload();
+
+  const palette = page.locator(".palette");
+  const inspector = page.locator(".inspector");
+  const toolbar = page.locator(".editor-toolbar");
+  const canvas = page.locator(".canvas");
+  const zoom = canvas.locator(".workflow-zoom");
+  const geometry = () => canvas.evaluate((element) => {
+    const frame = element.getBoundingClientRect();
+    const cards = Array.from(element.querySelectorAll(".react-flow__node"),
+      node => node.getBoundingClientRect());
+    return {
+      width: frame.width,
+      canvasGap: element.parentElement!.getBoundingClientRect().width - frame.width,
+      startOffset: Math.abs((cards[0]!.left + cards[0]!.right - frame.left - frame.right) / 2),
+      allVisible: cards.every(card =>
+        card.left >= frame.left && card.right <= frame.right &&
+        card.top >= frame.top && card.bottom <= frame.bottom),
+      pageOverflow: document.documentElement.scrollWidth - innerWidth,
+    };
+  });
+  await expect(zoom).toHaveText("缩放 90%");
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+  await expect(palette).toBeVisible();
+  await expect(inspector).toBeVisible();
+  await toolbar.getByRole("button", { name: "收起节点与工具" }).click();
+  await expect(palette).toBeHidden();
+  await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1024, height: 600 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(palette).toBeHidden();
+    await expect(inspector).toBeHidden();
+    await expect.poll(async () => (await geometry()).canvasGap).toBeLessThan(3);
+    await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+    await expect(zoom).toHaveText("缩放 90%");
+
+    const before = (await geometry()).width;
+    await toolbar.getByRole("button", { name: "展开节点与工具" }).click();
+    await expect(palette).toBeVisible();
+    await toolbar.getByRole("button", { name: "展开节点属性" }).click();
+    await expect(palette).toBeHidden();
+    await expect(inspector).toBeVisible();
+    expect((await geometry()).width).toBeCloseTo(before);
+    await inspector.getByRole("button", { name: "收起节点属性" }).click();
+    await expect(inspector).toBeHidden();
+
+    await page.getByRole("button", { name: "查看全图" }).click();
+    await expect.poll(async () => (await geometry()).allVisible).toBe(true);
+    await page.getByRole("button", { name: "定位起点" }).click();
+    await expect(zoom).toHaveText("缩放 90%");
+    await expect.poll(async () => (await geometry()).startOffset).toBeLessThan(2);
+    expect((await geometry()).pageOverflow).toBeLessThanOrEqual(1);
+  }
+  expect((await api(path)).layout).toEqual(layout);
+});
 
 async function publish(page: Page) {
   await page.getByRole("button", { name: "发布版本", exact: true }).click();

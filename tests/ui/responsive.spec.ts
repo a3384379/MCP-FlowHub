@@ -54,12 +54,19 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
   }
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
     { width: 1280, height: 800 },
+    { width: 1024, height: 600 },
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
     for (const [path, heading] of [
+      ["workflows", "工作流"],
       ["runs", "运行记录"],
+      ["discovery", "Codex 能力发现"],
+      ["connections", "MCP 服务"],
+      ["bindings", "环境与资源"],
+      ["models", "模型设置"],
       ["settings", "系统设置"],
     ] as const) {
       await page.goto("/" + path);
@@ -70,7 +77,7 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
         await expect(
           page.getByLabel("运行状态筛选", { exact: true }),
         ).toBeVisible();
-      else {
+      else if (path === "settings") {
         await expect(
           page.getByRole("button", { name: "创建受限宿主身份", exact: true }),
         ).toBeVisible();
@@ -82,11 +89,21 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
         await page.evaluate(
           () => document.documentElement.scrollWidth - window.innerWidth,
         ),
+        path + " at " + viewport.width + "px",
       ).toBeLessThanOrEqual(1);
-      await page.screenshot({
-        path: `artifacts/ui-responsive-${path}-${viewport.width}.png`,
-        fullPage: true,
-      });
+      if (viewport.width === 390 && ["connections", "runs"].includes(path)) {
+        const table = page.getByRole("region", {
+          name: path === "runs" ? "运行记录列表" : "已发现工具列表",
+        });
+        expect(await table.evaluate((area) => area.scrollWidth > area.clientWidth))
+          .toBe(true);
+      }
+      if ([1440, 1280, 390].includes(viewport.width) && ["runs", "settings"].includes(path)) {
+        await page.screenshot({
+          path: `artifacts/ui-responsive-${path}-${viewport.width}.png`,
+          fullPage: true,
+        });
+      }
     }
   }
   // The drawer owns focus and blocks the page; Escape, outside click and
