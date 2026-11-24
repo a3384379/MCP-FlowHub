@@ -402,6 +402,16 @@ main {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
+.binding-examples {
+  margin-top: 20px;
+}
+.binding-examples > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.binding-examples[open] > .binding-grid {
+  margin-top: 16px;
+}
 .metrics {
   display: flex;
   justify-content: space-between;

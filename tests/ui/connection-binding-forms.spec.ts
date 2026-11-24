@@ -100,8 +100,9 @@ test("labelled STDIO registration, discovery, explicit environment binding and a
   await card.getByRole("button", { name: "检测与同步", exact: true }).click();
   await expect(card).toContainText("4 工具");
 
-  await page.getByRole("button", { name: "环境与资源", exact: true }).click();
-  await page.getByRole("button", { name: "＋ 新建档案", exact: true }).click();
+  await page.getByRole("button", { name: "直连资源绑定", exact: true }).click();
+  await expect(page).toHaveURL("/connections/bindings");
+  await page.getByRole("button", { name: "＋ 添加资源绑定", exact: true }).click();
   const bindingDialog = page.getByRole("dialog", { name: "创建绑定档案" });
   await expect(
     bindingDialog.getByLabel("绑定环境", { exact: true }),

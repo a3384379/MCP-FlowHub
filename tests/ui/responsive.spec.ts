@@ -27,7 +27,7 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
     name: "主菜单",
     exact: true,
   });
-  await expect(navigation.getByRole("button")).toHaveCount(7);
+  await expect(navigation.getByRole("button")).toHaveCount(6);
   for (const group of ["工作区", "能力与连接", "系统配置"])
     await expect(
       navigation.getByRole("heading", { name: group, exact: true }),
@@ -37,7 +37,6 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
     ["runs", "运行记录", "运行记录"],
     ["discovery", "能力发现", "Codex 能力发现"],
     ["connections", "MCP 服务", "MCP 服务"],
-    ["bindings", "环境与资源", "环境与资源"],
     ["models", "模型设置", "模型设置"],
     ["settings", "系统设置", "系统设置"],
   ] as const) {
@@ -65,7 +64,7 @@ test("run and settings actions fit desktop, boundary and mobile viewports, and t
       ["runs", "运行记录"],
       ["discovery", "Codex 能力发现"],
       ["connections", "MCP 服务"],
-      ["bindings", "环境与资源"],
+      ["connections/bindings", "直连资源绑定"],
       ["models", "模型设置"],
       ["settings", "系统设置"],
     ] as const) {

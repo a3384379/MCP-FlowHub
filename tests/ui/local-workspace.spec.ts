@@ -25,6 +25,10 @@ test("a legacy workspace migrates saved credentials once without replacing them"
     const state = async () => (await (await page.request.get(base + "/api/v1/auth/state")).json()).data;
     expect(await state()).toMatchObject({ initialized: false, credentialMigrationRequired: true });
 
+    await page.getByRole("button", { name: "模型设置", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "模型设置", exact: true })).toBeVisible();
+    await expect(page.getByLabel("API Key", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /迁移旧版凭据|解锁凭据库/ })).toHaveCount(0);
     await page.getByRole("button", { name: "系统设置", exact: true }).click();
     const setup = page.getByRole("button", { name: "迁移旧版凭据", exact: true });
     await setup.click();

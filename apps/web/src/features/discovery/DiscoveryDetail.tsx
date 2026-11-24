@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { addCapabilityToDraft, canAddCapability, directBindings } from "../workflows/CapabilityPicker";
 import { ConnectionSetup } from "./ConnectionSetup";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
+import { resourceBindingsLabel } from "../navigation/navigation";
 import {
   displayName,
   displaySummary,
@@ -375,8 +376,8 @@ export function DiscoveryDetail({
             <div className="d-notice" role="status">
               {notice}
               <div>
-                <a href="/connections">前往 MCP 服务</a> ·{" "}
-                <a href="/bindings">环境与资源</a>
+                <button type="button" onClick={() => onManage({ type: "connections" })}>前往 MCP 服务</button>{" "}
+                <button type="button" onClick={() => onManage({ type: "resources" })}>{resourceBindingsLabel}</button>
               </div>
             </div>
           )}

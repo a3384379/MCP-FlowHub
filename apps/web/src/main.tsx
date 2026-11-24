@@ -23,6 +23,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
+import exampleBindingSource from "../../../examples/bindings.example.json?raw";
 import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
@@ -51,7 +52,7 @@ import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
 import { AppSidebar, NavigationIcon } from "./features/navigation/AppSidebar";
-import { navigationForPage, navigationLabel } from "./features/navigation/navigation";
+import { navigationForPage, navigationLabel, normalizeWorkspacePath, resourceBindingsPath } from "./features/navigation/navigation";
 import {
   ConnectionForm,
   BindingForm,
@@ -61,6 +62,9 @@ import {
 } from "./ConnectionBindingForms";
 type J = any;
 const compactEditorMedia = "(max-width: 1300px)";
+const exampleBindingIds = new Set<string>(
+  JSON.parse(exampleBindingSource).bindings.map((binding: { bindingRef: string }) => binding.bindingRef),
+);
 const retentionScopeKeys = ["runs", "resultRuns", "checkpoints", "artifacts", "assistantResultTasks", "assistantResultMessages", "assistantLegacyResultMessages", "assistantResultToolCalls", "assistantResultSessions", "assistantTasks", "assistantMessages", "assistantToolCalls", "assistantSessions", "workflowTestResultRuns", "workflowTestRuns", "applicationResultEvents", "applicationEvents"];
 const retentionPreview = (value: J) => ({...value, ...Object.fromEntries(retentionScopeKeys.map(key=>[key,Array.isArray(value[key])?value[key]:[]]))});
 const editorTextVersions = new WeakMap<
@@ -338,7 +342,6 @@ const glyph: Record<string, string> = {
   workflows: "▦",
   editor: "◇",
   connections: "⌘",
-  bindings: "▤",
   runs: "◷",
   settings: "⚙",
   input: "↳",
@@ -503,9 +506,7 @@ function JsonEditor({
 }
 function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const [path, setPath] = useState(
-      workspacePath() === "/" ? "/workflows" : workspacePath(),
-    ),
+  const [path, setPath] = useState(() => normalizeWorkspacePath(workspacePath())),
     [session, setSession] = useState<J>(null),
     [auth, setAuth] = useState<J>(null),
     [error, setError] = useState(""),
@@ -741,6 +742,10 @@ function App() {
     return true;
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
+    if (destination.type !== "connection") {
+      navigate(destination.type === "resources" ? resourceBindingsPath : "/connections");
+      return;
+    }
     const name = destination.name || "新连接";
     navigate("/connections");
     setModal({ type: "connection", title: "手动连接 · " + name,
@@ -749,14 +754,23 @@ function App() {
     });
   };
   useEffect(() => {
-    history.replaceState({ ...history.state, flowhubIndex: 0 }, "");
+    const replaceRoute = (index: number) => {
+      const raw = workspacePath();
+      const normalized = normalizeWorkspacePath(raw);
+      const url = raw !== normalized && raw !== "/"
+        ? workspaceHref(normalized) + location.search + location.hash
+        : undefined;
+      history.replaceState({ ...history.state, flowhubIndex: index }, "", url);
+      return normalized;
+    };
+    replaceRoute(0);
     const pop = (event: PopStateEvent) => {
       if (restoringHistory.current) {
         restoringHistory.current = false;
         return;
       }
       const nextIndex = event.state?.flowhubIndex;
-      const nextPath = workspacePath();
+      const nextPath = normalizeWorkspacePath(workspacePath());
       const askInPage = inCodexWorkspace && dirtyRef.current && !deletionPendingRef.current;
       if (deletionPendingRef.current || askInPage || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
         if (
@@ -777,6 +791,8 @@ function App() {
         return;
       }
       if (typeof nextIndex === "number") historyIndex.current = nextIndex;
+      if (workspacePath() !== "/" && workspacePath() !== nextPath)
+        replaceRoute(historyIndex.current);
       setPath(nextPath);
       setDirty(false);
       setModal(null);
@@ -1657,11 +1673,124 @@ function App() {
       return true;
     }, successMessage);
   };
-  const page = path.includes("/editor")
+  const page = path === resourceBindingsPath ? "resource-bindings" : path.includes("/editor")
     ? "editor"
     : path.split("/")[1] === "tools"
       ? "connections"
       : (path.split("/")[1] ?? "workflows");
+  const exampleBindings = bindings.filter(b => b.simulationOnly && exampleBindingIds.has(b.id));
+  const regularBindings = bindings.filter(b => !b.simulationOnly || !exampleBindingIds.has(b.id));
+  const renderBindingCards = (items: J[]) => (
+    <div className="binding-grid">
+      {items.map((b) => (
+        <section className="panel" key={b.id}>
+          <div className="row">
+            <Badge>{b.environment}</Badge>
+            <Badge
+              tone={
+                b.validationStatus === "REVOKED"
+                  ? "red"
+                  : b.validationStatus === "UNVERIFIED"
+                    ? "amber"
+                    : "green"
+              }
+            >
+              {b.validationStatus}
+            </Badge>
+          </div>
+          <h2>{b.name}</h2>
+          <p>
+            {b.simulationOnly
+              ? "合成演示 · 不授权真实生产访问"
+              : "独立环境档案"}
+          </p>
+          <BindingVerificationStatus binding={b} />
+          <dl>
+            <dt>工具范围</dt>
+            <dd>{b.allowedTools.join(", ")}</dd>
+            <dt>最大行数</dt>
+            <dd>{b.maxRows}</dd>
+            <dt>只读模板</dt>
+            <dd>{b.allowedQueryTemplates.join(", ") || "不适用"}</dd>
+            <dt>绑定修订</dt>
+            <dd>{b.revision}</dd>
+          </dl>
+          <div className="actions">
+            <button onClick={() => showJson("资源锁与验证记录", b)}>
+              查看策略
+            </button>
+            <button
+              onClick={() =>
+                act(async () =>
+                  setModal({
+                    type: "edit-binding",
+                    title: "修改绑定（需重新验证）",
+                    id: b.id,
+                    revision: b.revision,
+                    impact: await api(
+                      "/bindings/" + b.id + "/impact",
+                    ),
+                    payload: Object.fromEntries(
+                      [
+                        "name",
+                        "allowedTools",
+                        "lockedArguments",
+                        "allowedQueryTemplates",
+                        "maxRows",
+                        "timeoutSeconds",
+                      ].map((k) => [k, b[k]]),
+                    ),
+                  }),
+                )
+              }
+            >
+              编辑
+            </button>
+            <button
+              onClick={() =>
+                setModal({
+                  type: "verify",
+                  id: b.id,
+                  title: "独立验证只读绑定",
+                  payload: {
+                    probe: {
+                      toolName: b.allowedTools[0],
+                      arguments: bindingProbeDefaults(b),
+                    },
+                    serverEnforcedReadOnly: false,
+                    scope: "",
+                    expectedEnvironmentPointer: "/environment",
+                    expectedEnvironmentValue: b.environment,
+                  },
+                })
+              }
+            >
+              验证
+            </button>
+            <button
+              className="danger"
+              disabled={b.validationStatus === "REVOKED"}
+              onClick={() =>
+                act(async () => {
+                  setModal({
+                    type: "revoke-binding",
+                    title: "确认撤销绑定",
+                    id: b.id,
+                    revision: b.revision,
+                    impact: await api(
+                      "/bindings/" + b.id + "/impact",
+                    ),
+                  });
+                })
+              }
+            >
+              撤销
+            </button>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
   const runDetailId = page === "runs" && /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2] : null;
   const assistantRun = runDetailId && run?.runId === runDetailId ? run : null;
@@ -1707,6 +1836,12 @@ function App() {
                   event.preventDefault(); navigate("/workflows");
                 }}>{navigationLabel("workflows")}</a>
                 <b>/</b><span aria-current="page">流程编排</span>
+              </> : page === "resource-bindings" ? <>
+                <a href={workspaceHref("/connections")} onClick={event => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault(); navigate("/connections");
+                }}>{navigationLabel("connections")}</a>
+                <b>/</b><span aria-current="page">{navigationLabel(page)}</span>
               </> : <span aria-current="page">{navigationLabel(page)}</span>}
             </span>
           </div>
@@ -1743,7 +1878,7 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} onOpenWorkflow={chooseWorkflowById} />}
-          {page === "models" && <ModelsPage api={api} onUnlockVault={openVault} />}
+          {page === "models" && <ModelsPage api={api} />}
           {page === "workflows" && (
             <>
               <PageHead
@@ -2310,78 +2445,6 @@ function App() {
                   >
                     输入契约
                   </button>
-                  <JsonEditor
-                    label="环境绑定引用"
-                    textCache={jsonTextCache.current}
-                    cacheKey={draft.id + "/bindings"}
-                    onValidityChange={reportJsonValidity}
-                    onDirty={() => setDirty(true)}
-                    validateValue={(bindings) =>
-                      assertWorkflowShape({ ...currentWorkflow(), bindings })
-                    }
-                    value={draft.draft.bindings}
-                    onChange={async (v) => {
-                      if (!isObject(v))
-                        throw new Error("环境绑定引用必须为对象");
-                      const generation = routeGeneration.current;
-                      const originalBindings = JSON.stringify(
-                        currentWorkflow().bindings,
-                      );
-                      const candidate = { ...currentWorkflow(), bindings: v };
-                      await api("/workflow-imports/preview", "POST", {
-                        workflow: candidate,
-                      });
-                      if (
-                        pathRef.current !==
-                          "/workflows/" + candidate.workflowId + "/editor" ||
-                        routeGeneration.current !== generation
-                      )
-                        return false;
-                      if (
-                        JSON.stringify(currentWorkflow().bindings) !==
-                        originalBindings
-                      )
-                        throw new Error(
-                          "校验期间环境绑定已变化，保留了新选择；请比较后重新应用 JSON",
-                        );
-                      rememberEdit();
-                      setDraft((latest: J) =>
-                        latest?.id === candidate.workflowId
-                          ? {
-                              ...latest,
-                              draft: { ...latest.draft, bindings: v },
-                            }
-                          : latest,
-                      );
-                      setDirty(true);
-                      return true;
-                    }}
-                  />
-                  {bindingRoles.map((role) => (
-                    <label className="field" key={role}>
-                      环境绑定 {role}
-                      <select
-                        aria-label={"环境绑定 " + role}
-                        value={draft.draft.bindings[role] ?? ""}
-                        onChange={(e) => chooseBinding(role, e.target.value)}
-                      >
-                        <option value="">未配置，请明确选择</option>
-                        {bindings
-                          .filter(
-                            (b) => b.environment === draft.draft.environment,
-                          )
-                          .map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name} · {b.validationStatus}{" "}
-                              {b.simulationOnly ? "（合成演示）" : ""}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                  ))}
-                  <small>
-                    新建草稿不继承任何绑定或验证。选择同环境绑定后，还需为节点明确选择工具。
-                  </small>
                 </aside>
                 <div className="canvas">
                   <ReactFlow
@@ -2495,6 +2558,81 @@ function App() {
                     >
                       收起节点属性
                     </button>
+                    <details hidden={node?.type !== "mcp_tool"}>
+                      <summary>高级绑定设置</summary>
+                      {node?.type === "mcp_tool" && (
+                        <label className="field">
+                          固定环境绑定
+                          <select
+                            value={node.config.bindingKey}
+                            onChange={(e) =>
+                              changeNode({
+                                config: {
+                                  ...node.config,
+                                  bindingKey: e.target.value,
+                                  toolName: "unconfigured",
+                                  toolSchemaHash:
+                                    "placeholder:unconfigured",
+                                },
+                              })
+                            }
+                          >
+                            {bindingRoles.map((k) => (
+                              <option key={k} value={k}>
+                                {k} · {draft.draft.bindings[k] ?? "未配置"}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <JsonEditor
+                        label="环境绑定引用"
+                        textCache={jsonTextCache.current}
+                        cacheKey={draft.id + "/bindings"}
+                        onValidityChange={reportJsonValidity}
+                        onDirty={() => setDirty(true)}
+                        validateValue={(bindings) =>
+                          assertWorkflowShape({ ...currentWorkflow(), bindings })
+                        }
+                        value={draft.draft.bindings}
+                        onChange={async (v) => {
+                          if (!isObject(v))
+                            throw new Error("环境绑定引用必须为对象");
+                          const generation = routeGeneration.current;
+                          const originalBindings = JSON.stringify(
+                            currentWorkflow().bindings,
+                          );
+                          const candidate = { ...currentWorkflow(), bindings: v };
+                          await api("/workflow-imports/preview", "POST", {
+                            workflow: candidate,
+                          });
+                          if (
+                            pathRef.current !==
+                              "/workflows/" + candidate.workflowId + "/editor" ||
+                            routeGeneration.current !== generation
+                          )
+                            return false;
+                          if (
+                            JSON.stringify(currentWorkflow().bindings) !==
+                            originalBindings
+                          )
+                            throw new Error(
+                              "校验期间环境绑定已变化，保留了新选择；请比较后重新应用 JSON",
+                            );
+                          rememberEdit();
+                          setDraft((latest: J) =>
+                            latest?.id === candidate.workflowId
+                              ? {
+                                  ...latest,
+                                  draft: { ...latest.draft, bindings: v },
+                                }
+                              : latest,
+                          );
+                          setDirty(true);
+                          return true;
+                        }}
+                      />
+                    </details>
                     {node ? (
                       <>
                         <div className="inspector-head">
@@ -2517,28 +2655,25 @@ function App() {
                         {node.type === "mcp_tool" && (
                           <>
                             <label className="field">
-                              固定环境绑定
+                              资源绑定
                               <select
-                                value={node.config.bindingKey}
-                                onChange={(e) =>
-                                  changeNode({
-                                    config: {
-                                      ...node.config,
-                                      bindingKey: e.target.value,
-                                      toolName: "unconfigured",
-                                      toolSchemaHash:
-                                        "placeholder:unconfigured",
-                                    },
-                                  })
+                                aria-label={"环境绑定 " + node.config.bindingKey}
+                                value={draft.draft.bindings[node.config.bindingKey] ?? ""}
+                                onChange={(event) =>
+                                  chooseBinding(node.config.bindingKey, event.target.value)
                                 }
                               >
-                                {bindingRoles.map((k) => (
-                                  <option key={k} value={k}>
-                                    {k} · {draft.draft.bindings[k] ?? "未配置"}
+                                <option value="">请选择同环境资源绑定</option>
+                                {bindings.filter(b => b.environment === draft.draft.environment).map(b => (
+                                  <option key={b.id} value={b.id} disabled={b.validationStatus === "REVOKED"}>
+                                    {b.name}{b.simulationOnly ? "（模拟）" : ""}
                                   </option>
                                 ))}
                               </select>
                             </label>
+                            <button type="button" onClick={() => navigate(resourceBindingsPath)}>
+                              管理直连资源绑定
+                            </button>
                             <label className="field">
                               实际 MCP 工具
                               <select
@@ -2603,7 +2738,7 @@ function App() {
                               </select>
                             </label>
                             <div className="lock-card">
-                              ◇ 环境与资源由发布绑定注入，Agent 无法覆盖。
+                              运行时使用绑定中固定的资源参数。
                               {selectedBinding && (
                                 <pre>
                                   {pretty({
@@ -2848,6 +2983,9 @@ function App() {
                 title={navigationLabel("connections")}
                 text="登记独立连接，读取实际工具目录及 Schema 指纹。认证失败不会触发降级。"
               >
+                <button type="button" onClick={() => navigate(resourceBindingsPath)}>
+                  {navigationLabel("resource-bindings")}
+                </button>
                 <button
                   className="primary"
                   onClick={() =>
@@ -3004,12 +3142,12 @@ function App() {
               </section>
             </>
           )}
-          {page === "bindings" && (
+          {page === "resource-bindings" && (
             <>
               <PageHead
-                eyebrow="ENVIRONMENT & POLICY"
-                title={navigationLabel("bindings")}
-                text="将环境、资源、凭证引用及查询模板固定为可验证的绑定档案。"
+                eyebrow="FLOWHUB DIRECT"
+                title={navigationLabel("resource-bindings")}
+                text="为 FlowHub 独立执行的节点固定连接、环境和资源参数。"
               >
                 <button
                   className="primary"
@@ -3030,122 +3168,18 @@ function App() {
                     })
                   }
                 >
-                  ＋ 新建档案
+                  ＋ 添加资源绑定
                 </button>
               </PageHead>
-              <div className="info">
-                MOCK_VERIFIED 仅证明合成服务。真实 BINDING_VERIFIED
-                需要获准的真实探测和独立的服务端只读权限确认。
-              </div>
-              <div className="binding-grid">
-                {bindings.map((b) => (
-                  <section className="panel" key={b.id}>
-                    <div className="row">
-                      <Badge>{b.environment}</Badge>
-                      <Badge
-                        tone={
-                          b.validationStatus === "REVOKED"
-                            ? "red"
-                            : b.validationStatus === "UNVERIFIED"
-                              ? "amber"
-                              : "green"
-                        }
-                      >
-                        {b.validationStatus}
-                      </Badge>
-                    </div>
-                    <h2>{b.name}</h2>
-                    <p>
-                      {b.simulationOnly
-                        ? "合成演示 · 不授权真实生产访问"
-                        : "独立环境档案"}
-                    </p>
-                    <BindingVerificationStatus binding={b} />
-                    <dl>
-                      <dt>工具范围</dt>
-                      <dd>{b.allowedTools.join(", ")}</dd>
-                      <dt>最大行数</dt>
-                      <dd>{b.maxRows}</dd>
-                      <dt>只读模板</dt>
-                      <dd>{b.allowedQueryTemplates.join(", ") || "不适用"}</dd>
-                      <dt>绑定修订</dt>
-                      <dd>{b.revision}</dd>
-                    </dl>
-                    <div className="actions">
-                      <button onClick={() => showJson("资源锁与验证记录", b)}>
-                        查看策略
-                      </button>
-                      <button
-                        onClick={() =>
-                          act(async () =>
-                            setModal({
-                              type: "edit-binding",
-                              title: "修改绑定（需重新验证）",
-                              id: b.id,
-                              revision: b.revision,
-                              impact: await api(
-                                "/bindings/" + b.id + "/impact",
-                              ),
-                              payload: Object.fromEntries(
-                                [
-                                  "name",
-                                  "allowedTools",
-                                  "lockedArguments",
-                                  "allowedQueryTemplates",
-                                  "maxRows",
-                                  "timeoutSeconds",
-                                ].map((k) => [k, b[k]]),
-                              ),
-                            }),
-                          )
-                        }
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() =>
-                          setModal({
-                            type: "verify",
-                            id: b.id,
-                            title: "独立验证只读绑定",
-                            payload: {
-                              probe: {
-                                toolName: b.allowedTools[0],
-                                arguments: bindingProbeDefaults(b),
-                              },
-                              serverEnforcedReadOnly: false,
-                              scope: "",
-                              expectedEnvironmentPointer: "/environment",
-                              expectedEnvironmentValue: b.environment,
-                            },
-                          })
-                        }
-                      >
-                        验证
-                      </button>
-                      <button
-                        className="danger"
-                        disabled={b.validationStatus === "REVOKED"}
-                        onClick={() =>
-                          act(async () => {
-                            setModal({
-                              type: "revoke-binding",
-                              title: "确认撤销绑定",
-                              id: b.id,
-                              revision: b.revision,
-                              impact: await api(
-                                "/bindings/" + b.id + "/impact",
-                              ),
-                            });
-                          })
-                        }
-                      >
-                        撤销
-                      </button>
-                    </div>
-                  </section>
-                ))}
-              </div>
+              {regularBindings.length > 0
+                ? renderBindingCards(regularBindings)
+                : <Empty text="还没有直连资源绑定。添加 MCP 连接并同步工具后，可为直连节点配置资源。" />}
+              {exampleBindings.length > 0 && (
+                <details className="panel binding-examples">
+                  <summary>内置示例（{exampleBindings.length}）</summary>
+                  {renderBindingCards(exampleBindings)}
+                </details>
+              )}
             </>
           )}
           {page === "runs" && !/^\/runs\/[^/]+$/.test(path) && (

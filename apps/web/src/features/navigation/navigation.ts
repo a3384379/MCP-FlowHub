@@ -13,7 +13,6 @@ export const navigationGroups = [
     items: [
       { key: "discovery", label: "能力发现" },
       { key: "connections", label: "MCP 服务" },
-      { key: "bindings", label: "环境与资源" },
     ],
   },
   {
@@ -29,10 +28,20 @@ export const navigationGroups = [
 export type NavigationKey =
   (typeof navigationGroups)[number]["items"][number]["key"];
 export const navigationMedia = "(max-width: 760px)";
+export const resourceBindingsPath = "/connections/bindings";
+export const resourceBindingsLabel = "直连资源绑定";
+
+export function normalizeWorkspacePath(path: string) {
+  if (path === "/") return "/workflows";
+  if (["/bindings", "/bindings/", resourceBindingsPath + "/"].includes(path))
+    return resourceBindingsPath;
+  return path;
+}
 
 export function navigationForPage(page: string) {
   const key =
-    page === "editor" ? "workflows" : page === "tools" ? "connections" : page;
+    page === "editor" ? "workflows"
+      : ["tools", "resource-bindings"].includes(page) ? "connections" : page;
   for (const group of navigationGroups) {
     const item = group.items.find((item) => item.key === key);
     if (item) return { ...item, group: group.label };
@@ -41,7 +50,7 @@ export function navigationForPage(page: string) {
 }
 
 export function navigationLabel(page: string) {
-  return page === "editor"
-    ? "流程编排"
-    : (navigationForPage(page)?.label ?? "FlowHub");
+  if (page === "editor") return "流程编排";
+  if (page === "resource-bindings") return resourceBindingsLabel;
+  return navigationForPage(page)?.label ?? "FlowHub";
 }

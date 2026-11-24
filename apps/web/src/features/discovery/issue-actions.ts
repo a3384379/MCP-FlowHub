@@ -1,7 +1,6 @@
-export type DiscoveryDestination = {
-  type: "connection";
-  name?: string;
-};
+export type DiscoveryDestination =
+  | { type: "connection"; name?: string }
+  | { type: "connections" | "resources" };
 export type Issue = Record<string, any>;
 export function issueAction(issue: Issue) {
   const code = issue.code;

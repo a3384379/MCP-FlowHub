@@ -25,7 +25,9 @@ test("passwordless workspace, six pages, real flow canvas, save/validate, start 
   await expect(
     page.getByRole("heading", { name: /试运行问题排查/ }),
   ).toBeVisible();
-  for (const label of ["MCP 服务", "环境与资源", "运行记录", "系统设置"]) {
+  const menu = page.getByRole("navigation", { name: "主菜单", exact: true });
+  await expect(menu.getByRole("button", { name: "环境与资源", exact: true })).toHaveCount(0);
+  for (const label of ["MCP 服务", "运行记录", "系统设置"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
     await expect(
       page.getByRole("heading", { name: label, exact: true }),
@@ -35,6 +37,15 @@ test("passwordless workspace, six pages, real flow canvas, save/validate, start 
       await expect(page.getByRole("button", { name: "迁移旧版凭据", exact: true })).toHaveCount(0);
     }
   }
+  await page.goto("/bindings");
+  await expect(page).toHaveURL("/connections/bindings");
+  await expect(menu.getByRole("button", { name: "MCP 服务", exact: true })).toHaveAttribute("aria-current", "page");
+  const sample = page.getByRole("heading", { name: "阿里云生产日志（模拟）", exact: true });
+  await expect(sample).toBeHidden();
+  await page.getByText("内置示例（4）", { exact: true }).click();
+  await expect(sample).toBeVisible();
+  await page.locator(".breadcrumbs").getByRole("link", { name: "MCP 服务" }).click();
+  await expect(page).toHaveURL("/connections");
   await page.goto("/tools");
   await expect(
     page.getByRole("heading", { name: "MCP 服务", exact: true }),
