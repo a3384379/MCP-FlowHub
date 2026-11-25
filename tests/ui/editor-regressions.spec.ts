@@ -819,7 +819,7 @@ test("session expiry reconnects in place and retains focused JSON text", async (
   const requested = deferred(),
     release = deferred();
   let expire = true;
-  await page.route("**/api/v1/workflows", async (route) => {
+  await page.route("**/api/v1/bindings", async (route) => {
     if (!expire || route.request().method() !== "GET") return route.continue();
     expire = false;
     requested.resolve();

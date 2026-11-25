@@ -1,9 +1,10 @@
 import Database from "better-sqlite3";
 import { chmodSync } from "node:fs";
-import { hash, now, ensure, type Json } from "../../contracts/src/domain.js";
+import { hash, now, ensure, terminalRunStates, type Json } from "../../contracts/src/domain.js";
 import { V1_TABLES } from "./v1.js";
 import { V2_TABLES } from "./v2.js";
 import { V3_TABLES } from "./v3.js";
+import { V4_ACTIVE_RUN_FILTER, V4_HISTORY_RUN_KEY } from "./v4.js";
 import { migrate, validateMigrations } from "./migrations.js";
 export { validateMigrations } from "./migrations.js";
 export type Table = (typeof V1_TABLES)[number] | (typeof V2_TABLES)[number] | (typeof V3_TABLES)[number];
@@ -23,6 +24,33 @@ export class Repository {
         .prepare("SELECT body FROM " + table + " ORDER BY rowid")
         .all() as { body: string }[]
     ).map((r) => JSON.parse(r.body));
+  }
+  activeRuns(): Json[] {
+    const rows = this.db.prepare("SELECT body FROM runs INDEXED BY active_runs WHERE " + V4_ACTIVE_RUN_FILTER + " ORDER BY rowid")
+      .all() as { body: string }[];
+    return rows.map(row => JSON.parse(row.body)).filter(run => !terminalRunStates.has(run.state));
+  }
+  activeRunCount(): number {
+    const where = " FROM runs WHERE " + V4_ACTIVE_RUN_FILTER + " AND json_valid(body) = ";
+    const count = this.db.prepare("SELECT COUNT(*)" + where + "1").pluck().get() as number;
+    const overflow = this.db.prepare("SELECT body" + where + "0").pluck().all() as string[];
+    return count + overflow.filter(body => !terminalRunStates.has(JSON.parse(body).state)).length;
+  }
+  private historyRows(table: "attempts" | "artifacts", runId: string, projection: string): Json[] {
+    const from = " FROM " + table + " WHERE (" + V4_HISTORY_RUN_KEY + ") = ";
+    const rows = this.db.prepare("SELECT " + projection + ", rowid AS position" + from + "?" +
+      " UNION ALL SELECT body, rowid" + from + "0 ORDER BY position")
+      .pluck().all(runId) as string[];
+    return rows.map(row => JSON.parse(row)).filter(record => record.runId === runId);
+  }
+  attemptsForRun(runId: string): Json[] {
+    return this.historyRows("attempts", runId, "body");
+  }
+  artifactsForRun(runId: string, view: "summary" | "content", availableAt?: number): Json[] {
+    const projection = view === "summary" ? "json_remove(body,'$.content')" : "body";
+    const artifacts = this.historyRows("artifacts", runId, projection);
+    if (view === "summary") for (const artifact of artifacts) delete artifact.content;
+    return availableAt === undefined ? artifacts : artifacts.filter(artifact => artifact.expiresAt > availableAt);
   }
   put(table: Table, id: string, value: Json, expected?: number) {
     if (expected !== undefined) {

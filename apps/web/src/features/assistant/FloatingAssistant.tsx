@@ -37,6 +37,7 @@ export function FloatingAssistant({
   openRequest,
   workflows,
   runs,
+  onReferencesChange,
   onNavigate,
   onOpenWorkflow,
   onUnlockVault,
@@ -48,11 +49,13 @@ export function FloatingAssistant({
   openRequest: number;
   workflows: Data[];
   runs: Data[];
+  onReferencesChange: (visible: boolean) => void;
   onNavigate: (path: string) => void;
   onOpenWorkflow: (id: string) => void;
   onUnlockVault: () => void;
 }) {
-  const chat = useConversation(api);
+  const [activated, setActivated] = useState(false);
+  const chat = useConversation(api, activated);
   const viewport = useAssistantViewport();
   const [opened, setOpened] = useState(false),
     [wide, setWide] = useState(false),
@@ -128,6 +131,7 @@ export function FloatingAssistant({
     setDetails(false);
   };
   const open = () => {
+    setActivated(true);
     setOpened(true);
     setUnread(false);
   };
@@ -145,10 +149,15 @@ export function FloatingAssistant({
     }
   }, [scope]);
   useEffect(() => {
+    onReferencesChange(opened && details);
+  }, [opened, details, onReferencesChange]);
+  useEffect(() => {
     if (opened) {
       input.current?.focus({ preventScroll: true });
-      void chat.loadProfiles().catch(chat.reportError);
-      void chat.refresh(chat.sessionId).catch(chat.reportError);
+      if (chat.sessionId) {
+        void chat.loadProfiles().catch(chat.reportError);
+        void chat.refresh(chat.sessionId).catch(chat.reportError);
+      }
     } else if (wasOpened.current)
       launcher.current?.focus({ preventScroll: true });
     wasOpened.current = opened;

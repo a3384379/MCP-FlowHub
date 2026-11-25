@@ -22,7 +22,7 @@ test("frozen v1 layout stays compatible and changed FTS module or required shado
     migrate(db,MIGRATIONS.slice(0,1));
     const history=db.prepare("SELECT * FROM schema_migrations").all();
     assert.equal(validateMigrations(db),1);assert.deepEqual(db.prepare("SELECT * FROM schema_migrations").all(),history);
-    migrate(db);assert.equal(validateMigrations(db),MIGRATIONS.length);assert.deepEqual(db.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),[{version:1},{version:2},{version:3}]);
+    migrate(db);assert.equal(validateMigrations(db),MIGRATIONS.length);assert.deepEqual(db.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),MIGRATIONS.map(({version})=>({version})));
   }finally{db.close();}
   for(const ddl of [
     "DROP TABLE knowledge_fts; CREATE VIRTUAL TABLE knowledge_fts USING fts5(chunk_id UNINDEXED,tokens,tokenize='porter')",

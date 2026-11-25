@@ -65,6 +65,12 @@ async function bindingRevisions(
 test("automatic incident run has no approval controls and a restricted host completes the Web-started chain", async ({
   page,
 }) => {
+  let streamRequests = 0;
+  await page.route(/\/api\/v1\/runs\/[^/?]+\/events\?after=/, async route => {
+    streamRequests++;
+    if (streamRequests === 1) await route.fulfill({ status: 503 });
+    else await route.continue();
+  });
   const api = await admin(page);
   if ((await api("/auth/state")).vaultLocked)
     await api("/credentials/migrate", "POST", { password });
@@ -101,7 +107,30 @@ test("automatic incident run has no approval controls and a restricted host comp
   await expect(
     page.getByRole("heading", { name: /plan · 宿主待办/ }),
   ).toBeVisible();
+  await expect.poll(() => streamRequests).toBeGreaterThanOrEqual(2);
   const runId = new URL(page.url()).pathname.split("/").at(-1)!;
+  const detailPath = "/api/v1/runs/" + runId;
+  const stream = await fetch(new URL(detailPath + "/events?after=0", page.url()), {
+    headers: {
+      Cookie: (await page.context().cookies()).map(cookie => cookie.name + "=" + cookie.value).join("; "),
+      "Last-Event-ID": "1",
+    },
+    signal: AbortSignal.timeout(5000),
+  });
+  expect(stream.status).toBe(200);
+  const reader = stream.body!.getReader();
+  try {
+    const decoder = new TextDecoder();
+    let prefix = "";
+    while (!prefix.includes("\n")) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      prefix += decoder.decode(chunk.value, { stream: true });
+    }
+    expect(prefix).toMatch(/^id: 2\n/);
+  } finally {
+    await reader.cancel();
+  }
   const host = new Client(
     { name: "ui-synthetic-codex", version: "1" },
     { versionNegotiation: { mode: { pin: "2026-07-28" } } },
@@ -175,7 +204,6 @@ test("automatic incident run has no approval controls and a restricted host comp
     state = await checkpoint("report");
     await submit(state, {}, true);
     await expect.poll(async () => (await status()).state).toBe("SUCCEEDED");
-    await page.reload();
     await expect(page.getByText("已完成", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /批准|拒绝/ })).toHaveCount(
       0,
@@ -190,7 +218,11 @@ test("automatic incident run has no approval controls and a restricted host comp
       await row.getByRole("button", { name: "查看", exact: true }).click();
       const doc = page.frameLocator('iframe[title="报告内容"]');
       await expect(doc.getByRole("heading", { name: "问题摘要" })).toBeVisible();
-      await doc.getByRole("navigation", { name: "报告目录" }).getByRole("link", { name: "证据索引" }).click();
+      const evidenceLink = doc.getByRole("navigation", { name: "报告目录" })
+        .getByRole("link", { name: "证据索引" });
+      await evidenceLink.scrollIntoViewIfNeeded();
+      await expect(evidenceLink).toBeInViewport();
+      await evidenceLink.click();
       await expect(doc.locator("h2:target")).toHaveText("证据索引");
       const [download] = await Promise.all([
         page.waitForEvent("download"),

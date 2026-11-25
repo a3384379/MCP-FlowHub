@@ -190,17 +190,24 @@ export async function registerAdmin(
       403,
     );
   };
+  // Capture the high-water mark before the browser starts reading its page snapshots.
+  const workspaceSession = (csrf: string) => {
+    const { eventCursor } = repo.db.prepare(
+      "SELECT COALESCE(MAX(event_id), 0) AS eventCursor FROM application_events",
+    ).get() as { eventCursor: number };
+    return data({ csrf, eventCursor });
+  };
   app.post("/api/v1/auth/local-session", async (req, reply) => {
     requireLocalOrigin(req);
     body(req, []);
     try {
-      return data({ csrf: auth.check(req.headers.cookie, undefined, false, false).csrf });
+      return workspaceSession(auth.check(req.headers.cookie, undefined, false, false).csrf);
     } catch (error) {
       if (!(error instanceof HubError && error.code === "AUTH_REQUIRED")) throw error;
     }
     const session = auth.session();
     setSessionCookie(reply, session);
-    return data({ csrf: session.csrf });
+    return workspaceSession(session.csrf);
   });
   app.post("/api/v1/auth/codex-session", async (req, reply) => {
     requireLocalOrigin(req);
@@ -208,7 +215,7 @@ export async function registerAdmin(
     ensure(codexLaunches?.redeem(ticket), "AUTH_REQUIRED", "Reopen FlowHub from the Codex sidebar.", 401);
     const session = auth.session(true);
     setSessionCookie(reply, session, true);
-    return data({ csrf: session.csrf });
+    return workspaceSession(session.csrf);
   });
   app.post("/api/v1/auth/bootstrap", async (req, reply) => {
     auth.throttle("bootstrap");
@@ -1033,9 +1040,13 @@ export async function registerAdmin(
     interval=setInterval(()=>{try{if(send()&&writable())reply.raw.write(": keepalive\n\n");}catch{close();}},intervalMs);
   };
   app.get("/api/v1/runs/:id/events", async (req, reply) => {
-    const runId=param(req);engine.status(runId,owner(runId));
-    const page=eventPageQuery(req.query,req.headers["last-event-id"]);
-    streamEvents(req,reply,page.after,after=>repo.events(runId,after,page.limit),event=>event.seq);
+    const runId = param(req);
+    engine.checkRunAccess(runId, owner(runId));
+    const page = eventPageQuery({
+      ...(req.query as Json),
+      after: req.headers["last-event-id"] ?? (req.query as Json).after,
+    });
+    streamEvents(req, reply, page.after, after => repo.events(runId, after, page.limit), event => event.seq, 500);
   });
   app.get("/api/v2/events", async (req,reply) => {
     const q=req.query as Json,after=Number(req.headers["last-event-id"]??q.afterEventId??0);

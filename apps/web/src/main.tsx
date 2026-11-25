@@ -38,12 +38,13 @@ import {
   WorkflowViewport,
 } from "./features/workflows/WorkflowViewport";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
+import { useRunDetail } from "./features/runs/useRunDetail";
 import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
 import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
 import { workflowRequirements } from "../../../packages/contracts/src/workflow-requirements";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
-import { subscribeEvents } from "./shared/v2";
+import { initializeEvents, subscribeEvents } from "./shared/v2";
 import { inCodexWorkspace, readCodexLaunch, workspaceDialog, workspaceHref, workspacePath } from "./shared/codex-workspace";
 import { mergeDraft } from "./shared/draft-merge";
 import { download } from "./shared/download";
@@ -198,7 +199,38 @@ async function api(
   const value = await (await apiResponse(path, method, body, revision, signal)).json();
   return withMeta ? value : value.data;
 }
+const readRunDetail = (path: string, signal: AbortSignal) =>
+  api(path, "GET", undefined, undefined, signal);
 const pretty = (v: J) => JSON.stringify(v, null, 2);
+const listItems = (result: J): J[] => result.data;
+const runPage = (result: J): { data: J[]; meta: { total: number } } => result;
+
+function useWorkspaceList<T>(
+  endpoint: string | null, initial: T, select: (result: J) => T, reportError: (message: string) => void,
+) {
+  const [items, setItems] = useState(initial);
+  const currentEndpoint = useRef(endpoint);
+  const generation = useRef(0);
+  currentEndpoint.current = endpoint;
+  const refresh = useCallback(async () => {
+    const path = currentEndpoint.current;
+    if (!path) return;
+    const request = ++generation.current;
+    const current = () => currentEndpoint.current === path && generation.current === request;
+    try {
+      const result = await api(path, "GET", undefined, undefined, undefined, true);
+      if (current()) setItems(select(result));
+    } catch (error) {
+      if (current()) throw error;
+    }
+  }, [select]);
+  useEffect(() => {
+    void refresh().catch(error => reportError(error.message));
+    return () => { generation.current++; };
+  }, [endpoint, refresh, reportError]);
+  return [items, refresh, setItems] as const;
+}
+
 const uid = () => crypto.randomUUID();
 const isObject = (value: J) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -513,19 +545,46 @@ function App() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => { setNavigationOpen(false); }, [path]);
-  const [sessionEpoch, setSessionEpoch] = useState(0);
-  const [workflows, setWorkflows] = useState<J[]>([]),
-    [connections, setConnections] = useState<J[]>([]),
-    [bindings, setBindings] = useState<J[]>([]),
-    [runs, setRuns] = useState<J[]>([]),
-    [tools, setTools] = useState<J[]>([]);
+  const page = path === resourceBindingsPath ? "resource-bindings" : path.includes("/editor")
+    ? "editor"
+    : path.split("/")[1] === "tools"
+      ? "connections"
+      : (path.split("/")[1] ?? "workflows");
+  const runListVisible = page === "runs" && !/^\/runs\/[^/]+$/.test(path);
+  const [assistantReferencesOpen, setAssistantReferencesOpen] = useState(false);
+  const [runs, setRuns] = useState<J[]>([]);
   const deletedWorkflows = useRef(new Set<string>());
+  const needsWorkflows = ["workflows", "settings"].includes(page) || assistantReferencesOpen;
+  const needsWorkflowsRef = useRef(needsWorkflows);
+  needsWorkflowsRef.current = needsWorkflows;
+  const visibleWorkflows = useCallback((result: J): J[] =>
+    result.data.filter((workflow: J) => !deletedWorkflows.current.has(workflow.id)), []);
+  const [workflows, refreshWorkflows, setWorkflows] = useWorkspaceList(
+    session && needsWorkflows ? "/workflows" : null,
+    [], visibleWorkflows, setError,
+  );
+  const [connections, refreshConnections] = useWorkspaceList(
+    session && ["workflows", "connections", "resource-bindings"].includes(page) ? "/connections" : null,
+    [], listItems, setError,
+  );
+  const [bindings, refreshBindings] = useWorkspaceList(
+    session && ["editor", "resource-bindings"].includes(page) ? "/bindings" : null, [], listItems, setError,
+  );
+  const [tools, refreshTools] = useWorkspaceList(
+    session && ["editor", "connections", "resource-bindings"].includes(page) ? "/tools" : null, [], listItems, setError,
+  );
   const deletionPendingRef = useRef(false);
   const [deletionPending,setDeletionPending] = useState(false);
   const [credentials, setCredentials] = useState<J[]>([]);
   const [runListState, setRunListState] = useState<"pending" | "ready" | { message: string }>("pending");
   const [runsMeta, setRunsMeta] = useState<J>(null),
     [runFilter, setRunFilter] = useState("");
+  const useVisibleRuns = runListVisible && !runFilter;
+  const runReferencePath = assistantReferencesOpen && !useVisibleRuns ? "/runs?limit=50"
+    : page === "workflows" ? "/runs?limit=1" : null;
+  const [recentRuns, refreshRecentRuns] = useWorkspaceList(
+    session ? runReferencePath : null, { data: [], meta: { total: 0 } }, runPage, setError,
+  );
   const runFilterRef = useRef(runFilter),
     runListRequest = useRef(0);
   runFilterRef.current = runFilter;
@@ -535,10 +594,13 @@ function App() {
     [draft, setDraft] = useState<J>(null),
     [dirty, setDirty] = useState(false),
     [selected, setSelected] = useState<string | null>(null),
-    [run, setRun] = useState<J>(null),
     [previewArtifactId, setPreviewArtifactId] = useState<string | null>(null);
-  const [runLoadIssue, setRunLoadIssue] = useState<{ path: string; message: string } | null>(null);
-  const [runReload, setRunReload] = useState(0);
+  const runDetailId = /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2]! : null;
+  const { run, issue: currentRunIssue, refresh: refreshRunDetail } = useRunDetail(
+    session ? runDetailId : null,
+    readRunDetail,
+  );
+  useEffect(() => setPreviewArtifactId(null), [runDetailId]);
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
@@ -673,6 +735,10 @@ function App() {
   }, []);
   const connectWorkspace = useCallback(async () => {
     const currentSession = await openLocalSession();
+    initializeEvents(currentSession.eventCursor, async () => {
+      const recovered = await recoverLocalSession();
+      if (recovered) csrf = recovered.session.csrf;
+    });
     setAuth(await api("/auth/state"));
     setSession(currentSession);
     if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
@@ -709,18 +775,10 @@ function App() {
     },
     [],
   );
-  const load = useCallback(async () => {
-    const runsLoad = loadRuns();
-    const [w, c, b, t] = await Promise.all(
-      ["/workflows", "/connections", "/bindings", "/tools"]
-        .map((p) => api(p)),
-    );
-    setWorkflows(w.filter((workflow:J)=>!deletedWorkflows.current.has(workflow.id)));
-    setConnections(c);
-    setBindings(b);
-    setTools(t);
-    await runsLoad;
-  }, []);
+  const load = async () => {
+    await Promise.all([refreshWorkflows(), refreshConnections(), refreshBindings(), refreshTools(),
+      refreshRecentRuns(), runListVisible && loadRuns()]);
+  };
   const navigate = (next: string, skipDirty = false) => {
     if(deletionPendingRef.current) return false;
     if (!skipDirty && dirty) {
@@ -798,18 +856,16 @@ function App() {
       setModal(null);
       jsonTextCache.current.clear();
     };
-    const restored = () => setSessionEpoch(value => value + 1);
     window.addEventListener("popstate", pop);
-    window.addEventListener("flowhub-session-restored", restored);
     void act(connectWorkspace);
     return () => {
       window.removeEventListener("popstate", pop);
-      window.removeEventListener("flowhub-session-restored", restored);
     };
   }, []);
   useEffect(() => {
-    if (session) void act(load);
-  }, [session]);
+    if (session && runListVisible) void loadRuns();
+    return () => { runListRequest.current++; };
+  }, [session, runListVisible, loadRuns]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 5000);
@@ -1002,27 +1058,76 @@ function App() {
     if(result.conflicts.length)setConflict({...current,fields:result.conflicts,choices});
     else {serverDraftBase.current=structuredClone(current.remote);setConflict(null);}
   };
-  useEffect(()=>{
-    if(!session)return;
-    return subscribeEvents(event=>{
+  const queuedDraft = useRef<J>(null);
+  const scheduleDraftRefresh = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    if (!session) return;
+    let listPending = false, refreshing = false, active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = async () => {
+      timer = undefined;
+      refreshing = true;
+      const reads: Promise<void>[] = [];
+      if (listPending) {
+        listPending = false;
+        reads.push(refreshWorkflows().catch(error => setError(error.message)));
+      }
+      const event = queuedDraft.current;
+      if (event && pathRef.current !== "/workflows/" + event.workflowId + "/editor") queuedDraft.current = null;
+      else if (event && draftRef.current?.id === event.workflowId) {
+        queuedDraft.current = null;
+        reads.push(syncRemoteRef.current(event));
+      }
+      try {
+        await Promise.all(reads);
+      } finally {
+        refreshing = false;
+        if (listPending || (queuedDraft.current && draftRef.current?.id === queuedDraft.current.workflowId))
+          schedule();
+      }
+    };
+    const schedule = () => {
+      if (active && !refreshing && timer === undefined) timer = setTimeout(() => void flush(), 50);
+    };
+    scheduleDraftRefresh.current = schedule;
+    const unsubscribe = subscribeEvents(event => {
       if(event.type==="workflow.deleted") {
         deletedWorkflows.current.add(event.workflowId);
+        if (queuedDraft.current?.workflowId === event.workflowId) queuedDraft.current = null;
         setWorkflows(previous=>previous.filter(w=>w.id!==event.workflowId));
         if(draftRef.current?.id===event.workflowId && pathRef.current.endsWith("/editor"))
           setNotice("该工作流已删除。此处的未保存内容仍保留，可通过“查看 DSL”复制；不能再保存或发布。");
         return;
       }
       if(event.type!=="draft.changed" || deletedWorkflows.current.has(event.workflowId))return;
-      void load();void syncRemoteRef.current(event);
+      if (needsWorkflowsRef.current) listPending = true;
+      if (pathRef.current === "/workflows/" + event.workflowId + "/editor") {
+        const previous = queuedDraft.current?.workflowId === event.workflowId ? queuedDraft.current : null;
+        queuedDraft.current = {
+          ...event,
+          layoutRevision: Math.max(event.layoutRevision ?? 0, previous?.layoutRevision ?? 0),
+          changedNodes: [...new Set([...(previous?.changedNodes ?? []), ...(event.changedNodes ?? [])])],
+        };
+      }
+      if (listPending || queuedDraft.current) schedule();
     });
-  },[session, sessionEpoch]);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      scheduleDraftRefresh.current = undefined;
+      unsubscribe();
+    };
+  }, [session, refreshWorkflows]);
+  // A change can arrive while the editor's first draft request is still in flight.
+  useEffect(() => {
+    if (queuedDraft.current) scheduleDraftRefresh.current?.();
+  }, [draft?.id, path]);
   useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
     const generation = ++routeGeneration.current;
     let active = true;
-    let timer: ReturnType<typeof setInterval> | undefined;
     setConflict(null);
     setFailure(null);
     setError("");
@@ -1053,91 +1158,13 @@ function App() {
         });
       }
     }
-    if (/^\/runs\/[^/]+$/.test(path)) {
-      const key = path.split("/")[2];
-      setRun(null);
-      setPreviewArtifactId(null);
-      setRunLoadIssue(null);
-      let cursor = 0;
-      let events: J[] = [];
-      let refreshing = false;
-      const refresh = async () => {
-        if (refreshing) return;
-        refreshing = true;
-        try {
-          let hasNext = false;
-          do {
-            const detail = await api(
-              "/runs/" + key + "?after=" + cursor,
-              "GET",
-              undefined,
-              undefined,
-              controller.signal,
-            );
-            if (
-              !active ||
-              generation !== routeGeneration.current ||
-              pathRef.current !== path
-            )
-              return;
-            if (detail?.runId !== key)
-              throw new Error("运行详情响应无效。");
-            const additionalEvents = Array.isArray(detail.events) ? detail.events : [];
-            const seen = new Set(events.map((event) => event.seq));
-            events = [
-              ...events,
-              ...additionalEvents.filter((event: J) => !seen.has(event.seq)),
-            ];
-            const nextCursor = detail.eventCursor?.nextAfter ?? events.at(-1)?.seq ?? cursor;
-            hasNext = (detail.eventCursor?.hasMore ?? additionalEvents.length === 200) && nextCursor > cursor;
-            cursor = nextCursor;
-            setRun({ ...detail, events });
-            setRunLoadIssue(null);
-          } while (hasNext && active);
-        } catch (e) {
-          if (active && generation === routeGeneration.current && pathRef.current === path) {
-            const missing = e instanceof UiError && e.status === 404;
-            setRunLoadIssue({
-              path,
-              message: missing ? "这条记录不存在，或已超过保留期限。" : (e as Error).message,
-            });
-            if (missing && timer) clearInterval(timer);
-          }
-        } finally {
-          refreshing = false;
-        }
-      };
-      void refresh();
-      timer = setInterval(refresh, 2000);
-    }
     return () => {
       active = false;
       controller.abort();
-      if (timer) clearInterval(timer);
     };
-  }, [path, session, runReload]);
+  }, [path, session]);
   const refreshRun = async () => {
-    if (run) {
-      const currentPath = pathRef.current;
-      const detail = await api(
-        "/runs/" + run.runId + "?after=" + (run.events.at(-1)?.seq ?? 0),
-      );
-      if (pathRef.current === currentPath)
-        setRun((old: J) =>
-          old?.runId === detail.runId
-            ? {
-                ...detail,
-                events: [
-                  ...old.events,
-                  ...(Array.isArray(detail.events) ? detail.events : []).filter(
-                    (event: J) =>
-                      !old.events.some((known: J) => known.seq === event.seq),
-                  ),
-                ],
-              }
-            : old,
-        );
-    }
+    if (pathRef.current === "/runs/" + run?.runId) await refreshRunDetail();
     await load();
   };
   const currentWorkflow = () => editorRef.current.draft;
@@ -1673,11 +1700,6 @@ function App() {
       return true;
     }, successMessage);
   };
-  const page = path === resourceBindingsPath ? "resource-bindings" : path.includes("/editor")
-    ? "editor"
-    : path.split("/")[1] === "tools"
-      ? "connections"
-      : (path.split("/")[1] ?? "workflows");
   const exampleBindings = bindings.filter(b => b.simulationOnly && exampleBindingIds.has(b.id));
   const regularBindings = bindings.filter(b => !b.simulationOnly || !exampleBindingIds.has(b.id));
   const renderBindingCards = (items: J[]) => (
@@ -1792,9 +1814,7 @@ function App() {
     </div>
   );
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
-  const runDetailId = page === "runs" && /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2] : null;
   const assistantRun = runDetailId && run?.runId === runDetailId ? run : null;
-  const currentRunIssue = runLoadIssue?.path === path ? runLoadIssue.message : null;
   const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(previewArtifactId?{artifactRefs:[previewArtifactId]}:{})}:{};
   const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
   if (!session)
@@ -1851,6 +1871,7 @@ function App() {
               onClick={() =>
                 act(async () => {
                   await load();
+                  if (runDetailId && !(await refreshRunDetail())) return false;
                   setAuth(await api("/auth/state"));
                 }, "状态已刷新")
               }
@@ -1920,7 +1941,7 @@ function App() {
                   ["工作流方案", workflows.length, "将流程沉淀为可复用配置"],
                   ["Gateway MCP", "1", "所有方案共享一个入口"],
                   ["下游连接", connections.length, "独立协议与工具目录"],
-                  ["运行记录", runs.length, "证据、版本与状态可追踪"],
+                  ["运行记录", recentRuns.meta.total, "证据、版本与状态可追踪"],
                 ].map(([label, value, caption]) => (
                   <div className="stat" key={String(label)}>
                     <small>{label}</small>
@@ -3284,7 +3305,7 @@ function App() {
               </section>
             </>
           )}
-          {runDetailId && (!assistantRun || currentRunIssue) && (
+          {runDetailId && !assistantRun && (
             <>
               {!assistantRun && (
                 <PageHead eyebrow="RUN DETAIL" title="运行详情" text={runDetailId}>
@@ -3295,13 +3316,13 @@ function App() {
                 {currentRunIssue ? (
                   <>
                     <p role="alert" className="error">无法读取运行详情。{currentRunIssue}</p>
-                    <button onClick={() => setRunReload(value => value + 1)}>重试读取运行详情</button>
+                    <button onClick={() => void refreshRunDetail()}>重试读取运行详情</button>
                   </>
                 ) : <p role="status">正在读取运行详情…</p>}
               </section>
             </>
           )}
-          {assistantRun && (
+          {run && assistantRun && (
               <>
                 <PageHead
                   eyebrow="RUN DETAIL"
@@ -3325,6 +3346,12 @@ function App() {
                     取消运行
                   </button>
                 </PageHead>
+                {currentRunIssue && (
+                  <div className="banner error" role="alert">
+                    更新运行详情失败。{currentRunIssue}
+                    <button onClick={() => void refreshRunDetail()}>重试读取运行详情</button>
+                  </div>
+                )}
                 <div className="run-summary">
                   <Badge tone={run.state === "SUCCEEDED" ? "green" : "amber"}>
                     {statusLabels[run.state] ?? run.state ?? "状态未记录"}
@@ -3605,7 +3632,8 @@ function App() {
         dirty={dirty}
         openRequest={assistantOpenRequest}
         workflows={workflows}
-        runs={runs}
+        runs={useVisibleRuns ? runs : recentRuns.data}
+        onReferencesChange={setAssistantReferencesOpen}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
         onUnlockVault={openVault}

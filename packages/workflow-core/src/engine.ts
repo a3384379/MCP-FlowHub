@@ -22,6 +22,7 @@ import {
   get,
   pointersOverlap,
   REPORT_HEADINGS,
+  terminalRunStates as terminal,
   type Json,
   type Workflow,
   type Node,
@@ -38,13 +39,6 @@ import { legacyReportHtml, renderReportHtml, reportRenderer } from "./report-htm
 import { businessSummary, classifyBusinessOutput } from "./business-verification.js";
 import { businessStateLabel } from "../../contracts/src/business-verification.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
-const terminal = new Set([
-  "SUCCEEDED",
-  "FAILED",
-  "REJECTED",
-  "CANCELLED",
-  "OUTCOME_UNKNOWN",
-]);
 export class Engine {
   private busy = new Set<string>();
   private pending = new Set<string>();
@@ -197,8 +191,7 @@ export class Engine {
     });
   }
   recover() {
-    for (const run of this.repo.all("runs")) {
-      if (terminal.has(run.state)) continue;
+    for (const run of this.repo.activeRuns()) {
       if (run.state === "WAITING_APPROVAL" || run.snapshot?.workflow?.nodes?.some((node: Node) => node.type === "approval")) {
         // Never resume an old snapshot under changed execution semantics.
         this.repo.tx(() => {
@@ -581,8 +574,7 @@ export class Engine {
           423,
         );
         ensure(
-          this.repo.all("runs").filter((r) => !terminal.has(r.state)).length <
-            100,
+          this.repo.activeRunCount() < 100,
           "BUDGET_EXCEEDED",
           "Too many active runs.",
         );
@@ -654,12 +646,8 @@ export class Engine {
     return true;
   }
   private runStatus(runId: string, owner: string, view: "full" | "checkpoint") {
-    const r = this.owned(runId, owner);
-    this.expireCheckpoint(r);
-    const artifacts = this.repo
-      .all("artifacts")
-      .filter((a) => a.runId === r.id)
-      .map(({ content, ...a }) => a);
+    const r = this.checkRunAccess(runId, owner);
+    const artifacts = this.repo.artifactsForRun(r.id, "summary");
     let checkpoint;
     if (r.checkpoint) {
       const { delivery, tokenHash, argumentsDelivery, hostClaim, inputs, resolvedArguments: legacyArguments, ...info } = r.checkpoint;
@@ -709,8 +697,21 @@ export class Engine {
     };
     return { run: r, summary };
   }
+  checkRunAccess(runId: string, owner = "execution") {
+    const run = this.owned(runId, owner);
+    this.expireCheckpoint(run);
+    return run;
+  }
   status(runId: string, owner = "execution", after = 0, limit = 50) {
     const { run: r, summary } = this.runStatus(runId, owner, "full");
+    const attemptsByNode = new Map<string, { durationMs: number; errorCode?: string }>();
+    for (const attempt of this.repo.attemptsForRun(r.id)) {
+      const elapsed = attempt.finishedAt ? Math.max(0, Date.parse(attempt.finishedAt) - Date.parse(attempt.createdAt)) : 0;
+      attemptsByNode.set(attempt.nodeId, {
+        durationMs: (attemptsByNode.get(attempt.nodeId)?.durationMs ?? 0) + elapsed,
+        errorCode: attempt.errorCode,
+      });
+    }
     return {
       ...summary,
       steps: r.steps,
@@ -719,7 +720,7 @@ export class Engine {
       outputs: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? undefined : this.operationalOutputs(r),
       outputAvailability: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? "VAULT_LOCKED" : "AVAILABLE",
       nodeDetails: (r.snapshot?.workflow?.nodes ?? []).map((node: Node) => {
-        const attempts = this.repo.all("attempts").filter(a => a.runId === r.id && a.nodeId === node.id);
+        const attempts = attemptsByNode.get(node.id);
         let arguments_;
         if (!r.resultsExpiredAt && node.type === "mcp_tool" && r.steps?.[node.id] !== "PENDING" && r.steps?.[node.id] !== "SKIPPED") {
           try { arguments_ = this.resolveArguments(r, node); } catch { /* Historical raw data may need vault unlock. */ }
@@ -733,8 +734,8 @@ export class Engine {
           source: binding ? { name: binding.name, synthetic: binding.simulationOnly === true }
             : receipt,
           arguments: arguments_,
-          durationMs: attempts.reduce((sum, a) => sum + (a.finishedAt ? Math.max(0, Date.parse(a.finishedAt) - Date.parse(a.createdAt)) : 0), 0),
-          errorCode: attempts.at(-1)?.errorCode ?? receipt?.errorCode };
+          durationMs: attempts?.durationMs ?? 0,
+          errorCode: attempts?.errorCode ?? receipt?.errorCode };
       }),
       retryOfRunId: r.retryOfRunId,
     };
@@ -1078,10 +1079,7 @@ export class Engine {
     };
   }
   private evidenceIds(runId: string) {
-    return this.repo
-      .all("artifacts")
-      .filter((a) => a.runId === runId && a.expiresAt > Date.now())
-      .map((a) => a.id);
+    return this.repo.artifactsForRun(runId, "summary", Date.now()).map(a => a.id);
   }
   private validateEvidence(r: Json, payload: Json) {
     const allowed = new Set(this.evidenceIds(r.id));
@@ -1207,7 +1205,8 @@ export class Engine {
       "ARTIFACT_INVALID",
       "Actual Markdown bytes required.",
     );
-    const ids = this.evidenceIds(r.id);
+    const evidence = this.repo.artifactsForRun(r.id, "content", Date.now());
+    const ids = new Set(evidence.map(artifact => artifact.id));
     ensure(
       (payload.evidenceRefs ?? []).every((ref: string) => text.includes(ref)),
       "ARTIFACT_INVALID",
@@ -1215,7 +1214,7 @@ export class Engine {
     );
     const inline = text.match(/art_[a-f0-9-]+/g) ?? [];
     ensure(
-      inline.every((ref: string) => ids.includes(ref)),
+      inline.every((ref: string) => ids.has(ref)),
       "ARTIFACT_INVALID",
       "Report references an unknown artifact.",
     );
@@ -1227,8 +1226,6 @@ export class Engine {
       factualReview: "not_performed",
       businessVerification: businessSummary(r),
     };
-    const evidence = this.repo.all("artifacts").filter((artifact) =>
-      artifact.runId === r.id && artifact.expiresAt > Date.now());
     validateReportEvidence(text, payload.evidenceRefs ?? [], evidence);
     const markdown = this.storeArtifact(
       r,
@@ -1251,9 +1248,7 @@ export class Engine {
   private renderReport(r: Json, n: Node) {
     const input = mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
       analysis = input.analysis ?? {},
-      evidence = this.repo
-        .all("artifacts")
-        .filter((a) => a.runId === r.id && a.expiresAt > Date.now()),
+      evidence = this.repo.artifactsForRun(r.id, "summary", Date.now()),
       tools: Node[] = r.snapshot.workflow.nodes.filter(
         (node: Node) => node.type === "mcp_tool" || node.config.kind === "host_tool",
       ),

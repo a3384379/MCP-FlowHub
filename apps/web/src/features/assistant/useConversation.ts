@@ -54,7 +54,7 @@ const rejected = (error: unknown) => {
 };
 
 /** Mounted once by the app shell, independently of window visibility and route. */
-export function useConversation(api: Api) {
+export function useConversation(api: Api, activated: boolean) {
   const [sessions, setSessions] = useState<Data[]>([]),
     [sessionId, setSessionId] = useState("");
   const [profiles, setProfiles] = useState<Data[]>([]),
@@ -330,6 +330,7 @@ export function useConversation(api: Api) {
     }
   }, [choose, create, loadProfiles, loadSessions]);
   useEffect(() => {
+    if (!activated) return;
     mounted.current = true;
     void initialize();
     const unsubscribe = subscribeEvents(
@@ -388,7 +389,6 @@ export function useConversation(api: Api) {
           void refresh(id).catch((error) => fail(id, error));
         if (event.type.startsWith("task.")) void loadSessions().catch(() => {});
       },
-      undefined,
       (state) => {
         if (!mounted.current) return;
         setConnection(state);
@@ -413,7 +413,7 @@ export function useConversation(api: Api) {
       clearInterval(interval);
       window.removeEventListener("focus", focus);
     };
-  }, [fail, initialize, loadProfiles, loadSessions, patch, refresh]);
+  }, [activated, fail, initialize, loadProfiles, loadSessions, patch, refresh]);
   const selectProfile = (id: string) => {
     setProfileId(id);
     remember("flowhub-assistant-model", id);

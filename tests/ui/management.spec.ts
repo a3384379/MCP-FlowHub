@@ -171,6 +171,50 @@ test("run detail supports loading, retry, sparse history and return to the list"
   }
 });
 
+test("completed run drains its timeline and only refreshes again on request", async ({ page }) => {
+  const cursors: number[] = [];
+  const runId = "completed-paged-run";
+  let streams = 0;
+  let release!: () => void;
+  const blocked = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/runs/" + runId + "/events?*", async route => {
+    streams++;
+    await route.abort();
+  });
+  await page.route("**/api/v1/runs/" + runId + "?after=*", async route => {
+    const after = Number(new URL(route.request().url()).searchParams.get("after"));
+    cursors.push(after);
+    if (cursors.length === 4) await blocked;
+    const nextAfter = Math.min(after + 1, 2);
+    await route.fulfill({ json: { data: {
+      runId,
+      workflowId: "分页合成历史",
+      state: "SUCCEEDED",
+      events: nextAfter > after ? [{ seq: nextAfter, type: "TEST_EVENT_" + nextAfter }] : [],
+      eventCursor: { nextAfter, hasMore: nextAfter < 2 },
+    } } });
+  });
+  await page.goto("/runs/" + runId);
+  await expect(page.getByText("TEST_EVENT_2", { exact: true })).toBeVisible();
+  await page.waitForTimeout(2400); // Longer than the old terminal polling interval.
+  expect(cursors).toEqual([0, 1]);
+  expect(streams).toBe(0);
+  await page.getByRole("button", { name: "↻ 刷新" }).click();
+  await expect.poll(() => cursors).toEqual([0, 1, 2]);
+  await expect(page.getByText("TEST_EVENT_1", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("TEST_EVENT_2", { exact: true })).toHaveCount(1);
+  try {
+    await page.getByRole("button", { name: "返回运行记录" }).click();
+    await expect(page.getByRole("heading", { name: "运行记录", exact: true })).toBeVisible();
+    await page.goBack({ waitUntil: "commit" });
+    await expect(page.getByText("正在读取运行详情…", { exact: true })).toBeVisible();
+    await expect(page.getByText("TEST_EVENT_2", { exact: true })).toHaveCount(0);
+  } finally {
+    release();
+  }
+  await expect(page.getByText("TEST_EVENT_2", { exact: true })).toBeVisible();
+});
+
 test("a pending workspace request shows loading until the workspace opens", async ({
   page,
 }) => {

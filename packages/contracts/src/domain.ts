@@ -24,6 +24,9 @@ export type Workflow = {
   executionRequirements?: Json;
 };
 export type Node = { id: string; title: string; type: string; config: Json };
+export const terminalRunStates: ReadonlySet<string> = new Set([
+  "SUCCEEDED", "FAILED", "REJECTED", "CANCELLED", "OUTCOME_UNKNOWN",
+]);
 export class HubError extends Error {
   constructor(
     public code: string,
