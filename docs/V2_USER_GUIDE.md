@@ -73,6 +73,14 @@ Codex 能力发现页首次扫描本机上下文，后续优先读取完成快�
 - 运行详情区分「Codex 回报」「FlowHub 已记录调用」与 FlowHub 记录的认领过期等本地状态。工具错误可通过 `submission.errorMessage` 提交诊断，凭据内容经过过滤后作为附件保存。
 - 当前工具或授权不可用且请求尚未发出时，恢复条件后可继续同一运行。回执传输异常时重发原报文与幂等键。认领过期或业务工具调用结果未知时，停止自动推进，并对照工具审计记录。旧节点仍接受原来的提交格式。
 
+## 已安装插件任务
+
+在「能力发现」同步 Codex 工具目录，在「插件与关系」打开已安装的插件，选择「添加为插件任务」。选择草稿、插入位置，填写任务目标，然后保存和发布。发布版本冻结插件和可供接力调用的工具。插件或目录变动后，重新同步、核对草稿并发布新版本。
+
+FlowTest-Lite 任务使用 `test` 草稿。通过 Codex 的 FlowTest-Lite `project_list` 与该项目下的 `environment_list` 查出实际 ID，填入两个固定字段。任务说明可给出已保存测试流程的名称或选择标准。若节点映射提供 `workflowId` 或 `runtimeVariables`，Codex 会将这些值用于同一次运行。后续条件可读取 `/status`，例如等于 `passed` 时进入通过分支。其他可用字段为 `runId`、`workflowId`、`projectId`、`environmentId` 和 `failedNodes`。
+
+当前 Codex 会话认领任务，自行选择冻结目录里的工具。FlowHub 校验项目、环境、运行 ID 和终态，并归档 Codex 回传的调用回执。运行记录将这些回执标为宿主回报。其他自定义插件可使用目录中声明为只读的工具，下游可读取最后一次结果的 `resultJson`。插件任务的真实结果通过接力验收，隔离 Mock 将其记为未覆盖。
+
 ## 用例生成与自测
 
 workflow_test_generate(strategy=deterministic) 根据输入 Schema 产生基准用例；agent_proposed 接收 Codex 提供的合成 Fixture 和断言，不需要模型 Key。

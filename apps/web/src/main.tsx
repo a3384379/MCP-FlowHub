@@ -2782,6 +2782,16 @@ function App() {
                             {currentHostContract ? currentHostContract.value?.name ?? "契约暂不可读" : "正在读取冻结契约…"}
                           </p>
                         )}
+                        {node.config.kind === "host_plugin" && (
+                          <div className="lock-card">
+                            <strong>Codex 插件任务 · r{node.config.pluginRef.revision}</strong>
+                            {node.config.scope && <dl>
+                              <dt>固定项目</dt><dd><code>{node.config.scope.projectId}</code></dd>
+                              <dt>固定测试环境</dt><dd><code>{node.config.scope.environmentId}</code></dd>
+                            </dl>}
+                            <p>{node.config.instructions}</p>
+                          </div>
+                        )}
                         {node.config.kind === "host_tool" && node.config.requireHostReceipt && (
                           <ReceiptScopeFields
                             key={"receipt-scopes:" + node.id}
@@ -3392,6 +3402,9 @@ function App() {
                         {node.executor === "hub_direct" && run.steps?.[node.nodeId] === "SUCCEEDED" && " · FlowHub 已记录调用"}
                       </p>}
                       {node.source?.argumentsHash && <p>回执参数摘要 <code>{node.source.argumentsHash}</code></p>}
+                      {node.source?.pluginName && (
+                        <p>{node.source.pluginName} · {(node.source.tools ?? []).map((call: J) => call.tool).join(" → ")}</p>
+                      )}
                       {node.source?.toolCallId && <p>宿主调用 ID <code>{node.source.toolCallId}</code></p>}
                       {node.errorCode && node.source?.artifactId && run.artifacts?.some((artifact: J) => artifact.id === node.source.artifactId) && (
                         <p>失败诊断见运行产物 <code>{node.source.artifactId}</code></p>

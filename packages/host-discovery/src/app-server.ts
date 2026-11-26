@@ -8,8 +8,9 @@ import type { ConfigReadParams } from "./generated/v2/ConfigReadParams.js";
 import type { SkillsListParams } from "./generated/v2/SkillsListParams.js";
 import type { ListMcpServerStatusParams } from "./generated/v2/ListMcpServerStatusParams.js";
 
-// generate-ts on both releases produces the same request types for these methods.
-const supportedVersions = new Set(["0.164.0-alpha.11.1", "0.169.0-alpha.11.1"]);
+// 0.171 adds an optional environmentId to named, thread-bound catalog requests.
+// Discovery still uses the same threadless inventory request.
+const supportedVersions = new Set(["0.164.0-alpha.11.1", "0.169.0-alpha.11.1", "0.171.0-alpha.13.2"]);
 type DiscoveryMethod = "config/read" | "skills/list" | "mcpServerStatus/list";
 
 function resultMatches(method: DiscoveryMethod, value: Json): boolean {

@@ -312,7 +312,7 @@ export class WorkflowTesting {
         this.repo.put("workflow_test_runs",testRunId,{...this.repo.get("workflow_test_runs",testRunId),status:"RUNNING",cases:results});
         this.repo.changed("test.progress",{testRunId,caseId:c.id,status:result.status});
       }
-      const fixtureGaps=results.filter(c=>c.status==="UNCOVERED").map(c=>({caseId:c.id,code:"FIXTURE_MISSING"}));
+      const fixtureGaps=results.filter(c=>c.status==="UNCOVERED").map(c=>({caseId:c.id,code:c.errorCode??"FIXTURE_MISSING"}));
       const branchCoverage=draft.nodes.filter((n:Json)=>n.type==="condition").map((n:Json)=>({nodeId:n.id,true:results.some(r=>r.outputs?.[n.id]===true),false:results.some(r=>r.outputs?.[n.id]===false)}));
       const gaps=[...(scoped?results.flatMap(c=>c.gaps??[]):[]),...fixtureGaps,...branchCoverage.flatMap((branch:Json)=>[true,false].filter(value=>!branch[String(value)]).map(value=>({nodeId:branch.nodeId,branch:String(value),code:"BRANCH_NOT_COVERED",reason:results.some(r=>r.errorCode==="FIXTURE_MISSING")?"MISSING_UPSTREAM_FIXTURE":"NO_SELECTED_CASE_REACHED_BRANCH"})))];
       const summary={passed:results.filter(c=>c.status==="PASSED").length,failed:results.filter(c=>c.status==="FAILED").length,uncovered:fixtureGaps.length,total:results.length};
@@ -354,6 +354,11 @@ export class WorkflowTesting {
     const engine=new Engine(repo,vault,connectors,!scoped);
     this.activeEngines.add(engine);
     try {
+      const pluginTasks = draft.nodes.filter((node: Json) => node.config.kind === "host_plugin");
+      if (pluginTasks.length) {
+        caseGaps.push(...pluginTasks.map((node: Json) => ({nodeId: node.id, code: "HOST_EXECUTION_UNVERIFIED"})));
+        throw new HubError("FIXTURE_MISSING", "Run plugin tasks through the authorized Codex host.");
+      }
       // Only contract metadata is copied; transport, endpoint and all credential references are absent.
       for(const original of snapshot.bindings) {
         const conn=snapshot.connections.find((item:Json)=>item.id===original.connectionId);
