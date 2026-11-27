@@ -14,6 +14,7 @@ import { startDaemon } from "../../apps/daemon/src/index.js";
 import { createLocalHttp } from "../../apps/daemon/src/http.js";
 import type { Json } from "../../packages/contracts/src/domain.js";
 import { legacyReportHtml } from "../../packages/workflow-core/src/report-html.js";
+import type { Engine } from "../../packages/workflow-core/src/engine.js";
 import {
   createClient,
   localHttpTransport,
@@ -179,17 +180,45 @@ async function fixture(t: TestContext, prepare?: (dataDir: string) => Promise<un
   return { daemon, call, api, dataDir, cookie, adminHeaders, token };
 }
 
-async function legacyCredentials(dataDir: string, value?: string) {
+async function legacyCredentials(dataDir: string, value?: string, seed?: (engine: Engine) => void) {
   const daemon = await startDaemon({ dataDir, port: 0 });
   try {
     const { repo, vault } = daemon.engine;
     vault.lock();
     repo.remove("settings", "vault");
     vault.initialize(password);
+    seed?.(daemon.engine);
     return value ? vault.addSecret("Legacy synthetic token", value).id : undefined;
   } finally {
     await daemon.close();
   }
+}
+
+for (const protectedOutput of [false, true]) {
+  test("legacy startup preserves deeply nested run history " + (protectedOutput ? "with" : "without") + " a protected output", async t => {
+    const runId = "run_legacy_deep";
+    const aad = runId + ":output:legacy";
+    const nested = "[".repeat(1100) + "0" + "]".repeat(1100);
+    let body: string;
+    const { daemon, call, adminHeaders } = await fixture(t, dataDir => legacyCredentials(dataDir, undefined, ({ repo, vault }) => {
+      body = JSON.stringify({
+        id: runId, state: "SUCCEEDED", inputs: "nested-fixture",
+        ...(protectedOutput ? { operationalOutputs: { legacy: vault.encrypt("old result", aad) } } : {}),
+      }).replace('"nested-fixture"', nested);
+      repo.db.prepare("INSERT INTO runs(id, revision, body) VALUES (?, 1, ?)").run(runId, body);
+      assert.equal(repo.db.prepare("SELECT json_valid(body) FROM runs WHERE id=?").pluck().get(runId), 0);
+    }));
+    const { repo, vault } = daemon.engine;
+    assert.equal(vault.locked, false);
+    assert.equal(vault.migrationRequired, protectedOutput);
+    assert.equal(repo.db.prepare("SELECT body FROM runs WHERE id=?").pluck().get(runId), body!);
+    if (protectedOutput) {
+      const envelope = repo.get("runs", runId).operationalOutputs.legacy;
+      assert.throws(() => vault.decrypt(envelope, aad), { code: "CREDENTIAL_LOCKED" });
+      assert.equal((await call("/api/v1/credentials/migrate", { password }, adminHeaders)).status, 200);
+      assert.equal(vault.decrypt(envelope, aad), "old result");
+    }
+  });
 }
 
 test("a protected legacy workspace migrates once and reopens the same credentials after restart", async t => {

@@ -69,16 +69,39 @@ export class Vault {
     return meta?.version === 3 ? !meta.legacy.wrappedKey : meta?.version === 1 && this.locked;
   }
   private hasProtectedRecords() {
-    return !!this.repo.db.prepare(`
+    const protectedRecord = this.repo.db.prepare(`
       SELECT 1 WHERE EXISTS (SELECT 1 FROM secrets)
-        OR EXISTS (SELECT 1 FROM runs WHERE
+        OR EXISTS (SELECT 1 FROM runs WHERE CASE WHEN json_valid(body) THEN
           json_type(body, '$.checkpoint.delivery') = 'object' OR
           json_type(body, '$.checkpoint.argumentsDelivery') = 'object' OR
           json_type(body, '$.checkpoint.hostClaim.delivery') = 'object' OR
-          EXISTS (SELECT 1 FROM json_each(runs.body, '$.operationalOutputs')))
-        OR EXISTS (SELECT 1 FROM assistant_tasks WHERE json_type(body, '$.providerContinuation') = 'object')
-        OR EXISTS (SELECT 1 FROM assistant_tool_calls WHERE json_type(body, '$.result.checkpoint.tokenDelivery') = 'object')
+          EXISTS (SELECT 1 FROM json_each(runs.body, '$.operationalOutputs'))
+          ELSE 0 END)
+        OR EXISTS (SELECT 1 FROM assistant_tasks WHERE CASE WHEN json_valid(body) THEN
+          json_type(body, '$.providerContinuation') = 'object' ELSE 0 END)
+        OR EXISTS (SELECT 1 FROM assistant_tool_calls WHERE CASE WHEN json_valid(body) THEN
+          json_type(body, '$.result.checkpoint.tokenDelivery') = 'object' ELSE 0 END)
     `).get();
+    if (protectedRecord) return true;
+    // SQLite rejects deeply nested business JSON that the workspace supports.
+    // Check only those rows in JavaScript and leave the stored bytes untouched.
+    const deepRecords = this.repo.db.prepare(`
+      SELECT 'run' AS kind, body FROM runs WHERE NOT json_valid(body)
+      UNION ALL SELECT 'task', body FROM assistant_tasks WHERE NOT json_valid(body)
+      UNION ALL SELECT 'receipt', body FROM assistant_tool_calls WHERE NOT json_valid(body)
+    `).iterate() as Iterable<{ kind: "run" | "task" | "receipt"; body: string }>;
+    const isEnvelope = (value: Json) => value !== null && typeof value === "object" && !Array.isArray(value);
+    for (const { kind, body } of deepRecords) {
+      const record = JSON.parse(body);
+      if (kind === "task" && isEnvelope(record.providerContinuation)) return true;
+      if (kind === "receipt" && isEnvelope(record.result?.checkpoint?.tokenDelivery)) return true;
+      if (kind === "run") {
+        const cp = record.checkpoint;
+        if ([cp?.delivery, cp?.argumentsDelivery, cp?.hostClaim?.delivery].some(isEnvelope) ||
+          Object.keys(record.operationalOutputs ?? {}).length) return true;
+      }
+    }
+    return false;
   }
   private saveLocalKey(key: Buffer, legacy?: { salt: string; verifier: Json }) {
     this.key = key;
