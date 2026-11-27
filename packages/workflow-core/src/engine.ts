@@ -22,6 +22,7 @@ import {
   get,
   pointersOverlap,
   REPORT_HEADINGS,
+  terminalRunStates as terminal,
   type Json,
   type Workflow,
   type Node,
@@ -38,13 +39,7 @@ import { legacyReportHtml, renderReportHtml, reportRenderer } from "./report-htm
 import { businessSummary, classifyBusinessOutput } from "./business-verification.js";
 import { businessStateLabel } from "../../contracts/src/business-verification.js";
 import { workflowRequirements } from "../../contracts/src/workflow-requirements.js";
-const terminal = new Set([
-  "SUCCEEDED",
-  "FAILED",
-  "REJECTED",
-  "CANCELLED",
-  "OUTCOME_UNKNOWN",
-]);
+import { freezePluginTask, pluginOutput, validatePluginInputs } from "./host-plugin.js";
 export class Engine {
   private busy = new Set<string>();
   private pending = new Set<string>();
@@ -197,8 +192,7 @@ export class Engine {
     });
   }
   recover() {
-    for (const run of this.repo.all("runs")) {
-      if (terminal.has(run.state)) continue;
+    for (const run of this.repo.activeRuns()) {
       if (run.state === "WAITING_APPROVAL" || run.snapshot?.workflow?.nodes?.some((node: Node) => node.type === "approval")) {
         // Never resume an old snapshot under changed execution semantics.
         this.repo.tx(() => {
@@ -263,9 +257,17 @@ export class Engine {
     this.repo.put("workflows", w.workflowId, next, old?.revision);
     return next;
   }
-  validateDraft(w: Workflow, capabilities?: Json[]) {
+  validateDraft(w: Workflow, capabilities?: Json[], pluginTasks?: Record<string, Json>) {
     validateWorkflowDocument(w);
     const hostInputs = new Map<string, Json>();
+    for (const node of w.nodes.filter(node => node.config.kind === "host_plugin")) {
+      ensure(w.mode === "guided", "HOST_CAPABILITY_UNAVAILABLE", "Installed plugin tasks require a guided workflow.");
+      ensure(node.config.profile !== "flowtest_lite" || w.environment === "test",
+        "ENVIRONMENT_OVERRIDE_DENIED", "FlowTest-Lite tasks require the test environment.");
+      if (pluginTasks) ensure(Object.hasOwn(pluginTasks, node.id),
+        "HOST_CAPABILITY_UNAVAILABLE", "The published plugin task is missing.");
+      else freezePluginTask(this.repo, node);
+    }
     for (const n of w.nodes) if (w.schemaVersion === "flowhub.workflow/v2" && n.config.kind === "host_tool") {
       const ref = n.config.capabilityRef;
       const cap = ref && (capabilities ? capabilities.find((item:Json)=>item&&item.capabilityId===ref.capabilityId&&(item.capabilityRevision??item.revision)===ref.revision)
@@ -313,9 +315,14 @@ export class Engine {
       const bindingSnapshot = Object.values(wf.draft.bindings).map((ref) =>
         clone(this.repo.get("bindings", String(ref))),
       );
+      const pluginTasks = Object.fromEntries(
+        wf.draft.nodes.filter((node: Node) => node.config.kind === "host_plugin")
+          .map((node: Node) => [node.id, freezePluginTask(this.repo, node)]),
+      );
       const snapshot = {
         workflow: clone(wf.draft),
         bindings: bindingSnapshot,
+        ...(Object.keys(pluginTasks).length ? { pluginTasks } : {}),
         ...(wf.draft.schemaVersion === "flowhub.workflow/v2" ? { capabilities: wf.draft.nodes.flatMap((n: Node) => {
           const ref=n.config.capabilityRef;
           if (!ref) return [];
@@ -552,7 +559,7 @@ export class Engine {
         );
         const v = this.version(String(args.workflowId), String(args.version)),
           w: Workflow = v.snapshot.workflow;
-        this.validateDraft(w,w.schemaVersion==="flowhub.workflow/v2"?v.snapshot.capabilities??[]:undefined);
+        this.validateDraft(w,w.schemaVersion==="flowhub.workflow/v2"?v.snapshot.capabilities??[]:undefined, v.snapshot.pluginTasks ?? {});
         this.bindingsReady(v.snapshot);
         ensure(
           args.mode === w.mode,
@@ -581,8 +588,7 @@ export class Engine {
           423,
         );
         ensure(
-          this.repo.all("runs").filter((r) => !terminal.has(r.state)).length <
-            100,
+          this.repo.activeRunCount() < 100,
           "BUDGET_EXCEEDED",
           "Too many active runs.",
         );
@@ -654,32 +660,32 @@ export class Engine {
     return true;
   }
   private runStatus(runId: string, owner: string, view: "full" | "checkpoint") {
-    const r = this.owned(runId, owner);
-    this.expireCheckpoint(r);
-    const artifacts = this.repo
-      .all("artifacts")
-      .filter((a) => a.runId === r.id)
-      .map(({ content, ...a }) => a);
+    const r = this.checkRunAccess(runId, owner);
+    const artifacts = this.repo.artifactsForRun(r.id, "summary");
+    const legacyOutputs = Object.values(r.operationalOutputs ?? {});
+    const outputsAvailable = legacyOutputs.every(envelope => this.vault.canDecrypt(envelope));
     let checkpoint;
     if (r.checkpoint) {
       const { delivery, tokenHash, argumentsDelivery, hostClaim, inputs, resolvedArguments: legacyArguments, ...info } = r.checkpoint;
       const hostTool = info.kind === "host_tool";
-      const resolvedArguments = hostTool && !this.vault.locked
+      const tokenAvailable = this.vault.canDecrypt(delivery);
+      const argumentsAvailable = argumentsDelivery ? this.vault.canDecrypt(argumentsDelivery) : tokenAvailable;
+      const resolvedArguments = hostTool && argumentsAvailable
         ? this.hostArguments(r, { id: info.id, argumentsDelivery, resolvedArguments: legacyArguments })
         : undefined;
       checkpoint = {
         ...info,
-        ...(!this.vault.locked
-          ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) }
-          : {}),
+        ...(tokenAvailable ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) } : {}),
+        ...(!this.vault.locked && (!tokenAvailable || !argumentsAvailable || !outputsAvailable)
+          ? { legacyDataUnavailable: true } : {}),
         ...(hostClaim ? { claimedAt: hostClaim.claimedAt } : {}),
         ...(hostTool ? {
-          inputs: view === "full" ? resolvedArguments ?? (!this.vault.locked ? inputs : undefined) : undefined,
+          inputs: view === "full" ? resolvedArguments ?? (argumentsAvailable ? inputs : undefined) : undefined,
           resolvedArguments,
-        } : Object.keys(r.operationalOutputs ?? {}).length ? {
-          inputs: this.vault.locked ? undefined : mappings(
+        } : legacyOutputs.length ? {
+          inputs: outputsAvailable ? mappings(
             r.snapshot.workflow.nodes.find((node: Node) => node.id === info.nodeId)?.config.inputMappings,
-            r.inputs, this.operationalOutputs(r)),
+            r.inputs, this.operationalOutputs(r)) : undefined,
         } : { inputs }),
         availableEvidence: artifacts,
         ...(view === "full" || info.kind === "host_skill" ? { nodeOutcomes: r.steps } : {}),
@@ -707,19 +713,32 @@ export class Engine {
       vaultLocked: this.vault.locked,
       createdAt: r.createdAt,
     };
-    return { run: r, summary };
+    return { run: r, summary, outputsAvailable };
+  }
+  checkRunAccess(runId: string, owner = "execution") {
+    const run = this.owned(runId, owner);
+    this.expireCheckpoint(run);
+    return run;
   }
   status(runId: string, owner = "execution", after = 0, limit = 50) {
-    const { run: r, summary } = this.runStatus(runId, owner, "full");
+    const { run: r, summary, outputsAvailable } = this.runStatus(runId, owner, "full");
+    const attemptsByNode = new Map<string, { durationMs: number; errorCode?: string }>();
+    for (const attempt of this.repo.attemptsForRun(r.id)) {
+      const elapsed = attempt.finishedAt ? Math.max(0, Date.parse(attempt.finishedAt) - Date.parse(attempt.createdAt)) : 0;
+      attemptsByNode.set(attempt.nodeId, {
+        durationMs: (attemptsByNode.get(attempt.nodeId)?.durationMs ?? 0) + elapsed,
+        errorCode: attempt.errorCode,
+      });
+    }
     return {
       ...summary,
       steps: r.steps,
       events: this.repo.events(r.id, after, limit),
       inputs: r.inputs,
-      outputs: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? undefined : this.operationalOutputs(r),
-      outputAvailability: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? "VAULT_LOCKED" : "AVAILABLE",
+      outputs: outputsAvailable ? this.operationalOutputs(r) : undefined,
+      outputAvailability: outputsAvailable ? "AVAILABLE" : "VAULT_LOCKED",
       nodeDetails: (r.snapshot?.workflow?.nodes ?? []).map((node: Node) => {
-        const attempts = this.repo.all("attempts").filter(a => a.runId === r.id && a.nodeId === node.id);
+        const attempts = attemptsByNode.get(node.id);
         let arguments_;
         if (!r.resultsExpiredAt && node.type === "mcp_tool" && r.steps?.[node.id] !== "PENDING" && r.steps?.[node.id] !== "SKIPPED") {
           try { arguments_ = this.resolveArguments(r, node); } catch { /* Historical raw data may need vault unlock. */ }
@@ -733,8 +752,8 @@ export class Engine {
           source: binding ? { name: binding.name, synthetic: binding.simulationOnly === true }
             : receipt,
           arguments: arguments_,
-          durationMs: attempts.reduce((sum, a) => sum + (a.finishedAt ? Math.max(0, Date.parse(a.finishedAt) - Date.parse(a.createdAt)) : 0), 0),
-          errorCode: attempts.at(-1)?.errorCode ?? receipt?.errorCode };
+          durationMs: attempts?.durationMs ?? 0,
+          errorCode: attempts?.errorCode ?? receipt?.errorCode };
       }),
       retryOfRunId: r.retryOfRunId,
     };
@@ -750,7 +769,14 @@ export class Engine {
       : run.snapshot.simulationOnly ? "synthetic_fixture" : "host_reported";
     const receipt = {
       executor: "codex_host", origin, verification, checkpointId: checkpoint.id, nodeId: checkpoint.nodeId,
-      capabilityRef: checkpoint.capabilityRef, toolName: checkpoint.capability?.name,
+      ...(checkpoint.capabilityRef ? { capabilityRef: checkpoint.capabilityRef } : {}),
+      ...(checkpoint.capability?.name ? { toolName: checkpoint.capability.name } : {}),
+      ...(checkpoint.pluginTask ? {
+        pluginRef: checkpoint.pluginTask.pluginRef,
+        pluginName: checkpoint.pluginTask.name,
+        taskHash: checkpoint.taskHash,
+        ...(submission?.calls ? { tools: submission.calls.map((call: Json) => ({ server: call.server, tool: call.tool })) } : {}),
+      } : {}),
       ...(checkpoint.argumentsHash ? { argumentsHash: checkpoint.argumentsHash } : {}),
       ...(submission?.toolCallId ? { toolCallId: submission.toolCallId } : {}),
       ...(submission?.evidenceRefs?.length ? { evidenceRefs: submission.evidenceRefs } : {}),
@@ -761,7 +787,8 @@ export class Engine {
     };
     run.hostReported ??= {};
     run.hostReported[checkpoint.nodeId] = receipt;
-    this.repo.event(run.id, errorCode ? "HOST_TOOL_FAILED" : "HOST_TOOL_REPORTED", receipt);
+    const event = checkpoint.pluginTask ? "HOST_PLUGIN" : "HOST_TOOL";
+    this.repo.event(run.id, event + (errorCode ? "_FAILED" : "_REPORTED"), receipt);
     return receipt;
   }
   private failHostCall(run: Json, checkpoint: Json, code: string, submission?: Json) {
@@ -846,15 +873,23 @@ export class Engine {
             (n: Node) => n.id === r.current,
           ),
           submission = args.submission as Json;
-        const hostSubmission = ["host_tool_claim", "host_tool_result", "host_tool_failure"].includes(submission.type);
+        const pluginTask = cp.pluginTask;
+        const pluginSubmission = ["host_plugin_result", "host_plugin_failure"].includes(submission.type);
+        const hostSubmission = pluginSubmission || ["host_tool_claim", "host_tool_result", "host_tool_failure"].includes(submission.type);
         if (!cp.hostClaim || submission.type === "host_tool_claim") this.bindingsReady(r.snapshot);
         if (hostSubmission || cp.requireHostReceipt || cp.hostClaim) {
-          ensure(n.config.kind === "host_tool" && cp.argumentsHash && hostSubmission && !claimId,
-            "HOST_RECEIPT_REQUIRED", "Submit a structured receipt for the current Codex tool checkpoint.", 409);
+          const correctKind = pluginTask
+            ? (pluginSubmission || submission.type === "host_tool_claim")
+            : n.config.kind === "host_tool" && cp.argumentsHash && !pluginSubmission;
+          ensure(correctKind && hostSubmission && !claimId,
+            "HOST_RECEIPT_REQUIRED", "Submit a structured receipt for the current Codex checkpoint.", 409);
           if (submission.type === "host_tool_claim") {
             ensure(!cp.hostClaim, "CHECKPOINT_CLAIMED", "This host checkpoint is already claimed.", 409);
-            ensure(r.toolCalls < r.snapshot.workflow.budgets.maxToolCalls,
+            const minimumCalls = pluginTask?.profile === "flowtest_lite" ? 2 : 1;
+            ensure(r.toolCalls + minimumCalls <= r.snapshot.workflow.budgets.maxToolCalls,
               "BUDGET_EXCEEDED", "Tool call budget exhausted before the host claim.");
+            if (pluginTask) ensure(hash(freezePluginTask(this.repo, n)) === hash(pluginTask),
+              "HOST_CONTRACT_MISMATCH", "The installed plugin or tool catalog changed since publication.", 409);
             const hostClaimId = id("claim");
             cp.hostClaim = {
               hash: hash(hostClaimId),
@@ -864,18 +899,31 @@ export class Engine {
             cp.expectedRevision = ++r.revision;
             r.updatedAt = now();
             this.repo.put("runs", r.id, r);
-            this.repo.event(r.id, "HOST_TOOL_CLAIMED", { nodeId: n.id, checkpointId: cp.id, argumentsHash: cp.argumentsHash });
+            this.repo.event(r.id, pluginTask ? "HOST_PLUGIN_CLAIMED" : "HOST_TOOL_CLAIMED", {
+              nodeId: n.id, checkpointId: cp.id, ...(pluginTask ? { taskHash: cp.taskHash } : { argumentsHash: cp.argumentsHash }),
+            });
             return { runId: r.id, state: r.state, acceptedRevision: r.revision, claimCheckpointId: cp.id };
           }
           ensure(cp.hostClaim?.hash === hash(submission.claimId),
             "CHECKPOINT_CLAIMED", "The receipt must provide the active claim ID.", 409);
-          ensure(submission.capabilityId === cp.capabilityRef.capabilityId &&
-            submission.capabilityRevision === cp.capabilityRef.revision && submission.argumentsHash === cp.argumentsHash,
+          const matches = pluginTask
+            ? submission.pluginId === pluginTask.pluginRef.pluginId &&
+              submission.pluginRevision === pluginTask.pluginRef.revision && submission.taskHash === cp.taskHash
+            : submission.capabilityId === cp.capabilityRef.capabilityId &&
+              submission.capabilityRevision === cp.capabilityRef.revision && submission.argumentsHash === cp.argumentsHash;
+          ensure(matches,
             "HOST_RECEIPT_MISMATCH", "Receipt identity, revision or argument digest differs from the checkpoint.", 409);
-          if (submission.type === "host_tool_failure") return this.failHostCall(r, cp, submission.code, submission);
+          if (submission.type === "host_tool_failure" || submission.type === "host_plugin_failure")
+            return this.failHostCall(r, cp, submission.code, submission);
         }
         let payload: Json;
-        if (submission.type === "host_skill_unavailable") {
+        if (pluginTask) {
+          ensure(Array.isArray(submission.calls) && submission.calls.length > 0 && submission.calls.length <= 32 &&
+            r.toolCalls + submission.calls.length <= r.snapshot.workflow.budgets.maxToolCalls,
+          "BUDGET_EXCEEDED", "The plugin receipt exceeds the tool call budget.", 409);
+          payload = pluginOutput(pluginTask, cp.inputs, submission.calls);
+          validate(n.config.outputSchema, payload, "HOST_RECEIPT_SCHEMA_INVALID");
+        } else if (submission.type === "host_skill_unavailable") {
           ensure(
             n.config.kind === "host_skill" &&
               n.config.fallbackTemplateRef === "incident-markdown/v1" &&
@@ -902,7 +950,7 @@ export class Engine {
         }
         if (hostSubmission) {
           this.validateEvidenceRefs(r, submission.evidenceRefs);
-          r.toolCalls++;
+          r.toolCalls += pluginTask ? submission.calls.length : 1;
         } else this.validateEvidence(r, payload);
         this.storeOutput(r, n.id, payload);
         const business = this.recordBusinessOutput(r, n, payload);
@@ -912,9 +960,9 @@ export class Engine {
         r.nodeExecutors ??= {};
         r.nodeExecutors[n.id] = submission.type === "host_skill_unavailable" ? "hub_template"
           : claimId ? "assistant_local" : "codex_host";
-        if (n.config.kind === "host_tool") {
+        if (n.config.kind === "host_tool" || pluginTask) {
           const evidence = hostSubmission ? this.storeArtifact(
-            r, n.id, JSON.stringify(payload), "application/json", {
+            r, n.id, JSON.stringify(pluginTask ? submission.calls : payload), "application/json", {
               contentStored: true, executor: "codex_host",
               verification: r.snapshot.simulationOnly ? "synthetic_fixture" : "host_reported",
             },
@@ -1078,10 +1126,7 @@ export class Engine {
     };
   }
   private evidenceIds(runId: string) {
-    return this.repo
-      .all("artifacts")
-      .filter((a) => a.runId === runId && a.expiresAt > Date.now())
-      .map((a) => a.id);
+    return this.repo.artifactsForRun(runId, "summary", Date.now()).map(a => a.id);
   }
   private validateEvidence(r: Json, payload: Json) {
     const allowed = new Set(this.evidenceIds(r.id));
@@ -1207,7 +1252,8 @@ export class Engine {
       "ARTIFACT_INVALID",
       "Actual Markdown bytes required.",
     );
-    const ids = this.evidenceIds(r.id);
+    const evidence = this.repo.artifactsForRun(r.id, "content", Date.now());
+    const ids = new Set(evidence.map(artifact => artifact.id));
     ensure(
       (payload.evidenceRefs ?? []).every((ref: string) => text.includes(ref)),
       "ARTIFACT_INVALID",
@@ -1215,7 +1261,7 @@ export class Engine {
     );
     const inline = text.match(/art_[a-f0-9-]+/g) ?? [];
     ensure(
-      inline.every((ref: string) => ids.includes(ref)),
+      inline.every((ref: string) => ids.has(ref)),
       "ARTIFACT_INVALID",
       "Report references an unknown artifact.",
     );
@@ -1227,8 +1273,6 @@ export class Engine {
       factualReview: "not_performed",
       businessVerification: businessSummary(r),
     };
-    const evidence = this.repo.all("artifacts").filter((artifact) =>
-      artifact.runId === r.id && artifact.expiresAt > Date.now());
     validateReportEvidence(text, payload.evidenceRefs ?? [], evidence);
     const markdown = this.storeArtifact(
       r,
@@ -1251,9 +1295,7 @@ export class Engine {
   private renderReport(r: Json, n: Node) {
     const input = mappings(n.config.inputMappings, r.inputs, this.operationalOutputs(r)),
       analysis = input.analysis ?? {},
-      evidence = this.repo
-        .all("artifacts")
-        .filter((a) => a.runId === r.id && a.expiresAt > Date.now()),
+      evidence = this.repo.artifactsForRun(r.id, "summary", Date.now()),
       tools: Node[] = r.snapshot.workflow.nodes.filter(
         (node: Node) => node.type === "mcp_tool" || node.config.kind === "host_tool",
       ),
@@ -1531,6 +1573,7 @@ export class Engine {
           const token = randomBytes(32).toString("hex"),
             cpId = id("cp");
           const hostTool = n.config.kind === "host_tool";
+          const pluginTask = n.config.kind === "host_plugin" ? r.snapshot.pluginTasks[n.id] : undefined;
           const capability = n.config.capabilityRef && r.snapshot.capabilities?.find((c: Json) =>
             c && c.capabilityId === n.config.capabilityRef.capabilityId && (c.capabilityRevision ?? c.revision) === n.config.capabilityRef.revision);
           const inputSchema = hostTool ? this.hostCapability(r.snapshot, n).inputSchema : undefined;
@@ -1539,6 +1582,7 @@ export class Engine {
             return Array.isArray(type) ? type.includes("array") : type === "array";
           }));
           if (hostTool) validate(inputSchema, args);
+          if (pluginTask) validatePluginInputs(pluginTask, args);
           r.revision++;
           r.checkpoint = {
             id: cpId,
@@ -1553,6 +1597,10 @@ export class Engine {
               argumentsDelivery: this.vault.encrypt(JSON.stringify(args), r.id + ":arguments:" + cpId),
               requireHostReceipt: n.config.requireHostReceipt === true,
             } : { inputs: args }),
+            ...(pluginTask ? {
+              pluginTask, taskHash: hash([pluginTask, args, n.config.instructions, n.config.outputSchema]),
+              requireHostReceipt: true, remainingToolCalls: Math.min(32, w.budgets.maxToolCalls - r.toolCalls),
+            } : {}),
             reportContract: n.config.kind === "host_skill" ? REPORT_HEADINGS : undefined,
             requiredOutputSchema: hostTool ? capability.outputSchema : n.config.outputSchema,
             expiresAt: Date.now() + 86400000,

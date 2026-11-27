@@ -41,7 +41,6 @@ async function verifySchemaSafety(cleanups: Cleanup[]) {
     await daemon.close();
     await rm(dataDir, { recursive: true, force: true });
   });
-  engine.vault.initialize("Synthetic-schema-regression-922");
   for (const pattern of attacks) {
     const w = structuredClone(
       engine.repo.get("workflows", "incident-staging").draft,

@@ -25,6 +25,6 @@ export function modelErrorHint(code: string): string {
     MODEL_OUTPUT_INVALID: "模型服务没有返回有效的目录或响应数据。",
     MODEL_CREDENTIAL_SCOPE_MISMATCH: "切换服务地址后请重新填写对应服务的 API Key；原 Key 会继续保留。",
     MODEL_NOT_CONFIGURED: "请先填写 API Key，或编辑已有且已配置 Key 的模型。",
-    CREDENTIAL_LOCKED: "本机凭据库已锁定，请先解锁后重试；已保存的 Key 仍保留。",
+    CREDENTIAL_LOCKED: "可在「模型设置」重新填写 Key，或在「系统设置」恢复旧版数据。",
   } as Record<string, string>)[code] ?? "请检查模型设置后重试。";
 }

@@ -207,7 +207,7 @@ test("external MOCK_VERIFIED results cannot bypass locked-vault execution protec
   const run = start();
   await seen;
   assert.ok(engine.repo.get("runs", run.runId).dispatch);
-  await api("/vault/lock", {});
+  engine.vault.lock();
   release();
   const unknown = await wait(engine, run.runId, "OUTCOME_UNKNOWN");
   assert.equal(unknown.waitingReason, "CREDENTIAL_LOCKED");
@@ -227,7 +227,7 @@ test("external MOCK_VERIFIED results cannot bypass locked-vault execution protec
   const afterUnknown = calls;
   await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(calls, afterUnknown);
-  engine.vault.unlock(password);
+  engine.vault.openLocal();
   hold = false;
   const fresh = await wait(engine, start().runId, "SUCCEEDED");
   const artifact = engine.repo
@@ -244,7 +244,7 @@ test("built-in synthetic MCP remains usable with a locked vault when no credenti
     await daemon.close();
     await rm(dataDir, { recursive: true, force: true });
   });
-  assert.equal(engine.vault.locked, true);
+  engine.vault.lock();
   assert.equal(engine.repo.all("secrets").length, 0);
   const w = structuredClone(
     engine.repo.get("workflows", "incident-staging").draft,

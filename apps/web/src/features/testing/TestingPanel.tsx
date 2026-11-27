@@ -54,11 +54,12 @@ export function TestingPanel({api,workflowId,revision}:{api:Api;workflowId:strin
   },[workflowId]);
   useEffect(()=>{
     let live=true;setAllowedBindingIds([]);
+    if (mode === "mock") return;
     void Promise.all([call("/workflows/"+encodeURIComponent(workflowId)+"/draft"),api("/bindings")]).then(([draft,all])=>{
       if(!live)return;const referenced=new Set<string>(draft.draft.nodes.filter((node:any)=>node.type==="mcp_tool").map((node:any)=>draft.draft.bindings[node.config.bindingKey]).filter((id:any)=>typeof id==="string"));
       setBindings([...referenced].map(id=>all.find((binding:any)=>binding.id===id)??{id,missing:true}));
     }).catch(e=>{if(live)setError(e.message);});return()=>{live=false;};
-  },[workflowId,revision]);
+  },[workflowId,revision,mode]);
   useEffect(()=>{
     if(strategy!=="ai_assisted")return;let live=true;
     void call("/model-profiles").then(list=>{if(live)setProfiles(list.filter((profile:any)=>!profile.disabled));}).catch(e=>{if(live)setError(e.message);});

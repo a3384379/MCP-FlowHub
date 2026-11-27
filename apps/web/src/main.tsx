@@ -23,8 +23,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import "./style.css";
 import incidentTemplateSource from "../../../examples/incident-staging.json?raw";
+import exampleBindingSource from "../../../examples/bindings.example.json?raw";
 import { FloatingAssistant } from "./features/assistant/FloatingAssistant";
-import { CredentialLibrary } from "./features/settings/CredentialLibrary";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { TestingPanel } from "./features/testing/TestingPanel";
 import { RunAnalysisControl } from "./features/workflows/RunAnalysisControl";
@@ -38,12 +38,13 @@ import {
   WorkflowViewport,
 } from "./features/workflows/WorkflowViewport";
 import { RunArtifacts } from "./features/runs/RunArtifacts";
+import { useRunDetail } from "./features/runs/useRunDetail";
 import { RunBusinessOutcome, RunContinuation } from "./features/runs/RunOutcome";
 import { ExecutionEvidence, ExecutionRequirements } from "./features/workflows/ExecutionRequirements";
 import { workflowRequirements } from "../../../packages/contracts/src/workflow-requirements";
 import { CapabilityPicker } from "./features/workflows/CapabilityPicker";
 import { DeletedWorkflowNotice } from "./features/workflows/DeletedWorkflowNotice";
-import { subscribeEvents } from "./shared/v2";
+import { initializeEvents, subscribeEvents } from "./shared/v2";
 import { inCodexWorkspace, readCodexLaunch, workspaceDialog, workspaceHref, workspacePath } from "./shared/codex-workspace";
 import { mergeDraft } from "./shared/draft-merge";
 import { download } from "./shared/download";
@@ -52,7 +53,7 @@ import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
 import type { DiscoveryDestination } from "./features/discovery/issue-actions";
 import { SettingsIntegration } from "./SettingsIntegration";
 import { AppSidebar, NavigationIcon } from "./features/navigation/AppSidebar";
-import { navigationForPage, navigationLabel } from "./features/navigation/navigation";
+import { navigationForPage, navigationLabel, normalizeWorkspacePath, resourceBindingsPath } from "./features/navigation/navigation";
 import {
   ConnectionForm,
   BindingForm,
@@ -62,6 +63,9 @@ import {
 } from "./ConnectionBindingForms";
 type J = any;
 const compactEditorMedia = "(max-width: 1300px)";
+const exampleBindingIds = new Set<string>(
+  JSON.parse(exampleBindingSource).bindings.map((binding: { bindingRef: string }) => binding.bindingRef),
+);
 const retentionScopeKeys = ["runs", "resultRuns", "checkpoints", "artifacts", "assistantResultTasks", "assistantResultMessages", "assistantLegacyResultMessages", "assistantResultToolCalls", "assistantResultSessions", "assistantTasks", "assistantMessages", "assistantToolCalls", "assistantSessions", "workflowTestResultRuns", "workflowTestRuns", "applicationResultEvents", "applicationEvents"];
 const retentionPreview = (value: J) => ({...value, ...Object.fromEntries(retentionScopeKeys.map(key=>[key,Array.isArray(value[key])?value[key]:[]]))});
 const editorTextVersions = new WeakMap<
@@ -195,7 +199,38 @@ async function api(
   const value = await (await apiResponse(path, method, body, revision, signal)).json();
   return withMeta ? value : value.data;
 }
+const readRunDetail = (path: string, signal: AbortSignal) =>
+  api(path, "GET", undefined, undefined, signal);
 const pretty = (v: J) => JSON.stringify(v, null, 2);
+const listItems = (result: J): J[] => result.data;
+const runPage = (result: J): { data: J[]; meta: { total: number } } => result;
+
+function useWorkspaceList<T>(
+  endpoint: string | null, initial: T, select: (result: J) => T, reportError: (message: string) => void,
+) {
+  const [items, setItems] = useState(initial);
+  const currentEndpoint = useRef(endpoint);
+  const generation = useRef(0);
+  currentEndpoint.current = endpoint;
+  const refresh = useCallback(async () => {
+    const path = currentEndpoint.current;
+    if (!path) return;
+    const request = ++generation.current;
+    const current = () => currentEndpoint.current === path && generation.current === request;
+    try {
+      const result = await api(path, "GET", undefined, undefined, undefined, true);
+      if (current()) setItems(select(result));
+    } catch (error) {
+      if (current()) throw error;
+    }
+  }, [select]);
+  useEffect(() => {
+    void refresh().catch(error => reportError(error.message));
+    return () => { generation.current++; };
+  }, [endpoint, refresh, reportError]);
+  return [items, refresh, setItems] as const;
+}
+
 const uid = () => crypto.randomUUID();
 const isObject = (value: J) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -339,7 +374,6 @@ const glyph: Record<string, string> = {
   workflows: "▦",
   editor: "◇",
   connections: "⌘",
-  bindings: "▤",
   runs: "◷",
   settings: "⚙",
   input: "↳",
@@ -504,28 +538,53 @@ function JsonEditor({
 }
 function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const [path, setPath] = useState(
-      workspacePath() === "/" ? "/workflows" : workspacePath(),
-    ),
+  const [path, setPath] = useState(() => normalizeWorkspacePath(workspacePath())),
     [session, setSession] = useState<J>(null),
     [auth, setAuth] = useState<J>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => { setNavigationOpen(false); }, [path]);
-  const [sessionEpoch, setSessionEpoch] = useState(0);
-  const [workflows, setWorkflows] = useState<J[]>([]),
-    [connections, setConnections] = useState<J[]>([]),
-    [bindings, setBindings] = useState<J[]>([]),
-    [runs, setRuns] = useState<J[]>([]),
-    [tools, setTools] = useState<J[]>([]);
+  const page = path === resourceBindingsPath ? "resource-bindings" : path.includes("/editor")
+    ? "editor"
+    : path.split("/")[1] === "tools"
+      ? "connections"
+      : (path.split("/")[1] ?? "workflows");
+  const runListVisible = page === "runs" && !/^\/runs\/[^/]+$/.test(path);
+  const [assistantReferencesOpen, setAssistantReferencesOpen] = useState(false);
+  const [runs, setRuns] = useState<J[]>([]);
   const deletedWorkflows = useRef(new Set<string>());
+  const needsWorkflows = ["workflows", "settings"].includes(page) || assistantReferencesOpen;
+  const needsWorkflowsRef = useRef(needsWorkflows);
+  needsWorkflowsRef.current = needsWorkflows;
+  const visibleWorkflows = useCallback((result: J): J[] =>
+    result.data.filter((workflow: J) => !deletedWorkflows.current.has(workflow.id)), []);
+  const [workflows, refreshWorkflows, setWorkflows] = useWorkspaceList(
+    session && needsWorkflows ? "/workflows" : null,
+    [], visibleWorkflows, setError,
+  );
+  const [connections, refreshConnections] = useWorkspaceList(
+    session && ["workflows", "connections", "resource-bindings"].includes(page) ? "/connections" : null,
+    [], listItems, setError,
+  );
+  const [bindings, refreshBindings] = useWorkspaceList(
+    session && ["editor", "resource-bindings"].includes(page) ? "/bindings" : null, [], listItems, setError,
+  );
+  const [tools, refreshTools] = useWorkspaceList(
+    session && ["editor", "connections", "resource-bindings"].includes(page) ? "/tools" : null, [], listItems, setError,
+  );
   const deletionPendingRef = useRef(false);
   const [deletionPending,setDeletionPending] = useState(false);
   const [credentials, setCredentials] = useState<J[]>([]);
   const [runListState, setRunListState] = useState<"pending" | "ready" | { message: string }>("pending");
   const [runsMeta, setRunsMeta] = useState<J>(null),
     [runFilter, setRunFilter] = useState("");
+  const useVisibleRuns = runListVisible && !runFilter;
+  const runReferencePath = assistantReferencesOpen && !useVisibleRuns ? "/runs?limit=50"
+    : page === "workflows" ? "/runs?limit=1" : null;
+  const [recentRuns, refreshRecentRuns] = useWorkspaceList(
+    session ? runReferencePath : null, { data: [], meta: { total: 0 } }, runPage, setError,
+  );
   const runFilterRef = useRef(runFilter),
     runListRequest = useRef(0);
   runFilterRef.current = runFilter;
@@ -535,10 +594,13 @@ function App() {
     [draft, setDraft] = useState<J>(null),
     [dirty, setDirty] = useState(false),
     [selected, setSelected] = useState<string | null>(null),
-    [run, setRun] = useState<J>(null),
     [previewArtifactId, setPreviewArtifactId] = useState<string | null>(null);
-  const [runLoadIssue, setRunLoadIssue] = useState<{ path: string; message: string } | null>(null);
-  const [runReload, setRunReload] = useState(0);
+  const runDetailId = /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2]! : null;
+  const { run, issue: currentRunIssue, refresh: refreshRunDetail } = useRunDetail(
+    session ? runDetailId : null,
+    readRunDetail,
+  );
+  useEffect(() => setPreviewArtifactId(null), [runDetailId]);
   const publishReviewRef=useRef(modal);publishReviewRef.current=modal;
   const [failure, setFailure] = useState<J>(null),
     [conflict, setConflict] = useState<J>(null);
@@ -554,16 +616,6 @@ function App() {
   const historyIndex = useRef(0),
     restoringHistory = useRef(false);
   const routeGeneration = useRef(0);
-  const credentialLibraryRequested = useRef(false);
-  useEffect(() => {
-    if (path !== "/settings" || !credentialLibraryRequested.current) return;
-    const library = document.getElementById("credential-library");
-    if (library) {
-      credentialLibraryRequested.current = false;
-      library.scrollIntoView({ block: "start" });
-      library.focus({ preventScroll: true });
-    }
-  }, [path]);
   const undoStack = useRef<J[]>([]),
     redoStack = useRef<J[]>([]);
   const [undoCount, setUndoCount] = useState(0),
@@ -683,16 +735,18 @@ function App() {
   }, []);
   const connectWorkspace = useCallback(async () => {
     const currentSession = await openLocalSession();
+    initializeEvents(currentSession.eventCursor, async () => {
+      const recovered = await recoverLocalSession();
+      if (recovered) csrf = recovered.session.csrf;
+    });
     setAuth(await api("/auth/state"));
     setSession(currentSession);
     if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
   }, []);
-  const openVault = () => {
-    const initialize = auth?.vaultInitialized === false;
+  const openLegacyRecovery = () => {
     setModal({
       type: "unlock",
-      title: initialize ? "设置凭据库口令" : "解锁凭据库",
-      initialize,
+      title: "迁移旧版凭据",
       password: "",
     });
   };
@@ -721,18 +775,10 @@ function App() {
     },
     [],
   );
-  const load = useCallback(async () => {
-    const runsLoad = loadRuns();
-    const [w, c, b, t] = await Promise.all(
-      ["/workflows", "/connections", "/bindings", "/tools"]
-        .map((p) => api(p)),
-    );
-    setWorkflows(w.filter((workflow:J)=>!deletedWorkflows.current.has(workflow.id)));
-    setConnections(c);
-    setBindings(b);
-    setTools(t);
-    await runsLoad;
-  }, []);
+  const load = async () => {
+    await Promise.all([refreshWorkflows(), refreshConnections(), refreshBindings(), refreshTools(),
+      refreshRecentRuns(), runListVisible && loadRuns()]);
+  };
   const navigate = (next: string, skipDirty = false) => {
     if(deletionPendingRef.current) return false;
     if (!skipDirty && dirty) {
@@ -754,31 +800,35 @@ function App() {
     return true;
   };
   const manageDiscovery = (destination: DiscoveryDestination) => {
-    const name = destination.name || "新连接";
-    if (destination.type === "connection") {
-      navigate("/connections");
-      setModal({ type: "connection", title: "手动连接 · " + name,
-        sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
-        payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
-      });
-    } else if (destination.type === "library") {
-      credentialLibraryRequested.current = true;
-      navigate("/settings");
-    } else {
-      navigate("/settings");
-      if (destination.type === "unlock") openVault();
-      else setModal({ type: "secret", title: "新增配置或凭据", label: destination.name || "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() });
+    if (destination.type !== "connection") {
+      navigate(destination.type === "resources" ? resourceBindingsPath : "/connections");
+      return;
     }
+    const name = destination.name || "新连接";
+    navigate("/connections");
+    setModal({ type: "connection", title: "手动连接 · " + name,
+      sourceNotice: "来自 能力发现：" + name + "。请按该服务文档选择传输方式并填写独立连接；保存后在工具库点击“检测与同步”。此操作不会修改 Codex 原配置，也不会自动启动服务。",
+      payload: { name: name.slice(0, 128), transport: "", protocolEra: "modern" },
+    });
   };
   useEffect(() => {
-    history.replaceState({ ...history.state, flowhubIndex: 0 }, "");
+    const replaceRoute = (index: number) => {
+      const raw = workspacePath();
+      const normalized = normalizeWorkspacePath(raw);
+      const url = raw !== normalized && raw !== "/"
+        ? workspaceHref(normalized) + location.search + location.hash
+        : undefined;
+      history.replaceState({ ...history.state, flowhubIndex: index }, "", url);
+      return normalized;
+    };
+    replaceRoute(0);
     const pop = (event: PopStateEvent) => {
       if (restoringHistory.current) {
         restoringHistory.current = false;
         return;
       }
       const nextIndex = event.state?.flowhubIndex;
-      const nextPath = workspacePath();
+      const nextPath = normalizeWorkspacePath(workspacePath());
       const askInPage = inCodexWorkspace && dirtyRef.current && !deletionPendingRef.current;
       if (deletionPendingRef.current || askInPage || dirtyRef.current && !confirm("草稿有未保存修改，是否离开？")) {
         if (
@@ -799,23 +849,23 @@ function App() {
         return;
       }
       if (typeof nextIndex === "number") historyIndex.current = nextIndex;
+      if (workspacePath() !== "/" && workspacePath() !== nextPath)
+        replaceRoute(historyIndex.current);
       setPath(nextPath);
       setDirty(false);
       setModal(null);
       jsonTextCache.current.clear();
     };
-    const restored = () => setSessionEpoch(value => value + 1);
     window.addEventListener("popstate", pop);
-    window.addEventListener("flowhub-session-restored", restored);
     void act(connectWorkspace);
     return () => {
       window.removeEventListener("popstate", pop);
-      window.removeEventListener("flowhub-session-restored", restored);
     };
   }, []);
   useEffect(() => {
-    if (session) void act(load);
-  }, [session]);
+    if (session && runListVisible) void loadRuns();
+    return () => { runListRequest.current++; };
+  }, [session, runListVisible, loadRuns]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 5000);
@@ -1008,27 +1058,76 @@ function App() {
     if(result.conflicts.length)setConflict({...current,fields:result.conflicts,choices});
     else {serverDraftBase.current=structuredClone(current.remote);setConflict(null);}
   };
-  useEffect(()=>{
-    if(!session)return;
-    return subscribeEvents(event=>{
+  const queuedDraft = useRef<J>(null);
+  const scheduleDraftRefresh = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    if (!session) return;
+    let listPending = false, refreshing = false, active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = async () => {
+      timer = undefined;
+      refreshing = true;
+      const reads: Promise<void>[] = [];
+      if (listPending) {
+        listPending = false;
+        reads.push(refreshWorkflows().catch(error => setError(error.message)));
+      }
+      const event = queuedDraft.current;
+      if (event && pathRef.current !== "/workflows/" + event.workflowId + "/editor") queuedDraft.current = null;
+      else if (event && draftRef.current?.id === event.workflowId) {
+        queuedDraft.current = null;
+        reads.push(syncRemoteRef.current(event));
+      }
+      try {
+        await Promise.all(reads);
+      } finally {
+        refreshing = false;
+        if (listPending || (queuedDraft.current && draftRef.current?.id === queuedDraft.current.workflowId))
+          schedule();
+      }
+    };
+    const schedule = () => {
+      if (active && !refreshing && timer === undefined) timer = setTimeout(() => void flush(), 50);
+    };
+    scheduleDraftRefresh.current = schedule;
+    const unsubscribe = subscribeEvents(event => {
       if(event.type==="workflow.deleted") {
         deletedWorkflows.current.add(event.workflowId);
+        if (queuedDraft.current?.workflowId === event.workflowId) queuedDraft.current = null;
         setWorkflows(previous=>previous.filter(w=>w.id!==event.workflowId));
         if(draftRef.current?.id===event.workflowId && pathRef.current.endsWith("/editor"))
           setNotice("该工作流已删除。此处的未保存内容仍保留，可通过“查看 DSL”复制；不能再保存或发布。");
         return;
       }
       if(event.type!=="draft.changed" || deletedWorkflows.current.has(event.workflowId))return;
-      void load();void syncRemoteRef.current(event);
+      if (needsWorkflowsRef.current) listPending = true;
+      if (pathRef.current === "/workflows/" + event.workflowId + "/editor") {
+        const previous = queuedDraft.current?.workflowId === event.workflowId ? queuedDraft.current : null;
+        queuedDraft.current = {
+          ...event,
+          layoutRevision: Math.max(event.layoutRevision ?? 0, previous?.layoutRevision ?? 0),
+          changedNodes: [...new Set([...(previous?.changedNodes ?? []), ...(event.changedNodes ?? [])])],
+        };
+      }
+      if (listPending || queuedDraft.current) schedule();
     });
-  },[session, sessionEpoch]);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      scheduleDraftRefresh.current = undefined;
+      unsubscribe();
+    };
+  }, [session, refreshWorkflows]);
+  // A change can arrive while the editor's first draft request is still in flight.
+  useEffect(() => {
+    if (queuedDraft.current) scheduleDraftRefresh.current?.();
+  }, [draft?.id, path]);
   useEffect(()=>{if(!changedByAI.length)return;setNodes(old=>old.map(n=>({...n,style:{...n.style,borderColor:changedByAI.includes(n.id)?"#246bfd":"#dce6f3",boxShadow:changedByAI.includes(n.id)?"0 0 0 3px #246bfd22":undefined}})));const timer=setTimeout(()=>{setChangedByAI([]);setNodes(old=>old.map(n=>({...n,style:{...n.style,boxShadow:undefined}})));},2400);return()=>clearTimeout(timer);},[changedByAI]);
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
     const generation = ++routeGeneration.current;
     let active = true;
-    let timer: ReturnType<typeof setInterval> | undefined;
     setConflict(null);
     setFailure(null);
     setError("");
@@ -1059,91 +1158,13 @@ function App() {
         });
       }
     }
-    if (/^\/runs\/[^/]+$/.test(path)) {
-      const key = path.split("/")[2];
-      setRun(null);
-      setPreviewArtifactId(null);
-      setRunLoadIssue(null);
-      let cursor = 0;
-      let events: J[] = [];
-      let refreshing = false;
-      const refresh = async () => {
-        if (refreshing) return;
-        refreshing = true;
-        try {
-          let hasNext = false;
-          do {
-            const detail = await api(
-              "/runs/" + key + "?after=" + cursor,
-              "GET",
-              undefined,
-              undefined,
-              controller.signal,
-            );
-            if (
-              !active ||
-              generation !== routeGeneration.current ||
-              pathRef.current !== path
-            )
-              return;
-            if (detail?.runId !== key)
-              throw new Error("运行详情响应无效。");
-            const additionalEvents = Array.isArray(detail.events) ? detail.events : [];
-            const seen = new Set(events.map((event) => event.seq));
-            events = [
-              ...events,
-              ...additionalEvents.filter((event: J) => !seen.has(event.seq)),
-            ];
-            const nextCursor = detail.eventCursor?.nextAfter ?? events.at(-1)?.seq ?? cursor;
-            hasNext = (detail.eventCursor?.hasMore ?? additionalEvents.length === 200) && nextCursor > cursor;
-            cursor = nextCursor;
-            setRun({ ...detail, events });
-            setRunLoadIssue(null);
-          } while (hasNext && active);
-        } catch (e) {
-          if (active && generation === routeGeneration.current && pathRef.current === path) {
-            const missing = e instanceof UiError && e.status === 404;
-            setRunLoadIssue({
-              path,
-              message: missing ? "这条记录不存在，或已超过保留期限。" : (e as Error).message,
-            });
-            if (missing && timer) clearInterval(timer);
-          }
-        } finally {
-          refreshing = false;
-        }
-      };
-      void refresh();
-      timer = setInterval(refresh, 2000);
-    }
     return () => {
       active = false;
       controller.abort();
-      if (timer) clearInterval(timer);
     };
-  }, [path, session, runReload]);
+  }, [path, session]);
   const refreshRun = async () => {
-    if (run) {
-      const currentPath = pathRef.current;
-      const detail = await api(
-        "/runs/" + run.runId + "?after=" + (run.events.at(-1)?.seq ?? 0),
-      );
-      if (pathRef.current === currentPath)
-        setRun((old: J) =>
-          old?.runId === detail.runId
-            ? {
-                ...detail,
-                events: [
-                  ...old.events,
-                  ...(Array.isArray(detail.events) ? detail.events : []).filter(
-                    (event: J) =>
-                      !old.events.some((known: J) => known.seq === event.seq),
-                  ),
-                ],
-              }
-            : old,
-        );
-    }
+    if (pathRef.current === "/runs/" + run?.runId) await refreshRunDetail();
     await load();
   };
   const currentWorkflow = () => editorRef.current.draft;
@@ -1486,7 +1507,7 @@ function App() {
         setModal((current:J)=>current===m?null:current);
         return true;
       }
-      assertJsonValid();
+      if (m.type !== "unlock") assertJsonValid();
       if (m.type === "condition-port") {
         if (
           pathRef.current !== "/workflows/" + m.workflowId + "/editor" ||
@@ -1657,16 +1678,9 @@ function App() {
         showJson("宿主身份已创建（仅保存令牌文件）", result);
         return;
       }
-      if (m.type === "rotate") {
-        await api("/vault/password", "POST", m.payload);
-      }
-      if (m.type === "secret") {
-        const created = await api("/secrets", "POST", { label: m.label, value: m.value, purpose: m.purpose ?? "unspecified", ...(m.idempotencyKey ? { idempotencyKey: m.idempotencyKey } : {}) });
-        window.dispatchEvent(new CustomEvent("flowhub-credentials-changed", { detail: { createdId: created.id, purpose: m.purpose ?? "unspecified" } }));
-      }
       if (m.type === "unlock") {
-        await api(m.initialize ? "/vault/initialize" : "/vault/unlock", "POST", { password: m.password });
-        setAuth({ ...auth, vaultInitialized: true, vaultLocked: false });
+        await api("/credentials/migrate", "POST", { password: m.password });
+        setAuth({ ...auth, vaultLocked: false, credentialMigrationRequired: false });
         window.dispatchEvent(new Event("flowhub-credentials-changed"));
       }
       if (m.type === "retention") {
@@ -1686,15 +1700,121 @@ function App() {
       return true;
     }, successMessage);
   };
-  const page = path.includes("/editor")
-    ? "editor"
-    : path.split("/")[1] === "tools"
-      ? "connections"
-      : (path.split("/")[1] ?? "workflows");
+  const exampleBindings = bindings.filter(b => b.simulationOnly && exampleBindingIds.has(b.id));
+  const regularBindings = bindings.filter(b => !b.simulationOnly || !exampleBindingIds.has(b.id));
+  const renderBindingCards = (items: J[]) => (
+    <div className="binding-grid">
+      {items.map((b) => (
+        <section className="panel" key={b.id}>
+          <div className="row">
+            <Badge>{b.environment}</Badge>
+            <Badge
+              tone={
+                b.validationStatus === "REVOKED"
+                  ? "red"
+                  : b.validationStatus === "UNVERIFIED"
+                    ? "amber"
+                    : "green"
+              }
+            >
+              {b.validationStatus}
+            </Badge>
+          </div>
+          <h2>{b.name}</h2>
+          <p>
+            {b.simulationOnly
+              ? "合成演示 · 不授权真实生产访问"
+              : "独立环境档案"}
+          </p>
+          <BindingVerificationStatus binding={b} />
+          <dl>
+            <dt>工具范围</dt>
+            <dd>{b.allowedTools.join(", ")}</dd>
+            <dt>最大行数</dt>
+            <dd>{b.maxRows}</dd>
+            <dt>只读模板</dt>
+            <dd>{b.allowedQueryTemplates.join(", ") || "不适用"}</dd>
+            <dt>绑定修订</dt>
+            <dd>{b.revision}</dd>
+          </dl>
+          <div className="actions">
+            <button onClick={() => showJson("资源锁与验证记录", b)}>
+              查看策略
+            </button>
+            <button
+              onClick={() =>
+                act(async () =>
+                  setModal({
+                    type: "edit-binding",
+                    title: "修改绑定（需重新验证）",
+                    id: b.id,
+                    revision: b.revision,
+                    impact: await api(
+                      "/bindings/" + b.id + "/impact",
+                    ),
+                    payload: Object.fromEntries(
+                      [
+                        "name",
+                        "allowedTools",
+                        "lockedArguments",
+                        "allowedQueryTemplates",
+                        "maxRows",
+                        "timeoutSeconds",
+                      ].map((k) => [k, b[k]]),
+                    ),
+                  }),
+                )
+              }
+            >
+              编辑
+            </button>
+            <button
+              onClick={() =>
+                setModal({
+                  type: "verify",
+                  id: b.id,
+                  title: "独立验证只读绑定",
+                  payload: {
+                    probe: {
+                      toolName: b.allowedTools[0],
+                      arguments: bindingProbeDefaults(b),
+                    },
+                    serverEnforcedReadOnly: false,
+                    scope: "",
+                    expectedEnvironmentPointer: "/environment",
+                    expectedEnvironmentValue: b.environment,
+                  },
+                })
+              }
+            >
+              验证
+            </button>
+            <button
+              className="danger"
+              disabled={b.validationStatus === "REVOKED"}
+              onClick={() =>
+                act(async () => {
+                  setModal({
+                    type: "revoke-binding",
+                    title: "确认撤销绑定",
+                    id: b.id,
+                    revision: b.revision,
+                    impact: await api(
+                      "/bindings/" + b.id + "/impact",
+                    ),
+                  });
+                })
+              }
+            >
+              撤销
+            </button>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
   const assistantWorkflow=page==="editor"&&draft&&path.includes("/"+draft.id+"/")?draft:null;
-  const runDetailId = page === "runs" && /^\/runs\/[^/]+$/.test(path) ? path.split("/")[2] : null;
   const assistantRun = runDetailId && run?.runId === runDetailId ? run : null;
-  const currentRunIssue = runLoadIssue?.path === path ? runLoadIssue.message : null;
   const assistantContext=assistantWorkflow?{workflowId:assistantWorkflow.id,revision:assistantWorkflow.revision,selectedNodeIds:selected?[selected]:[]}:assistantRun?{workflowId:assistantRun.workflowId,runId:assistantRun.runId,...(previewArtifactId?{artifactRefs:[previewArtifactId]}:{})}:{};
   const assistantContextLabel=assistantWorkflow?"当前流程："+assistantWorkflow.draft.name:assistantRun?"当前运行："+assistantRun.runId.slice(-6):"当前页面："+navigationLabel(page);
   if (!session)
@@ -1736,6 +1856,12 @@ function App() {
                   event.preventDefault(); navigate("/workflows");
                 }}>{navigationLabel("workflows")}</a>
                 <b>/</b><span aria-current="page">流程编排</span>
+              </> : page === "resource-bindings" ? <>
+                <a href={workspaceHref("/connections")} onClick={event => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault(); navigate("/connections");
+                }}>{navigationLabel("connections")}</a>
+                <b>/</b><span aria-current="page">{navigationLabel(page)}</span>
               </> : <span aria-current="page">{navigationLabel(page)}</span>}
             </span>
           </div>
@@ -1745,6 +1871,7 @@ function App() {
               onClick={() =>
                 act(async () => {
                   await load();
+                  if (runDetailId && !(await refreshRunDetail())) return false;
                   setAuth(await api("/auth/state"));
                 }, "状态已刷新")
               }
@@ -1754,7 +1881,7 @@ function App() {
           </div>
         </header>
         <div className="workspace">
-          {error && !(modal?.type === "unlock" && failure?.path?.startsWith("/vault/")) && (
+          {error && !(modal?.type === "unlock" && failure?.path === "/credentials/migrate") && (
             <div className="banner error" role="alert">
               {error}
               <button onClick={() => setError("")}>×</button>
@@ -1766,7 +1893,7 @@ function App() {
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} onOpenWorkflow={chooseWorkflowById} />}
-          {page === "models" && <ModelsPage api={api} onUnlockVault={openVault} />}
+          {page === "models" && <ModelsPage api={api} />}
           {page === "workflows" && (
             <>
               <PageHead
@@ -1808,7 +1935,7 @@ function App() {
                   ["工作流方案", workflows.length, "将流程沉淀为可复用配置"],
                   ["Gateway MCP", "1", "所有方案共享一个入口"],
                   ["下游连接", connections.length, "独立协议与工具目录"],
-                  ["运行记录", runs.length, "证据、版本与状态可追踪"],
+                  ["运行记录", recentRuns.meta.total, "证据、版本与状态可追踪"],
                 ].map(([label, value, caption]) => (
                   <div className="stat" key={String(label)}>
                     <small>{label}</small>
@@ -2333,78 +2460,6 @@ function App() {
                   >
                     输入契约
                   </button>
-                  <JsonEditor
-                    label="环境绑定引用"
-                    textCache={jsonTextCache.current}
-                    cacheKey={draft.id + "/bindings"}
-                    onValidityChange={reportJsonValidity}
-                    onDirty={() => setDirty(true)}
-                    validateValue={(bindings) =>
-                      assertWorkflowShape({ ...currentWorkflow(), bindings })
-                    }
-                    value={draft.draft.bindings}
-                    onChange={async (v) => {
-                      if (!isObject(v))
-                        throw new Error("环境绑定引用必须为对象");
-                      const generation = routeGeneration.current;
-                      const originalBindings = JSON.stringify(
-                        currentWorkflow().bindings,
-                      );
-                      const candidate = { ...currentWorkflow(), bindings: v };
-                      await api("/workflow-imports/preview", "POST", {
-                        workflow: candidate,
-                      });
-                      if (
-                        pathRef.current !==
-                          "/workflows/" + candidate.workflowId + "/editor" ||
-                        routeGeneration.current !== generation
-                      )
-                        return false;
-                      if (
-                        JSON.stringify(currentWorkflow().bindings) !==
-                        originalBindings
-                      )
-                        throw new Error(
-                          "校验期间环境绑定已变化，保留了新选择；请比较后重新应用 JSON",
-                        );
-                      rememberEdit();
-                      setDraft((latest: J) =>
-                        latest?.id === candidate.workflowId
-                          ? {
-                              ...latest,
-                              draft: { ...latest.draft, bindings: v },
-                            }
-                          : latest,
-                      );
-                      setDirty(true);
-                      return true;
-                    }}
-                  />
-                  {bindingRoles.map((role) => (
-                    <label className="field" key={role}>
-                      环境绑定 {role}
-                      <select
-                        aria-label={"环境绑定 " + role}
-                        value={draft.draft.bindings[role] ?? ""}
-                        onChange={(e) => chooseBinding(role, e.target.value)}
-                      >
-                        <option value="">未配置，请明确选择</option>
-                        {bindings
-                          .filter(
-                            (b) => b.environment === draft.draft.environment,
-                          )
-                          .map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name} · {b.validationStatus}{" "}
-                              {b.simulationOnly ? "（合成演示）" : ""}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                  ))}
-                  <small>
-                    新建草稿不继承任何绑定或验证。选择同环境绑定后，还需为节点明确选择工具。
-                  </small>
                 </aside>
                 <div className="canvas">
                   <ReactFlow
@@ -2518,6 +2573,81 @@ function App() {
                     >
                       收起节点属性
                     </button>
+                    <details hidden={node?.type !== "mcp_tool"}>
+                      <summary>高级绑定设置</summary>
+                      {node?.type === "mcp_tool" && (
+                        <label className="field">
+                          固定环境绑定
+                          <select
+                            value={node.config.bindingKey}
+                            onChange={(e) =>
+                              changeNode({
+                                config: {
+                                  ...node.config,
+                                  bindingKey: e.target.value,
+                                  toolName: "unconfigured",
+                                  toolSchemaHash:
+                                    "placeholder:unconfigured",
+                                },
+                              })
+                            }
+                          >
+                            {bindingRoles.map((k) => (
+                              <option key={k} value={k}>
+                                {k} · {draft.draft.bindings[k] ?? "未配置"}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <JsonEditor
+                        label="环境绑定引用"
+                        textCache={jsonTextCache.current}
+                        cacheKey={draft.id + "/bindings"}
+                        onValidityChange={reportJsonValidity}
+                        onDirty={() => setDirty(true)}
+                        validateValue={(bindings) =>
+                          assertWorkflowShape({ ...currentWorkflow(), bindings })
+                        }
+                        value={draft.draft.bindings}
+                        onChange={async (v) => {
+                          if (!isObject(v))
+                            throw new Error("环境绑定引用必须为对象");
+                          const generation = routeGeneration.current;
+                          const originalBindings = JSON.stringify(
+                            currentWorkflow().bindings,
+                          );
+                          const candidate = { ...currentWorkflow(), bindings: v };
+                          await api("/workflow-imports/preview", "POST", {
+                            workflow: candidate,
+                          });
+                          if (
+                            pathRef.current !==
+                              "/workflows/" + candidate.workflowId + "/editor" ||
+                            routeGeneration.current !== generation
+                          )
+                            return false;
+                          if (
+                            JSON.stringify(currentWorkflow().bindings) !==
+                            originalBindings
+                          )
+                            throw new Error(
+                              "校验期间环境绑定已变化，保留了新选择；请比较后重新应用 JSON",
+                            );
+                          rememberEdit();
+                          setDraft((latest: J) =>
+                            latest?.id === candidate.workflowId
+                              ? {
+                                  ...latest,
+                                  draft: { ...latest.draft, bindings: v },
+                                }
+                              : latest,
+                          );
+                          setDirty(true);
+                          return true;
+                        }}
+                      />
+                    </details>
                     {node ? (
                       <>
                         <div className="inspector-head">
@@ -2540,28 +2670,25 @@ function App() {
                         {node.type === "mcp_tool" && (
                           <>
                             <label className="field">
-                              固定环境绑定
+                              资源绑定
                               <select
-                                value={node.config.bindingKey}
-                                onChange={(e) =>
-                                  changeNode({
-                                    config: {
-                                      ...node.config,
-                                      bindingKey: e.target.value,
-                                      toolName: "unconfigured",
-                                      toolSchemaHash:
-                                        "placeholder:unconfigured",
-                                    },
-                                  })
+                                aria-label={"环境绑定 " + node.config.bindingKey}
+                                value={draft.draft.bindings[node.config.bindingKey] ?? ""}
+                                onChange={(event) =>
+                                  chooseBinding(node.config.bindingKey, event.target.value)
                                 }
                               >
-                                {bindingRoles.map((k) => (
-                                  <option key={k} value={k}>
-                                    {k} · {draft.draft.bindings[k] ?? "未配置"}
+                                <option value="">请选择同环境资源绑定</option>
+                                {bindings.filter(b => b.environment === draft.draft.environment).map(b => (
+                                  <option key={b.id} value={b.id} disabled={b.validationStatus === "REVOKED"}>
+                                    {b.name}{b.simulationOnly ? "（模拟）" : ""}
                                   </option>
                                 ))}
                               </select>
                             </label>
+                            <button type="button" onClick={() => navigate(resourceBindingsPath)}>
+                              管理直连资源绑定
+                            </button>
                             <label className="field">
                               实际 MCP 工具
                               <select
@@ -2626,7 +2753,7 @@ function App() {
                               </select>
                             </label>
                             <div className="lock-card">
-                              ◇ 环境与资源由发布绑定注入，Agent 无法覆盖。
+                              运行时使用绑定中固定的资源参数。
                               {selectedBinding && (
                                 <pre>
                                   {pretty({
@@ -2648,6 +2775,16 @@ function App() {
                             Codex 具名工具 · r{hostCapabilityRevision} ·{" "}
                             {currentHostContract ? currentHostContract.value?.name ?? "契约暂不可读" : "正在读取冻结契约…"}
                           </p>
+                        )}
+                        {node.config.kind === "host_plugin" && (
+                          <div className="lock-card">
+                            <strong>Codex 插件任务 · r{node.config.pluginRef.revision}</strong>
+                            {node.config.scope && <dl>
+                              <dt>固定项目</dt><dd><code>{node.config.scope.projectId}</code></dd>
+                              <dt>固定测试环境</dt><dd><code>{node.config.scope.environmentId}</code></dd>
+                            </dl>}
+                            <p>{node.config.instructions}</p>
+                          </div>
                         )}
                         {node.config.kind === "host_tool" && node.config.requireHostReceipt && (
                           <ReceiptScopeFields
@@ -2871,6 +3008,9 @@ function App() {
                 title={navigationLabel("connections")}
                 text="登记独立连接，读取实际工具目录及 Schema 指纹。认证失败不会触发降级。"
               >
+                <button type="button" onClick={() => navigate(resourceBindingsPath)}>
+                  {navigationLabel("resource-bindings")}
+                </button>
                 <button
                   className="primary"
                   onClick={() =>
@@ -3027,12 +3167,12 @@ function App() {
               </section>
             </>
           )}
-          {page === "bindings" && (
+          {page === "resource-bindings" && (
             <>
               <PageHead
-                eyebrow="ENVIRONMENT & POLICY"
-                title={navigationLabel("bindings")}
-                text="将环境、资源、凭证引用及查询模板固定为可验证的绑定档案。"
+                eyebrow="FLOWHUB DIRECT"
+                title={navigationLabel("resource-bindings")}
+                text="为 FlowHub 独立执行的节点固定连接、环境和资源参数。"
               >
                 <button
                   className="primary"
@@ -3053,122 +3193,18 @@ function App() {
                     })
                   }
                 >
-                  ＋ 新建档案
+                  ＋ 添加资源绑定
                 </button>
               </PageHead>
-              <div className="info">
-                MOCK_VERIFIED 仅证明合成服务。真实 BINDING_VERIFIED
-                需要获准的真实探测和独立的服务端只读权限确认。
-              </div>
-              <div className="binding-grid">
-                {bindings.map((b) => (
-                  <section className="panel" key={b.id}>
-                    <div className="row">
-                      <Badge>{b.environment}</Badge>
-                      <Badge
-                        tone={
-                          b.validationStatus === "REVOKED"
-                            ? "red"
-                            : b.validationStatus === "UNVERIFIED"
-                              ? "amber"
-                              : "green"
-                        }
-                      >
-                        {b.validationStatus}
-                      </Badge>
-                    </div>
-                    <h2>{b.name}</h2>
-                    <p>
-                      {b.simulationOnly
-                        ? "合成演示 · 不授权真实生产访问"
-                        : "独立环境档案"}
-                    </p>
-                    <BindingVerificationStatus binding={b} />
-                    <dl>
-                      <dt>工具范围</dt>
-                      <dd>{b.allowedTools.join(", ")}</dd>
-                      <dt>最大行数</dt>
-                      <dd>{b.maxRows}</dd>
-                      <dt>只读模板</dt>
-                      <dd>{b.allowedQueryTemplates.join(", ") || "不适用"}</dd>
-                      <dt>绑定修订</dt>
-                      <dd>{b.revision}</dd>
-                    </dl>
-                    <div className="actions">
-                      <button onClick={() => showJson("资源锁与验证记录", b)}>
-                        查看策略
-                      </button>
-                      <button
-                        onClick={() =>
-                          act(async () =>
-                            setModal({
-                              type: "edit-binding",
-                              title: "修改绑定（需重新验证）",
-                              id: b.id,
-                              revision: b.revision,
-                              impact: await api(
-                                "/bindings/" + b.id + "/impact",
-                              ),
-                              payload: Object.fromEntries(
-                                [
-                                  "name",
-                                  "allowedTools",
-                                  "lockedArguments",
-                                  "allowedQueryTemplates",
-                                  "maxRows",
-                                  "timeoutSeconds",
-                                ].map((k) => [k, b[k]]),
-                              ),
-                            }),
-                          )
-                        }
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() =>
-                          setModal({
-                            type: "verify",
-                            id: b.id,
-                            title: "独立验证只读绑定",
-                            payload: {
-                              probe: {
-                                toolName: b.allowedTools[0],
-                                arguments: bindingProbeDefaults(b),
-                              },
-                              serverEnforcedReadOnly: false,
-                              scope: "",
-                              expectedEnvironmentPointer: "/environment",
-                              expectedEnvironmentValue: b.environment,
-                            },
-                          })
-                        }
-                      >
-                        验证
-                      </button>
-                      <button
-                        className="danger"
-                        disabled={b.validationStatus === "REVOKED"}
-                        onClick={() =>
-                          act(async () => {
-                            setModal({
-                              type: "revoke-binding",
-                              title: "确认撤销绑定",
-                              id: b.id,
-                              revision: b.revision,
-                              impact: await api(
-                                "/bindings/" + b.id + "/impact",
-                              ),
-                            });
-                          })
-                        }
-                      >
-                        撤销
-                      </button>
-                    </div>
-                  </section>
-                ))}
-              </div>
+              {regularBindings.length > 0
+                ? renderBindingCards(regularBindings)
+                : <Empty text="还没有直连资源绑定。添加 MCP 连接并同步工具后，可为直连节点配置资源。" />}
+              {exampleBindings.length > 0 && (
+                <details className="panel binding-examples">
+                  <summary>内置示例（{exampleBindings.length}）</summary>
+                  {renderBindingCards(exampleBindings)}
+                </details>
+              )}
             </>
           )}
           {page === "runs" && !/^\/runs\/[^/]+$/.test(path) && (
@@ -3273,7 +3309,7 @@ function App() {
               </section>
             </>
           )}
-          {runDetailId && (!assistantRun || currentRunIssue) && (
+          {runDetailId && !assistantRun && (
             <>
               {!assistantRun && (
                 <PageHead eyebrow="RUN DETAIL" title="运行详情" text={runDetailId}>
@@ -3284,13 +3320,13 @@ function App() {
                 {currentRunIssue ? (
                   <>
                     <p role="alert" className="error">无法读取运行详情。{currentRunIssue}</p>
-                    <button onClick={() => setRunReload(value => value + 1)}>重试读取运行详情</button>
+                    <button onClick={() => void refreshRunDetail()}>重试读取运行详情</button>
                   </>
                 ) : <p role="status">正在读取运行详情…</p>}
               </section>
             </>
           )}
-          {assistantRun && (
+          {run && assistantRun && (
               <>
                 <PageHead
                   eyebrow="RUN DETAIL"
@@ -3314,6 +3350,12 @@ function App() {
                     取消运行
                   </button>
                 </PageHead>
+                {currentRunIssue && (
+                  <div className="banner error" role="alert">
+                    更新运行详情失败。{currentRunIssue}
+                    <button onClick={() => void refreshRunDetail()}>重试读取运行详情</button>
+                  </div>
+                )}
                 <div className="run-summary">
                   <Badge tone={run.state === "SUCCEEDED" ? "green" : "amber"}>
                     {statusLabels[run.state] ?? run.state ?? "状态未记录"}
@@ -3354,6 +3396,9 @@ function App() {
                         {node.executor === "hub_direct" && run.steps?.[node.nodeId] === "SUCCEEDED" && " · FlowHub 已记录调用"}
                       </p>}
                       {node.source?.argumentsHash && <p>回执参数摘要 <code>{node.source.argumentsHash}</code></p>}
+                      {node.source?.pluginName && (
+                        <p>{node.source.pluginName} · {(node.source.tools ?? []).map((call: J) => call.tool).join(" → ")}</p>
+                      )}
                       {node.source?.toolCallId && <p>宿主调用 ID <code>{node.source.toolCallId}</code></p>}
                       {node.errorCode && node.source?.artifactId && run.artifacts?.some((artifact: J) => artifact.id === node.source.artifactId) && (
                         <p>失败诊断见运行产物 <code>{node.source.artifactId}</code></p>
@@ -3386,15 +3431,8 @@ function App() {
                     </div>
                   </section>
                   <div>
-                    {run.vaultLocked && (
-                      <div className="banner">
-                        凭据库已锁定，解锁后才能交付或推进检查点。
-                        <button
-                          onClick={openVault}
-                        >
-                          解锁
-                        </button>
-                      </div>
+                    {(run.checkpoint?.legacyDataUnavailable || run.outputAvailability === "VAULT_LOCKED") && (
+                      <p className="banner">此历史运行包含旧版加密数据，可在「系统设置」的「恢复旧版数据」中恢复。</p>
                     )}
                     {run.checkpoint && (
                       <section className="panel">
@@ -3507,7 +3545,7 @@ function App() {
               <PageHead
                 eyebrow="GATEWAY & SECURITY"
                 title={navigationLabel("settings")}
-                text="管理 MCP 宿主身份、本机凭据和数据备份。"
+                text="管理 MCP 宿主身份和数据备份。"
               />
               <div className="settings-grid">
                 <SettingsIntegration
@@ -3535,12 +3573,14 @@ function App() {
                   >
                     预览清理范围
                   </button>
+                  {auth?.credentialMigrationRequired && (
+                    <details>
+                      <summary>恢复旧版数据</summary>
+                      <p>使用原口令恢复该版本保存的连接认证、模型 Key 或加密运行结果。</p>
+                      <button disabled={busy} onClick={openLegacyRecovery}>迁移旧版凭据</button>
+                    </details>
+                  )}
                 </section>
-                <CredentialLibrary api={api}
-                  onCreate={() => setModal({ type: "secret", title: "新增配置或凭据", label: "新凭据", value: "", purpose: "mcp_auth", idempotencyKey: uid() })}
-                  onUnlock={openVault}
-                  onLock={() => act(async () => { await api("/vault/lock", "POST", {}); setAuth({ ...auth, vaultLocked: true }); window.dispatchEvent(new Event("flowhub-credentials-changed")); }, "本地库已锁定")}
-                  onRotate={() => setModal({ type: "rotate", title: "修改凭据库口令", payload: { oldPassword: "", newPassword: "" } })} />
                 <section className="panel">
                   <h2>诊断导出（仅元数据）</h2>
                   <p>
@@ -3599,10 +3639,10 @@ function App() {
         dirty={dirty}
         openRequest={assistantOpenRequest}
         workflows={workflows}
-        runs={runs}
+        runs={useVisibleRuns ? runs : recentRuns.data}
+        onReferencesChange={setAssistantReferencesOpen}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
-        onUnlockVault={openVault}
       />
       {modal && (
         <div
@@ -3830,31 +3870,6 @@ function App() {
                   </div>
                 ))}
               </>
-            ) : modal.type === "rotate" ? (
-              <>
-                <Field
-                  type="password"
-                  label="当前凭据库口令"
-                  value={modal.payload.oldPassword}
-                  onChange={(oldPassword) =>
-                    setModal({
-                      ...modal,
-                      payload: { ...modal.payload, oldPassword },
-                    })
-                  }
-                />
-                <Field
-                  type="password"
-                  label="新凭据库口令"
-                  value={modal.payload.newPassword}
-                  onChange={(newPassword) =>
-                    setModal({
-                      ...modal,
-                      payload: { ...modal.payload, newPassword },
-                    })
-                  }
-                />
-              </>
             ) : modal.type === "retention" ? (
               <>
                 <p>
@@ -4009,8 +4024,7 @@ function App() {
                   </select>
                 </label>
                 <p>
-                  输入严格按已发布 Schema 校验。不得覆盖环境、连接或模板；包含
-                  Agent 的流程需要先解锁凭据库。
+                  输入严格按已发布 Schema 校验，环境、连接和模板沿用发布版本。
                 </p>
                 <details>
                   <summary>已发布输入契约</summary>
@@ -4030,25 +4044,16 @@ function App() {
               </>
             ) : modal.type === "unlock" ? (
               <>
-                {modal.initialize && <p>请设置 12–256 个字符的口令，用于加密保存的 MCP 凭据和模型 Key。</p>}
+                <p>用原口令迁移保存的模型 Key、MCP 凭据和可继续的运行记录。迁移完成后会自动读取。</p>
                 <Field
-                  label="凭据库口令"
+                  label="旧版凭据口令"
                   type="password"
                   value={modal.password}
                   onChange={(password) => setModal({ ...modal, password })}
                 />
-                {error && failure?.path?.startsWith("/vault/") && (
+                {error && failure?.path === "/credentials/migrate" && (
                   <p role="alert" className="error">{error}</p>
                 )}
-              </>
-            ) : modal.type === "secret" ? (
-              <>
-                <Field label="名称" value={modal.label} onChange={(label) => setModal({ ...modal, label })} />
-                <label>用途<select aria-label="用途" value={modal.purpose ?? "unspecified"} onChange={event => setModal({ ...modal, purpose: event.target.value })}>
-                  <option value="mcp_auth">MCP 认证凭据</option><option value="mcp_config">MCP 普通配置</option><option value="unspecified">用途待确认</option>
-                </select></label>
-                <Field label="保存值" type={modal.purpose === "mcp_config" ? "text" : "password"} value={modal.value} onChange={(value) => setModal({ ...modal, value })} />
-                <p>值在本机加密保存。模型 API Key 请在模型设置中配置。</p>
               </>
             ) : ["connection", "edit-connection"].includes(modal.type) ? (
               <ConnectionForm
@@ -4177,7 +4182,8 @@ function App() {
                   disabled={
                     busy ||
                     deletionPending ||
-                    (jsonInvalid && modal.type!=="delete-workflow") ||
+                    (jsonInvalid && !["delete-workflow", "unlock"].includes(modal.type)) ||
+                    (modal.type === "unlock" && !modal.password) ||
                     (modal.type === "retention" &&
                       !retentionScopeKeys.some(
                         (key) => modal.value[key]?.length,

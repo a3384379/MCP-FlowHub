@@ -546,6 +546,114 @@
       ],
       "additionalProperties": false
     },
+    "hostPluginConfig": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "host_plugin"
+        },
+        "executorRef": {
+          "const": "codex_host"
+        },
+        "pluginRef": {
+          "type": "object",
+          "properties": {
+            "pluginId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "pluginId",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        "profile": {
+          "enum": [
+            "read_only",
+            "flowtest_lite"
+          ]
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "environmentId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "required": [
+            "projectId",
+            "environmentId"
+          ],
+          "additionalProperties": false
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "inputMappings": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mapping"
+          },
+          "description": "Keys are destination JSON Pointers. Overlapping destinations and locked binding fields are rejected by domain validation. No expressions are evaluated."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/dataSchema"
+        },
+        "businessVerification": {
+          "$ref": "#/$defs/businessVerification"
+        }
+      },
+      "required": [
+        "kind",
+        "executorRef",
+        "pluginRef",
+        "profile",
+        "instructions",
+        "inputMappings",
+        "outputSchema"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "flowtest_lite"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scope"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "scope"
+          ]
+        }
+      }
+    },
     "analysisConfig": {
       "type": "object",
       "properties": {
@@ -699,6 +807,9 @@
         },
         {
           "$ref": "#/$defs/hostToolConfig"
+        },
+        {
+          "$ref": "#/$defs/hostPluginConfig"
         }
       ]
     },

@@ -13,7 +13,6 @@ test("deleted workflows and original owner history survive real daemon restart a
   t.after(async()=>{await daemon?.close();await rm(root,{recursive:true,force:true});});
   daemon=await startDaemon({dataDir,port:0});
   const repo=daemon.engine.repo,authoring=daemon.application.authoring,workflowId="deleted-after-restart";
-  daemon.engine.vault.initialize("Synthetic-deletion-restore-password");
   const secret=daemon.engine.vault.addSecret("Synthetic retained credential","Synthetic-secret-value");
   authoring.create({workflowId,name:"Retained synthetic history",environment:"test",mode:"auto",template:"blank",idempotencyKey:"create"});
   authoring.publish({workflowId,expectedRevision:1,version:"1.0.0",expectedBindingRevisions:{},expectedCapabilityRevisions:{},idempotencyKey:"publish"});
@@ -47,5 +46,5 @@ test("deleted workflows and original owner history survive real daemon restart a
   await restoreBackup(dataDir,backup);
   daemon=await startDaemon({dataDir,port:0});verify();
   assert.equal(daemon.engine.repo.get("workflows","after-backup"),undefined);
-  assert.equal(daemon.engine.vault.locked,true);
+  assert.equal(daemon.engine.vault.secret(secret.id),"Synthetic-secret-value");
 });

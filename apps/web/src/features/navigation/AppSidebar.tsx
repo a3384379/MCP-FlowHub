@@ -39,11 +39,6 @@ export function NavigationIcon({
         <path d="M8 3v5M16 3v5M6 8h12v4a6 6 0 0 1-12 0V8ZM12 18v4" />
       </>
     ),
-    bindings: (
-      <>
-        <path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5" />
-      </>
-    ),
     models: (
       <>
         <path d="M12 4v16M8 4a3 3 0 0 0-4 3 4 4 0 0 0-1 7 4 4 0 0 0 5 6h4M16 4a3 3 0 0 1 4 3 4 4 0 0 1 1 7 4 4 0 0 1-5 6h-4M4 10h4l2 3M20 10h-4l-2 3" />

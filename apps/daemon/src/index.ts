@@ -71,10 +71,11 @@ export async function startDaemon(options: { dataDir: string; port: number; prov
     const instanceId = store.instanceId,
       repo = new Repository(store.db),
       vault = new Vault(repo);
+    vault.openLocal();
     engine = new Engine(repo, vault, new Connectors(repo, vault));
     await engine.seed();
-    if (repo.all("runs").some(r => !["SUCCEEDED", "FAILED", "REJECTED", "CANCELLED", "OUTCOME_UNKNOWN"].includes(r.state) &&
-      (r.state === "WAITING_APPROVAL" || r.snapshot?.workflow?.nodes?.some((n: { type: string }) => n.type === "approval")))) {
+    if (repo.activeRuns().some(r => r.state === "WAITING_APPROVAL" ||
+      r.snapshot?.workflow?.nodes?.some((n: { type: string }) => n.type === "approval"))) {
       const { backupDirectory } = await import("../../../packages/admin-api/src/local-backups.js");
       await repo.backup(join(await backupDirectory(dataDir, true), "pre-legacy-retirement-" + instanceId + ".sqlite"));
     }

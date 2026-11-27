@@ -16,7 +16,7 @@ const purposes: Record<string, string> = {
 };
 const message = (e: any) =>
   e.code === "CREDENTIAL_LOCKED"
-    ? "本地库已锁定，请在此处解锁后继续。"
+    ? "此连接引用了旧版认证值。可直接填写新值，或在「系统设置」恢复旧版数据。"
     : e.message;
 const eligible = (s: Entity) =>
   s.eligibleForMcp !== false && !s.modelCredential && s.purpose !== "model_api";
@@ -29,7 +29,6 @@ export function ConnectionSetup({
   formId,
   onBusy,
   onChanged,
-  onManage,
 }: {
   api: Api;
   entity: Entity;
@@ -37,14 +36,11 @@ export function ConnectionSetup({
   formId: string;
   onBusy: (value: boolean) => void;
   onChanged: () => Promise<void>;
-  onManage: () => void;
 }) {
   const [meta, setMeta] = useState<Entity | null>(null),
     [secrets, setSecrets] = useState(initialSecrets);
-  const [choices, setChoices] = useState<Record<string, Choice>>({}),
-    [locked, setLocked] = useState(false);
-  const [password, setPassword] = useState(""),
-    [working, setWorking] = useState(false),
+  const [choices, setChoices] = useState<Record<string, Choice>>({});
+  const [working, setWorking] = useState(false),
     [bulk, setBulk] = useState(false);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -67,7 +63,6 @@ export function ConnectionSetup({
       .then((result) => {
         if (!alive) return;
         setMeta(result);
-        setLocked(result.vaultLocked && result.fields.length > 0);
         setSaved(result.preparedConnectionId ? { revision: result.revision } : null);
         setChoices(
           Object.fromEntries(
@@ -104,24 +99,6 @@ export function ConnectionSetup({
     setNotice("");
     setSaved(null);
   };
-  const unlock = async () => {
-    if (busy.current) return;
-    updateBusy(true);
-    setError("");
-    try {
-      await api(meta?.vaultInitialized === false ? "/vault/initialize" : "/vault/unlock", "POST", { password });
-      if (!mounted.current) return;
-      setMeta(current => current ? { ...current, vaultInitialized: true } : current);
-      setLocked(false);
-      setPassword("");
-      setNotice("本地库已解锁，填写内容已保留。");
-      window.dispatchEvent(new Event("flowhub-credentials-changed"));
-    } catch (e) {
-      if (mounted.current) setError(message(e));
-    } finally {
-      if (mounted.current) updateBusy(false);
-    }
-  };
   const detect = async (receipt: Entity) => {
     setStage("检测连接并读取工具目录…");
     try {
@@ -143,7 +120,6 @@ export function ConnectionSetup({
           "配置已保存，连接或目录检测未通过。可直接重试检测，无需重复保存。",
         );
         setError(message(e));
-        if ((e as any).code === "CREDENTIAL_LOCKED") setLocked(true);
         await onChanged().catch(() => {});
       }
     }
@@ -151,10 +127,6 @@ export function ConnectionSetup({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy.current || !meta) return;
-    if (locked) {
-      setError("请先在此处解锁本地库，已填写内容会保留。");
-      return;
-    }
     const wantsDetection =
       (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
       "detect";
@@ -225,7 +197,6 @@ export function ConnectionSetup({
           pending.current = null;
           setUncertain(false);
         } else setUncertain(true);
-        if (e.code === "CREDENTIAL_LOCKED") setLocked(true);
         setError(message(e));
         setStage("");
         updateBusy(false);
@@ -414,41 +385,6 @@ export function ConnectionSetup({
       onSubmit={(event) => void submit(event)}
     >
       <h3>连接配置</h3>
-      {meta && (meta.fields.length ? <>
-        <p>连接配置与认证凭据在本机加密保存。</p>
-        <div className="d-vault-status">
-          本地库：{meta.vaultInitialized === false ? "尚未设置口令" : locked ? "已锁定" : "已解锁"}
-        </div>
-      </> : null)}
-      {locked && (
-        <div className="d-config-unlock">
-          <label>
-            凭据库口令
-            <input
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void unlock();
-                }
-              }}
-              aria-label="凭据库口令"
-              type="password"
-              autoComplete={meta?.vaultInitialized === false ? "new-password" : "current-password"}
-              minLength={meta?.vaultInitialized === false ? 12 : undefined}
-              disabled={working}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            disabled={working || !password}
-            onClick={() => void unlock()}
-          >
-            {meta?.vaultInitialized === false ? "设置凭据库口令" : "解锁凭据库"}
-          </button>
-        </div>
-      )}
       {error && (
         <p role="alert" className="error">
           {error}
@@ -518,9 +454,6 @@ export function ConnectionSetup({
         使用来源已有配置（加密保存）
       </label>}
       <div className="d-actions">
-        <button type="button" disabled={working} onClick={onManage}>
-          管理配置与凭据库
-        </button>
         {saved && (
           <button
             type="button"

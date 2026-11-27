@@ -1025,7 +1025,7 @@ test("dispatch checks asynchronous revocation, cancellation, deadlines and locke
       code: "STATE_INVALID",
     });
     readResponseGate = undefined;
-    engine.vault.unlock("Synthetic-regression-password-724");
+    engine.vault.openLocal();
   } finally {
     listGate?.release();
     queryGate?.release();

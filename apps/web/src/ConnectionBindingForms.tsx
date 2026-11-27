@@ -15,6 +15,10 @@ type FormProps = {
 };
 const object = (value: unknown): value is Value =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+const validEnvName = (name: string) => /^[A-Z_][A-Z0-9_]*$/.test(name) &&
+  !/^(NODE_|LD_|DYLD_|PATH$|HOME$|SHELL$|COMSPEC$|PYTHON)/i.test(name);
+const validCredentialValue = (value: unknown) =>
+  typeof value === "string" && value.length > 0 && value.length < 16384;
 const pointer = /^(?:\/(?:[^~/]|~[01])*)+$/;
 const environmentLabels: Record<string, string> = {
   production: "生产",
@@ -54,6 +58,7 @@ function Field({
       <input
         aria-label={label}
         type={type}
+        autoComplete={type === "password" ? "off" : undefined}
         value={value ?? ""}
         disabled={disabled}
         min={min}
@@ -244,15 +249,15 @@ export function connectionFormErrors(
     if (value.commandApproved !== true)
       errors.push("请核对完整命令并确认获准启动该程序。");
     if (
-      !object(value.envRefs ?? {}) ||
+      !object(value.envRefs ?? {}) || !object(value.envValues ?? {}) ||
       Object.entries(value.envRefs ?? {}).some(
-        ([key, ref]) =>
-          !/^[A-Z_][A-Z0-9_]*$/.test(key) ||
-          /^(NODE_|LD_|DYLD_|PATH$|HOME$|SHELL$|COMSPEC$|PYTHON)/i.test(key) ||
-          !registered(ref),
-      )
+        ([key, ref]) => !validEnvName(key) ||
+          (!validCredentialValue(value.envValues?.[key]) && !registered(ref)),
+      ) || Object.entries(value.envValues ?? {}).some(
+        ([key, entry]) => !validEnvName(key) || !validCredentialValue(entry),
+      ) || new Set([...Object.keys(value.envRefs ?? {}), ...Object.keys(value.envValues ?? {})]).size > 20
     )
-      errors.push("环境变量须使用允许的变量名和已登记凭据引用。");
+      errors.push("请为最多 20 个允许的环境变量填写值或选用已有凭据。");
   } else if (transport === "streamable_http") {
     try {
       const url = new URL(value.endpoint);
@@ -281,8 +286,10 @@ export function connectionFormErrors(
         "请填写 HTTPS 端点（或 127.0.0.1 HTTP）及精确允许主机，不含用户名、密码或片段。",
       );
     }
-    if (value.secretRef && !registered(value.secretRef))
-      errors.push("HTTP 认证只能引用已登记的凭据。");
+    if (value.secretValue !== undefined && !validCredentialValue(value.secretValue))
+      errors.push("请填写有效的 HTTP Bearer 令牌。");
+    else if (!value.secretValue && value.secretRef && !registered(value.secretRef))
+      errors.push("请重新选择 HTTP 认证凭据或输入新令牌。");
   } else errors.push("请选择连接传输方式。");
   return errors;
 }
@@ -298,9 +305,10 @@ export function ConnectionForm({
   const transport = editing ? connection?.transport : value.transport;
   const [envName, setEnvName] = useState("");
   const [envSecret, setEnvSecret] = useState("");
+  const [envValue, setEnvValue] = useState("");
   const [envError, setEnvError] = useState("");
   const errors = connectionFormErrors(value, credentials, transport);
-  const pendingEnv = !!envName || !!envSecret;
+  const pendingEnv = !!envName || !!envSecret || !!envValue;
   useValidity(
     !errors.length && (transport !== "stdio" || (!pendingEnv && !envError)),
     onValidityChange,
@@ -311,6 +319,25 @@ export function ConnectionForm({
       [key]: next,
       ...(approveAgain ? { commandApproved: false } : {}),
     });
+  const envNames = [...new Set([...Object.keys(value.envRefs ?? {}), ...Object.keys(value.envValues ?? {})])];
+  const hasSavedCredentials = credentials.some(credential =>
+    credential.eligibleForMcp !== false && !credential.modelCredential,
+  );
+  const setEnvironmentEntry = (name: string, reference: string, text: string) => {
+    const envRefs = { ...value.envRefs };
+    const envValues = { ...value.envValues };
+    delete envRefs[name];
+    delete envValues[name];
+    if (reference) envRefs[name] = reference;
+    if (text) envValues[name] = text;
+    onChange({ ...value, envRefs, envValues, commandApproved: false });
+  };
+  const clearEnvironmentDraft = () => {
+    setEnvName("");
+    setEnvSecret("");
+    setEnvValue("");
+    setEnvError("");
+  };
   return (
     <div className="configuration-form">
       <p>
@@ -377,31 +404,31 @@ export function ConnectionForm({
             或明文令牌塞进命令参数。
           </p>
           <fieldset>
-            <legend>环境变量凭据引用（可选）</legend>
-            {Object.entries(value.envRefs ?? {}).map(([name, ref]) => (
+            <legend>环境变量（可选）</legend>
+            {envNames.map((name) => (
               <div className="row" key={name}>
-                <SecretSelect
-                  label={`环境变量 ${name}`}
-                  value={String(ref)}
-                  credentials={credentials}
-                  optional={false}
-                  onChange={(next) =>
-                    change("envRefs", { ...value.envRefs, [name]: next }, true)
-                  }
+                {value.envRefs?.[name] ? (
+                  <SecretSelect
+                    label={`环境变量 ${name}`}
+                    value={value.envRefs[name]}
+                    credentials={credentials}
+                    optional={false}
+                    onChange={(next) => setEnvironmentEntry(name, next, "")}
+                  />
+                ) : null}
+                <Field
+                  label={`环境变量 ${name} 的值`}
+                  type="password"
+                  value={value.envValues?.[name]}
+                  onChange={(next) => {
+                    const envValues = { ...value.envValues, [name]: next };
+                    if (!next && value.envRefs?.[name]) delete envValues[name];
+                    change("envValues", envValues, true);
+                  }}
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    change(
-                      "envRefs",
-                      Object.fromEntries(
-                        Object.entries(value.envRefs).filter(
-                          ([key]) => key !== name,
-                        ),
-                      ),
-                      true,
-                    )
-                  }
+                  onClick={() => setEnvironmentEntry(name, "", "")}
                 >
                   移除 {name}
                 </button>
@@ -415,52 +442,51 @@ export function ConnectionForm({
                 setEnvError("");
               }}
             />
-            <SecretSelect
-              label="新增环境变量的凭据"
-              value={envSecret}
-              credentials={credentials}
-              optional={false}
+            <Field
+              label="新增环境变量值"
+              type="password"
+              value={envValue}
               onChange={(next) => {
-                setEnvSecret(next);
+                setEnvValue(next);
+                if (next) setEnvSecret("");
                 setEnvError("");
               }}
             />
+            {hasSavedCredentials && (
+              <SecretSelect
+                label="新增环境变量的凭据"
+                value={envSecret}
+                credentials={credentials}
+                optional={false}
+                onChange={(next) => {
+                  setEnvSecret(next);
+                  if (next) setEnvValue("");
+                  setEnvError("");
+                }}
+              />
+            )}
             <button
               type="button"
               onClick={() => {
                 if (
-                  !/^[A-Z_][A-Z0-9_]*$/.test(envName) ||
-                  /^(NODE_|LD_|DYLD_|PATH$|HOME$|SHELL$|COMSPEC$|PYTHON)/i.test(
-                    envName,
-                  ) ||
-                  !credentials.some(
-                    (credential) => credential.id === envSecret,
-                  ) ||
-                  Object.hasOwn(value.envRefs ?? {}, envName)
+                  !validEnvName(envName) || envNames.includes(envName) || envNames.length >= 20 ||
+                  (!validCredentialValue(envValue) && !credentials.some(
+                    credential => credential.id === envSecret && credential.eligibleForMcp !== false && !credential.modelCredential,
+                  ))
                 ) {
-                  setEnvError("请使用未重复的安全变量名和已登记凭据。");
+                  setEnvError("请填写未重复的环境变量名及对应值，或选用已有凭据。");
                   return;
                 }
-                change(
-                  "envRefs",
-                  { ...value.envRefs, [envName]: envSecret },
-                  true,
-                );
-                setEnvName("");
-                setEnvSecret("");
-                setEnvError("");
+                setEnvironmentEntry(envName, envSecret, envValue);
+                clearEnvironmentDraft();
               }}
             >
-              添加环境变量引用
+              添加环境变量
             </button>
             {pendingEnv && (
               <button
                 type="button"
-                onClick={() => {
-                  setEnvName("");
-                  setEnvSecret("");
-                  setEnvError("");
-                }}
+                onClick={clearEnvironmentDraft}
               >
                 放弃待添加变量
               </button>
@@ -478,7 +504,7 @@ export function ConnectionForm({
                 {
                   command: value.command,
                   args: value.args ?? [],
-                  envRefs: value.envRefs ?? {},
+                  env: envNames,
                 },
                 null,
                 2,
@@ -509,15 +535,22 @@ export function ConnectionForm({
             max={20}
             onChange={(next) => change("allowedHosts", next)}
           />
-          <SecretSelect
-            label="HTTP Bearer 凭据引用"
-            value={value.secretRef}
-            credentials={credentials}
-            onChange={(next) => change("secretRef", next)}
+          <Field
+            label="HTTP Bearer 令牌（可选）"
+            type="password"
+            value={value.secretValue}
+            onChange={(next) => change("secretValue", next || undefined)}
           />
+          {(hasSavedCredentials || value.secretRef) && (
+            <SecretSelect
+              label="HTTP Bearer 凭据引用"
+              value={value.secretRef}
+              credentials={credentials}
+              onChange={(next) => onChange({ ...value, secretRef: next, secretValue: undefined })}
+            />
+          )}
           <p>
-            此运行器支持无认证或 Bearer 凭据引用；先在系统设置登记凭据。URL
-            不填写令牌，表单只读取凭据标签和引用。
+            需要认证时，可直接填写令牌或选择已保存的凭据。填写新令牌时会替换原连接凭据。
           </p>
           <section className="info">
             <strong>待连接端点</strong>

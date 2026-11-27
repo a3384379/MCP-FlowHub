@@ -39,7 +39,7 @@ Node **24.19.0**、npm **11.9.0**：
     npm run build
     npm start
 
-打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。首次添加 MCP 凭据或模型 Key 时设置独立的凭据库口令，已有凭据库在服务重启后使用原口令解锁。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
+打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。模型 Key 在「模型设置」填写，MCP 直连的令牌或环境变量在对应连接填写。服务重启后自动复用。升级旧工作区后即可运行 Codex 流程。需要沿用旧版加密数据时，可在系统设置中按需恢复。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
 
     npm start -- --data-dir /tmp/flowhub-dev --port 18474
     npm run mcp -- --data-dir /tmp/flowhub-dev
@@ -54,7 +54,7 @@ Linux 数据目录默认为 $XDG_DATA_HOME/mcp-flowhub（未设置时 ~/.local/s
 - 串行与互斥分支；确定性 auto 与 Codex guided；预算、取消、幂等和明确的不确定结果。
 - Agent 分析与宿主 Skill 交接，Markdown/安全 HTML 报告，执行步骤、参数、实际输出、耗时与证据索引。
 - 业务输入、MCP 结果、Agent 输出和报告按原值保存及传递，不做业务内容自动替换。
-- 加密凭据库、secretRef、独立管理会话及受限宿主身份，凭据不在连接列表或配置导出明文回显。
+- 模型 Key 与 MCP 凭据在各自页面配置，连接列表和配置导出只显示引用。管理会话与受限宿主身份独立。
 - SQLite 一致性备份、停止服务恢复、结果保留与清理、仅含版本/计数/状态/错误码的诊断导出。
 - 只读发现 Codex MCP、已安装插件和 Skills；能力来源、Schema、修订与 hub_direct/codex_host 边界清晰显示，凭据通过专用本地入口配置。
 - Codex MCP 与网页助手共用草稿服务，原子改图、CAS、幂等、局部布局、撤销和持久化回执。网页 BYOK 明确选择 Responses 或兼容 Chat Completions。

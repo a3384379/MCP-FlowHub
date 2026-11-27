@@ -294,7 +294,7 @@ test("graph rejects cycles, parallel, environment override, cross-branch depende
     assert.throws(() => d.engine.validateDraft(w));
   }
 });
-test("vault restart locks, checkpoints encrypted; run ownership and artifact UTF-8 bounds", async (t) => {
+test("checkpoints remain encrypted and readable across restart; run ownership and artifact UTF-8 bounds", async (t) => {
   const { d, tool, dataDir } = await fixture(t);
   const r = await tool("workflow_start", {
     workflowId: "incident-staging",
@@ -313,7 +313,7 @@ test("vault restart locks, checkpoints encrypted; run ownership and artifact UTF
     (await tool("workflow_status", { runId: r.runId })).checkpoint.token,
     undefined,
   );
-  d.engine.vault.unlock(password);
+  d.engine.vault.openLocal();
   assert.equal(
     (await tool("workflow_status", { runId: r.runId })).checkpoint.token,
     token,
@@ -330,9 +330,7 @@ test("vault restart locks, checkpoints encrypted; run ownership and artifact UTF
   await d.close();
   const restarted = await startDaemon({ dataDir, port: 0 });
   try {
-    assert.equal(restarted.engine.vault.locked, true);
-    assert.equal(restarted.engine.status(r.runId).checkpoint.token, undefined);
-    restarted.engine.vault.unlock(password);
+    assert.equal(restarted.engine.vault.locked, false);
     assert.equal(restarted.engine.status(r.runId).checkpoint.token, token);
   } finally {
     await restarted.close();
@@ -340,7 +338,7 @@ test("vault restart locks, checkpoints encrypted; run ownership and artifact UTF
 });
 test("admin API rejects CSRF and execution identity; immutable versions and import validation", async (t) => {
   const { d, base, cookie, api } = await fixture(t);
-  const denied = await fetch(base + "/vault/lock", {
+  const denied = await fetch(base + "/secrets", {
     method: "POST",
     headers: { Cookie: cookie },
   });
@@ -450,6 +448,9 @@ test("per-host token is workflow-scoped, cannot read another owner, and revocati
 });
 test("vault password rotation rewraps secrets and checkpoint deliveries atomically", async (t) => {
   const { d, tool } = await fixture(t);
+  d.engine.repo.remove("settings", "vault");
+  d.engine.vault.lock();
+  d.engine.vault.initialize(password);
   const secret = d.engine.vault.addSecret(
     "synthetic key",
     "test-value-not-real",
@@ -523,7 +524,7 @@ test("consistent SQLite backup and stopped-daemon restore preserve committed wor
   await restoreBackup(dataDir, path);
   const restarted = await startDaemon({ dataDir, port: 0 });
   try {
-    assert.equal(restarted.engine.vault.locked, true);
+    assert.equal(restarted.engine.vault.locked, false);
     assert.equal(restarted.engine.repo.all("workflows").length, 2);
   } finally {
     await restarted.close();

@@ -14,7 +14,7 @@ test("default admin/admin initializes once without a setup code and survives res
   assert.equal((await login("other","admin")).status,401);
   assert.equal((await login("admin","wrong")).status,401);
   assert.equal(daemon.application!.engine.repo.get("settings","admin"),undefined);
-  assert.equal(daemon.engine.vault.initialized,false);
+  assert.equal(daemon.engine.vault.locked,false);
   const accepted=await login("admin","admin");assert.equal(accepted.status,200);
   const cookie=accepted.headers.get("set-cookie")!.split(";")[0]!;
   const csrf=((await accepted.json()) as any).data.csrf;
@@ -22,7 +22,7 @@ test("default admin/admin initializes once without a setup code and survives res
   assert.deepEqual(((await state.json()) as any).data.vaultInitialized,true);
   assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/workflows`)).status,401);
   assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/workflows`,{headers:{Cookie:cookie}})).status,200);
-  assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/vault/lock`,{method:"POST",headers:{Cookie:cookie}})).status,403);
+  assert.equal((await fetch(`http://127.0.0.1:${daemon.port}/api/v1/secrets`,{method:"POST",headers:{Cookie:cookie}})).status,403);
   const secret=daemon.engine.vault.addSecret("synthetic restart check","synthetic-secret-default-login");
   const adminRecord=structuredClone(daemon.engine.repo.get("settings","admin"));
   assert.ok(!JSON.stringify(adminRecord).includes('"admin"'));
@@ -31,7 +31,7 @@ test("default admin/admin initializes once without a setup code and survives res
   await daemon.close();daemon=await startDaemon({dataDir,port:0});
   assert.equal((await login("admin","admin")).status,200);
   assert.deepEqual(daemon.engine.repo.get("settings","admin"),adminRecord);
-  daemon.engine.vault.unlock("admin");assert.equal(daemon.engine.vault.secret(secret.id),"synthetic-secret-default-login");
+  assert.equal(daemon.engine.vault.secret(secret.id),"synthetic-secret-default-login");
   assert.throws(()=>passwordHash("admin"),{code:"PASSWORD_WEAK"});
 });
 

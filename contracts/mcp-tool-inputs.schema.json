@@ -256,6 +256,122 @@
               "additionalProperties": false
             },
             {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "host_plugin_result"
+                },
+                "claimId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "pluginId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "pluginRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "taskHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "calls": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 32,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "server": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "tool": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "arguments": {
+                        "type": "object"
+                      },
+                      "result": {
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "server",
+                      "tool",
+                      "arguments",
+                      "result"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "claimId",
+                "pluginId",
+                "pluginRevision",
+                "taskHash",
+                "calls"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "host_plugin_failure"
+                },
+                "claimId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "pluginId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "pluginRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "taskHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "code": {
+                  "enum": [
+                    "AUTH_REQUIRED",
+                    "HOST_CAPABILITY_UNAVAILABLE",
+                    "HOST_CONTRACT_MISMATCH",
+                    "OUTCOME_UNKNOWN"
+                  ]
+                },
+                "errorMessage": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "type",
+                "claimId",
+                "pluginId",
+                "pluginRevision",
+                "taskHash",
+                "code"
+              ],
+              "additionalProperties": false
+            },
+            {
               "title": "HostSkillUnavailableSubmission",
               "type": "object",
               "description": "仅当前检查点属于 host_skill 时允许。运行时检查不可变版本是否预声明 fallback，以及当前主体/节点是否可使用；未声明则拒绝请求的回退。不接受客户端临时注入 Skill、工具或新 fallback。",

@@ -1,8 +1,10 @@
 import { capabilityUsage } from "./capability-usage";
 import { useEffect, useRef, useState } from "react";
 import { addCapabilityToDraft, canAddCapability, directBindings } from "../workflows/CapabilityPicker";
+import { addPluginTask, validPluginScope } from "../workflows/plugin-task";
 import { ConnectionSetup } from "./ConnectionSetup";
 import { DiscoveryDrawer } from "./DiscoveryDrawer";
+import { resourceBindingsLabel } from "../navigation/navigation";
 import {
   displayName,
   displaySummary,
@@ -95,6 +97,9 @@ export function DiscoveryDetail({
     [anchor, setAnchor] = useState(""),
     [bindingOptions, setBindingOptions] = useState<Entity[]>([]),
     [bindingId, setBindingId] = useState(""),
+    [projectId, setProjectId] = useState(""),
+    [environmentId, setEnvironmentId] = useState(""),
+    [taskInstructions, setTaskInstructions] = useState(""),
     [credentials, setCredentials] = useState(false),
     [secrets, setSecrets] = useState<Entity[]>([]),
     [credentialTarget, setCredentialTarget] = useState<{ sourceId: string; revision: number } | null>(null);
@@ -250,17 +255,25 @@ export function DiscoveryDetail({
     enabled: e.enabled ? "enabled" : "disabled", kind: e.entityKind,
   });
   const canImport = (e: Entity) => !!e.capabilityId && canAddCapability(forPicker(e));
+  const canAddPlugin = (e: Entity) => e.entityKind === "plugin" && e.installation === "installed" && e.enabled === true && !e.stale;
+  const pluginTask = importTarget?.entityKind === "plugin";
+  const flowtestTask = pluginTask && importTarget?.name === "flowtest-lite";
   const beginCredentials = () =>
     run((current) => activateCredentialForm(entity!, current));
   const beginImport = (e: Entity) => run(async (current) => {
     const drafts = await api("/workflows");
     if (!current()) return;
     setNotice("");
-    setWorkflows(drafts.filter((item: Entity) => item.draft.schemaVersion === "flowhub.workflow/v2"));
+    const flowtest = e.entityKind === "plugin" && e.name === "flowtest-lite";
+    setWorkflows(drafts.filter((item: Entity) => item.draft.schemaVersion === "flowhub.workflow/v2" &&
+      (!flowtest || item.draft.environment === "test")));
     setWorkflow(null);
     setAnchor("");
     setBindingOptions([]);
     setBindingId("");
+    setProjectId("");
+    setEnvironmentId("");
+    setTaskInstructions(flowtest ? "根据工作流输入选择对应的测试流程，运行一次并读取最终状态和失败断言。" : "");
     setImportTarget(e);
   });
   const chooseDraft = (id: string) => run(async (current) => {
@@ -281,7 +294,9 @@ export function DiscoveryDetail({
       setAnchor(input.id);
   });
   const importCapability = () => run(async (current) => {
-    await addCapabilityToDraft(api, forPicker(importTarget!), workflow, anchor, bindingId || undefined);
+    if (pluginTask) await addPluginTask(api, importTarget as {id: string; name: string; revision: number},
+      workflow, anchor, projectId.trim().toLowerCase(), environmentId.trim().toLowerCase(), taskInstructions);
+    else await addCapabilityToDraft(api, forPicker(importTarget!), workflow, anchor, bindingId || undefined);
     if (current()) onOpenWorkflow(workflow!.id);
   });
   const footer = entity && (
@@ -323,9 +338,12 @@ export function DiscoveryDetail({
           <button className="primary" disabled={working} type="submit" form={"connection-setup-" + entity.id} name="action" value="detect">{working ? "处理中…" : "保存并检测连接"}</button>
         </div>
       ) : importTarget ? (
-        <button className="primary" disabled={working || !workflow || !anchor || (bindingOptions.length > 1 && !bindingId)} onClick={() => void importCapability()}>
+        <button className="primary" disabled={working || !workflow || !anchor || (bindingOptions.length > 1 && !bindingId) ||
+          (pluginTask && (!taskInstructions.trim() || (flowtestTask && !validPluginScope(projectId.trim().toLowerCase(), environmentId.trim().toLowerCase()))))} onClick={() => void importCapability()}>
           {working ? "正在处理…" : "添加并打开编排"}
         </button>
+      ) : canAddPlugin(entity) ? (
+        <button className="primary" disabled={working} onClick={() => void beginImport(entity)}>添加为插件任务</button>
       ) : canImport(entity) ? (
         <button className="primary" disabled={working} onClick={() => void beginImport(entity)}>
           {entity.executor === "hub_direct" ? "用直连添加到流程" : "用 Codex 添加到流程"}
@@ -375,8 +393,8 @@ export function DiscoveryDetail({
             <div className="d-notice" role="status">
               {notice}
               <div>
-                <a href="/connections">前往 MCP 服务</a> ·{" "}
-                <a href="/bindings">环境与资源</a>
+                <button type="button" onClick={() => onManage({ type: "connections" })}>前往 MCP 服务</button>{" "}
+                <button type="button" onClick={() => onManage({ type: "resources" })}>{resourceBindingsLabel}</button>
               </div>
             </div>
           )}
@@ -435,7 +453,7 @@ export function DiscoveryDetail({
           ) : credentials ? (
             <ConnectionSetup key={entity.id + ":" + credentialTarget?.revision} api={api} entity={entity} initialSecrets={secrets}
               formId={"connection-setup-" + entity.id} onBusy={setWorking} onChanged={onChanged}
-              onManage={() => onManage({ type: "library" })} />
+              />
           ) : importTarget ? (
             <div className="d-edit-form">
               <h3>添加到流程</h3>
@@ -463,7 +481,26 @@ export function DiscoveryDetail({
                     </select>
                   </label>}
                 </>
-              ) : <p>请先在工作流库新建一个 v2 草稿。</p>}
+              ) : <p>{flowtestTask ? "请先新建 test 环境的工作流草稿。" : "请先在工作流库新建一个 v2 草稿。"}</p>}
+              {pluginTask && (
+                <>
+                  {flowtestTask ? (
+                    <>
+                      <p>在 Codex 中用 FlowTest-Lite 查询项目和测试环境 ID。</p>
+                      <label>FlowTest-Lite 项目 ID
+                        <input value={projectId} onChange={e => setProjectId(e.target.value)} disabled={working} spellCheck={false} />
+                      </label>
+                      <label>FlowTest-Lite 测试环境 ID
+                        <input value={environmentId} onChange={e => setEnvironmentId(e.target.value)} disabled={working} spellCheck={false} />
+                      </label>
+                    </>
+                  ) : <p>由 Codex 从已同步的只读工具中选择。</p>}
+                  <label>任务说明
+                    <textarea value={taskInstructions} onChange={e => setTaskInstructions(e.target.value)}
+                      maxLength={12000} rows={4} disabled={working} />
+                  </label>
+                </>
+              )}
               <button disabled={working} onClick={() => setImportTarget(null)}>返回详情</button>
             </div>
           ) : (

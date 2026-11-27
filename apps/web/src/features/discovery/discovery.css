@@ -977,7 +977,7 @@
 .d-config-group h4 {
   margin: 4px 0;
 }
-.d-config-field, .d-config-unlock {
+.d-config-field {
   border: 1px solid #dce6f3;
   border-radius: 10px;
   padding: 14px;

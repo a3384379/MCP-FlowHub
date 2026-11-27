@@ -441,21 +441,27 @@ test("incident creation ignores modified source drafts and requires explicit bin
       "ENVIRONMENT_OVERRIDE_DENIED",
     );
     expect(await api("/workflows/" + id + "/versions")).toEqual([]);
-    await page
-      .getByLabel("环境绑定 log", { exact: true })
-      .selectOption("huawei-log-staging");
-    await page
-      .getByLabel("环境绑定 db", { exact: true })
-      .selectOption("shared-db-staging-readonly");
+    const manageResources = page.getByRole("button", { name: "管理直连资源绑定", exact: true });
+    await page.locator(".react-flow__node").filter({ hasText: "接收输入" }).click();
+    await expect(manageResources).toHaveCount(0);
     await page
       .locator(".react-flow__node")
       .filter({ hasText: "查询固定环境日志" })
       .click();
+    await expect(manageResources).toBeVisible();
+    await manageResources.click();
+    await expect(page).toHaveURL("/connections/bindings");
+    await page.goBack();
+    await page.locator(".react-flow__node").filter({ hasText: "查询固定环境日志" }).click();
+    const logBinding = page.getByLabel("环境绑定 log", { exact: true });
+    await expect(logBinding.locator('option[value="aliyun-log-prod"]')).toHaveCount(0);
+    await logBinding.selectOption("huawei-log-staging");
     await page.getByLabel("实际 MCP 工具").selectOption("huawei_log_search");
     await page
       .locator(".react-flow__node")
       .filter({ hasText: "查询固定模板的订单记录" })
       .click();
+    await page.getByLabel("环境绑定 db", { exact: true }).selectOption("shared-db-staging-readonly");
     await page.getByLabel("实际 MCP 工具").selectOption("query_template");
     await publish(page);
     await expect(page.getByRole("status")).toContainText("不可变版本已发布");
@@ -483,12 +489,10 @@ test("deterministic creation supports production, explicit tools, and selecting 
   const api = await admin(page);
   const id = await newWorkflow(page, "deterministic", "production");
   await page
-    .getByLabel("环境绑定 log", { exact: true })
-    .selectOption("aliyun-log-prod");
-  await page
     .locator(".react-flow__node")
     .filter({ hasText: "查询固定环境日志" })
     .click();
+  await page.getByLabel("环境绑定 log", { exact: true }).selectOption("aliyun-log-prod");
   await page.getByLabel("实际 MCP 工具").selectOption("aliyun_log_search");
   await publish(page);
   await expect(page.getByRole("status")).toContainText("不可变版本已发布");
@@ -815,7 +819,7 @@ test("session expiry reconnects in place and retains focused JSON text", async (
   const requested = deferred(),
     release = deferred();
   let expire = true;
-  await page.route("**/api/v1/workflows", async (route) => {
+  await page.route("**/api/v1/bindings", async (route) => {
     if (!expire || route.request().method() !== "GET") return route.continue();
     expire = false;
     requested.resolve();
@@ -848,20 +852,12 @@ test("session expiry reconnects in place and retains focused JSON text", async (
     await expect(page.getByLabel("节点配置（映射 / Schema）")).toHaveValue(raw);
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "系统设置", exact: true }).click();
-    await page.getByRole("button", { name: "解锁", exact: true }).click();
-    const unlock = page.getByRole("dialog", { name: "解锁凭据库" });
-    await unlock.getByLabel("凭据库口令").fill("Wrong-synthetic-password");
-    await unlock.getByRole("button", { name: "确认", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("AUTH_REQUIRED");
     await expect(
       page.getByRole("heading", { name: "系统设置", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "登录管理中心", exact: true }),
     ).toHaveCount(0);
-    await unlock.getByLabel("凭据库口令").fill(password);
-    await unlock.getByRole("button", { name: "确认", exact: true }).click();
-    await expect(unlock).toHaveCount(0);
   } finally {
     release.resolve();
   }

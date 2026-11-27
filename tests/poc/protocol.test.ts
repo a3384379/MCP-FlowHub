@@ -78,7 +78,7 @@ async function inspectHub(client: Client) {
     name: "workflow_start",
     arguments: {
       workflowId: "incident-staging",
-      version: "1.0.0",
+      version: "9.9.9",
       mode: "guided",
       inputs: {
         question: "合成问题",
@@ -92,7 +92,7 @@ async function inspectHub(client: Client) {
   assert.equal(unavailable.isError, true);
   assert.equal(
     (structured(unavailable).error as { code: string }).code,
-    "CREDENTIAL_LOCKED",
+    "VERSION_MISMATCH",
   );
   for (const [name, args] of Object.entries({
     workflow_status: { runId: "not-a-run" },

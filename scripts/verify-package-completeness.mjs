@@ -27,7 +27,7 @@ async function walk(relative) {
   }
 }
 for (const module of modules) await walk("packages/" + module + "/src");
-for (const path of ["packages/persistence/src/migrations", "packages/persistence/src/v1", "packages/persistence/src/v2", "packages/persistence/src/v3"]) {
+for (const path of ["packages/persistence/src/migrations", "packages/persistence/src/v1", "packages/persistence/src/v2", "packages/persistence/src/v3", "packages/persistence/src/v4"]) {
   assert.ok(manifest["dist/" + path + ".js"]); assert.ok(manifest["source/" + path + ".ts"]); compiled.push("dist/" + path + ".js");
 }
 for (const file of ["contracts/mcp-v2-tool-inputs.schema.json", "contracts/workflow-v2.schema.json", "contracts/authoring-batch.schema.json", "contracts/workflow-delete.schema.json"]) {

@@ -12,7 +12,7 @@ async function authenticate(page:Page):Promise<Api>{
   const response=await page.request.post("/api/v1/auth/"+(state.initialized?"session":"bootstrap"),{data:state.initialized?{password}:{password,setupToken:await readFile(join(process.env.FLOWHUB_UI_DATA_DIR!,"admin-setup-token"),"utf8")}});
   expect(response.ok(),await response.text()).toBeTruthy();const csrf=(await response.json()).data.csrf;
   const api:Api=async(path,method="GET",body?,revision?)=>{const r=await page.request.fetch(path,{method,headers:{"X-CSRF-Token":csrf,...(revision===undefined?{}:{"If-Match":String(revision)})},...(body===undefined?{}:{data:body})});expect(r.ok(),await r.text()).toBeTruthy();return(await r.json()).data;};
-  if((await api("/api/v1/auth/state")).vaultLocked)await api("/api/v1/vault/unlock","POST",{password});
+  if((await api("/api/v1/auth/state")).vaultLocked)await api("/api/v1/credentials/migrate","POST",{password});
   return api;
 }
 async function createBlank(api:Api,name:string){const id="ui-mode-"+randomUUID().slice(0,8);await api("/api/v2/workflows","POST",{workflowId:id,name,environment:"test",mode:"auto",template:"blank",idempotencyKey:randomUUID()});return id;}

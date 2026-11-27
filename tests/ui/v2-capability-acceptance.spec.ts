@@ -51,7 +51,7 @@ test("UI-02: real discovery and CapabilityPicker persist hub_direct bindings and
   const api=await authenticate(page),fixture=await discoveryFixture();
   try {
     if ((await api("/api/v1/auth/state")).vaultLocked)
-      await api("/api/v1/vault/unlock", "POST", { password: "Synthetic-browser-password-041" });
+      await api("/api/v1/credentials/migrate", "POST", { password: "Synthetic-browser-password-041" });
     const context=await openDiscovery(page,api,fixture),status=page.locator(".v2-discovery [role=status]");
     await expect(status).toContainText("正在扫描");await expect(status).toContainText("扫描完成");
     await page.getByRole("tab",{name:/Skills 技能/}).click(); await expect(page.locator(".d-cap-row").filter({hasText:fixture.skillName})).toContainText("仅 Codex 调用"); await page.getByRole("tab",{name:/MCP 服务/}).click();

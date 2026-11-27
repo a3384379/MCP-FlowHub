@@ -41,7 +41,6 @@ export function ConversationView({
   onContinue,
   undos,
   onSuggest,
-  vaultLocked,
 }: {
   sessionId: string;
   messages: Data[];
@@ -57,7 +56,6 @@ export function ConversationView({
   onContinue: (task: Data) => void;
   undos: Record<string, Data>;
   onSuggest: (text: string) => void;
-  vaultLocked?: boolean | null;
 }) {
   const feed = useRef<HTMLDivElement>(null),
     following = useRef(true),
@@ -253,7 +251,7 @@ export function ConversationView({
                 </p>
               )}
               {task?.errorCode === "CREDENTIAL_LOCKED" && <p className="assistant-muted">
-                {vaultLocked === true ? "请先解锁凭据库；已保存的模型 Key 和本轮问题仍保留。" : "这轮因凭据库锁定未完成。解锁后可重新提问，已有工具回执保持原样。"}
+                可在「模型设置」重新填写 Key，或从「系统设置」恢复旧版数据后再试。
               </p>}
               {task &&
                 ["FAILED", "CANCELLED", "INTERRUPTED"].includes(task.status) &&

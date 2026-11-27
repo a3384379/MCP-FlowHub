@@ -36,7 +36,7 @@ codex plugin add flowhub@flowhub-local
 
 在 Codex 的 FlowHub 插件卡片也可选择 **打开 FlowHub 管理页面**。终端中可运行 `./flowhub-plugin open` 打开默认浏览器，或运行 `./flowhub-plugin url` 获取地址。命令使用连接配置中的数据目录与后台的实际端口，先检查后台是否健康。默认本机地址为 [http://127.0.0.1:18473](http://127.0.0.1:18473)。
 
-alpha.4 起管理页打开后直接进入工作区。添加或调用受保护凭据时按页面提示设置或解锁凭据库。
+alpha.4 起管理页打开后直接进入工作区。模型 Key、MCP 令牌和环境变量在对应的模型或连接页面填写。重启后自动读取已保存的值。升级带有旧版凭据的工作区时，按提示用原口令迁移一次。
 
 Windows 使用原生 Windows 包，将 `./flowhub-plugin` 替换为 `.\flowhub-plugin.cmd`。Codex CLI 需支持 `plugin marketplace add`、`plugin add`；桌面端重开对话后检查插件和 MCP 是否加载。仓库证据记录实际测试的 Codex 版本，旧版兼容性以实际安装结果为准。
 
@@ -87,12 +87,12 @@ STDIO 薄桥继续只转发，个人 Codex 插件清单使用单独的启动入�
 
 可以用 `flowhub:flowhub-setup`、`flowhub:flowhub-author`、`flowhub:flowhub-run` 或 `flowhub:flowhub-test-report` 明确选择技能。运行等待宿主时，从运行详情复制「Codex 续跑指令」并粘贴到具备原运行权限的 Codex 会话。
 
-无需模型 Key 即可通过 Codex 编排和运行确定性 Mock。FlowHub 的 `ai_assisted` 使用原有 Vault 模型配置；插件不会复制 Codex 登录态或 OAuth。
+无需模型 Key 即可通过 Codex 编排和运行确定性 Mock。FlowHub 的 `ai_assisted` 使用「模型设置」中保存的模型配置；插件不会复制 Codex 登录态或 OAuth。
 
 ## 迁移、更新、卸载
 
 1. 仅搬程序：复制对应平台压缩包，在新电脑解压、添加 marketplace、安装插件并启动。新电脑会使用自己的本机数据；路径无需修改到 manifest 里。
-2. 同时搬业务数据：在原实例通过管理页面生成一致性备份，把备份单独传到目标电脑；停止目标后台，使用包内 `flowhub restore --backup PATH --data-dir PATH`。恢复说明和口令要求见 [V2_MIGRATION.md](V2_MIGRATION.md)。保留备份时的管理员与 Vault 口令，重新核对本机绑定路径和客户端身份。不要复制运行中的 SQLite 文件。
+2. 同时搬业务数据：在原实例通过管理页面生成一致性备份，把备份单独传到目标电脑；停止目标后台，使用包内 `flowhub restore --backup PATH --data-dir PATH`。恢复说明和口令要求见 [V2_MIGRATION.md](V2_MIGRATION.md)。自动读取凭据的版本将恢复材料一同写入数据库备份，请妥善保存备份。若备份来自需要口令的旧版，保留原口令以便迁移。恢复后核对本机绑定路径和客户端身份。不要复制运行中的 SQLite 文件。
 3. 更新：参照 [迁移指南](V2_MIGRATION.md) 备份并确认当前运行已结束。保留外部数据目录与连接引用，使用新包重新添加来源、安装，再以同一数据目录启动新版后台。安装后用 `doctor` 核对工具范围。桌面侧栏仍提示「未能显示 FlowHub」时，完全退出并重新打开 Codex，让桌面端重新启动与后台版本匹配的 MCP 进程。
 4. 卸载：`codex plugin remove flowhub@flowhub-local`。它移除插件登记，不删除后台数据或 `flowhub/connection.json`；停止后台另行按 Ctrl+C。不要将业务数据放进插件缓存。
 
