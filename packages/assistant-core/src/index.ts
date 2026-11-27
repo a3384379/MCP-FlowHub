@@ -395,9 +395,10 @@ export class AssistantCore {
         for(const artifactId of task.context.artifactRefs??[])context.artifacts.push(this.app.engine.readArtifact({runId:task.context.runId,artifactId,offset:0,maxBytes:16000},task.owner));
       } else if(task.context.workflowId)context.workflow={...this.app.authoring.get(task.context.workflowId,task.owner),workflowId:task.context.workflowId};
       const credentials=new Set<string>();
-      for(const run of this.repo.all("runs").filter(r=>r.owner===task.owner&&r.checkpoint?.delivery))if(!this.app.engine.vault.locked)credentials.add(this.app.engine.vault.decrypt(run.checkpoint.delivery,run.id+":"+run.checkpoint.id));
+      const vault=this.app.engine.vault;
+      for(const run of this.repo.all("runs").filter(r=>r.owner===task.owner&&vault.canDecrypt(r.checkpoint?.delivery)))credentials.add(vault.decrypt(run.checkpoint.delivery,run.id+":"+run.checkpoint.id));
       const relatedTasks=new Set(this.repo.all("assistant_tasks").filter(t=>t.sessionId===task.sessionId).map(t=>t.id));
-      for(const receipt of this.repo.all("assistant_tool_calls").filter(c=>relatedTasks.has(c.taskId)&&c.result?.checkpoint?.tokenDelivery))if(!this.app.engine.vault.locked)credentials.add(this.app.engine.vault.decrypt(receipt.result.checkpoint.tokenDelivery,receipt.id));
+      for(const receipt of this.repo.all("assistant_tool_calls").filter(c=>relatedTasks.has(c.taskId)&&vault.canDecrypt(c.result?.checkpoint?.tokenDelivery)))credentials.add(vault.decrypt(receipt.result.checkpoint.tokenDelivery,receipt.id));
       const safeText=(text:string)=>{for(const credential of credentials)if(credential)text=text.replaceAll(credential,"[checkpoint credential omitted]");return text;};
       const budget=budgetContext(JSON.parse(safeText(JSON.stringify(context)))),contextText=budget.text;
       save({contextSummary:{totalBytes:budget.totalBytes,includedBytes:budget.includedBytes,limitBytes:64000,truncated:budget.truncated,sections:budget.sections,sources:{workflowId:task.context.workflowId??null,runId:task.context.runId??null,artifactRefs:task.context.artifactRefs??[],help:help.citations}}});

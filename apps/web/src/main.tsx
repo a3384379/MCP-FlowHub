@@ -743,7 +743,7 @@ function App() {
     setSession(currentSession);
     if (inCodexWorkspace) window.parent.postMessage({ type: "flowhub:workspace-ready" }, "*");
   }, []);
-  const openVault = () => {
+  const openLegacyRecovery = () => {
     setModal({
       type: "unlock",
       title: "迁移旧版凭据",
@@ -1890,12 +1890,6 @@ function App() {
           {notice && (
             <div className="toast" role="status">
               {notice}
-            </div>
-          )}
-          {auth?.credentialMigrationRequired && ["settings", "connections"].includes(page) && (
-            <div className="vault-notice">
-              <span>此工作区有旧版凭据。输入原口令迁移一次，之后即可直接使用。</span>
-              <button onClick={openVault}>迁移旧版凭据</button>
             </div>
           )}
           {page === "discovery" && <DiscoveryPage api={api} onManage={manageDiscovery} onOpenWorkflow={chooseWorkflowById} />}
@@ -3437,15 +3431,8 @@ function App() {
                     </div>
                   </section>
                   <div>
-                    {run.vaultLocked && (
-                      <div className="banner">
-                        此运行使用旧版凭据，迁移后可继续检查点。
-                        <button
-                          onClick={openVault}
-                        >
-                          迁移旧版凭据
-                        </button>
-                      </div>
+                    {(run.checkpoint?.legacyDataUnavailable || run.outputAvailability === "VAULT_LOCKED") && (
+                      <p className="banner">此历史运行包含旧版加密数据，可在「系统设置」的「恢复旧版数据」中恢复。</p>
                     )}
                     {run.checkpoint && (
                       <section className="panel">
@@ -3586,6 +3573,13 @@ function App() {
                   >
                     预览清理范围
                   </button>
+                  {auth?.credentialMigrationRequired && (
+                    <details>
+                      <summary>恢复旧版数据</summary>
+                      <p>使用原口令恢复该版本保存的连接认证、模型 Key 或加密运行结果。</p>
+                      <button disabled={busy} onClick={openLegacyRecovery}>迁移旧版凭据</button>
+                    </details>
+                  )}
                 </section>
                 <section className="panel">
                   <h2>诊断导出（仅元数据）</h2>
@@ -3649,7 +3643,6 @@ function App() {
         onReferencesChange={setAssistantReferencesOpen}
         onNavigate={navigate}
         onOpenWorkflow={id=>navigate("/workflows/"+id+"/editor")}
-        onUnlockVault={openVault}
       />
       {modal && (
         <div

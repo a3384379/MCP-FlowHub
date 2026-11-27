@@ -201,10 +201,21 @@ test("a protected legacy workspace migrates once and reopens the same credential
   const path = "/api/v1/credentials/migrate";
   const state = async () => (await call("/api/v1/auth/state")).json.data;
   assert.equal((await state()).credentialMigrationRequired, true);
+  assert.equal((await state()).vaultLocked, false);
+  const previous = daemon.engine.repo.get("secrets", ref!);
+  assert.throws(() => daemon.engine.vault.secret(ref!), { code: "CREDENTIAL_LOCKED" });
+  const created = await call("/api/v1/secrets", {
+    label: "New test key", value: "synthetic-new-model-key", purpose: "model_api",
+  }, adminHeaders);
+  assert.equal(created.status, 200);
+  const newRef = created.json.data.id;
+  assert.equal(daemon.engine.vault.secret(newRef), "synthetic-new-model-key");
+  assert.deepEqual(daemon.engine.repo.get("secrets", ref!), previous);
   const before = daemon.engine.repo.all("secrets");
   assert.equal((await call(path, { password })).status, 401);
   assert.equal((await call(path, { password }, { Cookie: adminHeaders.Cookie })).status, 403);
   assert.equal((await call(path, { password: "synthetic-incorrect-password" }, adminHeaders)).status, 422);
+  assert.equal(daemon.engine.vault.secret(newRef), "synthetic-new-model-key");
   assert.deepEqual(daemon.engine.repo.all("secrets"), before);
   assert.equal((await call(path, { password }, adminHeaders)).status, 200);
   assert.equal((await state()).credentialMigrationRequired, false);
@@ -215,6 +226,7 @@ test("a protected legacy workspace migrates once and reopens the same credential
   try {
     assert.equal(restarted.engine.vault.locked, false);
     assert.equal(restarted.engine.vault.secret(ref!), value);
+    assert.equal(restarted.engine.vault.secret(newRef), "synthetic-new-model-key");
     assert.deepEqual(restarted.engine.repo.all("secrets"), before);
   } finally {
     await restarted.close();

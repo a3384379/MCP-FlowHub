@@ -10,7 +10,7 @@ export function ModelsPage({api}:{api:Api}) {
   const [catalog,setCatalog]=useState<Catalog|null>(null),[catalogBusy,setCatalogBusy]=useState(false),[filter,setFilter]=useState(""),[manual,setManual]=useState(false);
   const [error,setError]=useState(""),[busy,setBusy]=useState(false),[probe,setProbe]=useState<any>(null),[timeoutMs,setTimeoutMs]=useState(180000),[stream,setStream]=useState(true),[maxRounds,setMaxRounds]=useState(12),[maxToolCalls,setMaxToolCalls]=useState(24),[taskTimeoutMs,setTaskTimeoutMs]=useState(180000),[maxCorrectionAttempts,setMaxCorrectionAttempts]=useState(3);
   const explain=(error:any)=>error?.code==="CREDENTIAL_LOCKED"
-    ? "此工作区还需迁移旧版凭据。请在「系统设置」完成一次迁移后重试。"
+    ? "此模型引用了旧版 Key。可重新填写 Key，或在「系统设置」恢复旧版数据。"
     : error?.code?.startsWith("MODEL_") ? error.code+" · "+modelErrorHint(error.code) : error.message;
   const generation=useRef(0),live=useRef(true);
   const load=()=>api("/api/v2/model-profiles").then(list=>{if(live.current)setProfiles(list);});

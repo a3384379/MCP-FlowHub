@@ -6,8 +6,6 @@ import { ConversationView } from "./ConversationView";
 import { AssistantLauncher } from "./AssistantLauncher";
 import { useAssistantViewport } from "./viewport";
 import "./assistant.css";
-import { useVaultState } from "../../shared/useVaultState";
-import { VaultNotice } from "../settings/VaultNotice";
 
 function Icon({
   name,
@@ -40,7 +38,6 @@ export function FloatingAssistant({
   onReferencesChange,
   onNavigate,
   onOpenWorkflow,
-  onUnlockVault,
 }: {
   api: Api;
   context: Data;
@@ -52,7 +49,6 @@ export function FloatingAssistant({
   onReferencesChange: (visible: boolean) => void;
   onNavigate: (path: string) => void;
   onOpenWorkflow: (id: string) => void;
-  onUnlockVault: () => void;
 }) {
   const [activated, setActivated] = useState(false);
   const chat = useConversation(api, activated);
@@ -62,7 +58,6 @@ export function FloatingAssistant({
     [history, setHistory] = useState(false),
     [details, setDetails] = useState(false),
     [unread, setUnread] = useState(false);
-  const vault = useVaultState(api, opened);
   const [launcherSide, setLauncherSide] = useState<"left" | "right">("right");
   const [override, setOverride] = useState<Data | null>(null),
     [detached, setDetached] = useState(false),
@@ -90,16 +85,7 @@ export function FloatingAssistant({
   });
   const selected = chat.profiles.find((p) => p.id === chat.profileId),
     running = Object.values(chat.entry.tasks).some(activeTask);
-  const hasModel = !!selected?.keyConfigured;
-  const ready = hasModel && vault.locked !== true;
-  const observedLockedTasks = useRef(new Set<string>());
-  useEffect(() => {
-    if (!opened) return;
-    const unseen = Object.values(chat.entry.tasks).filter(task => task.errorCode === "CREDENTIAL_LOCKED" && !observedLockedTasks.current.has(task.id));
-    if (!unseen.length) return;
-    unseen.forEach(task => observedLockedTasks.current.add(task.id));
-    void vault.refresh();
-  }, [opened, chat.entry.tasks, vault.refresh]);
+  const ready = !!selected?.keyConfigured;
   const narrow = viewport.width <= 700,
     panelWidth = narrow
       ? viewport.width
@@ -518,7 +504,6 @@ export function FloatingAssistant({
             submission={chat.entry.submission}
             cursor={chat.entry.cursor}
             busy={chat.busy || !ready}
-            vaultLocked={vault.locked}
             profiles={chat.profiles}
             undos={undos}
             onEarlier={() =>
@@ -574,8 +559,7 @@ export function FloatingAssistant({
           </section>
         )}
         <footer className="assistant-composer">
-          {hasModel && <VaultNotice vault={vault} unlock={onUnlockVault} />}
-          {!hasModel && (
+          {!ready && (
             <p className="assistant-notice">
               配置模型后启用聊天。发现、画布和 Codex 路径仍可用。
               <button onClick={() => onNavigate("/models")}>

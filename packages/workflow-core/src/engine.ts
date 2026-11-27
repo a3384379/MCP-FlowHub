@@ -662,26 +662,30 @@ export class Engine {
   private runStatus(runId: string, owner: string, view: "full" | "checkpoint") {
     const r = this.checkRunAccess(runId, owner);
     const artifacts = this.repo.artifactsForRun(r.id, "summary");
+    const legacyOutputs = Object.values(r.operationalOutputs ?? {});
+    const outputsAvailable = legacyOutputs.every(envelope => this.vault.canDecrypt(envelope));
     let checkpoint;
     if (r.checkpoint) {
       const { delivery, tokenHash, argumentsDelivery, hostClaim, inputs, resolvedArguments: legacyArguments, ...info } = r.checkpoint;
       const hostTool = info.kind === "host_tool";
-      const resolvedArguments = hostTool && !this.vault.locked
+      const tokenAvailable = this.vault.canDecrypt(delivery);
+      const argumentsAvailable = argumentsDelivery ? this.vault.canDecrypt(argumentsDelivery) : tokenAvailable;
+      const resolvedArguments = hostTool && argumentsAvailable
         ? this.hostArguments(r, { id: info.id, argumentsDelivery, resolvedArguments: legacyArguments })
         : undefined;
       checkpoint = {
         ...info,
-        ...(!this.vault.locked
-          ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) }
-          : {}),
+        ...(tokenAvailable ? { token: this.vault.decrypt(delivery, r.id + ":" + info.id) } : {}),
+        ...(!this.vault.locked && (!tokenAvailable || !argumentsAvailable || !outputsAvailable)
+          ? { legacyDataUnavailable: true } : {}),
         ...(hostClaim ? { claimedAt: hostClaim.claimedAt } : {}),
         ...(hostTool ? {
-          inputs: view === "full" ? resolvedArguments ?? (!this.vault.locked ? inputs : undefined) : undefined,
+          inputs: view === "full" ? resolvedArguments ?? (argumentsAvailable ? inputs : undefined) : undefined,
           resolvedArguments,
-        } : Object.keys(r.operationalOutputs ?? {}).length ? {
-          inputs: this.vault.locked ? undefined : mappings(
+        } : legacyOutputs.length ? {
+          inputs: outputsAvailable ? mappings(
             r.snapshot.workflow.nodes.find((node: Node) => node.id === info.nodeId)?.config.inputMappings,
-            r.inputs, this.operationalOutputs(r)),
+            r.inputs, this.operationalOutputs(r)) : undefined,
         } : { inputs }),
         availableEvidence: artifacts,
         ...(view === "full" || info.kind === "host_skill" ? { nodeOutcomes: r.steps } : {}),
@@ -709,7 +713,7 @@ export class Engine {
       vaultLocked: this.vault.locked,
       createdAt: r.createdAt,
     };
-    return { run: r, summary };
+    return { run: r, summary, outputsAvailable };
   }
   checkRunAccess(runId: string, owner = "execution") {
     const run = this.owned(runId, owner);
@@ -717,7 +721,7 @@ export class Engine {
     return run;
   }
   status(runId: string, owner = "execution", after = 0, limit = 50) {
-    const { run: r, summary } = this.runStatus(runId, owner, "full");
+    const { run: r, summary, outputsAvailable } = this.runStatus(runId, owner, "full");
     const attemptsByNode = new Map<string, { durationMs: number; errorCode?: string }>();
     for (const attempt of this.repo.attemptsForRun(r.id)) {
       const elapsed = attempt.finishedAt ? Math.max(0, Date.parse(attempt.finishedAt) - Date.parse(attempt.createdAt)) : 0;
@@ -731,8 +735,8 @@ export class Engine {
       steps: r.steps,
       events: this.repo.events(r.id, after, limit),
       inputs: r.inputs,
-      outputs: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? undefined : this.operationalOutputs(r),
-      outputAvailability: this.vault.locked && Object.keys(r.operationalOutputs ?? {}).length ? "VAULT_LOCKED" : "AVAILABLE",
+      outputs: outputsAvailable ? this.operationalOutputs(r) : undefined,
+      outputAvailability: outputsAvailable ? "AVAILABLE" : "VAULT_LOCKED",
       nodeDetails: (r.snapshot?.workflow?.nodes ?? []).map((node: Node) => {
         const attempts = attemptsByNode.get(node.id);
         let arguments_;

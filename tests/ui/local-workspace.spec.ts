@@ -23,7 +23,7 @@ test("a legacy workspace migrates saved credentials once without replacing them"
     await expect(page.getByLabel("管理员密码")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "退出登录", exact: true })).toHaveCount(0);
     const state = async () => (await (await page.request.get(base + "/api/v1/auth/state")).json()).data;
-    expect(await state()).toMatchObject({ initialized: false, credentialMigrationRequired: true });
+    expect(await state()).toMatchObject({ initialized: false, credentialMigrationRequired: true, vaultLocked: false });
 
     await page.getByRole("button", { name: "模型设置", exact: true }).click();
     await expect(page.getByRole("heading", { name: "模型设置", exact: true })).toBeVisible();
@@ -31,6 +31,8 @@ test("a legacy workspace migrates saved credentials once without replacing them"
     await expect(page.getByRole("button", { name: /迁移旧版凭据|解锁凭据库/ })).toHaveCount(0);
     await page.getByRole("button", { name: "系统设置", exact: true }).click();
     const setup = page.getByRole("button", { name: "迁移旧版凭据", exact: true });
+    await expect(setup).toBeHidden();
+    await page.getByText("恢复旧版数据", { exact: true }).click();
     await setup.click();
     const dialog = page.getByRole("dialog", { name: "迁移旧版凭据", exact: true });
     const input = dialog.getByLabel("旧版凭据口令", { exact: true });

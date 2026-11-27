@@ -27,11 +27,19 @@ const resultSchema = {
   }, additionalProperties: false,
 };
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, pendingLegacyRecovery = false) {
   const db = new Database(":memory:");
   const repo = new Repository(db);
   const vault = new Vault(repo);
   vault.initialize("synthetic-host-task-password");
+  if (pendingLegacyRecovery) {
+    const old = vault.addSecret("Legacy test value", "synthetic-legacy-model-key");
+    vault.lock();
+    vault.openLocal();
+    assert.equal(vault.migrationRequired, true);
+    assert.equal(vault.locked, false);
+    assert.throws(() => vault.secret(old.id), { code: "CREDENTIAL_LOCKED" });
+  }
   const engine = new Engine(repo, vault, new Connectors(repo, vault));
   const app = new Application(engine);
   t.after(async () => { await app.close(); await engine.close(); db.close(); });
@@ -82,8 +90,8 @@ async function fixture(t: TestContext) {
   return { engine, repo, config, cp, runId, envelope, claimRequest };
 }
 
-test("a claimed plugin task verifies scope, call identity, run lineage, and sends a real failure outcome down the false branch", async t => {
-  const { engine, repo, cp, runId, claimRequest, envelope } = await fixture(t);
+test("a plugin task on an unrecovered legacy workspace verifies its receipt and sends a failed test down the false branch", async t => {
+  const { engine, repo, cp, runId, claimRequest, envelope } = await fixture(t, true);
   assert.deepEqual(cp.pluginTask.tools.map((tool: Json) => tool.name), ["environment_list", "workflow_run", "workflow_run_get"]);
   assert.throws(() => engine.advance({ ...envelope, idempotencyKey: "plain",
     submission: { type: "agent_result", payload: { status: "passed" } } }), { code: "HOST_RECEIPT_REQUIRED" });
@@ -129,4 +137,23 @@ test("the installed plugin must still own the frozen tools when a Codex session 
   repo.put("discovery_entities", "lite-server", { ...repo.get("discovery_entities", "lite-server"), pluginId: "different-plugin" });
   assert.throws(() => engine.advance(claimRequest), { code: "HOST_CAPABILITY_UNAVAILABLE" });
   assert.equal(engine.status(runId).state, "WAITING_AGENT");
+});
+
+test("a legacy checkpoint and its protected outputs remain readable after optional recovery", async t => {
+  const { engine, repo, cp, runId } = await fixture(t);
+  const run = repo.get("runs", runId);
+  const oldInput = { note: "synthetic archived input" };
+  const encrypted = engine.vault.encrypt(JSON.stringify(oldInput), runId + ":output:input");
+  repo.put("runs", runId, { ...run, operationalOutputs: { input: encrypted } });
+  engine.vault.lock();
+  engine.vault.openLocal();
+  const pending = engine.status(runId);
+  assert.equal(pending.checkpoint.legacyDataUnavailable, true);
+  assert.equal(pending.checkpoint.token, undefined);
+  assert.equal(pending.outputAvailability, "VAULT_LOCKED");
+  engine.vault.migrateToLocal("synthetic-host-task-password");
+  const restored = engine.status(runId);
+  assert.equal(restored.checkpoint.token, cp.token);
+  assert.deepEqual(restored.outputs.input, oldInput);
+  assert.deepEqual(repo.get("runs", runId).operationalOutputs.input, encrypted);
 });

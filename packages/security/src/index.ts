@@ -22,6 +22,15 @@ const derive = (password: string, salt: string) =>
     p: 1,
     maxmem: 64 * 1024 * 1024,
   });
+function decryptWithKey(key: Buffer, record: Json, aad: string) {
+  const cipher = createDecipheriv("aes-256-gcm", key, Buffer.from(record.iv, "hex"));
+  cipher.setAAD(Buffer.from(aad));
+  cipher.setAuthTag(Buffer.from(record.tag, "hex"));
+  return Buffer.concat([
+    cipher.update(Buffer.from(record.ciphertext, "base64")),
+    cipher.final(),
+  ]).toString("utf8");
+}
 export const DEFAULT_ADMIN_USERNAME = "admin";
 export const DEFAULT_ADMIN_PASSWORD = "admin";
 
@@ -45,6 +54,8 @@ export function passwordMatches(password: string, stored: Json): boolean {
 }
 export class Vault {
   private key: Buffer | undefined;
+  private legacyKey: Buffer | undefined;
+  private hasLegacy = false;
   private generation = 0;
   constructor(private repo: Repository) {}
   get initialized() {
@@ -54,7 +65,8 @@ export class Vault {
     return !this.key;
   }
   get migrationRequired() {
-    return this.locked && this.repo.get("settings", "vault")?.version === 1;
+    const meta = this.repo.get("settings", "vault");
+    return meta?.version === 3 ? !meta.legacy.wrappedKey : meta?.version === 1 && this.locked;
   }
   private hasProtectedRecords() {
     return !!this.repo.db.prepare(`
@@ -68,13 +80,15 @@ export class Vault {
         OR EXISTS (SELECT 1 FROM assistant_tool_calls WHERE json_type(body, '$.result.checkpoint.tokenDelivery') = 'object')
     `).get();
   }
-  private saveLocalKey(key: Buffer) {
+  private saveLocalKey(key: Buffer, legacy?: { salt: string; verifier: Json }) {
     this.key = key;
+    this.hasLegacy = !!legacy;
     try {
       this.repo.put("settings", "vault", {
-        version: 2,
+        version: legacy ? 3 : 2,
         localKey: key.toString("hex"),
         verifier: this.encrypt("flowhub-vault-v1", "verifier"),
+        ...(legacy ? { legacy } : {}),
       });
       this.generation++;
     } catch (error) {
@@ -84,13 +98,19 @@ export class Vault {
   }
   openLocal() {
     const meta = this.repo.get("settings", "vault");
-    if (meta?.version === 2) {
+    if (meta?.version === 2 || meta?.version === 3) {
       ensure(typeof meta.localKey === "string" && /^[a-f0-9]{64}$/.test(meta.localKey),
         "CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
+      this.hasLegacy = meta.version === 3;
       this.key = Buffer.from(meta.localKey, "hex");
       try {
         ensure(this.decrypt(meta.verifier, "verifier") === "flowhub-vault-v1",
           "CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
+        if (this.hasLegacy && meta.legacy.wrappedKey) {
+          const hex = this.decrypt(meta.legacy.wrappedKey, "legacy-vault-key");
+          ensure(/^[a-f0-9]{64}$/.test(hex), "CREDENTIAL_STORE_INVALID", "The recovery key is invalid.", 500);
+          this.legacyKey = Buffer.from(hex, "hex");
+        }
       } catch {
         this.lock();
         throw new HubError("CREDENTIAL_STORE_INVALID", "The local credential data is invalid.", 500);
@@ -103,19 +123,38 @@ export class Vault {
     const protectedRecords = this.hasProtectedRecords();
     ensure(meta || !protectedRecords, "CREDENTIAL_STORE_INVALID",
       "Credential metadata is missing from this database.", 500);
-    if (!protectedRecords) this.saveLocalKey(randomBytes(32));
+    // Legacy ciphertext remains byte-for-byte intact. New writes use a
+    // different key so an old password is never needed to use the workspace.
+    this.saveLocalKey(randomBytes(32), protectedRecords
+      ? { salt: meta.salt, verifier: meta.verifier }
+      : undefined);
   }
   migrateToLocal(password: string) {
-    ensure(this.migrationRequired, "CREDENTIAL_MIGRATION_NOT_REQUIRED",
+    const meta = this.repo.get("settings", "vault");
+    ensure(meta?.version === 3 && !meta.legacy.wrappedKey, "CREDENTIAL_MIGRATION_NOT_REQUIRED",
       "The workspace already opens credentials automatically.", 409);
+    const legacyKey = this.verifyPassword(password, meta.legacy);
     try {
-      this.unlock(password);
+      this.repo.put("settings", "vault", {
+        ...meta,
+        legacy: { ...meta.legacy, wrappedKey: this.encrypt(legacyKey.toString("hex"), "legacy-vault-key") },
+      });
     } catch (error) {
-      if (!(error instanceof HubError) || error.code !== "AUTH_REQUIRED") throw error;
-      throw new HubError("CREDENTIAL_PASSWORD_INVALID", "旧版凭据口令不正确。", 422);
+      legacyKey.fill(0);
+      throw error;
     }
-    // Existing references and ciphertext remain valid under the original key.
-    this.saveLocalKey(this.key!);
+    this.legacyKey = legacyKey;
+    this.generation++;
+  }
+  private verifyPassword(password: string, meta: Json) {
+    const failure = () => new HubError("CREDENTIAL_PASSWORD_INVALID", "旧版凭据口令不正确。", 422);
+    if (typeof password !== "string" || password.length > 256) throw failure();
+    const key = derive(password, meta.salt);
+    try {
+      if (decryptWithKey(key, meta.verifier, "verifier") === "flowhub-vault-v1") return key;
+    } catch { /* An invalid password cannot authenticate the verifier. */ }
+    key.fill(0);
+    throw failure();
   }
   initialize(password: string, allowDefaultAdmin = false) {
     ensure(
@@ -163,32 +202,33 @@ export class Vault {
     this.generation++;
     this.key?.fill(0);
     this.key = undefined;
+    this.legacyKey?.fill(0);
+    this.legacyKey = undefined;
+    this.hasLegacy = false;
   }
   encrypt(value: string, aad: string) {
-    ensure(this.key, "CREDENTIAL_LOCKED", "Migrate saved credentials using the previous password.", 423);
+    ensure(this.key, "CREDENTIAL_LOCKED", "The local encryption key is unavailable.", 423);
     const iv = randomBytes(12),
       cipher = createCipheriv("aes-256-gcm", this.key, iv);
     cipher.setAAD(Buffer.from(aad));
     const bytes = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
     return {
+      ...(this.hasLegacy ? { key: "local" } : {}),
       iv: iv.toString("hex"),
       tag: cipher.getAuthTag().toString("hex"),
       ciphertext: bytes.toString("base64"),
     };
   }
+  private keyFor(record: Json) {
+    return this.hasLegacy && record?.key !== "local" ? this.legacyKey : this.key;
+  }
+  canDecrypt(record: Json) {
+    return !!record && !!this.keyFor(record);
+  }
   decrypt(record: Json, aad: string): string {
-    ensure(this.key, "CREDENTIAL_LOCKED", "Migrate saved credentials using the previous password.", 423);
-    const cipher = createDecipheriv(
-      "aes-256-gcm",
-      this.key,
-      Buffer.from(record.iv, "hex"),
-    );
-    cipher.setAAD(Buffer.from(aad));
-    cipher.setAuthTag(Buffer.from(record.tag, "hex"));
-    return Buffer.concat([
-      cipher.update(Buffer.from(record.ciphertext, "base64")),
-      cipher.final(),
-    ]).toString("utf8");
+    const key = this.keyFor(record);
+    ensure(key, "CREDENTIAL_LOCKED", "This saved value needs recovery with the previous password.", 423);
+    return decryptWithKey(key, record, aad);
   }
   addSecret(label: string, value: string, metadata: Json = {}) {
     ensure(metadata.purpose === undefined || ["unspecified", "model_api", "mcp_auth", "mcp_config"].includes(metadata.purpose), "INPUT_INVALID", "Invalid credential purpose.");
@@ -215,19 +255,19 @@ export class Vault {
     ensure(s, "AUTH_REQUIRED", "Secret unavailable.", 401);
     return this.decrypt(s.encrypted, ref);
   }
-  private sensitiveRecords() {
+  private sensitiveValues() {
+    if (this.locked) return [];
     const metadata=credentialInventory(this.repo);
     return this.repo.all("secrets").filter(s=>{
+      if (!this.canDecrypt(s.encrypted)) return false;
       const meta=metadata.find(m=>m.id===s.id),normal=s.purpose==="mcp_config"||(!s.purpose||s.purpose==="unspecified")&&meta.usedBy.length>0&&meta.usedBy.every((u:Json)=>u.kind==="mcp_config");
       return !normal||meta.usedBy.some((u:Json)=>["model_api","mcp_auth"].includes(u.kind));
-    });
+    }).map(s=>this.decrypt(s.encrypted, s.id));
   }
   protectDiagnostic(value: Json): Json {
     // Decrypt only inside this call. No plaintext matcher survives vault lock,
     // password rotation, or the operation that stores the sanitized result.
-    const secrets = this.locked
-      ? []
-      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
+    const secrets = this.sensitiveValues();
     return protectDiagnostic(value, secrets);
   }
   /** Reject known authentication values without rewriting ordinary business data. */
@@ -235,9 +275,7 @@ export class Vault {
     this.catalogContext();
     // Match decoded strings directly. Serializing JSON first would escape quotes,
     // newlines and backslashes in credentials, and miss those literal values.
-    const secrets = this.locked
-      ? []
-      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
+    const secrets = this.sensitiveValues();
     const pending: Json[] = [value];
     while (pending.length) {
       const item = pending.pop();
@@ -272,9 +310,7 @@ export class Vault {
     // Inspect strings individually: treating schema property names as output
     // fields would redact declarations such as `properties.password` and alter
     // the actual tool contract. Reject the entire catalog instead of rewriting.
-    const secrets = this.locked
-      ? []
-      : this.sensitiveRecords().map((s) => this.decrypt(s.encrypted, s.id));
+    const secrets = this.sensitiveValues();
     const inspect = (item: Json, schema = false): void => {
       if (typeof item === "string")
         ensure(

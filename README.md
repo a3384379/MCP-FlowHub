@@ -39,7 +39,7 @@ Node **24.19.0**、npm **11.9.0**：
     npm run build
     npm start
 
-打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。模型 Key 在「模型设置」填写，MCP 直连的令牌或环境变量在对应连接填写。服务重启后自动复用。带有旧版凭据的工作区升级时，用原口令迁移一次。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
+打开 [本机 FlowHub](http://127.0.0.1:18473/) 即可进入工作区。模型 Key 在「模型设置」填写，MCP 直连的令牌或环境变量在对应连接填写。服务重启后自动复用。升级旧工作区后即可运行 Codex 流程。需要沿用旧版加密数据时，可在系统设置中按需恢复。另一个终端运行 `npm run mcp`，或按系统设置生成受限宿主配置。
 
     npm start -- --data-dir /tmp/flowhub-dev --port 18474
     npm run mcp -- --data-dir /tmp/flowhub-dev
